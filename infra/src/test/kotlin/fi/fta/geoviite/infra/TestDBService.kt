@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -21,9 +20,10 @@ import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
+import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
@@ -86,10 +86,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import kotlin.reflect.KClass
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -462,10 +462,7 @@ class TestDBService(
         )
     }
 
-    fun savePlan(
-        plan: GeometryPlan,
-        file: InfraModelFile = InfraModelFile(plan.fileName, "<a></a>"),
-    ): GeometryPlan {
+    fun savePlan(plan: GeometryPlan, file: InfraModelFile = InfraModelFile(plan.fileName, "<a></a>")): GeometryPlan {
         val planVersion = geometryDao.insertPlan(plan, file, null)
         return geometryDao.fetchPlan(planVersion)
     }
@@ -547,8 +544,10 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>): Oid<T> =
         testService.generateOid(id, context.branch)
 
-    fun saveWithOid(asset: LocationTrack, geometry: LocationTrackGeometry): Pair<IntId<LocationTrack>, Oid<LocationTrack>> =
-        save(asset, geometry).id.let { id -> id to generateOid(id) }
+    fun saveWithOid(
+        asset: LocationTrack,
+        geometry: LocationTrackGeometry,
+    ): Pair<IntId<LocationTrack>, Oid<LocationTrack>> = save(asset, geometry).id.let { id -> id to generateOid(id) }
 
     fun saveWithOid(asset: LayoutSwitch): Pair<IntId<LayoutSwitch>, Oid<LayoutSwitch>> =
         save(asset).id.let { id -> id to generateOid(id) }
@@ -664,8 +663,12 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         return save(locationTrack(createLayoutTrackNumber().id), geometry)
     }
 
-    fun createLocationTrackWithReferenceLine(geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> {
-        val trackNumberId = createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments)).id
+    fun createLocationTrackWithReferenceLine(
+        geometry: LocationTrackGeometry,
+        trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
+    ): LayoutRowVersion<LocationTrack> {
+        val trackNumberId =
+            createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber).id
         return save(locationTrack(trackNumberId), geometry)
     }
 
@@ -723,24 +726,23 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                     )
                 )
                 .id
-        val innerTrackIds =
-            alignmentJointPositions.map { jointPositions ->
-                save(
-                        locationTrack(createLayoutTrackNumber().id),
-                        trackGeometry(
-                            combineEdges(
-                                jointPositions.zipWithNext().map { (from, to) ->
-                                    edge(
-                                        startInnerSwitch = switchLinkYV(switchId, from.first.intValue),
-                                        endInnerSwitch = switchLinkYV(switchId, to.first.intValue),
-                                        segments = listOf(segment(toSegmentPoints(from.second, to.second))),
-                                    )
-                                }
-                            )
-                        ),
-                    )
-                    .id
-            }
+        val innerTrackIds = alignmentJointPositions.map { jointPositions ->
+            save(
+                    locationTrack(createLayoutTrackNumber().id),
+                    trackGeometry(
+                        combineEdges(
+                            jointPositions.zipWithNext().map { (from, to) ->
+                                edge(
+                                    startInnerSwitch = switchLinkYV(switchId, from.first.intValue),
+                                    endInnerSwitch = switchLinkYV(switchId, to.first.intValue),
+                                    segments = listOf(segment(toSegmentPoints(from.second, to.second))),
+                                )
+                            }
+                        )
+                    ),
+                )
+                .id
+        }
         return switchId to innerTrackIds
     }
 
