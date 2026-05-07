@@ -61,6 +61,7 @@ export type MapLayerName =
     | 'deleted-publication-candidate-icon-layer'
     | 'debug-geometry-graph-layer'
     | 'signal-asset-layer'
+    | 'property-boundary-layer'
     | 'virtual-hide-signal-asset-layer';
 
 export type MapViewportSource = 'Map';
@@ -123,6 +124,7 @@ export type MapLayerMenuItemName =
     | 'operational-points'
     | 'operational-point-areas'
     | 'signal-asset'
+    | 'property-boundary'
     | 'debug-1m'
     | 'debug-projection-lines'
     | 'debug'

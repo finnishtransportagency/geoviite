@@ -127,6 +127,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'operational-points': ['operational-points-icon-layer', 'operational-points-badge-layer'],
     'operational-point-areas': ['operational-points-area-layer'],
     'signal-asset': ['signal-asset-layer'],
+    'property-boundary': ['property-boundary-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug-projection-lines': ['debug-projection-lines-layer'],
     'debug': ['debug-layer'],
@@ -187,6 +188,7 @@ export const initialMapState: Map = {
                 ],
             },
             { name: 'signal-asset', selected: false },
+            { name: 'property-boundary', selected: false },
         ],
         geometry: [
             { name: 'geometry-alignment', selected: true },
