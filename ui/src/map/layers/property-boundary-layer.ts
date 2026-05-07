@@ -55,8 +55,24 @@ function createLayer(
         extent: layerExtent,
         maxZoom: 12,
     });
-    source.on('tileloadstart', () => onLoadingData(true));
-    source.on(['tileloadend', 'tileloaderror'], () => onLoadingData(false));
+    let inFlightTileLoads = 0;
+
+    source.on('tileloadstart', () => {
+        inFlightTileLoads += 1;
+        if (inFlightTileLoads === 1) {
+            onLoadingData(true);
+        }
+    });
+    source.on(['tileloadend', 'tileloaderror'], () => {
+        if (inFlightTileLoads === 0) {
+            return;
+        }
+
+        inFlightTileLoads -= 1;
+        if (inFlightTileLoads === 0) {
+            onLoadingData(false);
+        }
+    });
 
     return new VectorTileLayer({
         source: source,
