@@ -62,7 +62,7 @@ function createLayer(onLoadingData: (loading: boolean) => void, opacity: number)
 }
 
 export function createPropertyBoundaryLayer(
-    existingOlLayer: VectorTileLayer<VectorTileSource<never>, never>,
+    existingOlLayer: VectorTileLayer<VectorTileSource<never>, never> | undefined,
     onLoadingData: (loading: boolean) => void,
     orthoMapVisible: boolean,
 ): MapLayer {
@@ -72,6 +72,7 @@ export function createPropertyBoundaryLayer(
         : existingOlLayer;
 
     layer.set('orthoMapVisible', orthoMapVisible);
+    layer.setOpacity(propertyBoundaryStyle.opacity);
     layer.setStyle((feature) => styleFunc(feature, propertyBoundaryStyle));
     return {
         name: 'property-boundary-layer',
