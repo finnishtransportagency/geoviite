@@ -11,18 +11,29 @@ import { BackgroundMapLayerSourceType } from 'map/layers/background-map-layer';
 
 type PropertyBoundaryStyle = {
     opacity: number;
-    strokeWidth: number;
+    style: Style;
 };
 
 const layerExtent = [-548576, 6291456, 1548576, 8388608];
+const PROPERTY_BORDER_COLOR = '#b40a14';
 const PROPERTY_BOUNDARY_STYLES: { [key in BackgroundMapLayerSourceType]: PropertyBoundaryStyle } = {
     ortokuva: {
         opacity: 0.8,
-        strokeWidth: 3,
+        style: new Style({
+            stroke: new Stroke({
+                width: 3,
+                color: PROPERTY_BORDER_COLOR,
+            }),
+        }),
     },
     taustakartta: {
         opacity: 0.5,
-        strokeWidth: 1,
+        style: new Style({
+            stroke: new Stroke({
+                width: 1,
+                color: PROPERTY_BORDER_COLOR,
+            }),
+        }),
     },
 };
 
@@ -36,12 +47,7 @@ const PROPERTY_BOUNDARY_LOCATIONS = 'KiinteistorajanSijaintitiedot';
 const styleFunc = (feature: FeatureLike, boundaryStyle: PropertyBoundaryStyle): Style | undefined =>
     // Only visibly draw actual property boundaries, not the other features in the same layer
     feature.getProperties()?.layer === PROPERTY_BOUNDARY_LOCATIONS
-        ? new Style({
-              stroke: new Stroke({
-                  width: boundaryStyle.strokeWidth,
-                  color: '#b40a14',
-              }),
-          })
+        ? boundaryStyle.style
         : undefined;
 
 function createLayer(
