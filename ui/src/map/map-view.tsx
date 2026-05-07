@@ -113,6 +113,7 @@ import { createOperationalPointsPlacingLayer } from 'map/layers/operational-poin
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
+import { createPropertyBoundaryLayer } from 'map/layers/property-boundary-layer';
 import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
 import { RouteLocation, RouteLocations } from 'track-layout/track-layout-slice';
@@ -778,6 +779,12 @@ const MapView: React.FC<MapViewProps> = ({
                         return createSignalAssetLayer(
                             existingOlLayer as TileLayer<TileSource>,
                             (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'property-boundary-layer':
+                        return createPropertyBoundaryLayer(
+                            existingOlLayer as TileLayer<TileSource>,
+                            (loading) => onLayerLoading(layerName, loading),
+                            visibleLayerNames.includes('orthographic-background-map-layer'),
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':

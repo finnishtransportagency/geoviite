@@ -9,6 +9,7 @@ export const HIGHLIGHTS_SHOW = 100.0;
 
 const mapLayerOrder: MapLayerName[] = [
     'background-map-layer',
+    'property-boundary-layer',
     'location-track-background-layer',
     'reference-line-background-layer',
     'operational-points-area-layer',
