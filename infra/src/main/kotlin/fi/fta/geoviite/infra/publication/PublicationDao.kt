@@ -355,7 +355,11 @@ class PublicationDao(
               candidate_switch.design_asset_state,
               -- NOTE: This only picks one if there are multiple splits affecting the same switch
               -- We should not have such cases, but they're not actually blocked either!
-              (select splits.split_id from splits where candidate_switch.id = any(splits.split_relinked_switch_ids) limit 1) as split_id
+              (
+                select min(splits.split_id)
+                  from splits 
+                  where candidate_switch.id = any(splits.split_relinked_switch_ids)
+              ) as split_id
             from layout.switch candidate_switch
               left join common.switch_structure on candidate_switch.switch_structure_id = switch_structure.id
               left join layout.switch_version_joint joint_version
