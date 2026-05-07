@@ -356,8 +356,8 @@ constructor(
             (0..2).map { _ ->
                 val name = "Test track-${UUID.randomUUID()}"
                 mainOfficialContext
-                    .save(locationTrack(trackNumberId, name = name), trackGeometryOfSegments(segments))
-                    .let { mainOfficialContext.fetch(it.id) }
+                    .saveAndFetch(locationTrack(trackNumberId, name = name), trackGeometryOfSegments(segments))
+                    .first
             }
 
         tracks.forEach { track ->
@@ -485,8 +485,8 @@ constructor(
         assertEquals(track.description.toString(), properties["sijaintiraide_kuvaus"])
         assertEquals("kujaraide", properties["sijaintiraide_tyyppi"])
         assertEquals(0, properties["ratakilometri"])
-        assertEquals(10, properties["ratametri"] as Int)
-        assertEquals(0, properties["ratametri_desimaalit"] as Int)
+        assertEquals("10", properties["ratametri"])
+        assertEquals("0", properties["ratametri_desimaalit"])
     }
 
     @Test

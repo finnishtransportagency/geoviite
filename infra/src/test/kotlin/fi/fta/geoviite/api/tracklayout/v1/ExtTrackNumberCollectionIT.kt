@@ -214,7 +214,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
                 oid to trackNumber.id as IntId
             }
 
-        val secondPublication = testDBService.publish(trackNumbers = modifiedTrackNumbers.map { (_, id) -> id })
+        testDBService.publish(trackNumbers = modifiedTrackNumbers.map { (_, id) -> id })
 
         val response = api.trackNumberCollection.getModified("alkuversio" to initialPublication.uuid.toString())
 
@@ -251,8 +251,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
             .zip(LayoutState.entries)
             .forEach { (trackNumber, newState) -> mainDraftContext.saveTrackNumber(trackNumber.copy(state = newState)) }
 
-        val secondPublication =
-            testDBService.publish(trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId })
+        testDBService.publish(trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId })
 
         val response = api.trackNumberCollection.getModified("alkuversio" to initialPublication.uuid.toString())
 
