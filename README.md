@@ -15,6 +15,7 @@ main purpose is:
 - General documentation
     - [Code conventions](./CODE_CONVENTIONS.md)
     - See [LICENSE.txt](./LICENSE.txt)
+    - [AI Use in Geoviite](./AI_USE.md)
     - Project documentation (in Finnish): [doc/readme.md](./doc/readme.md)
 
 ## Development

@@ -6,7 +6,8 @@ Geoviitteessä käytetään GitHub Copilot:ia ja siitä nimenomaisesti
 [enterprise versiota](https://docs.github.com/en/enterprise-cloud@latest/admin/overview/about-github-for-enterprises).
 
 Käytännön työkaluina Copilotia on käytetty:
-- [IDE:en (Intellij Idea) integroituna Githubin virallisen pluginin avulla](https://plugins.jetbrains.com/plugin/17718-github-copilot--your-ai-pair-programmer)
+
+- [IDE:en (Intellij Idea) integroituna GitHubin virallisen pluginin avulla](https://plugins.jetbrains.com/plugin/17718-github-copilot--your-ai-pair-programmer)
 - [Copilot CLI:n kautta komentoriviltä](https://github.com/features/copilot/cli/)
 - [GitHubiin web-käyttöliittymään integroidun review-toiminnon kautta](https://docs.github.com/en/copilot/concepts/agents/code-review)
 
@@ -31,4 +32,3 @@ ovat aina viimekädessä vastuussa siitä koodista ja niistä muutoksista jotka 
 tuovat, riippumatta siitä onko koodi osin tai jopa kokonaan AI:n avulla tuotettu. Kehittäjät käyvät
 siis läpi kaikki AI:nkin tekemät muutokset ennen eteenpäin viemistä ja tämän jälkeen muutokset käyvät
 vielä läpi normaalin review/testaus prosessin aivan kuten manuaalisestikin tehdyt muutokset.
-
