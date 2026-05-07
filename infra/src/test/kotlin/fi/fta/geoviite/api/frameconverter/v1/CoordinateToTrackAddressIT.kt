@@ -24,8 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -357,8 +356,8 @@ constructor(
             (0..2).map { _ ->
                 val name = "Test track-${UUID.randomUUID()}"
                 mainOfficialContext
-                    .saveAndFetch(locationTrack(trackNumberId, name = name), trackGeometryOfSegments(segments))
-                    .first
+                    .save(locationTrack(trackNumberId, name = name), trackGeometryOfSegments(segments))
+                    .let { mainOfficialContext.fetch(it.id) }
             }
 
         tracks.forEach { track ->
@@ -689,19 +688,14 @@ constructor(
     @Test
     fun `Reverse geocoded address should match the returned coordinate`() {
         val referenceLineSegments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val trackNumberVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments))
-        val trackNumberId = trackNumberVersion.id
-        val trackNumber = trackNumberDao.fetch(trackNumberVersion)
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        mainOfficialContext.save(referenceLine(trackNumberId), referenceLineGeometry(referenceLineSegments))
 
         // Track is offset from the reference line and with a slightly different angle
         val trackStart = Point(-5.0, 1.0)
         val trackEnd = Point(5.0, 2.0)
-        val trackSegments = listOf(segment(trackStart, trackEnd))
-        val (track, _) =
-            mainOfficialContext.saveAndFetchLocationTrack(
-                locationTrackAndGeometry(trackNumberId, segments = trackSegments)
-            )
+        val trackGeometry = trackGeometryOfSegments(segment(trackStart, trackEnd))
+        val (track, _) = mainOfficialContext.saveAndFetch(locationTrack(trackNumberId), trackGeometry)
 
         // Seek a point that is offset from both the track and the reference line - perpendicular
         // from track point x=0 y=1.5
@@ -716,7 +710,7 @@ constructor(
         val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
 
         val properties = featureCollection.features[0].properties!!
-        assertEquals(trackNumber.number.toString(), properties["ratanumero"])
+        assertEquals(trackNumber.toString(), properties["ratanumero"])
         assertEquals(track.name.toString(), properties["sijaintiraide"])
 
         // Verify that we got the expected coordinate
@@ -743,8 +737,7 @@ constructor(
     fun `Location track OID filter does not find any results when the location track OID does not match`() {
         val trackOid = Oid<LocationTrack>("000.000.000")
         val searchOid = Oid<LocationTrack>("111.111.111")
-        val trackVersion = mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
-        val trackId = trackVersion.id
+        val trackId = mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry()).id
 
         locationTrackDao.insertExternalId(trackId, mainOfficialContext.context.branch, trackOid)
 
@@ -757,15 +750,12 @@ constructor(
 
     @Test
     fun `Location track OID filter only finds tracks with the given location track OID`() {
-        val testOids = listOf<Oid<LocationTrack>>(someOid(), someOid())
-
-        testOids.forEach { oid ->
-            val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-            val trackVersion =
-                mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
-
-            locationTrackDao.insertExternalId(trackVersion.id, mainOfficialContext.context.branch, oid)
-        }
+        val testOids =
+            (0..1).map {
+                val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+                val id = mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments)).id
+                mainOfficialContext.generateOid(id)
+            }
 
         testOids.forEach { oid ->
             val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = oid.toString())
@@ -792,12 +782,9 @@ constructor(
 
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
 
-        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
-            mainOfficialContext.saveReferenceLine(
-                referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
-            )
-
-            mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segments))
+        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).id.let { tnId ->
+            mainOfficialContext.save(referenceLine(tnId), referenceLineGeometry(segments))
+            mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
         }
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = searchOid.toString())
@@ -816,12 +803,9 @@ constructor(
         val testOids = listOf<Oid<LayoutTrackNumber>>(someOid(), someOid())
 
         testOids.forEach { oid ->
-            val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
-            mainOfficialContext.saveReferenceLine(
-                referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
-            )
-
-            mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segments))
+            val tnId = mainOfficialContext.createLayoutTrackNumberWithOid(oid).id
+            mainOfficialContext.save(referenceLine(tnId), referenceLineGeometry(segments))
+            mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
         }
 
         testOids.forEach { oid ->
@@ -857,9 +841,8 @@ constructor(
     fun `Coordinate system argument is respected`() {
         // Helsinki Railway Station area: TM35FIN (385782.89, 6672277.83) ↔ WGS84 (24.9414003, 60.1713788)
         val trackStart = Point(385782.89, 6672277.83)
-        mainOfficialContext.createLocationTrackWithReferenceLine(
-            trackGeometryOfSegments(listOf(segment(trackStart, trackStart + Point(100.0, 100.0))))
-        )
+        val segment = segment(trackStart, trackStart + Point(100.0, 100.0))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segment))
 
         // With EPSG:4326: x/y in the request body are WGS84, and the response x/y are also WGS84
         val trackStartWgs84 = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, trackStart)
