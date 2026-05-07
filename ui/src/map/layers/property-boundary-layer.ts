@@ -1,7 +1,5 @@
-import { Tile } from 'ol/layer';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
-import TileSource from 'ol/source/Tile';
 import MVT from 'ol/format/MVT';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
@@ -44,10 +42,7 @@ const styleFunc = (feature: FeatureLike, boundaryStyle: PropertyBoundaryStyle): 
           })
         : undefined;
 
-function createLayer(
-    onLoadingData: (loading: boolean) => void,
-    propertyBoundaryStyle: PropertyBoundaryStyle,
-) {
+function createLayer(onLoadingData: (loading: boolean) => void, opacity: number) {
     const source = new VectorTileSource({
         format: new MVT(),
         url: '/location-map/kiinteisto-avoin/tiles/wmts/1.0.0/kiinteistojaotus/default/v3/ETRS-TM35FIN/{z}/{y}/{x}.pbf',
@@ -62,22 +57,22 @@ function createLayer(
         source: source,
         renderMode: 'vector',
         maxResolution: 4,
-        opacity: propertyBoundaryStyle.opacity,
-        style: (feature) => styleFunc(feature, propertyBoundaryStyle),
+        opacity,
     });
 }
 
 export function createPropertyBoundaryLayer(
-    existingOlLayer: Tile<TileSource>,
+    existingOlLayer: VectorTileLayer<VectorTileSource<never>, never>,
     onLoadingData: (loading: boolean) => void,
     orthoMapVisible: boolean,
 ): MapLayer {
-    const layer =
-        !existingOlLayer || existingOlLayer?.get('orthoMapVisible') !== orthoMapVisible
-            ? createLayer(onLoadingData, getPropertyBoundaryStyle(orthoMapVisible))
-            : existingOlLayer;
+    const propertyBoundaryStyle = getPropertyBoundaryStyle(orthoMapVisible);
+    const layer = !existingOlLayer
+        ? createLayer(onLoadingData, propertyBoundaryStyle.opacity)
+        : existingOlLayer;
 
     layer.set('orthoMapVisible', orthoMapVisible);
+    layer.setStyle((feature) => styleFunc(feature, propertyBoundaryStyle));
     return {
         name: 'property-boundary-layer',
         layer: layer,

@@ -1,3 +1,5 @@
+import type VectorTileLayer from 'ol/layer/VectorTile';
+import VectorTileSource from 'ol/source/VectorTile';
 import React from 'react';
 import OlMap from 'ol/Map';
 import {
@@ -782,7 +784,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'property-boundary-layer':
                         return createPropertyBoundaryLayer(
-                            existingOlLayer as TileLayer<TileSource>,
+                            existingOlLayer as VectorTileLayer<VectorTileSource<never>, never>,
                             (loading) => onLayerLoading(layerName, loading),
                             visibleLayerNames.includes('orthographic-background-map-layer'),
                         );
