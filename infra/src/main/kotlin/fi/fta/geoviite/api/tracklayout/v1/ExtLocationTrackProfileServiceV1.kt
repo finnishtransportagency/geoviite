@@ -125,7 +125,7 @@ constructor(
         val startMoment = publications.from.publicationTime
         val endMoment = publications.to.publicationTime
         return publicationDao
-            .fetchPublishedLocationTrackVersionBetween(id, startMoment, endMoment)
+            .fetchPublishedLocationTrackVersionsBetween(id, startMoment, endMoment)
             ?.map(locationTrackDao::fetch)
             ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
             ?.let { (oldTrack, newTrack) ->

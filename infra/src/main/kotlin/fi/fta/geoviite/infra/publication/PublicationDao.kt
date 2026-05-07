@@ -2523,7 +2523,7 @@ class PublicationDao(
             .firstOrNull()
     }
 
-    fun fetchPublishedLocationTrackVersionBetween(
+    fun fetchPublishedLocationTrackVersionsBetween(
         trackId: IntId<LocationTrack>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
