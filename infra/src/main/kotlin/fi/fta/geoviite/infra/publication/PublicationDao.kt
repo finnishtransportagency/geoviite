@@ -103,11 +103,11 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -354,7 +354,9 @@ class PublicationDao(
               postgis.st_x(joint_version.location) as point_x,
               postgis.st_y(joint_version.location) as point_y,
               candidate_switch.design_asset_state,
-              splits.split_id
+              -- NOTE: This only picks one if there are multiple splits affecting the same switch
+              -- We should not have such cases, but they're not actually blocked either!
+              (select splits.split_id from splits where candidate_switch.id = any(splits.split_relinked_switch_ids) limit 1) as split_id
             from layout.switch candidate_switch
               left join common.switch_structure on candidate_switch.switch_structure_id = switch_structure.id
               left join layout.switch_version_joint joint_version
@@ -362,7 +364,6 @@ class PublicationDao(
                   and joint_version.switch_layout_context_id = candidate_switch.layout_context_id
                   and joint_version.switch_version = candidate_switch.version
                   and joint_version.number = switch_structure.presentation_joint_number
-             left join splits on candidate_switch.id = any(splits.split_relinked_switch_ids)
             where candidate_switch.draft = (:candidate_state = 'DRAFT')
               and candidate_switch.design_id is not distinct from :candidate_design_id
               and not (candidate_switch.design_id is not null and not candidate_switch.draft
