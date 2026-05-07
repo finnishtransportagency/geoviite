@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -8,13 +9,16 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryProfile
 import fi.fta.geoviite.infra.geometry.VIPoint
 import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.geometryElements
 import fi.fta.geoviite.infra.geometry.infraModelFile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.linking.NodeTrackConnections
 import fi.fta.geoviite.infra.math.MultiPoint
@@ -27,6 +31,8 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
+import java.math.BigDecimal
+import kotlin.random.Random
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -470,6 +476,55 @@ constructor(
             ),
             alignmentDao.getNodeConnectionsNear(MainLayoutContext.draft, MultiPoint(track1End), 1.0),
         )
+    }
+
+    @Test
+    fun `database roundtrip maintains EdgeKey equality`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val planVersion =
+            geometryDao.insertPlan(plan(alignments = listOf(geometryAlignment(geometryElements()))), testFile(), null)
+
+        val planAlignmentId = geometryDao.fetchPlan(planVersion).alignments[0].id as IntId<GeometryAlignment>
+        val geometry =
+            trackGeometryOfSegments(
+                // segments with diverse data
+                segment(Point(0.0, 0.0), Point(14.0, 15.0))
+                    .copy(
+                        sourceId = IndexedId(planAlignmentId.intValue, 0),
+                        // sourceStartMs have exactly 6 decimals in the schema, and we don't care about having other
+                        // numbers of decimals survive roundtrips
+                        sourceStartM = BigDecimal("123.534631"),
+                        source = PLAN,
+                    ),
+                segment(Point(14.0001, 14.9999), Point(15.0, 15.0)).copy(source = GENERATED),
+                segment(Point(15.0, 15.0), Point(18.0, 10.0)),
+                segment(Point(18.0, 10.0), Point(19.0, 10.0)).copy(sourceStartM = BigDecimal("0.000000")),
+            )
+        val track = mainOfficialContext.save(locationTrack(trackNumber), geometry).id
+        val geometryWithTrackId = geometry.withLocationTrackId(track)
+        val loadedGeometry = mainOfficialContext.fetchLocationTrackWithGeometry(track)!!.second
+        assertEquals(geometryWithTrackId.edges[0].contentKey, loadedGeometry.edges[0].contentKey)
+    }
+
+    @Test
+    fun `database roundtrip maintains EdgeKey equality for random segments`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+
+        val rng = Random(123)
+
+        repeat(10 /*_000_000 */) {
+            val geometry =
+                trackGeometryOfSegments(
+                    segment(
+                        Point(rng.nextFloat() * 100.0, rng.nextFloat() * 100.0),
+                        Point(rng.nextFloat() * 100.0, rng.nextFloat() * 100.0),
+                    )
+                )
+            val track = mainOfficialContext.save(locationTrack(trackNumber), geometry).id
+            val geometryWithTrackId = geometry.withLocationTrackId(track)
+            val loadedGeometry = mainOfficialContext.fetchLocationTrackWithGeometry(track)!!.second
+            assertEquals(geometryWithTrackId.edges[0].contentKey, loadedGeometry.edges[0].contentKey)
+        }
     }
 
     fun edgesBetweenNodes(

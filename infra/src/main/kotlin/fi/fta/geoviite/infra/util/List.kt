@@ -66,6 +66,12 @@ fun <T, R> processSortedBy(list: List<T>, comparator: Comparator<T>, process: (l
     return rv as List<R>
 }
 
+fun <A, B> List<A>.equalsBy(other: List<B>, predicate: (A, B) -> Boolean): Boolean {
+    if (size != other.size) return false
+    for (i in indices) if (!predicate(this[i], other[i])) return false
+    return true
+}
+
 fun <T, R : Comparable<R>> getIndexRangeForRangeInOrderedList(
     things: List<T>,
     rangeStart: R,

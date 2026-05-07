@@ -44,8 +44,8 @@ private fun replaceEndWithTopoSwitch(
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     jointRole: SwitchJointRole,
-): Pair<NodeHash, LayoutNode> =
-    geometry.edges.last().endNode.node.contentHash to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
+): Pair<NodeContentKey, LayoutNode> =
+    geometry.edges.last().endNode.node.contentKey to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
 
 fun removeTopologySwitchesFromLocationTrackAndUpdate(
     locationTrack: LocationTrack,
@@ -67,22 +67,22 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
 private fun replaceTopologyStartWithTrackBoundary(
     geometry: LocationTrackGeometry,
     locationTrack: LocationTrack,
-): Pair<NodeHash, LayoutNode>? =
+): Pair<NodeContentKey, LayoutNode>? =
     geometry.edges.first().startNode.let { start ->
         if (start.switchOut == null) null
         else {
-            start.node.contentHash to LayoutNode.of(TrackBoundary(locationTrack.id as IntId, TrackBoundaryType.START))
+            start.node.contentKey to LayoutNode.of(TrackBoundary(locationTrack.id as IntId, TrackBoundaryType.START))
         }
     }
 
 private fun replaceTopologyEndWithTrackBoundary(
     geometry: LocationTrackGeometry,
     locationTrack: LocationTrack,
-): Pair<NodeHash, LayoutNode>? =
+): Pair<NodeContentKey, LayoutNode>? =
     geometry.edges.last().endNode.let { end ->
         if (end.switchOut == null) null
         else {
-            end.node.contentHash to LayoutNode.of(TrackBoundary(locationTrack.id as IntId, TrackBoundaryType.END))
+            end.node.contentKey to LayoutNode.of(TrackBoundary(locationTrack.id as IntId, TrackBoundaryType.END))
         }
     }
 
@@ -105,8 +105,8 @@ private fun replaceStartWithTopoSwitch(
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     jointRole: SwitchJointRole,
-): Pair<NodeHash, LayoutNode> =
-    geometry.edges.first().startNode.node.contentHash to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
+): Pair<NodeContentKey, LayoutNode> =
+    geometry.edges.first().startNode.node.contentKey to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
 
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
