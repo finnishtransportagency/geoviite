@@ -34,6 +34,7 @@ type OperationalPointSaveRequest =
     | ExternalOperationalPointSaveRequest;
 
 const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
+const externallyChangedOpsCache = asyncCache<string, OperationalPointId[]>();
 const operationalPointOidsCache = asyncCache<
     OperationalPointId,
     { [key in LayoutBranch]?: Oid } | undefined
@@ -210,7 +211,13 @@ export async function getOperationalPointValidation(
 
 export const getExternallyChangedOperationalPointIds = (
     layoutContext: LayoutContext,
+    changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPointId[]> =>
-    getNonNull<OperationalPointId[]>(
-        `${layoutUri('operational-points', layoutContext)}/externally-changed`,
+    externallyChangedOpsCache.get(
+        changeTime,
+        `${layoutContext.branch}_${layoutContext.publicationState}`,
+        () =>
+            getNonNull<OperationalPointId[]>(
+                `${layoutUri('operational-points', layoutContext)}/externally-changed`,
+            ),
     );
