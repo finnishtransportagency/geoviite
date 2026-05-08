@@ -68,7 +68,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
 import {
     getAllOperationalPoints,
-    getExternallyChangedOperationalPointIds,
     getOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
 
@@ -301,18 +300,6 @@ export function useOperationalPoints(
         useLoader(
             () => getAllOperationalPoints(layoutContext, changeTime),
             [layoutContext.branch, layoutContext.publicationState, changeTime],
-        ) || EMPTY_ARRAY
-    );
-}
-
-export function useExternallyChangedOperationalPointIds(
-    layoutBranch: LayoutBranch,
-    changeTime?: TimeStamp,
-): OperationalPointId[] {
-    return (
-        useLoader(
-            () => getExternallyChangedOperationalPointIds(layoutBranch, changeTime),
-            [layoutBranch, changeTime],
         ) || EMPTY_ARRAY
     );
 }

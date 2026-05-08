@@ -30,8 +30,8 @@ import {
     refreshOperationalPointSelection,
     refreshSwitchSelection,
     refreshTrackNumberSelection,
-    useExternallyChangedOperationalPointIds,
 } from 'track-layout/track-layout-react-utils';
+import { getExternallyChangedOperationalPointIds } from 'track-layout/layout-operational-point-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
@@ -50,7 +50,7 @@ import {
 } from 'map/map-utils';
 import { DesignSelectionContainer } from 'tool-bar/workspace-selection';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import {
     getLayoutDesign,
     LayoutDesignSaveRequest,
@@ -118,11 +118,17 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
     );
-    const hasRatkoChanges =
-        useExternallyChangedOperationalPointIds(
-            layoutContext.branch,
-            getChangeTimes().operationalPoints,
-        ).length > 0;
+    const externallyChangedOps = useLoader(
+        () =>
+            layoutContext.publicationState === 'DRAFT'
+                ? getExternallyChangedOperationalPointIds(
+                      layoutContext.branch,
+                      getChangeTimes().operationalPoints,
+                  )
+                : Promise.resolve([]),
+        [layoutContext.publicationState, layoutContext.branch, getChangeTimes().operationalPoints],
+    );
+    const hasRatkoChanges = (externallyChangedOps?.length ?? 0) > 0;
     const currentDesignExists =
         designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
 
