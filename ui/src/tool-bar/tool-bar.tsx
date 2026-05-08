@@ -30,7 +30,7 @@ import {
     refreshOperationalPointSelection,
     refreshSwitchSelection,
     refreshTrackNumberSelection,
-    useOperationalPoints,
+    useExternallyChangedOperationalPointIds,
 } from 'track-layout/track-layout-react-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -118,10 +118,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
     );
-    const hasRatkoChanges = useOperationalPoints(
+    const hasRatkoChanges = useExternallyChangedOperationalPointIds(
         layoutContext,
         getChangeTimes().operationalPoints,
-    ).some((point) => point.hasExternalChanges);
+    ).length > 0;
     const currentDesignExists =
         designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
 

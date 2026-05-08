@@ -35,6 +35,16 @@ class OperationalPointController(
     private val publicationValidationService: PublicationValidationService,
 ) {
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/externally-changed")
+    fun getExternallyChangedOperationalPointIds(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+    ): List<IntId<OperationalPoint>> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return operationalPointService.getExternallyChangedOperationalPointIds(context)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
     fun getSingleOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,

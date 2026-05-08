@@ -207,3 +207,10 @@ export async function getOperationalPointValidation(
         `${layoutUri('operational-points', layoutContext, id)}/validation`,
     );
 }
+
+export const getExternallyChangedOperationalPointIds = (
+    layoutContext: LayoutContext,
+): Promise<OperationalPointId[]> =>
+    getNonNull<OperationalPointId[]>(
+        `${layoutUri('operational-points', layoutContext)}/externally-changed`,
+    );
