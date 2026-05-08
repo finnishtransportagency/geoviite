@@ -470,8 +470,8 @@ ennaltamäärätty malli, joka lisää perusosan perään vaihdetietoja.
 |--------------------------------|----------------------|----------------------------------|
 | Ei lisäosaa                    | —                    | `Kouvola-Kontiomäki`             |
 | Vaihde alussa – vaihde lopussa | alku- ja loppuvaihde | `Sivuraide V012 - V015`          |
-| Vaihde – Puskin                | yksi päätösvaihe     | `Turvaraide V033 - puskin`       |
-| Vaihde – Omistusraja           | yksi päätösvaihde    | `Huoltoraide V007 - omistusraja` |
+| Vaihde – Puskin                | yksi päätyvaihde     | `Turvaraide V033 - puskin`       |
+| Vaihde – Omistusraja           | yksi päätyvaihde     | `Huoltoraide V007 - omistusraja` |
 
 Vaihdenimet lyhennetään "Vaihdenimien lyhentäminen nimissä ja kuvauksissa" -kappaleessa kuvatulla tavalla.
 
