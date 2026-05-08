@@ -4,6 +4,39 @@
 
 Geoviite on tietojärjestelmä, jolla ylläpidetään Suomen rataverkon ratageometrioita.
 
+## Projektin syntyhistoria
+
+Ennen Geoviitettä ratageometrian hallinnasta vastasi **Sweco Oy**. Järjestelmä päätettiin rakentaa kahdesta syystä:
+
+1. **Hallinnan siirto tilaajalle** — Väylävirasto halusi ottaa ratageometrian hallinnan omiin käsiinsä Swecon sijaan.
+2. **Datan laadun parantaminen** — Swecon järjestelmässä ei ollut yhtenäistä paikannuspohjaa: geometriaraiteiden osuudet saattoivat olla limittäin tai niiden väliin jäi aukkoja, ja Ratkoon toimitettu pisteviiva-aineisto sisälsi siksak-kuvioita ja pitkiä pistevälejä.
+
+Projektin ensimmäisessä vaiheessa toteutettiin kriittisimmät toiminnallisuudet palvelun hallinnansiirtoa varten:
+- Ratageometriasuunnitelmien (inframodel) rekisteri
+- Geometrioiden linkitys yhtenäiseen paikannuspohjaan
+- Paikannuspohjan tietojen välittäminen Ratkoon
+
+Swecon käyttäjät olivat Swecon omia työntekijöitä. Geoviite-operaattorit valittiin Väyläviraston järjestämällä kilpailutuksella.
+
+### Ramboll asiantuntijatukena
+
+Geoviite-projektissa oli alusta alkaen mukana väyläpuolen (rata + tie) asiantuntijoita **Rambolilta**. He auttoivat tiimiä ymmärtämään ratageometrian hallinnan prosesseja ja dataa sekä koestivat tiimin tuottamia prototyyppejä.
+
+### Pohjadatan alkuperä
+
+Geoviitteen alkuperäinen pohjadata koottiin kahdesta lähteestä ja siihen tehtiin automatisoitua datan korjausta (mm. siksak-kuvioiden poisto):
+
+| Tietolähde | Mitä saatiin |
+|---|---|
+| **Ratko** | Ratanumerot, pituusmittauslinjojen pisteviiva-geometria, raiteet, raiteiden pisteviiva-geometria, vaihteet |
+| **Sweco** | Geometriasuunnitelmat (inframodel-tiedostot), geometrian linkittyminen pisteviiva-aineistoon |
+
+Tasakilometripisteet pääteltiin Ratkon pisteviiva-aineistosta.
+
+Ratkon tietomallin katsottiin soveltuvan hieman paremmin Geoviitteen paikannuspohjan pohjaksi kuin Swecon tietomallin, koska Ratkossa raiteen geometria oli jo jatkuva (vaikka sisälsikin virheitä).
+
+> **Huom:** Suuri osa Geoviitteen geometrian linkityksestä on Swecon *paikannuspalvelun* geometriasuunnitelmista (epätarkempia), ei *geometriapalvelun* suunnitelmista (alkuperäiset, tarkat). Tästä seuraa, että paikannuspohjan linkitystietojen perusteella ei voida aina suoraan jäljittää alkuperäistä tarkkaa geometriasuunnitelmaa.
+
 ## Tila
 
 | Vaihe | Ajankohta |

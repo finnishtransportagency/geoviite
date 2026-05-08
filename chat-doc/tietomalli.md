@@ -16,6 +16,7 @@ Alla listattu kaikki tunnistetut ydinkäsitteet. ✅ = kuvattu, ⬜ = kuvaus puu
 | Tasakilometripiste | ✅ |
 | Rataosoitejärjestelmä | ✅ |
 | Geometriasuunnitelma | ✅ |
+| Geometriasuunnitelman luokittelu | ✅ |
 | Geometriaelementti | ✅ |
 | Segmentti | ✅ |
 | Vaakageometria | ✅ |
@@ -134,14 +135,33 @@ Rataosoite on **yksiulotteinen**: se määrittää sijainnin pituusmittauslinjal
 
 Suunnitelma, joka sisältää raiteiden **suunnitellun geometrisen muodon**. Sisältää aina vähintään vaakageometrian, mahdollisesti myös pystygeometrian. Joissakin suunnitelmissa (erityisesti Sweco-yrityksen tuottamissa) on myös vaihdetietoja.
 
-#### Suunnitelmien laatu
+#### Luokittelu (vanha malli)
 
-| Laatu | Kuvaus | Käyttötarkoitus |
+Ennen luokittelun uudistusta geometriasuunnitelmia kuvattiin kolmella kentällä:
+
+| Kenttä | Kuvaus | Huomio |
 |---|---|---|
-| Laadukas | Ratasuunnittelijan tuottama ratahankkeessa | Rakentaminen, kunnossapito |
-| Heikompi | Operaattorin (Welado) tai mittauksen pohjalta tuotettu | Paikannuspohjan muodostus alueilla, joissa laadukkaita suunnitelmia ei ole |
+| **Laatu** | Sekaisin mittausmenetelmiä ja laatua: "Geodeettisesti mitattu", "Digitoitu ilmakuvasta", "Suunnitelma", "Epäluotettava suunnitelma" | Swecolta tuoduissa: paikannuspalvelun suunnitelmille asetettu järkevästi; geometriapalvelun suunnitelmat jätetty tyhjäksi tai merkitty "Epäluotettava" virheellisesti |
+| **Suunnitelman lähde** | "Geometriapalvelu" (tarkka), "Paikannuspalvelu" (paikannuspohja-käyttöön) | Geoviite-operaattori on asettanut manuaalisesti; merkitsee käyttötarkoitusta, ei lähdettä |
+| **Soveltuvuus** | Mihin suunnitelmaa voi hyödyntää: suunnitteluun, kunnossapitoon vai tilastointiin | Lisätty myöhemmin välivaiheena; operaattori asettaa manuaalisesti |
 
-Suomen rataverkolla on alueita ilman laadukkaita digitaalisia suunnitelmia, koska ne on suunniteltu ennen digitaalista aikakautta.
+**Swecon jako:** Swecolla suunnitelmat jaettiin kahteen pääkategoriaan:
+- **Geometriapalvelun suunnitelmat** — alkuperäinen suunniteltu data, korkea tarkkuus, käytettävissä rakentamiseen ja kunnossapitoon
+- **Paikannuspalvelun suunnitelmat** — yhtenäisen paikannuspohjan ylläpitoon, pienempi tarkkuusvaatimus; voivat olla yhdistelmiä useammasta suunnitelmasta, ilmakuvalta digitoituja tai muutoin heikkolaatuisia
+
+#### Luokittelu (uusi malli — suunnitteilla)
+
+Uudistuksen suunnittelu on lähes valmis; migraatiotapa nykyisestä datasta sovitaan erikseen.
+
+| Kenttä | Kuvaus | Muokattavuus |
+|---|---|---|
+| **Mittausmenetelmä** | Pelkästään mittausmenetelmä: "Geodeettisesti mitattu", "Digitoitu ilmakuvasta" jne. | Operaattori manuaalisesti |
+| **Laatu** | Pelkästään laatu: "Ei tiedossa", "Suunnitelma", "Epäluotettava suunnitelma" | Operaattori manuaalisesti |
+| **Suunnitelman lähde** | Mistä suunnitelma on peräisin: "Sweco", "Geoviite" jne. Uusille Geoviitteeseen lisätyille suunnitelmille asetetaan automaattisesti "Geoviite" | **Ei muokattavissa** |
+| **Elinkaari** | "Suunniteltu", "Rakenteilla", "Rakennettu", "Vanhentunut" | Operaattori manuaalisesti |
+| **Soveltuvuus** | Lasketaan automaattisesti muiden luokittelutietojen perusteella: "Soveltuu kunnossapitoon", "Soveltuu suunnitelman pohjatiedoksi", "Soveltuu tilastointiin" | **Laskennallinen** |
+
+Soveltuvuutta käytetään mm. geometriasuunnitelmien hakujen suodatuksessa (esim. tietopyyntöjen täyttämisessä).
 
 #### Tiedostomuodot
 

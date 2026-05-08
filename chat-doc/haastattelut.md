@@ -229,3 +229,65 @@ V: "Inframodel" on standardi, jolla kuvataan infrarakenteita digitaalisessa muod
 Geoviite osaa lukea inframodel-tiedostoista raiteiden geometriaan liittyviä tietoja, mm. vaaka- ja pystygeometria, mutta ei esim. maaston pintamalleja. Geoviitte tukee inframodel versiota 4.0.3. Geoviite ei luo inframodel-tiedostoja.
 
 ---
+
+## 2026-05-08 — KS
+
+**K: Mikä oli Geoviite-projektin syntymisen taustalla — miksi järjestelmä päätettiin rakentaa ja mitä ongelmia sillä pyrittiin ratkaisemaan?**
+
+V: Geoviite-projekti syntyi, koska ratageometrian hallinta haluttiin siirtää tilaajan, eli Väyläviraston hallintaan ja parantaa yhtenäisen rataverkon datan laatua. Ennen Geoviitettä ratageometrian hallinnasta vastasi Sweco Oy. Ensimmäisessä vaiheesa oli tarkoitus toteuttaa Geoviitteeseen kriittisimmät ratageometrian hallintaan liittyvät toiminnallisuudet, niin että palvelu voitiin siirtää Välän hallintaan, näitä toimintoja olivat mm.: ratageometriasuunnitelmien (inframodel) rekisteri, geometrioiden linkitys yhtenäiseen paikannuspohjaan ja paikannuspohjan tietojen välittäminen Ratkoon. Swecon järjestelmiä käyttivät Swecon työntekijät, Geoviitteen käyttäjät, eli Geoviite-operaattorit valittiin Väyläviraston järjestämällä kilpailutuksella. Geoviite-projektissa oli alusta alkaen mukana myös väyläpuolen (rata + tie) asiantuntijoita Rambolilta.
+
+Swecon suorittamaan geometrioiden hallintaan liittyviä tehtäviä pyrittiin selvittämään haastatteluin. Swecon järjestelmissä ei varsinaisesti ollut olemassa yhtenäistä paikannuspohjaa, vaan paikannuspohjaa edustivat geometriasuunnitelmista valitut geometriaraiteden osuudet, jotka eivät aina muodostaneet yhtenäistä ja jatkuvaa linjaa, vaan saattoivat olla limittäin tai osuuksien väliin jäi aukkoja. Ratkoon Swecon paikannuspohjan raiteiden tiedot välitettiin pisteviivana. Ratkossa raiteen geometria oli silloin jatkuva, mutta sisälsi kuitenkin siksak-kuvioita ja pitkiä pistevälejä. Geoviitteen paikannuspohjassa raiteiden päätettiin olevan jatkuvia ja datan olevan pisteviiva, mm. tästä syystä Ratkon tietomalli soveltui hieman paremmin Geoviitteen paikannuspohjan pohjadataksi kuin Swecon tietomalli. Swecolta paikannuspohjan pohjadataan saatiin linkitystieto, eli tieto mistä geometriasuunnitelman raiteesta mikäkin paikannuspohjan sijaintiraiteen geometrian osuus oli peräisin. Pohjatietojen sisäänluvun yhteydessä tehtiin paljon automatisoitua datan korjausta, jolla pyrittiin pääsemään eroon mm. siksak-kuvioista. Swecolta Geoviitteen pohjadataan tulivat myös geometriasuunnitelmat, eli inframodel-tiedostot.
+
+Swecolla geometriasuunnitelmat oli jaettu kahteen pääkategoriaan, paikannuspalvelun ja geometriapalvelun suunnitelmiin. Geometriapalvelun suunnitelmat sisälsivät alkuperäisen suunnitellun datan, joten niitä on voinut käyttää suurta tarkkuuta vaativiin tarpeisiin, esim. uusien suunnitelmien pohjatiedoksi tai kunnossapitoon. Paikannuspalvelun suunnitelmat olivat tarkoitettu mm. yhtenäisen paikannuspohjan ylläpitämiseksi, niillä ei ollut kovin suuria tarkkuusvaatimuksia. Paikannuspalvelun suunnitelmat sisälsivät mm. yhdistelmiä useammasta geometriapalvelun suunnitelmasta, olivat mahdollisesti tuotettu epätarkalla mittausmenetelmällä (esim. ilmakuvan pohjalta) tai niihin oli tehty muutoksia yhtenäisen rataverkon tarpeita ajatellen. Geometrian linkittäminen sijaintiraiteille tapahtui Swecolla juuri paikannuspalvelun suunnitelmista ja koska linkityksen pohjadata tuli Swecolta, myös suuri osa Geoviitteen geometrian linkityksestä on paikannuspalvelun geometriasuunnitelmista. Tästä on seurannut mm. sellainen ongelma, että paikannuspohjan linkitystietojen perusteella ei voida aina suoraan tietää, mistä alkuperäisestä geometriasuunnitelmasta, eli geometriapalvelun suunnitelmasta, raiteen geometria on peräisin. Geoviitteessä operaattori on pääsääntöisesti linkittänyt raiteille geometriaa ratasuunnitelmien oikeista geometriasuunnitelmista, mutta on myös tilanteita, jolloin alueelta ei ole oikeaa geometriasuunnitelmaa olemassa, jolloin operaattori on saattanut tuottaa oman geometriasuunnnitelman linkittämistä varten.
+
+
+**K: Mainitsit, että pohjadataa sisäänluettaessa tehtiin paljon automatisoitua datan korjausta. Oliko Geoviitteen pohjadata siis Ratkon data korjattuna, vai Swecon data korjattuna — vai jokin yhdistelmä näistä?**
+
+V: Pohjadata oli yhdistelmä Ratkon ja Swecon järjestelmien dataa, johon tehtiin automatisoitua korjausta. Ratkosta tuli pohjadata paikannuspohjaa varten, eli ratanumerot, pituusmittauslinjojen pisteviiva-geometria, raiteet, raiteiden pisteviiva-geometria ja vaihteet, Swecolta geometriasuunnitelmat ja geometrian linkittyminen pisteviiva-aineistoon. Tasakilometripisteet pääteltiin Ratkon pisteviiva-aineistosta.
+
+
+**K: Mainitsit, että Geoviite-projektissa oli alusta asti mukana Rambollin väyläasiantuntijoita. Mikä oli Rambollin rooli — olivatko he mukana vaatimusmäärittelyssä, tietomallinnuksessa, vai jossain muussa?**
+
+V: Rambolin asiantuntijat auttoivat projektitiimiä ymmärtämään, millaisia prosesseja ja dataa ratageometrian hallintaan liittyy. Heillä myös koestettiin tiimin tuottamia prototyyppejä.
+
+
+**K: Mainitset, että Swecon geometriasuunnitelmat oli jaettu paikannuspalvelun ja geometriapalvelun suunnitelmiin. Säilyikö tämä jako Geoviitteessä, vai onko Geoviitteessä eri tapa kategorisoida geometriasuunnitelmia?**
+
+V: Swecon geometriasuunnitelmien kategorisointi on tuotu myös Geoviitteeseen. Geoviitteessä ominaisuuden nimi on "Suunnitelman lähde". Näihin päiviin asti sitä on käytetty luokittelemaan geometriasuunnitelman käyttötarkoitusta, samaan tapaan kuin Swecolla. Eli operaattori on asettanut epätarkoille suunnitelmille suunnitelman lähteeksi arvon "Paikannuspohja", alkuperäisille/oikeille geometriasuunnitelmille arvon "Geometriapalvelu". Kuitenkin inframallien luokittelua ollaan uudistamassa, jonka jälkeen "Suunnitelma lähde" kertoo ainoastaan mistä suunnitelma on peräisin, uutena arvovaihtoehtona tulee "Geoviite". Laatu ja käyttötarkoitus ilmoitetaan uudistuksen jälkeen muilla tiedoilla.
+
+
+**K: Mitä ovat ne "muut tiedot", joilla laatu ja käyttötarkoitus ilmoitetaan uudistuksen jälkeen? Onko uudistus jo toteutettu vai vielä suunnitteilla?**
+
+V: Inframallien tai laajemmin ottaen geometriasuunnitelmien luokittelun uudistuksen suunnittelu on melkein valmis, vielä pitää sopia, kuinka nykyiset tiedot migratoidaan uuteen malliin.
+
+Ennen uudistusta geometriasuunnitelmat on luokiteltu/metatiedoitettu mm. seuraavasti:
+- Laatu
+  - Tämän kentän vaihtoehdot ovat olleet hieman sekalaisesti sekä mittausmenetelmiä (mm. Geodeettisesti mitattu, Digitoitu ilmakuvasta jne.) että laatua kuvaavia arvoja (Suunnitelma, Epäluotettava suunnitelma)
+  - Swecosta tuoduissa geometriasuunnitelmissa tämä tieto on asetettu järkevän tuntuisesti vain paikannuspalvelun suunnitelmille. Geometriapalvelun suunnitelmilta tämä tieto puuttui tai oli "Epäluotettava suunnitelma", mikä on nurinkurista, koska juuri nämä tiedot ovat parhaimman laatuisia.
+- Suunnitelman lähde
+  - Swecosta tuoduilla suunnitelmilla tietoa asetettu Swecon tiedon mukaan
+  - Geoviite-operaattorin lisäämälle luotettavalle suunnitelmalle asetettu "Geometriapalvelu", epäluotettavalle "Paikannuspalvelu"
+- Soveltuvuus
+  - Tämä kenttä lisättiin luokittelun parantamiseksi viime vuoden aikana, mutta osoittautui välivaiheeksi luokittelun kehittymisesssä
+  - Tällä kentällä operaattori määrittää, mihin geometriasuunnitelmaa voi hyödyntää: suunnitteluun, kunnossapitoon vai tilastointiin
+
+Uusi luokittelu toimii seuraavasti:
+- Mittausmenetelmä
+  - Sisältää oikeasti vain tiedon mittausmenetelmästä, esim. "Geodeettisesti mitattu", "Digitoitu ilmakuvasta" jne.
+  - Operaattori muokkaa tietoa manuaalisesti
+- Laatu
+  - Sisältää oikeasti vain laatutiedon, eli "Ei tiedossa", "Suunnitelma" tai "Epäluotettava suunnitelma"
+  - Operaattori muokkaa tietoa manuaalisesti  
+- Suunnitelman lähde
+  - Swecosta tuoduilla suunnitelmilla tietoa asetettu Swecon tiedon mukaan
+  - Geoviitteeseen lisätyille suunnitelmille tulee automaattisesti tieto "Geoviite"
+  - Tätä kenttää ei voi muokata
+- Elinkaari
+  - Kuvaa suunnitelman elinkaarta
+  - Vaihtoehdot: "Suunniteltu", "Rakenteilla", "Rakennettu", "Vanhentunut"
+  - Operaattori muokkaa tietoa manuaalisesti
+- Soveltuvuus
+  - Muuttuu laskennalliseksi tiedoksi, Geoviite laskee arvon muiden luokittelutietojen mukaan
+  - Arvoa käytetään mm. kun geometriasuunnitelmia haetaan Geoviitteestä tietopyynnön täyttämiseksi
+  - Vaihtoehdot: "Soveltuu kunnossapitoon", "Soveltuu suunnitelman pohjatiedoksi", "Soveltuu tilastointiin"
+
