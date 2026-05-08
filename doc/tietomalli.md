@@ -481,8 +481,7 @@ Nimissä ja kuvauksissa ei käytetä vaihteiden koko nimiä, vaan nimi jaetaan o
 
 1. Vaihteen koko nimi jaetaan liikennepaikan lyhenteeseen ja vaihteen numeroon. Esim. "TPE V0012" → etuliite "TPE",
    numero "V0012".
-2. Numeron mahdolliset etunollat poistetaan (jätetään kuitenkin minimissään 3 numeroa): "V0012" → "V012", "V1234" → "
-   V1234".
+2. Numeron mahdolliset etunollat poistetaan (jätetään kuitenkin minimissään 3 numeroa): "V0012" → "V012", "V1234" → "V1234".
 3. Jos vaihdenimessä on kaksi vinoviivalla erotettua numeroa (kaksoisvaihde), molemmat lyhennetään: "TPE
    V0123/V0124" → "TPE V123/124".
 4. Jos vaihteen nimeä ei pystytä parsimaan tähän muotoon, julkaisuvalidointi tuottaa virheen.
