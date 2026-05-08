@@ -311,8 +311,8 @@ export function useExternallyChangedOperationalPointIds(
 ): OperationalPointId[] {
     return (
         useLoader(
-            () => getExternallyChangedOperationalPointIds(layoutContext, changeTime),
-            [layoutContext.branch, layoutContext.publicationState, changeTime],
+            () => getExternallyChangedOperationalPointIds(layoutContext.branch, changeTime),
+            [(layoutContext.branch, layoutContext.publicationState, changeTime)],
         ) || EMPTY_ARRAY
     );
 }

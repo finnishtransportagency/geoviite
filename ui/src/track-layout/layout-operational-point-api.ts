@@ -210,14 +210,14 @@ export async function getOperationalPointValidation(
 }
 
 export const getExternallyChangedOperationalPointIds = (
-    layoutContext: LayoutContext,
+    layoutBranch: LayoutBranch,
     changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPointId[]> =>
     externallyChangedOpsCache.get(
         changeTime,
-        `${layoutContext.branch}_${layoutContext.publicationState}`,
+        layoutBranch,
         () =>
             getNonNull<OperationalPointId[]>(
-                `${layoutUri('operational-points', layoutContext)}/externally-changed`,
+                `${layoutUriByBranch('operational-points', layoutBranch)}/draft/externally-changed`,
             ),
     );
