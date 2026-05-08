@@ -59,16 +59,19 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
             changeTime,
         ],
     );
-    const onHighlightSection: OnHighlightSection = (section) =>
-        onHighlightItem(
-            section === undefined
-                ? undefined
-                : {
-                      ...section,
-                      id: trackNumberId,
-                      type: 'REFERENCE_LINE',
-                  },
-        );
+    const onHighlightSection: OnHighlightSection = React.useCallback(
+        (section) =>
+            onHighlightItem(
+                section === undefined
+                    ? undefined
+                    : {
+                          ...section,
+                          id: trackNumberId,
+                          type: 'REFERENCE_LINE',
+                      },
+            ),
+        [onHighlightItem, trackNumberId],
+    );
     return (
         <Infobox
             title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}
