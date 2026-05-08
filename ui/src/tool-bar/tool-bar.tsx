@@ -118,10 +118,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
     );
-    const hasRatkoChanges = useExternallyChangedOperationalPointIds(
-        layoutContext,
-        getChangeTimes().operationalPoints,
-    ).length > 0;
+    const hasRatkoChanges =
+        useExternallyChangedOperationalPointIds(
+            layoutContext.branch,
+            getChangeTimes().operationalPoints,
+        ).length > 0;
     const currentDesignExists =
         designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
 

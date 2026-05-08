@@ -306,13 +306,13 @@ export function useOperationalPoints(
 }
 
 export function useExternallyChangedOperationalPointIds(
-    layoutContext: LayoutContext,
+    layoutBranch: LayoutBranch,
     changeTime?: TimeStamp,
 ): OperationalPointId[] {
     return (
         useLoader(
-            () => getExternallyChangedOperationalPointIds(layoutContext.branch, changeTime),
-            [(layoutContext.branch, layoutContext.publicationState, changeTime)],
+            () => getExternallyChangedOperationalPointIds(layoutBranch, changeTime),
+            [layoutBranch, changeTime],
         ) || EMPTY_ARRAY
     );
 }
