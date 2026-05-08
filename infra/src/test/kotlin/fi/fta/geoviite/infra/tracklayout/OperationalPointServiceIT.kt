@@ -644,5 +644,14 @@ constructor(
         // New Ratko sync bumps version: external change detected
         ratkoTestService.updateRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "changed external"))
         assertEquals(true, operationalPointService.getExternallyChangedOperationalPointIds(mainDraftContext.context).contains(externalPointId))
+
+        // After second publication: versions equalize, no external change
+        val draftVersion = operationalPointService.getOrThrow(mainDraftContext.context, externalPointId).getVersionOrThrow()
+        operationalPointService.publish(LayoutBranch.main, draftVersion)
+        assertEquals(false, operationalPointService.getExternallyChangedOperationalPointIds(mainOfficialContext.context).contains(externalPointId))
+
+        // Ratko deletion (point removed from Ratko): external change detected again
+        ratkoTestService.updateRatkoOperationalPoints()
+        assertEquals(true, operationalPointService.getExternallyChangedOperationalPointIds(mainDraftContext.context).contains(externalPointId))
     }
 }
