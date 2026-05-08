@@ -443,7 +443,7 @@ muuttamiseksi.
 
 Raiteen nimi muodostuu nimeämisskeeman (UI:lla kenttä "Tunnuksen muoto") mukaisesti. Skeema määrittää nimen rakenteen ja
 sen, mitä osia käyttäjä voi vapaasti muokata ja mitkä tulevat raiteeseen liittyvistä kohteista (ratanumero,
-päätevaihteet). Nimeämisskeema on pakollinen tieto.
+päätyvaihteet). Nimeämisskeema on pakollinen tieto.
 
 Valittavissa olevat skeemat:
 
@@ -504,7 +504,7 @@ Valittu nimeämisskeema ja kuvauksen lisäosa vaikuttavat raiteen validointiin. 
 - Onko raiteella oikea määrä päätyvaihteita
     - Jos nimeämisskeema tai kuvauksen lisäosa edellyttää vaihteet molempiin päihin, tarkastetaan että raiteella on
       oikeasti päätyvaihteet molemmissa päissä
-    - Jos kuvauksen lisäosa edellyttää vain yhden yhden vaihteen, tarkastetaan että raiteella on oikeasti vain yksi
+    - Jos kuvauksen lisäosa edellyttää vain yhden vaihteen, tarkastetaan että raiteella on oikeasti vain yksi
       päätyvaihde
 
 #### Vaihteiden tietomalli

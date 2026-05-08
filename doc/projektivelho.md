@@ -92,7 +92,7 @@ sequenceDiagram
 
 ## Tietomalli
 
-Geooviitteeseen tallennetaan erikseen Projektivelhosta tuodut dokumentit sekä niihin liittyvät
+Geoviitteeseen tallennetaan erikseen Projektivelhosta tuodut dokumentit sekä niihin liittyvät
 toimeksiannot, projektit ja projektijoukot. Näistä voidaan haluttaessa tuoda tietyt dokumentit
 geoviitteen inframalli-listaukseen erillisenä käyttäjän operaationa.
 
