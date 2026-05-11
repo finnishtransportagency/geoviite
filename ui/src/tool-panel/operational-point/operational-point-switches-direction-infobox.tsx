@@ -26,6 +26,7 @@ import {
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { SwitchBadge } from 'geoviite-design-lib/switch/switch-badge';
 import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type OperationalPointSwitchesDirectionInfoboxProps = {
     layoutContext: LayoutContext;
@@ -209,6 +210,7 @@ const SwitchRowValidationIssueBadge: React.FC<{
     const operationalPoint = useOperationalPoint(
         'operationalPointId' in issue ? issue.operationalPointId : undefined,
         layoutContext,
+        getChangeTimes().operationalPoints,
     );
     return (
         <div className={styles['operational-point-linking-infobox__validation-issue-badge']}>
