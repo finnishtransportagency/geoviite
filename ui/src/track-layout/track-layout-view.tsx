@@ -105,7 +105,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
             hidden: !isPlacingOperationalPointArea,
         };
         return [...selectableTools, operationalPointTool];
-    }, [isPlacingOperationalPointArea, isPlacingOperationalPointLocation, routeLocations]);
+    }, [isPlacingOperationalPointArea, isPlacingOperationalPointLocation, routeFindingTool]);
 
     return (
         <div className={className} qa-id="track-layout-content">

@@ -111,8 +111,12 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     }${fileName}`;
     const showMap = props.validationResponse?.planLayout !== undefined;
 
-    const mapTools = [selectOrHighlightComboTool, measurementTool].map(
-        alwaysSelectableMapToolMenuItem,
+    const mapTools = React.useMemo(
+        () =>
+            [selectOrHighlightComboTool, measurementTool].map(
+                alwaysSelectableMapToolMenuItem,
+            ),
+        [],
     );
 
     return (
