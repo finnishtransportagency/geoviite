@@ -107,12 +107,7 @@ class OperationalPointDao(
               op.ratko_operational_point_version,
               op.origin,
               op.rinf_id_generated,
-              op.rinf_id_override,
-              (op.ratko_operational_point_version is distinct from
-                  (select ratko_operational_point_version
-                   from layout.operational_point_in_layout_context('OFFICIAL', null)
-                   where id = op.id)
-              ) as external_change
+              op.rinf_id_override
             from layout.operational_point_version_view op
               inner join lateral
                 (
@@ -384,7 +379,6 @@ class OperationalPointDao(
             polygon = rs.getPolygonPointListOrNull("polygon")?.let(::Polygon),
             origin = rs.getEnum("origin"),
             ratkoVersion = rs.getIntOrNull("ratko_operational_point_version"),
-            hasExternalChanges = rs.getBoolean("external_change"),
             contextData =
                 rs.getLayoutContextData(
                     "id",
@@ -400,6 +394,32 @@ class OperationalPointDao(
 
     fun getChangeTime(): Instant {
         return fetchLatestChangeTime(DbTable.LAYOUT_OPERATIONAL_POINT)
+    }
+
+    fun fetchExternallyChangedOperationalPointIds(layoutContext: LayoutContext): List<IntId<OperationalPoint>> {
+        val sql =
+            """
+            select op.id
+            from layout.operational_point_in_layout_context(
+                :publication_state::layout.publication_state,
+                :design_id
+            ) op
+            inner join layout.operational_point_version_view opv
+                on opv.id = op.id
+                and opv.version = op.version
+                and opv.layout_context_id = op.layout_context_id
+            where opv.ratko_operational_point_version is distinct from
+                (select ratko_operational_point_version
+                 from layout.operational_point_in_layout_context('OFFICIAL', null)
+                 where id = op.id)
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<OperationalPoint>("id") }
     }
 
     fun findNameDuplicates(

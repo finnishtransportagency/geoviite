@@ -43,6 +43,9 @@ class OperationalPointService(
             )
         )
 
+    fun getExternallyChangedOperationalPointIds(layoutContext: LayoutContext): List<IntId<OperationalPoint>> =
+        dao.fetchExternallyChangedOperationalPointIds(layoutContext)
+
     @Transactional
     fun insert(branch: LayoutBranch, request: InternalOperationalPointSaveRequest): LayoutRowVersion<OperationalPoint> =
         saveDraft(
@@ -58,7 +61,6 @@ class OperationalPointService(
                 location = null,
                 origin = OperationalPointOrigin.GEOVIITE,
                 ratkoVersion = null,
-                hasExternalChanges = false,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 rinfIdOverride = request.rinfIdOverride,
                 rinfIdGenerated = null,

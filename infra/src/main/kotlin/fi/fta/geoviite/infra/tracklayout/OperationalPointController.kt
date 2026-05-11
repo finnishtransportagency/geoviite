@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
@@ -34,6 +35,15 @@ class OperationalPointController(
     private val stationLinkService: StationLinkService,
     private val publicationValidationService: PublicationValidationService,
 ) {
+    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/draft/externally-changed")
+    fun getExternallyChangedOperationalPointIds(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+    ): List<IntId<OperationalPoint>> {
+        val context = LayoutContext.of(layoutBranch, PublicationState.DRAFT)
+        return operationalPointService.getExternallyChangedOperationalPointIds(context)
+    }
+
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
     fun getSingleOperationalPoint(
