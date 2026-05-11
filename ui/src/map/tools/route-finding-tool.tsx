@@ -115,13 +115,15 @@ export function createRouteFindingTool(
             };
         },
 
-        component: ({ isActive, setActiveTool }) => {
+        component: ({ isActive, setActiveTool, disabled, hidden }) => {
             return (
                 <MapToolButton
                     id={id}
                     isActive={isActive}
                     setActive={setActiveTool}
                     icon={Icons.VectorRight}
+                    disabled={disabled}
+                    hidden={hidden}
                 />
             );
         },

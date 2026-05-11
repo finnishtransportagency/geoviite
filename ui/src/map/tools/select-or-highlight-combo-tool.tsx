@@ -24,7 +24,7 @@ export const selectOrHighlightComboTool: MapToolWithButton = {
         };
     },
 
-    component: ({ isActive, setActiveTool, disabled }) => {
+    component: ({ isActive, setActiveTool, disabled, hidden }) => {
         return (
             <MapToolButton
                 id={id}
@@ -32,6 +32,7 @@ export const selectOrHighlightComboTool: MapToolWithButton = {
                 setActive={setActiveTool}
                 icon={Icons.Select}
                 disabled={disabled}
+                hidden={hidden}
             />
         );
     },

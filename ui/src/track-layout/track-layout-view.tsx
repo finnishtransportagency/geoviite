@@ -10,7 +10,10 @@ import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geo
 import { ToolBarContainer } from 'tool-bar/tool-bar-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
-import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createRouteFindingTool } from 'map/tools/route-finding-tool';
@@ -49,6 +52,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     const linkingState = useTrackLayoutAppSelector((s) => s.linkingState);
     const isPlacingOperationalPointArea =
         linkingState?.type === LinkingType.PlacingOperationalPointArea;
+    const isPlacingOperationalPointLocation =
+        linkingState?.type === LinkingType.PlacingOperationalPoint;
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
@@ -90,7 +95,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         const selectableTools = [selectOrHighlightComboTool, measurementTool, routeFindingTool].map(
             (tool) => ({
                 ...tool,
-                disabled: isPlacingOperationalPointArea,
+                disabled: isPlacingOperationalPointArea || isPlacingOperationalPointLocation,
+                hidden: false,
             }),
         );
         const operationalPointTool = {
@@ -99,7 +105,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
             hidden: !isPlacingOperationalPointArea,
         };
         return [...selectableTools, operationalPointTool];
-    }, [isPlacingOperationalPointArea, routeLocations]);
+    }, [isPlacingOperationalPointArea, isPlacingOperationalPointLocation, routeLocations]);
 
     return (
         <div className={className} qa-id="track-layout-content">
