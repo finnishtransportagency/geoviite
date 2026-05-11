@@ -191,6 +191,11 @@
 - Favor immutable objects, especially Kotlin data classes
 - Composition can typically do whatever inheritance can... with reduced headache
 - Favor pure functions (outside service objects) for more complex logic
+- Don't use the `value!!` outside of tests, there are multiple better alternatives:
+    - If you know something exists in the database, fetch it using `getOrThrow`-style functions instead of `get`
+    - Use `requireNotNull()` with a descriptive error message
+    - Use `value?.let { }` if it's ok for the value to be null
+    - `value!!` is OK in tests
 - Kotlin external functions are useful for expanding library APIs like JDBC and ResultSet: place these in a clearly
   named separate file, e.g. `ResultSetExternal.kt`
 - Consider if using `let`, `map`, `takeIf` etc. chains would be cleaner than local variables or if-structures
