@@ -34,7 +34,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
-import { deduplicate, filterNotEmpty } from 'utils/array-utils';
+import { deduplicate, EMPTY_ARRAY, filterNotEmpty } from 'utils/array-utils';
 import { updateAllChangeTimes } from 'common/change-time-api';
 import { OperationalPointSwitchesDirectionInfobox } from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
 
@@ -244,7 +244,11 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                             <OperationalPointSwitchesDirectionInfobox
                                 layoutContext={layoutContext}
                                 operationalPoint={operationalPoint}
-                                switches={linkedSwitches}
+                                switches={
+                                    linkedSwitchesFetchStatus === LoaderStatus.Ready
+                                        ? linkedSwitches
+                                        : EMPTY_ARRAY
+                                }
                                 linkingDirection={'unlinking'}
                                 polygonInclusion={switchLinkings ?? []}
                                 olpOperationalPointIds={olpOperationalPointIds}
@@ -257,7 +261,11 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                             <OperationalPointSwitchesDirectionInfobox
                                 layoutContext={layoutContext}
                                 operationalPoint={operationalPoint}
-                                switches={unlinkedSwitches}
+                                switches={
+                                    linkedSwitchesFetchStatus === LoaderStatus.Ready
+                                        ? unlinkedSwitches
+                                        : EMPTY_ARRAY
+                                }
                                 linkingDirection={'linking'}
                                 polygonInclusion={switchLinkings ?? []}
                                 olpOperationalPointIds={olpOperationalPointIds}
