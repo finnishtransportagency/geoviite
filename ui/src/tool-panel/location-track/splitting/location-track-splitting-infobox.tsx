@@ -582,7 +582,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 anyMissingFields ||
                                 anyOtherErrors ||
                                 !!firstChangedDuplicateInSplits ||
-                                splittingState.splits.length < 1 ||
                                 isPostingSplit
                             }
                             qa-id={'confirm-split'}>
