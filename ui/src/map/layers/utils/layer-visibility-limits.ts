@@ -92,7 +92,6 @@ export const SUGGESTED_SWITCH_SHOW = 100.0;
 
 // Map resolution is ~ meters/pixel -> line points will have this many pixels between them
 export const MAP_RESOLUTION_MULTIPLIER = 10;
-export const ALIGNMENT_MIN_LENGTH_IN_PIXELS = 10;
 
 export const OPERATIONAL_POINTS_LARGE = SWITCH_SHOW;
 export const OPERATIONAL_POINTS_MEDIUM = 10;

@@ -13,6 +13,8 @@ import {
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
 import { LayoutContext } from 'common/common-model';
+import OlView from 'ol/View';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
 
 const layerName: MapLayerName = 'location-track-background-layer';
 
@@ -21,6 +23,7 @@ export function createLocationTrackBackgroundLayer(
     existingOlLayer: GeoviiteMapLayer<LineString> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
+    olView: OlView,
     isSplitting: boolean,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
@@ -36,8 +39,16 @@ export function createLocationTrackBackgroundLayer(
         layoutContext,
     );
 
-    const createFeatures = (locationTracks: AlignmentDataHolder[]) =>
-        createAlignmentBackgroundFeatures(locationTracks);
+    const resolution = olView.getResolution() || 0;
+
+    const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
+        const tracksToRender =
+            resolution <= Limits.SHOW_VERY_SHORT_TRACKS_MIN_RESOLUTION
+                ? locationTracks
+                : locationTracks.filter((track) => track.points.length > 2);
+
+        return createAlignmentBackgroundFeatures(tracksToRender);
+    };
 
     loadLayerData(source, isLatest, onLoadingData, alignmentPromise, createFeatures);
 

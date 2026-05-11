@@ -124,7 +124,6 @@ export function createPublicationCandidateLayer(
         changeTimes,
         mapTiles,
         layoutContext,
-        true,
         locationTrackIds,
     ).then((locationTrackAlignments) => {
         return locationTrackAlignments
@@ -146,7 +145,6 @@ export function createPublicationCandidateLayer(
                   changeTimes,
                   mapTiles,
                   targetLayoutContext,
-                  true,
                   locationTrackIds,
               ).then((alignments) =>
                   alignments

@@ -181,8 +181,6 @@ export function createLocationTrackAlignmentLayer(
         changeTimes,
         mapTiles,
         layoutContext,
-        // includeShortTracks=true as we're the source of truth on what tracks are within map bounds
-        true,
     );
 
     const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
