@@ -13,7 +13,7 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { PublicationCandidate } from 'publication/publication-model';
-import { MapToolId, MapToolWithButton } from 'map/tools/tool-model';
+import { MapToolMenuItem, MapToolId } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
 import { RouteLocation } from 'track-layout/track-layout-slice';
@@ -93,7 +93,7 @@ type MapViewContainerProps = {
     publicationCandidates?: PublicationCandidate[];
     customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
-    mapTools: MapToolWithButton[];
+    mapTools: MapToolMenuItem[];
     hoveredRouteLocation?: RouteLocation;
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({

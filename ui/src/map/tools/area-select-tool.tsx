@@ -136,7 +136,7 @@ export function createAreaSelectTool(
                 },
             };
         },
-        component: ({ isActive, setActiveTool, disabled }) => {
+        component: ({ isActive, setActiveTool, disabled, hidden }) => {
             return (
                 <MapToolButton
                     id={id}
@@ -144,6 +144,7 @@ export function createAreaSelectTool(
                     isActive={isActive}
                     icon={Icons.SelectArea}
                     disabled={disabled}
+                    hidden={hidden}
                 />
             );
         },

@@ -25,6 +25,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE } from 'user/user-model';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { alwaysSelectableMapToolMenuItem } from 'map/tools/tool-model';
 
 export type InfraModelBaseProps = InfraModelState & {
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
@@ -110,6 +111,14 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     }${fileName}`;
     const showMap = props.validationResponse?.planLayout !== undefined;
 
+    const mapTools = React.useMemo(
+        () =>
+            [selectOrHighlightComboTool, measurementTool].map(
+                alwaysSelectableMapToolMenuItem,
+            ),
+        [],
+    );
+
     return (
         <div className={styles['infra-model-upload']}>
             <InfraModelToolbar
@@ -180,7 +189,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     <MapContext.Provider value="infra-model">
                         <MapViewContainer
                             manuallySetPlan={planLayout ?? undefined}
-                            mapTools={[selectOrHighlightComboTool, measurementTool]}
+                            mapTools={mapTools}
                             customActiveMapToolId={selectOrHighlightComboTool?.id}
                         />
                     </MapContext.Provider>

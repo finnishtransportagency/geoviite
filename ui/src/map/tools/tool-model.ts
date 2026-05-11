@@ -42,8 +42,8 @@ export type MapToolHandle = {
 export type MapToolProps = {
     isActive: boolean;
     setActiveTool: (id: MapToolId) => void;
-    disabled?: boolean;
-    hidden?: boolean;
+    disabled: boolean;
+    hidden: boolean;
 };
 
 export type MapTool = {
@@ -55,6 +55,16 @@ export type MapTool = {
 
 export type MapToolWithButton = MapTool & {
     component: React.ComponentType<MapToolProps>;
-    disabled?: boolean;
-    hidden?: boolean;
 };
+
+export type MapToolMenuItem = MapToolWithButton & {
+    component: React.ComponentType<MapToolProps>;
+    disabled: boolean;
+    hidden: boolean;
+};
+
+export const alwaysSelectableMapToolMenuItem = (tool: MapToolWithButton): MapToolMenuItem => ({
+    ...tool,
+    disabled: false,
+    hidden: false,
+});

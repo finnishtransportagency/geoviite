@@ -172,7 +172,7 @@ export const measurementTool: MapToolWithButton = {
         };
     },
 
-    component: ({ isActive, setActiveTool, disabled }) => {
+    component: ({ isActive, setActiveTool, hidden, disabled }) => {
         return (
             <MapToolButton
                 id={id}
@@ -180,6 +180,7 @@ export const measurementTool: MapToolWithButton = {
                 setActive={setActiveTool}
                 icon={Icons.Measure}
                 disabled={disabled}
+                hidden={hidden}
             />
         );
     },

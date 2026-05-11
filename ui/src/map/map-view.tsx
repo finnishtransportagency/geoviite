@@ -25,10 +25,10 @@ import {
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import {
+    MapToolMenuItem,
     MapToolActivateOptions,
     MapToolHandle,
     MapToolId,
-    MapToolWithButton,
 } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
@@ -155,7 +155,7 @@ export type MapViewProps = {
     publicationCandidates?: PublicationCandidate[];
     customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
-    mapTools?: MapToolWithButton[];
+    mapTools?: MapToolMenuItem[];
     layoutContextMode?: LayoutContextMode;
     selectedDesignId?: LayoutDesignId;
     routeLocations?: RouteLocations;
@@ -290,7 +290,6 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapToolId || (mapTools && first(mapTools)?.id),
     );
     const activeTool = mapTools?.find((tool) => tool.id === activeToolId);
-    //    const routeToolData = React.useState<RouteToolData>()
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;

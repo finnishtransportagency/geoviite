@@ -10,8 +10,8 @@ type MapToolButtonProps = {
     isActive: boolean;
     setActive: (id: MapToolId) => void;
     icon: IconComponent;
-    disabled?: boolean;
-    hidden?: boolean;
+    disabled: boolean;
+    hidden: boolean;
 };
 
 const MapToolButtonM = ({

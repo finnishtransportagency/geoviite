@@ -76,6 +76,7 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { previewViewAreaSelectTool } from 'map/tools/preview-view-area-select-tool';
 import { prevIfObjectsEqual } from 'utils/object-utils';
 import { cancelOperationalPoint } from 'track-layout/layout-operational-point-api';
+import { alwaysSelectableMapToolMenuItem } from 'map/tools/tool-model';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -497,7 +498,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
 
     const mapTools = React.useMemo(
-        () => [selectOrHighlightComboTool, measurementTool, publishCandidateSelectTool],
+        () =>
+            [selectOrHighlightComboTool, measurementTool, publishCandidateSelectTool].map(
+                alwaysSelectableMapToolMenuItem,
+            ),
         [publishCandidateSelectTool],
     );
 
