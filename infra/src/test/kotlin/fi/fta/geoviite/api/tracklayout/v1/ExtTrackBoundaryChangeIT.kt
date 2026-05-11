@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.CREATE_NEW
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.REPLACE_DUPLICATE
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.REPLACE_DUPLICATE_PARTIAL
@@ -25,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -37,13 +37,8 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackBoundaryChangeIT
-@Autowired
-constructor(
-    mockMvc: MockMvc,
-    private val extTestDataService: ExtApiTestDataServiceV1,
-    private val splitService: SplitService,
-) : DBTestBase() {
+class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private val splitService: SplitService) :
+    DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -54,8 +49,7 @@ constructor(
     @Test
     fun `LocationTrack split shows up a boundary change`() {
         val tn = testDBService.getUnusedTrackNumber()
-        val tnId = mainDraftContext.createLayoutTrackNumber(tn).id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(tn))
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
@@ -93,8 +87,8 @@ constructor(
                     startOuterSwitch = switchLinkYV(switch2Id, 2),
                 ),
             )
-        val sourceId = mainDraftContext.save(locationTrack(tnId, name = "SourceTrack"), sourceTrackGeom).id
-        val sourceOid = mainDraftContext.generateOid(sourceId)
+        val (sourceId, sourceOid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "SourceTrack"), sourceTrackGeom)
 
         // Split target tracks:
 
@@ -121,17 +115,17 @@ constructor(
                     endInnerSwitch = switchLinkYV(switch2Id, 2),
                 ),
             )
-        val target2Id = mainDraftContext.save(locationTrack(tnId, name = "PartialDuplicate"), target2Geom).id
-        val target2Oid = mainDraftContext.generateOid(target2Id)
+        val (target2Id, target2Oid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "PartialDuplicate"), target2Geom)
 
         // Third target is a duplicate to be fully overridden: original geom doesn't matter
         val target3Geom = trackGeometryOfSegments(segment(Point(10.0, 10.0), Point(20.0, 10.0)))
-        val target3Id = mainDraftContext.save(locationTrack(tnId, name = "FullDuplicate"), target3Geom).id
-        val target3Oid = mainDraftContext.generateOid(target3Id)
+        val (target3Id, target3Oid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "FullDuplicate"), target3Geom)
 
         // Base publication before the split
         val basePublication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(tnId),
                 referenceLines = listOf(rlId),
                 locationTracks = listOf(sourceId, target2Id, target3Id),
@@ -154,7 +148,7 @@ constructor(
 
         // Publication for the split should carry the new boundary changes
         val splitPublication =
-            extTestDataService.publishInMain(locationTracks = split.locationTracks, switches = split.relinkedSwitches)
+            testDBService.publish(locationTracks = split.locationTracks, switches = split.relinkedSwitches)
 
         // Verify results
         api.trackBoundaryCollection.getModifiedBetween(basePublication.uuid, splitPublication.uuid).let { response ->

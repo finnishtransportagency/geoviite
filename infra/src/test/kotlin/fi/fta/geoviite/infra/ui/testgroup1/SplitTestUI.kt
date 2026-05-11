@@ -81,10 +81,10 @@ constructor(
             trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber)
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber)
                 .id
         val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
-        locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, someOid())
+        testDBService.generateOid(sourceTrackId, LayoutBranch.main)
 
         val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))

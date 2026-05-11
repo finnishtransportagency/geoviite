@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -81,11 +80,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -94,6 +88,11 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -771,7 +770,7 @@ constructor(
     @Test
     fun `publication log switch changes in main do not include switch link removals in designs`() {
         val switch = switchDao.save(switch(name = "sw", draft = false)).id
-        switchDao.insertExternalId(switch, LayoutBranch.main, Oid("1.1.1.1.2"))
+        testDBService.generateOid(switch, LayoutBranch.main)
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackId =
             locationTrackService
@@ -829,9 +828,9 @@ constructor(
         val switchAddedAndRemoved = switchDao.save(switch(name = "sw-added-and-later-removed", draft = false)).id
         val switchFurtherAddedInMain = switchDao.save(switch(name = "sw-later-added-in-main", draft = false)).id
         val switchFurtherAddedInDesign = switchDao.save(switch(name = "sw-later-added-in-design", draft = false)).id
-        switchDao.insertExternalId(switchAddedAndRemoved, LayoutBranch.main, Oid("1.1.1.1.2"))
-        switchDao.insertExternalId(switchFurtherAddedInMain, LayoutBranch.main, Oid("1.1.1.1.5"))
-        switchDao.insertExternalId(switchFurtherAddedInDesign, LayoutBranch.main, Oid("1.1.1.1.6"))
+        testDBService.generateOid(switchAddedAndRemoved, LayoutBranch.main)
+        testDBService.generateOid(switchFurtherAddedInMain, LayoutBranch.main)
+        testDBService.generateOid(switchFurtherAddedInDesign, LayoutBranch.main)
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackId =
@@ -893,14 +892,14 @@ constructor(
         val originalSwitchReplacedWithNewSameName =
             switchDao.save(switch(name = "sw-replaced-with-new-same-name", draft = false))
 
-        switchDao.insertExternalId(switchUnlinkedFromTopology.id, LayoutBranch.main, Oid("1.1.1.1.1"))
-        switchDao.insertExternalId(switchUnlinkedFromAlignment.id, LayoutBranch.main, Oid("1.1.1.1.2"))
-        switchDao.insertExternalId(switchAddedToTopologyStart.id, LayoutBranch.main, Oid("1.1.1.1.3"))
-        switchDao.insertExternalId(switchAddedToTopologyEnd.id, LayoutBranch.main, Oid("1.1.1.1.4"))
-        switchDao.insertExternalId(switchAddedToAlignment.id, LayoutBranch.main, Oid("1.1.1.1.5"))
-        switchDao.insertExternalId(switchDeleted.id, LayoutBranch.main, Oid("1.1.1.1.6"))
-        switchDao.insertExternalId(switchMerelyRenamed.id, LayoutBranch.main, Oid("1.1.1.1.7"))
-        switchDao.insertExternalId(originalSwitchReplacedWithNewSameName.id, LayoutBranch.main, Oid("1.1.1.1.8"))
+        testDBService.generateOid(switchUnlinkedFromTopology.id, LayoutBranch.main)
+        testDBService.generateOid(switchUnlinkedFromAlignment.id, LayoutBranch.main)
+        testDBService.generateOid(switchAddedToTopologyStart.id, LayoutBranch.main)
+        testDBService.generateOid(switchAddedToTopologyEnd.id, LayoutBranch.main)
+        testDBService.generateOid(switchAddedToAlignment.id, LayoutBranch.main)
+        testDBService.generateOid(switchDeleted.id, LayoutBranch.main)
+        testDBService.generateOid(switchMerelyRenamed.id, LayoutBranch.main)
+        val originalSwitchOid = testDBService.generateOid(originalSwitchReplacedWithNewSameName.id, LayoutBranch.main)
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
@@ -933,7 +932,7 @@ constructor(
         )
         val newSwitchReplacingOldWithSameName =
             switchService.saveDraft(LayoutBranch.main, switch(name = "sw-replaced-with-new-same-name", draft = true))
-        switchDao.insertExternalId(newSwitchReplacingOldWithSameName.id, LayoutBranch.main, Oid("1.1.1.1.9"))
+        val newSwitchOid = testDBService.generateOid(newSwitchReplacingOldWithSameName.id, LayoutBranch.main)
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -970,9 +969,9 @@ constructor(
         assertEquals("linked-switches", diff.propKey.key.toString())
         assertEquals(
             """
-            Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
+            Vaihteiden sw-deleted, sw-replaced-with-new-same-name ($originalSwitchOid), sw-unlinked-from-alignment,
             sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
-            sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
+            sw-added-to-topo-start, sw-replaced-with-new-same-name ($newSwitchOid) linkitetty.
             """
                 .trimIndent()
                 .replace("\n", " "),

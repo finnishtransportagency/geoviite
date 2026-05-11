@@ -20,14 +20,18 @@ import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
+import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationMessage
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.publicationRequest
+import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
@@ -143,6 +147,8 @@ class TestDBService(
     override val operationalPointDao: OperationalPointDao,
     private val layoutDesignDao: LayoutDesignDao,
     private val publicationDao: PublicationDao,
+    private val publicationService: PublicationService,
+    private val calculatedChangesService: CalculatedChangesService,
 ) : TestDB {
 
     override val jdbc by lazy { jdbcTemplate ?: error("JDBC not initialized") }
@@ -456,12 +462,48 @@ class TestDBService(
         )
     }
 
-    fun savePlan(
-        plan: GeometryPlan,
-        file: InfraModelFile = InfraModelFile(plan.fileName, "<a></a>"),
-    ): GeometryPlan {
+    fun savePlan(plan: GeometryPlan, file: InfraModelFile = InfraModelFile(plan.fileName, "<a></a>")): GeometryPlan {
         val planVersion = geometryDao.insertPlan(plan, file, null)
         return geometryDao.fetchPlan(planVersion)
+    }
+
+    fun publish(
+        branch: LayoutBranch = LayoutBranch.main,
+        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
+        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
+        locationTracks: List<IntId<LocationTrack>> = emptyList(),
+        switches: List<IntId<LayoutSwitch>> = emptyList(),
+        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
+    ): Publication {
+        val requestIds =
+            publicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
+        val versions = publicationService.getValidationVersions(branch, requestIds)
+        val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
+        val result =
+            publicationService.publishChanges(
+                branch,
+                versions,
+                calculatedChanges,
+                PublicationMessage.of("test"),
+                PublicationCause.MANUAL,
+            )
+        return publicationDao.getPublication(requireNotNull(result.publicationId))
+    }
+
+    fun publishAndValidate(
+        branch: LayoutBranch = LayoutBranch.main,
+        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
+        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
+        locationTracks: List<IntId<LocationTrack>> = emptyList(),
+        switches: List<IntId<LayoutSwitch>> = emptyList(),
+        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
+    ): Publication {
+        val request =
+            publicationRequest(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
+        val result = publicationService.publishManualPublication(branch, request)
+        return publicationDao.getPublication(requireNotNull(result.publicationId))
     }
 }
 
@@ -502,8 +544,10 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>): Oid<T> =
         testService.generateOid(id, context.branch)
 
-    fun saveWithOid(asset: LocationTrack, geometry: LocationTrackGeometry): Pair<IntId<LocationTrack>, Oid<LocationTrack>> =
-        save(asset, geometry).id.let { id -> id to generateOid(id) }
+    fun saveWithOid(
+        asset: LocationTrack,
+        geometry: LocationTrackGeometry,
+    ): Pair<IntId<LocationTrack>, Oid<LocationTrack>> = save(asset, geometry).id.let { id -> id to generateOid(id) }
 
     fun saveWithOid(asset: LayoutSwitch): Pair<IntId<LayoutSwitch>, Oid<LayoutSwitch>> =
         save(asset).id.let { id -> id to generateOid(id) }
@@ -619,12 +663,15 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         return save(locationTrack(createLayoutTrackNumber().id), geometry)
     }
 
-    fun createLocationTrackWithReferenceLine(geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> {
-        val trackNumberId = createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments)).id
+    fun createLocationTrackWithReferenceLine(
+        geometry: LocationTrackGeometry,
+        trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
+    ): LayoutRowVersion<LocationTrack> {
+        val trackNumberId = createTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber).id
         return save(locationTrack(trackNumberId), geometry)
     }
 
-    fun createLayoutTrackNumberAndReferenceLine(
+    fun createTrackNumberAndReferenceLine(
         referenceLineGeometry: ReferenceLineGeometry = referenceLineGeometry(),
         trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
         startAddress: TrackMeter = TrackMeter.ZERO,
@@ -678,24 +725,23 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                     )
                 )
                 .id
-        val innerTrackIds =
-            alignmentJointPositions.map { jointPositions ->
-                save(
-                        locationTrack(createLayoutTrackNumber().id),
-                        trackGeometry(
-                            combineEdges(
-                                jointPositions.zipWithNext().map { (from, to) ->
-                                    edge(
-                                        startInnerSwitch = switchLinkYV(switchId, from.first.intValue),
-                                        endInnerSwitch = switchLinkYV(switchId, to.first.intValue),
-                                        segments = listOf(segment(toSegmentPoints(from.second, to.second))),
-                                    )
-                                }
-                            )
-                        ),
-                    )
-                    .id
-            }
+        val innerTrackIds = alignmentJointPositions.map { jointPositions ->
+            save(
+                    locationTrack(createLayoutTrackNumber().id),
+                    trackGeometry(
+                        combineEdges(
+                            jointPositions.zipWithNext().map { (from, to) ->
+                                edge(
+                                    startInnerSwitch = switchLinkYV(switchId, from.first.intValue),
+                                    endInnerSwitch = switchLinkYV(switchId, to.first.intValue),
+                                    segments = listOf(segment(toSegmentPoints(from.second, to.second))),
+                                )
+                            }
+                        )
+                    ),
+                )
+                .id
+        }
         return switchId to innerTrackIds
     }
 

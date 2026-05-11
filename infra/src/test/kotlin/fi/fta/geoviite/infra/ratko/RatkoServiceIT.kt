@@ -32,6 +32,7 @@ import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
+import fi.fta.geoviite.infra.publication.publicationRequest
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
@@ -120,10 +121,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -133,6 +130,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1309,14 +1310,8 @@ constructor(
         val pointsFromDatabase = ratkoOperationalPointDao.listLatestVersions()
         assertEquals(3, pointsFromDatabase.size)
         val sortedPoints = pointsFromDatabase.sortedBy { it.point.name.toString() }
-        assertEquals(
-            listOf("Kannustamo", "Liukuainen", "Turpasauna"),
-            sortedPoints.map { it.point.name.toString() },
-        )
-        assertEquals(
-            listOf(true, false, false),
-            sortedPoints.map { it.deleted },
-        )
+        assertEquals(listOf("Kannustamo", "Liukuainen", "Turpasauna"), sortedPoints.map { it.point.name.toString() })
+        assertEquals(listOf(true, false, false), sortedPoints.map { it.deleted })
         assertEquals(
             5,
             jdbc.queryOne("""select count(*) as c from integrations.ratko_operational_point_version""") { rs, _ ->
@@ -1338,22 +1333,28 @@ constructor(
 
         ratkoOperationalPointDao.updateOperationalPoints(listOf(alpha, beta, gamma))
 
-        ratkoOperationalPointDao.listLatestVersions().sortedBy { it.point.name.toString() }.also { versions ->
-            assertEquals(3, versions.size)
-            assertEquals(listOf("Alpha", "Beta", "Gamma"), versions.map { it.point.name.toString() })
-            assertEquals(listOf(1, 1, 1), versions.map { it.version })
-            assertEquals(listOf(false, false, false), versions.map { it.deleted })
-        }
+        ratkoOperationalPointDao
+            .listLatestVersions()
+            .sortedBy { it.point.name.toString() }
+            .also { versions ->
+                assertEquals(3, versions.size)
+                assertEquals(listOf("Alpha", "Beta", "Gamma"), versions.map { it.point.name.toString() })
+                assertEquals(listOf(1, 1, 1), versions.map { it.version })
+                assertEquals(listOf(false, false, false), versions.map { it.deleted })
+            }
 
         ratkoOperationalPointDao.updateOperationalPoints(listOf(alpha, gamma))
 
-        ratkoOperationalPointDao.listLatestVersions().sortedBy { it.point.name.toString() }.also { versions ->
-            assertEquals(3, versions.size)
-            assertEquals(listOf("Alpha", "Beta", "Gamma"), versions.map { it.point.name.toString() })
-            assertEquals(listOf(false, true, false), versions.map { it.deleted })
-            val betaVersion = versions.first { it.point.name.toString() == "Beta" }
-            assertEquals(2, betaVersion.version)
-        }
+        ratkoOperationalPointDao
+            .listLatestVersions()
+            .sortedBy { it.point.name.toString() }
+            .also { versions ->
+                assertEquals(3, versions.size)
+                assertEquals(listOf("Alpha", "Beta", "Gamma"), versions.map { it.point.name.toString() })
+                assertEquals(listOf(false, true, false), versions.map { it.deleted })
+                val betaVersion = versions.first { it.point.name.toString() == "Beta" }
+                assertEquals(2, betaVersion.version)
+            }
     }
 
     @Test
@@ -1369,7 +1370,8 @@ constructor(
         fakeRatko.hasOperationalPoints(listOf(station))
         ratkoService.updateOperationalPointsFromRatko()
 
-        operationalPointDao.list(mainDraftContext.context, true)
+        operationalPointDao
+            .list(mainDraftContext.context, true)
             .filter { it.origin == OperationalPointOrigin.RATKO }
             .also { points ->
                 assertEquals(1, points.size)
@@ -1381,7 +1383,8 @@ constructor(
         fakeRatko.hasOperationalPoints(emptyList())
         ratkoService.updateOperationalPointsFromRatko()
 
-        operationalPointDao.list(mainDraftContext.context, true)
+        operationalPointDao
+            .list(mainDraftContext.context, true)
             .filter { it.origin == OperationalPointOrigin.RATKO }
             .also { points ->
                 assertEquals(1, points.size)
@@ -1394,7 +1397,8 @@ constructor(
         fakeRatko.hasOperationalPoints(listOf(recreatedStation))
         ratkoService.updateOperationalPointsFromRatko()
 
-        operationalPointDao.list(mainDraftContext.context, true)
+        operationalPointDao
+            .list(mainDraftContext.context, true)
             .filter { it.origin == OperationalPointOrigin.RATKO }
             .also { points ->
                 assertEquals(1, points.size)
@@ -1779,10 +1783,7 @@ constructor(
     fun `design publication push fetches plan ID for design`() {
         val design = testDBService.createDesignBranch()
         fakeRatko.acceptsNewDesignGivingItId(123)
-        publicationService.publishManualPublication(
-            design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
-        )
+        publicationService.publishManualPublication(design, publicationRequest(message = "aoeu"))
         ratkoService.pushChangesToRatko(design)
         assertEquals(123, layoutDesignDao.fetchRatkoId(design.designId)?.intValue)
     }
@@ -1791,10 +1792,7 @@ constructor(
     fun `design updates get sent with design publication push`() {
         val design = testDBService.createDesignBranch()
         fakeRatko.acceptsNewDesignGivingItId(123)
-        publicationService.publishManualPublication(
-            design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
-        )
+        publicationService.publishManualPublication(design, publicationRequest(message = "aoeu"))
         layoutDesignDao.update(
             design.designId,
             LayoutDesignSaveRequest(
@@ -1803,10 +1801,7 @@ constructor(
                 designState = DesignState.ACTIVE,
             ),
         )
-        publicationService.publishManualPublication(
-            design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
-        )
+        publicationService.publishManualPublication(design, publicationRequest(message = "aoeu"))
         ratkoService.pushChangesToRatko(design)
         layoutDesignDao.update(
             design.designId,
@@ -1816,10 +1811,7 @@ constructor(
                 designState = DesignState.COMPLETED,
             ),
         )
-        publicationService.publishManualPublication(
-            design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
-        )
+        publicationService.publishManualPublication(design, publicationRequest(message = "aoeu"))
         ratkoService.pushChangesToRatko(design)
         assertEquals(
             listOf(
@@ -1840,14 +1832,8 @@ constructor(
         val design = testDBService.createDesignBranch()
         fakeRatko.acceptsNewDesignGivingItId(123)
         publishAndPush()
-        publicationService.publishManualPublication(
-            design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
-        )
-        publicationService.publishManualPublication(
-            design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("uuba aaba")),
-        )
+        publicationService.publishManualPublication(design, publicationRequest(message = "aoeu"))
+        publicationService.publishManualPublication(design, publicationRequest(message = "uuba aaba"))
         ratkoService.pushChangesToRatko(design)
         assertEquals(listOf<RatkoPlan>(), fakeRatko.getUpdatesToDesign(123))
     }
@@ -1883,10 +1869,7 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.3.3.3.3")
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(locationTracks = listOf(locationTrack), switches = listOf(switch)),
-                message = PublicationMessage.of("aoeu"),
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack), switches = listOf(switch), message = "aoeu"),
         )
 
         fakeRatko.acceptsNewDesignGivingItId(123)
@@ -2180,10 +2163,7 @@ constructor(
                 )
                 .id
 
-        val someDuplicateTrackOid1 =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, someDuplicateTrackId1, oid)
-            }
+        val someDuplicateTrackOid1 = testDBService.generateOid(someDuplicateTrackId1, LayoutBranch.main)
 
         val someDuplicateTrackId2 =
             mainOfficialContext
@@ -2193,10 +2173,7 @@ constructor(
                 )
                 .id
 
-        val someDuplicateTrackOid2 =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, someDuplicateTrackId2, oid)
-            }
+        val someDuplicateTrackOid2 = testDBService.generateOid(someDuplicateTrackId2, LayoutBranch.main)
 
         val targetTracks =
             testCreateSplitRequestTargets(
@@ -2252,10 +2229,7 @@ constructor(
                 )
                 .id
 
-        val someDuplicateTrackOid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, someDuplicateTrackId, oid)
-            }
+        val someDuplicateTrackOid = testDBService.generateOid(someDuplicateTrackId, LayoutBranch.main)
 
         val targetTracks =
             testCreateSplitRequestTargets(
@@ -2321,10 +2295,7 @@ constructor(
                 )
                 .id
 
-        val someDuplicateTrackOid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, someDuplicateTrackId, oid)
-            }
+        val someDuplicateTrackOid = testDBService.generateOid(someDuplicateTrackId, LayoutBranch.main)
 
         val targetTracks =
             testCreateSplitRequestTargets(
@@ -2597,17 +2568,14 @@ constructor(
 
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(straightGeometry.segments), trackNumber)
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(straightGeometry.segments), trackNumber)
                 .id
 
         val splitSourceTrackId = layoutContext.save(locationTrack(trackNumberId), straightGeometry).id
 
         return RatkoSplitTestData(
             trackNumberId = trackNumberId,
-            trackNumberOid =
-                someOid<LayoutTrackNumber>().also { oid ->
-                    trackNumberService.insertExternalId(branch, trackNumberId, oid)
-                },
+            trackNumberOid = testDBService.generateOid(trackNumberId, branch),
             splitSourceTrackId = splitSourceTrackId,
             splitSourceTrackOid =
                 splitSourceTrackOid?.also { oid ->

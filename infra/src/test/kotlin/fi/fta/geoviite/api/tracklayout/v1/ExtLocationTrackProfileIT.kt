@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
@@ -45,13 +44,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -71,11 +72,7 @@ import java.math.BigDecimal
 @AutoConfigureMockMvc
 class ExtLocationTrackProfileIT
 @Autowired
-constructor(
-    mockMvc: MockMvc,
-    private val extTestDataService: ExtApiTestDataServiceV1,
-    private val heightTriangleDao: HeightTriangleDao,
-) : DBTestBase() {
+constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -114,21 +111,21 @@ constructor(
 
         // Publication 1: track with plan-linked profile
         val publication1 =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(trackNumberId),
                 referenceLines = listOf(referenceLineId),
                 locationTracks = listOf(trackId),
             )
 
         // Publication 2: empty publish — no changes to the track
-        val publication2 = extTestDataService.publishInMain()
+        val publication2 = testDBService.publish()
 
         // Publication 3: re-save the track with unlinked segments (removes profile)
         val (track, geometry) = mainDraftContext.fetchLocationTrackWithGeometry(trackId)!!
         val unlinkedGeometry =
             trackGeometryOfSegments(geometry.segments.map { it.copy(sourceId = null, sourceStartM = null) })
         mainDraftContext.save(track, unlinkedGeometry)
-        val publication3 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+        val publication3 = testDBService.publish(locationTracks = listOf(trackId))
 
         // --- Profile endpoint assertions ---
 
@@ -227,7 +224,7 @@ constructor(
                 trackGeometryOfElements(plan.alignments[0].elements),
             )
         val publication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(trackNumberId),
                 referenceLines = listOf(referenceLineId),
                 locationTracks = listOf(trackId),
@@ -314,7 +311,7 @@ constructor(
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -346,7 +343,7 @@ constructor(
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -377,7 +374,7 @@ constructor(
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -421,7 +418,7 @@ constructor(
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -481,12 +478,10 @@ constructor(
             )
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[0]
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 2000.0)))
-                )
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 2000.0))))
                 .id
 
         // Segment 1 (0..600) linked to plan1, gap (600..800) unlinked, segment 2 (800..1400) linked to plan2
@@ -502,7 +497,7 @@ constructor(
                     segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 0.0),
                 ),
             )
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -580,12 +575,10 @@ constructor(
         // Segment 2 linked to plan2's second element (stations 500-1000, contains curve at 550)
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[1]
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 1000.0)))
-                )
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 1000.0))))
                 .id
 
         val points1 = (0..500).map { Point(0.0, it.toDouble()) }
@@ -598,7 +591,7 @@ constructor(
                     segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 0.0),
                 ),
             )
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -619,7 +612,7 @@ constructor(
     }
 
     @Test
-    fun `suunnitelman_korkeusasema maps TOP_OF_SLEEPER to Korkeusviiva and TOP_OF_RAIL to Kiskon selkä`() {
+    fun `suunnitelman_korkeusasema is reported correctly in the API`() {
         val sleeperPlan =
             insertPlan(
                 listOf(profileAlignment()),
@@ -637,7 +630,7 @@ constructor(
         val (railTrackId, railOid) =
             mainDraftContext.saveWithOid(locationTrack(railTrackNumberId), trackGeometryOfElements(railElements))
 
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(sleeperTrackNumberId, railTrackNumberId),
             referenceLines = listOf(sleeperRefLineId, railRefLineId),
             locationTracks = listOf(sleeperTrackId, railTrackId),
@@ -657,12 +650,12 @@ constructor(
     @Test
     fun `Location track with no vertical geometry returns 200 with no PVI points`() {
         val refLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
-            mainDraftContext.saveReferenceLine(referenceLineAndGeometry(trackNumberId, refLineSegment)).id
+            mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(refLineSegment)).id
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(refLineSegment))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -708,7 +701,7 @@ constructor(
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements1))
         val publication1 =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(trackNumberId),
                 referenceLines = listOf(referenceLineId),
                 locationTracks = listOf(trackId),
@@ -739,7 +732,7 @@ constructor(
         val elements2 = plan2.alignments[0].elements
         val (track, _) = mainDraftContext.fetchLocationTrackWithGeometry(trackId)!!
         mainDraftContext.save(track, trackGeometryOfElements(elements2))
-        val publication2 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+        val publication2 = testDBService.publish(locationTracks = listOf(trackId))
 
         // Changes endpoint should report the modification
         val response = api.locationTrackProfile.getModifiedBetween(oid, publication1.uuid, publication2.uuid)
@@ -815,9 +808,11 @@ constructor(
             point.korkeus_n2000,
             "$label N2000 height",
         )
-        assertEquals(expectedAddress, point.sijainti?.rataosoite, "$label track address")
-        assertEquals(expectedLocation.x, point.sijainti?.x!!, LAYOUT_COORDINATE_DELTA, "$label X coordinate")
-        assertEquals(expectedLocation.y, point.sijainti?.y!!, LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
+        point.sijainti!!.also {
+            assertEquals(expectedAddress, it.rataosoite, "$label track address")
+            assertEquals(expectedLocation.x, it.x, LAYOUT_COORDINATE_DELTA, "$label X coordinate")
+            assertEquals(expectedLocation.y, it.y, LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
+        }
     }
 
     private fun assertLinearSection(
@@ -849,7 +844,7 @@ constructor(
         elements: List<GeometryElement>,
         planSrid: Srid = LAYOUT_SRID,
     ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext
                 .saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements, planSrid = planSrid))
@@ -890,7 +885,7 @@ constructor(
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -901,14 +896,20 @@ constructor(
 
         // Compute expected LAYOUT_SRID location by transforming the GK25 PVI point
         val expectedPvi = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Pvi)
-        val expectedStart = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Start)
-        val expectedEnd = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25End)
         assertEquals(expectedPvi.x, location.x, LAYOUT_COORDINATE_DELTA)
         assertEquals(expectedPvi.y, location.y, LAYOUT_COORDINATE_DELTA)
-        assertTrue(pviPoint.pyoristyksen_alku.sijainti!!.x in expectedStart.x..expectedPvi.x)
-        assertTrue(pviPoint.pyoristyksen_alku.sijainti!!.y in expectedStart.y..expectedPvi.y)
-        assertTrue(pviPoint.pyoristyksen_loppu.sijainti!!.x in expectedPvi.x..expectedEnd.x)
-        assertTrue(pviPoint.pyoristyksen_loppu.sijainti!!.y in expectedPvi.y..expectedEnd.y)
+
+        val expectedStart = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Start)
+        pviPoint.pyoristyksen_alku.sijainti!!.also {
+            assertTrue(it.x in expectedStart.x..expectedPvi.x)
+            assertTrue(it.y in expectedStart.y..expectedPvi.y)
+        }
+
+        val expectedEnd = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25End)
+        pviPoint.pyoristyksen_loppu.sijainti!!.also {
+            assertTrue(it.x in expectedPvi.x..expectedEnd.x)
+            assertTrue(it.y in expectedPvi.y..expectedEnd.y)
+        }
 
         assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_alkuperainen)
         assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_n2000)
@@ -948,7 +949,7 @@ constructor(
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),

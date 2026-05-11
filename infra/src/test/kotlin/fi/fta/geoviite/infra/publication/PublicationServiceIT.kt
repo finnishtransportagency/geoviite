@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -51,7 +50,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
-import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
@@ -85,8 +83,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
-import java.math.BigDecimal
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -102,6 +98,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.math.BigDecimal
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -232,15 +230,14 @@ constructor(
         val switch = mainDraftContext.save(switch())
         val trackNumberIds =
             listOf(mainOfficialContext.createLayoutTrackNumber().id, mainOfficialContext.createLayoutTrackNumber().id)
-        val locationTracks =
-            trackNumberIds.map { trackNumberId ->
-                val edge =
-                    edge(
-                        startInnerSwitch = switchLinkYV(switch.id, 1),
-                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
-                    )
-                mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
-            }
+        val locationTracks = trackNumberIds.map { trackNumberId ->
+            val edge =
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id, 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                )
+            mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
+        }
 
         val publicationResult =
             publish(publicationService, locationTracks = locationTracks.map { it.id }, switches = listOf(switch.id))
@@ -401,7 +398,7 @@ constructor(
     fun publishingLocationTrackChangesWorks() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
+                .createTrackNumberAndReferenceLine(
                     referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(4.0, 4.0)))
                 )
                 .id
@@ -1700,7 +1697,7 @@ constructor(
                 )
                 .id
         val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment)).id
-        locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
+        testDBService.generateOid(locationTrack, designBranch)
 
         mainDraftContext.save(
             mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0123+0123.000")),
@@ -1727,8 +1724,8 @@ constructor(
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
             .id
         val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
-        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
-        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        testDBService.generateOid(locationTrack.id, designBranch)
+        testDBService.generateOid(locationTrack.id, MainBranch.instance)
         designDraftContext.copyFrom(locationTrack)
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
@@ -1755,8 +1752,8 @@ constructor(
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
             .id
         val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
-        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
-        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        testDBService.generateOid(locationTrack.id, designBranch)
+        testDBService.generateOid(locationTrack.id, MainBranch.instance)
         designDraftContext.copyFrom(locationTrack)
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
@@ -1778,8 +1775,8 @@ constructor(
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
             .id
         val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
-        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
-        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        testDBService.generateOid(locationTrack.id, designBranch)
+        testDBService.generateOid(locationTrack.id, MainBranch.instance)
         designDraftContext.copyFrom(locationTrack)
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
@@ -1807,8 +1804,8 @@ constructor(
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
             .id
         val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
-        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
-        locationTrackDao.insertExternalId(locationTrack.id, MainBranch.instance, Oid("1.2.3.4.6"))
+        testDBService.generateOid(locationTrack.id, designBranch)
+        testDBService.generateOid(locationTrack.id, MainBranch.instance)
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
         locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
@@ -1829,7 +1826,7 @@ constructor(
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
             .id
         val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
-        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
+        testDBService.generateOid(locationTrack.id, designBranch)
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
         locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
@@ -1892,9 +1889,9 @@ constructor(
                     )
                 ),
             )
-        trackNumberDao.insertExternalId(tn.id, LayoutBranch.main, Oid("1.2.3.4.5"))
-        switchDao.insertExternalId(sw.id, LayoutBranch.main, Oid("1.2.3.4.6"))
-        locationTrackDao.insertExternalId(lt.id, LayoutBranch.main, Oid("1.2.3.4.6"))
+        testDBService.generateOid(tn.id, LayoutBranch.main)
+        testDBService.generateOid(sw.id, LayoutBranch.main)
+        testDBService.generateOid(lt.id, LayoutBranch.main)
 
         val initialPublishResult =
             publishManualPublication(
@@ -1919,9 +1916,9 @@ constructor(
         assertPublicationResults(initialPublishResult, mainUpdatedResult)
 
         val designBranch = testDBService.createDesignBranch()
-        trackNumberDao.insertExternalId(tn.id, designBranch, Oid("1.2.3.4.7"))
-        switchDao.insertExternalId(sw.id, designBranch, Oid("1.2.3.4.8"))
-        locationTrackDao.insertExternalId(lt.id, designBranch, Oid("1.2.3.4.9"))
+        testDBService.generateOid(tn.id, designBranch)
+        testDBService.generateOid(sw.id, designBranch)
+        testDBService.generateOid(lt.id, designBranch)
         val designCreatedResult =
             touchAsDraftAndPublish(
                 designBranch,
@@ -1967,7 +1964,7 @@ constructor(
         val id = mainDraftContext.save(op).id
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(id)), PublicationMessage.of("foo")),
+            publicationRequest(operationalPoints = listOf(id), message = "foo"),
         )
         val publishedVersion = mainOfficialContext.fetchVersion(id)!!
         assertEquals(id, publishedVersion.id)
@@ -1981,7 +1978,7 @@ constructor(
         mainDraftContext.save(official.copy(name = OperationalPointName("Lordistan")))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(id)), PublicationMessage.of("bar")),
+            publicationRequest(operationalPoints = listOf(id), message = "bar"),
         )
         val editedOfficial = mainOfficialContext.fetch(id)!!
         assertEquals("Lordistan", editedOfficial.name.toString())
@@ -2013,7 +2010,7 @@ constructor(
         assertEquals("Aaponen", candidates.operationalPoints[0].name.toString())
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("aa")),
+            publicationRequest(operationalPoints = listOf(pointId), message = "aa"),
         )
         assertEquals("Aaponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
         ratkoTestService.updateRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", "Beepponen"))
@@ -2023,7 +2020,7 @@ constructor(
         assertEquals("Beepponen", editCandidates.operationalPoints[0].name.toString())
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("bee")),
+            publicationRequest(operationalPoints = listOf(pointId), message = "bee"),
         )
         assertEquals("Beepponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
     }
@@ -2038,9 +2035,9 @@ constructor(
         val ordinaryPoint = mainDraftContext.save(operationalPoint(ratoType = OperationalPointRatoType.LP)).id
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(
-                publicationRequestIds(operationalPoints = listOf(olpPoint, overriddenIdPoint, ordinaryPoint)),
-                PublicationMessage.of("publish all"),
+            publicationRequest(
+                operationalPoints = listOf(olpPoint, overriddenIdPoint, ordinaryPoint),
+                message = "publish all",
             ),
         )
         assertEquals(null, operationalPointDao.getRinfIdGenerated(olpPoint))
@@ -2051,9 +2048,9 @@ constructor(
         mainDraftContext.save(mainOfficialContext.fetch(overriddenIdPoint)!!.copy(rinfIdOverride = null))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(
-                publicationRequestIds(operationalPoints = listOf(olpPoint, overriddenIdPoint)),
-                PublicationMessage.of("change points to want rinf_id_generated"),
+            publicationRequest(
+                operationalPoints = listOf(olpPoint, overriddenIdPoint),
+                message = "change points to want rinf_id_generated",
             ),
         )
         assertTrue(operationalPointDao.getRinfIdGenerated(olpPoint) != null)
@@ -2269,16 +2266,6 @@ constructor(
         assertEquals(2, officialVersion2.version)
     }
 }
-
-fun publicationRequestIds(
-    trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
-    locationTracks: List<IntId<LocationTrack>> = listOf(),
-    referenceLines: List<IntId<ReferenceLine>> = listOf(),
-    switches: List<IntId<LayoutSwitch>> = listOf(),
-    kmPosts: List<IntId<LayoutKmPost>> = listOf(),
-    operationalPoints: List<IntId<OperationalPoint>> = listOf(),
-): PublicationRequestIds =
-    PublicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T, *>> publishAndCheck(
     rowVersion: LayoutRowVersion<T>,

@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -256,8 +255,9 @@ constructor(
         val switches = pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2)).items
 
         val indexOfRandomSwitch = switches.indexOfFirst { s -> s.id == idOfRandomSwitch }
-        val indexOfSwitchLocatedAtComparisonPoint =
-            switches.indexOfFirst { s -> s.id == idOfSwitchLocatedAtComparisonPoint }
+        val indexOfSwitchLocatedAtComparisonPoint = switches.indexOfFirst { s ->
+            s.id == idOfSwitchLocatedAtComparisonPoint
+        }
 
         assertTrue(indexOfRandomSwitch >= 0)
         assertTrue(indexOfSwitchLocatedAtComparisonPoint >= 0)
@@ -315,7 +315,7 @@ constructor(
                         segments = listOf(someSegment()),
                     )
                 ),
-                someOid(),
+                withOid = true,
             )
         val (_, withEndLink) =
             insertDraft(
@@ -338,7 +338,7 @@ constructor(
                         segments = listOf(someSegment()),
                     )
                 ),
-                someOid(),
+                withOid = true,
             )
         assertEquals(
             listOf<LocationTrackIdentifiers>(),
@@ -358,7 +358,6 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchId = mainOfficialContext.save(switch()).id
 
-        val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 =
             mainOfficialContext.save(
                 locationTrack(trackNumberId = trackNumberId, name = "LT 1"),
@@ -370,7 +369,7 @@ constructor(
                     )
                 ),
             )
-        locationTrackService.insertExternalId(LayoutBranch.main, locationTrack1.id, locationTrack1Oid)
+        val locationTrack1Oid = testDBService.generateOid(locationTrack1.id, LayoutBranch.main)
 
         val locationTrack2 =
             mainOfficialContext.save(
@@ -384,7 +383,6 @@ constructor(
                 ),
             )
 
-        val locationTrack3Oid = someOid<LocationTrack>()
         val locationTrack3 =
             mainOfficialContext.save(
                 locationTrack(trackNumberId = trackNumberId, name = "LT 3"),
@@ -396,7 +394,7 @@ constructor(
                     )
                 ),
             )
-        locationTrackService.insertExternalId(LayoutBranch.main, locationTrack3.id, locationTrack3Oid)
+        val locationTrack3Oid = testDBService.generateOid(locationTrack3.id, LayoutBranch.main)
 
         // add confuser draft; should have no effect
         mainDraftContext.save(mainOfficialContext.fetch(locationTrack1.id)!!)
@@ -518,12 +516,11 @@ constructor(
 
     @Test
     fun `idMatches finds switches even if ids or oids need trimming`() {
-        val switch1 = mainOfficialContext.save(switch()).let { mainOfficialContext.fetch(it.id) }!!
-        val switch2 = mainOfficialContext.save(switch()).let { mainOfficialContext.fetch(it.id) }!!
-        val switch2oid = externalIdForSwitch()
-        switchService.insertExternalIdForSwitch(LayoutBranch.main, switch2.id as IntId, switch2oid)
+        val (switch1Id, switch1) = mainOfficialContext.save(switch()).id.let { it to mainOfficialContext.fetch(it)!! }
+        val (switch2Id, switch2) = mainOfficialContext.save(switch()).id.let { it to mainOfficialContext.fetch(it)!! }
+        val switch2oid = testDBService.generateOid(switch2Id, LayoutBranch.main)
 
-        val intIdTerm = FreeText(" ${switch1.id} ")
+        val intIdTerm = FreeText(" $switch1Id ")
         val intIdMatchFunction = switchService.idMatches(MainLayoutContext.official, intIdTerm, null)
 
         val oidTerm = FreeText(" $switch2oid ")
@@ -715,12 +712,8 @@ constructor(
     @Test
     fun `deleteSwitchLinks removes switch references from location tracks when set to true`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val switch =
-            switchService.getOrThrow(
-                MainLayoutContext.draft,
-                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
-            )
-        val switchId = switch.id as IntId
+        val switchId = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
+        val switch = switchService.getOrThrow(MainLayoutContext.draft, switchId)
 
         val (track, _) =
             insertDraft(
@@ -765,12 +758,8 @@ constructor(
     @Test
     fun `deleteSwitchLinks keeps switch references when set to false`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val switch =
-            switchService.getOrThrow(
-                MainLayoutContext.draft,
-                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
-            )
-        val switchId = switch.id as IntId
+        val switchId = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
+        val switch = switchService.getOrThrow(MainLayoutContext.draft, switchId)
 
         val (track, _) =
             insertDraft(
@@ -815,12 +804,10 @@ constructor(
     private fun insertDraft(
         locationTrack: LocationTrack,
         geometry: LocationTrackGeometry,
-        oid: Oid<LocationTrack>? = null,
+        withOid: Boolean = false,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
         val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, geometry)
-        if (oid != null) {
-            locationTrackService.insertExternalId(LayoutBranch.main, version.id, oid)
-        }
+        val oid = if (withOid) testDBService.generateOid(version.id, LayoutBranch.main) else null
         val track = locationTrackService.getOrThrow(MainLayoutContext.draft, version.id)
         val identifiers = LocationTrackIdentifiers(version, oid)
         return track to identifiers

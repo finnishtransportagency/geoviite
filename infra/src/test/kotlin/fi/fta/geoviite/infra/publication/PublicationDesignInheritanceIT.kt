@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.math.Point
@@ -45,6 +44,7 @@ constructor(
     val locationTrackDao: LocationTrackDao,
     val fakeRatkoService: FakeRatkoService,
 ) : DBTestBase() {
+
     @BeforeEach
     fun cleanup() {
         val sql =
@@ -83,7 +83,7 @@ constructor(
         // case: track number is only in main-official, but reference line is also edited in design, and km post on
         // the track number is changed -> inherited change is recorded on the track number version in main
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         val referenceLine =
             mainOfficialContext
                 .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
@@ -99,16 +99,13 @@ constructor(
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("2.2.2.2.2"))
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(referenceLines = listOf(referenceLine)),
-                PublicationMessage.of("ref line to design"),
-            ),
+            publicationRequest(referenceLines = listOf(referenceLine), message = "ref line to design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -129,7 +126,7 @@ constructor(
         // case: track number is edited in design, and km post on the track number is changed -> inherited change is
         // recorded on the track number version in the design
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -146,16 +143,13 @@ constructor(
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("2.2.2.2.2"))
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(trackNumbers = listOf(trackNumber)),
-                PublicationMessage.of("track number to design"),
-            ),
+            publicationRequest(trackNumbers = listOf(trackNumber), message = "track number to design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -176,7 +170,7 @@ constructor(
         // case: location track is create in main and edited in design, then a km post change is edited in main,
         // causing an inherited change
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -196,16 +190,13 @@ constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.2.2.2.2")
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(locationTracks = listOf(locationTrack)),
-                PublicationMessage.of("location track to design"),
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack), message = "location track to design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -225,7 +216,7 @@ constructor(
         // case: location track is created in design, then a km post change is edited in main, causing an inherited
         // change
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -245,16 +236,13 @@ constructor(
 
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(locationTracks = listOf(locationTrack)),
-                PublicationMessage.of("location track in design"),
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack), message = "location track in design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -272,7 +260,7 @@ constructor(
     @Test
     fun `self-inherited changes both assign oids and record indirect changes for the inheritance targets`() {
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -295,10 +283,7 @@ constructor(
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("3.3.3.3.3"))
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(kmPosts = listOf(kmPost)),
-                PublicationMessage.of("edit km post in design"),
-            ),
+            publicationRequest(kmPosts = listOf(kmPost), message = "edit km post in design"),
         )
         assertEquals("2.2.2.2.2", locationTrackDao.fetchExternalId(design, locationTrack)?.oid?.toString())
         assertEquals("3.3.3.3.3", trackNumberDao.fetchExternalId(design, trackNumber)?.oid?.toString())

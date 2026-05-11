@@ -3,7 +3,6 @@ import fi.fta.geoviite.api.tracklayout.v1.COORDINATE_SYSTEM
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackLayoutTestApiService
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
@@ -19,17 +18,19 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,7 +47,6 @@ class ExtTestTrackLayoutV1IT
 @Autowired
 constructor(
     mockMvc: MockMvc,
-    private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
     private val publicationService: PublicationService,
 ) : DBTestBase() {
@@ -151,7 +151,7 @@ constructor(
     fun `Ext api asset endpoints should return HTTP 400 if the OID is invalid format`() {
         val invalidOid = "asd"
         val expectedStatus = HttpStatus.BAD_REQUEST
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         errorTests.forEach { (_, apiCall) -> apiCall(invalidOid, emptyArray(), expectedStatus) }
         modificationErrorTests.forEach { (_, apiCall) ->
@@ -163,7 +163,7 @@ constructor(
     fun `Ext api asset endpoints should return HTTP 404 if the OID is not found`() {
         val expectedStatus = HttpStatus.NOT_FOUND
         val nonExistingOid = someOid<Nothing>().toString()
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         errorTests.forEach { (_, apiCall) -> apiCall(nonExistingOid, emptyArray(), expectedStatus) }
         modificationErrorTests.forEach { (_, apiCall) ->
@@ -215,8 +215,8 @@ constructor(
 
     @Test
     fun `Ext api asset modification endpoints should return HTTP 400 if the start and end track layout versions are in the incorrect order`() {
-        val startPublication = extTestDataService.publishInMain()
-        val endPublication = extTestDataService.publishInMain()
+        val startPublication = testDBService.publish()
+        val endPublication = testDBService.publish()
         val expectedStatus = HttpStatus.BAD_REQUEST
 
         modificationErrorTests
@@ -235,7 +235,7 @@ constructor(
 
     @Test
     fun `Ext api asset modification endpoints should return HTTP 404 if either the start or end track layout version is not found`() {
-        val emptyButExistingPublication = extTestDataService.publishInMain()
+        val emptyButExistingPublication = testDBService.publish()
         val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
 
         val expectedStatus = HttpStatus.NOT_FOUND
@@ -258,7 +258,7 @@ constructor(
     @Test
     fun `Ext api asset endpoints should return HTTP 204 when the asset does not exist in the specified track layout version`() {
         val expectedStatus = HttpStatus.NO_CONTENT
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         noContentTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
@@ -284,8 +284,8 @@ constructor(
     @Test
     fun `Ext api asset modification endpoints should return HTTP 204 when the asset does not exist between track layout versions`() {
         val expectedStatus = HttpStatus.NO_CONTENT
-        val firstPublication = extTestDataService.publishInMain()
-        val secondPublication = extTestDataService.publishInMain()
+        val firstPublication = testDBService.publish()
+        val secondPublication = testDBService.publish()
 
         noContentModificationTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
@@ -305,7 +305,7 @@ constructor(
 
     @Test
     fun `Ext api asset modification endpoints should return HTTP 200 when the asset has been created after the start track layout version`() {
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         modificationSuccessTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
@@ -324,7 +324,7 @@ constructor(
                 val publicationAfterSetup =
                     publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, publicationUuid = null)
                 initUser()
-                val publicationWithNoChanges = extTestDataService.publishInMain()
+                val publicationWithNoChanges = testDBService.publish()
 
                 apiCall(
                     oid,
@@ -340,7 +340,7 @@ constructor(
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 404 if either start or end track layout version is not found`() {
         val nonExistingTrackLayoutVersion = "00000000-0000-0000-0000-000000000000"
-        val emptyButRealPublication = extTestDataService.publishInMain()
+        val emptyButRealPublication = testDBService.publish()
 
         collectionModificationErrorTests.forEach { apiCall ->
             apiCall(arrayOf("alkuversio" to nonExistingTrackLayoutVersion), HttpStatus.NOT_FOUND)
@@ -368,7 +368,7 @@ constructor(
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 400 if the start or end track layout versions is in invalid format`() {
         val invalidTrackLayoutVersion = "asd"
-        val emptyButRealPublication = extTestDataService.publishInMain()
+        val emptyButRealPublication = testDBService.publish()
 
         collectionModificationErrorTests.forEach { apiCall ->
             apiCall(arrayOf("alkuversio" to invalidTrackLayoutVersion), HttpStatus.BAD_REQUEST)
@@ -395,8 +395,8 @@ constructor(
 
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 400 if the start and end track layout versions are in the incorrect order`() {
-        val startPublication = extTestDataService.publishInMain()
-        val endPublication = extTestDataService.publishInMain()
+        val startPublication = testDBService.publish()
+        val endPublication = testDBService.publish()
 
         collectionModificationErrorTests.forEach { apiCall ->
             apiCall(
@@ -418,7 +418,7 @@ constructor(
 
     @Test
     fun `Ext api asset collection endpoints should return HTTP 404 if the track layout version is not found`() {
-        extTestDataService.publishInMain() // Purposefully a publication so that it does not answer based on this
+        testDBService.publish() // Purposefully a publication so that it does not answer based on this
 
         collectionErrorTests.forEach { apiCall ->
             apiCall(arrayOf("rataverkon_versio" to "00000000-0000-0000-0000-000000000000"), HttpStatus.NOT_FOUND)
@@ -428,7 +428,7 @@ constructor(
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 204 when there are no modifications`() {
         val lastContentPublication = collectionNoContentTests.map { (setupCollection, _) -> setupCollection() }.last()
-        val lastButEmptyPublication = extTestDataService.publishInMain()
+        val lastButEmptyPublication = testDBService.publish()
 
         collectionNoContentTests.forEach { (_, apiCall) ->
             apiCall(
@@ -502,10 +502,10 @@ constructor(
 
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
-        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         return oid
     }
@@ -515,16 +515,14 @@ constructor(
 
         val trackNumbersAndReferenceLines =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, referenceLineId, _) =
-                    extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                        mainDraftContext,
-                        segments = listOf(segment),
-                    )
+                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
                 trackNumberId to referenceLineId
             }
 
-        return extTestDataService.publishInMain(
+        return testDBService.publish(
             trackNumbers = trackNumbersAndReferenceLines.map { it.first },
             referenceLines = trackNumbersAndReferenceLines.map { it.second },
         )
@@ -547,14 +545,13 @@ constructor(
             )
         val elements = plan.alignments[0].elements
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id.also { mainDraftContext.generateOid(it) }
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext.saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements)).id
-        val trackId =
-            mainDraftContext.saveLocationTrack(locationTrack(trackNumberId) to trackGeometryOfElements(elements)).id
-        val oid = mainDraftContext.generateOid(trackId)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
 
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -566,18 +563,17 @@ constructor(
     private fun setupValidLocationTrackCollection(): Publication {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         val tracks =
             listOf(1, 2, 3).map { _ ->
-                val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
-                locationTrackService.insertExternalId(LayoutBranch.main, trackId, someOid())
-
+                val (trackId, _) =
+                    mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
                 trackId
             }
 
-        return extTestDataService.publishInMain(
+        return testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = tracks,
@@ -615,7 +611,7 @@ constructor(
                 .id
         val oid = mainDraftContext.generateOid(opId)
 
-        extTestDataService.publishInMain(operationalPoints = listOf(opId))
+        testDBService.publish(operationalPoints = listOf(opId))
 
         return oid
     }
@@ -635,6 +631,6 @@ constructor(
                     .also { opId -> mainDraftContext.generateOid(opId) }
             }
 
-        return extTestDataService.publishInMain(operationalPoints = ops)
+        return testDBService.publish(operationalPoints = ops)
     }
 }

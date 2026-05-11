@@ -32,7 +32,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
 
         val tnVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            mainOfficialContext.createTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
@@ -133,7 +133,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
 
         val tnVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            mainOfficialContext.createTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
@@ -198,7 +198,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks returns correct links when the track doesn't cover the whole way`() {
         val tnVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            mainOfficialContext.createTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
             )
         val op1Version = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
@@ -290,7 +290,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks does not produce links for OLP-type operational points`() {
         val tnVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            mainOfficialContext.createTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
@@ -329,7 +329,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks returns correct links when filtering by operational point id`() {
         val tnVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            mainOfficialContext.createTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
@@ -433,7 +433,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks handles tracks referencing deleted operational points`() {
         val tnVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            mainOfficialContext.createTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
