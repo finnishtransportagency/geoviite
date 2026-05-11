@@ -26,7 +26,7 @@ import {
 import { deduplicateById } from 'utils/array-utils';
 import { AlignmentPolyLine, GeometryAlignmentHeader } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
-import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined, ifDefined } from 'utils/type-utils';
 import { Brand } from 'common/brand';
 import { isNilOrBlank } from 'utils/string-utils';
 
@@ -600,6 +600,9 @@ export type KmPostInfoboxExtras = {
 };
 
 export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {
+    if (points.length === 1) {
+        return expectDefined(points[0]);
+    }
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }
 

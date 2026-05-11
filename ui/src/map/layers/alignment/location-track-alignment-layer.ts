@@ -129,8 +129,12 @@ export function createLocationTrackFeatures(
     alignments: LayoutAlignmentDataHolder[],
     selection: Selection,
     showEndTicks: boolean,
+    showVeryShortTracks: boolean,
 ): Feature<LineString | OlPoint>[] {
-    return alignments.flatMap((alignment) => {
+    const alignmentsToRender = showVeryShortTracks
+        ? alignments
+        : alignments.filter((alignment) => alignment.points.length > 2);
+    return alignmentsToRender.flatMap((alignment) => {
         const highlighted = isHighlighted(selection, alignment.header);
         const styles = highlighted
             ? getLocationTrackHighlightStyles(alignment.header.state)
@@ -177,11 +181,19 @@ export function createLocationTrackAlignmentLayer(
         changeTimes,
         mapTiles,
         layoutContext,
+        // includeShortTracks=true as we're the source of truth on what tracks are within map bounds
+        true,
     );
 
     const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
-        return createLocationTrackFeatures(locationTracks, selection, showEndPointTicks);
+        const showVeryShortTracks = resolution <= Limits.SHOW_VERY_SHORT_TRACKS_MIN_RESOLUTION;
+        return createLocationTrackFeatures(
+            locationTracks,
+            selection,
+            showEndPointTicks,
+            showVeryShortTracks,
+        );
     };
 
     const onLoadingChange = (
