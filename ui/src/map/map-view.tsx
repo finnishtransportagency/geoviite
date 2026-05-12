@@ -548,21 +548,25 @@ const MapView: React.FC<MapViewProps> = ({
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'route-highlight-layer':
-                        return createRouteHighlightLayer(
-                            mapTiles,
-                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
-                            layoutContext,
-                            changeTimes,
-                            routeResult,
-                            (loading) => onLayerLoading(layerName, loading),
-                        );
+                        return !!linkingState || !!splittingState
+                            ? undefined
+                            : createRouteHighlightLayer(
+                                  mapTiles,
+                                  existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
+                                  layoutContext,
+                                  changeTimes,
+                                  routeResult,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              );
                     case 'route-marker-layer':
-                        return createRouteMarkerLayer(
-                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
-                            hoveredRouteLocation,
-                            routeLocations,
-                            (loading) => onLayerLoading(layerName, loading),
-                        );
+                        return !!linkingState || !!splittingState
+                            ? undefined
+                            : createRouteMarkerLayer(
+                                  existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
+                                  hoveredRouteLocation,
+                                  routeLocations,
+                                  (loading) => onLayerLoading(layerName, loading),
+                              );
                     case 'km-post-layer':
                         return createKmPostLayer(
                             mapTiles,
@@ -875,14 +879,17 @@ const MapView: React.FC<MapViewProps> = ({
             if (areaTool) {
                 setActiveToolId(areaTool?.id);
             }
-        } else if (activeTool?.id === 'operational-point-area') {
-            // When leaving operational point area mode, revert to default tool
+        } else if (
+            activeTool?.id === 'operational-point-area' ||
+            (activeTool?.id === 'route-finding' && (!!linkingState || !!splittingState))
+        ) {
+            // Revert to select-or-highlight when leaving operational point area mode or when entering a linking or splitting state
             const selectTool = mapTools?.find((tool) => tool.id === 'select-or-highlight');
             if (selectTool) {
                 setActiveToolId(selectTool?.id);
             }
         }
-    }, [linkingState, mapTools, activeTool]);
+    }, [linkingState, splittingState, mapTools, activeTool]);
 
     const mapClassNames = createClassName(styles.map);
 
