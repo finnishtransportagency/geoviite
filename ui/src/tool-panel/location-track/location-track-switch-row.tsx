@@ -21,6 +21,7 @@ type LocationTrackSwitchRowProps = {
     displayAddress?: TrackMeter;
     locationTrack: LayoutLocationTrack;
     onSelect: (items: OnSelectOptions) => void;
+    isLinkingOrSplitting: boolean;
 };
 
 export const LocationTrackSwitchRow: React.FC<LocationTrackSwitchRowProps> = ({
@@ -31,6 +32,7 @@ export const LocationTrackSwitchRow: React.FC<LocationTrackSwitchRowProps> = ({
     displayAddress,
     locationTrack,
     onSelect,
+    isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
     const [showDetachDialog, setShowDetachDialog] = React.useState(false);
@@ -74,6 +76,7 @@ export const LocationTrackSwitchRow: React.FC<LocationTrackSwitchRowProps> = ({
             <div>
                 {layoutContext.publicationState === 'DRAFT' && (
                     <Button
+                        disabled={isLinkingOrSplitting}
                         size={ButtonSize.SMALL}
                         variant={ButtonVariant.GHOST}
                         onClick={() => setShowDetachDialog(true)}>
