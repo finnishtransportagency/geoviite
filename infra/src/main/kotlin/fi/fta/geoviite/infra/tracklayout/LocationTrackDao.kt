@@ -484,7 +484,6 @@ class LocationTrackDao(
         bbox: BoundingBox,
         includeDeleted: Boolean = false,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
-        minLength: Double? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -493,7 +492,6 @@ class LocationTrackDao(
                       :publication_state::layout.publication_state, :design_id) location_track
               where (:track_number_id::int is null or track_number_id = :track_number_id)
                 and (:include_deleted or state != 'DELETED')
-                and (:min_length::numeric is null or location_track.length >= :min_length)
                 and exists(
                   select *
                     from layout.location_track_version_edge lt_edge
@@ -528,7 +526,6 @@ class LocationTrackDao(
                 "design_id" to context.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
                 "track_number_id" to trackNumberId?.intValue,
-                "min_length" to minLength,
             )
 
         // GVT-3181 This query is poorly optimized when JDBC tries to prepare a plan for it.

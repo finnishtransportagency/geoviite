@@ -261,12 +261,11 @@ class LocationTrackService(
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
-        minLength: Double? = null,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         val versions =
             if (boundingBox == null) dao.fetchVersions(layoutContext, includeDeleted, trackNumberId)
-            else dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
+            else dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId)
         val filteredVersions =
             if (locationTrackIds == null) versions
             else versions.filter { version -> locationTrackIds.contains(version.id) }

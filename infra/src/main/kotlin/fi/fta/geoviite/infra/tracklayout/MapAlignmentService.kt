@@ -48,7 +48,6 @@ class MapAlignmentService(
         resolution: Int,
         type: AlignmentFetchType,
         includeSegmentEndPoints: Boolean = false,
-        minLength: Double? = null,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<*, *>> {
         val referenceLines =
@@ -56,15 +55,7 @@ class MapAlignmentService(
             else getReferenceLinePolyLines(layoutContext, bbox, resolution, includeSegmentEndPoints)
         val locationTracks =
             if (type == AlignmentFetchType.REFERENCE_LINES) listOf()
-            else
-                getLocationTrackPolyLines(
-                    layoutContext,
-                    bbox,
-                    resolution,
-                    includeSegmentEndPoints,
-                    minLength,
-                    locationTrackIds,
-                )
+            else getLocationTrackPolyLines(layoutContext, bbox, resolution, includeSegmentEndPoints, locationTrackIds)
 
         return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
     }
@@ -187,7 +178,6 @@ class MapAlignmentService(
         bbox: BoundingBox,
         resolution: Int,
         includeSegmentEndPoints: Boolean,
-        minLength: Double? = null,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<LocationTrack, LocationTrackM>> =
         locationTrackService
@@ -195,7 +185,6 @@ class MapAlignmentService(
                 layoutContext,
                 includeDeleted = false,
                 boundingBox = bbox,
-                minLength = minLength,
                 locationTrackIds = locationTrackIds,
             )
             .map { (track, geometry) ->

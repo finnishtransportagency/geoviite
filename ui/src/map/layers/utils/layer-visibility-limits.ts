@@ -66,6 +66,7 @@ export const GEOMETRY_TICKS = 5.0;
 
 // Track numbers
 export const SHOW_LOCATION_TRACK_BADGES = 0.4;
+export const SHOW_VERY_SHORT_TRACKS_MIN_RESOLUTION = 10.0;
 export const REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION = 20.0;
 export const TRACK_NUMBER_DIAGRAM_ENDPOINT_MAX_RESOLUTION = 20;
 
@@ -91,7 +92,6 @@ export const SUGGESTED_SWITCH_SHOW = 100.0;
 
 // Map resolution is ~ meters/pixel -> line points will have this many pixels between them
 export const MAP_RESOLUTION_MULTIPLIER = 10;
-export const ALIGNMENT_MIN_LENGTH_IN_PIXELS = 10;
 
 export const OPERATIONAL_POINTS_LARGE = SWITCH_SHOW;
 export const OPERATIONAL_POINTS_MEDIUM = 10;

@@ -14,10 +14,7 @@ import {
 } from './track-layout-model';
 import { API_URI, getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
-import {
-    ALIGNMENT_MIN_LENGTH_IN_PIXELS,
-    MAP_RESOLUTION_MULTIPLIER,
-} from 'map/layers/utils/layer-visibility-limits';
+import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
 import {
     draftLayoutContext,
@@ -260,7 +257,6 @@ export async function getLocationTrackMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
-    includeShortTracks: boolean = false,
     locationTrackIds: LocationTrackId[] | undefined = undefined,
 ): Promise<LocationTrackAlignmentDataHolder[]> {
     const polyLines = await Promise.all(
@@ -271,7 +267,6 @@ export async function getLocationTrackMapAlignmentsByTiles(
                 layoutContext,
                 'LOCATION_TRACKS',
                 false,
-                includeShortTracks,
                 locationTrackIds,
             ),
         ),
@@ -501,7 +496,6 @@ export async function getLinkPointsByTiles(
                 draftLayoutContext(layoutContext),
                 'ALL',
                 includeSegmentEndPoints,
-                true,
             ),
         ),
     );
@@ -562,24 +556,18 @@ async function getPolyLines(
     layoutContext: LayoutContext,
     fetchType: AlignmentFetchType,
     includeSegmentEndPoints: boolean = false,
-    includeShortTracks: boolean = false,
     locationTrackIds: LocationTrackId[] | undefined = undefined,
 ): Promise<AlignmentPolyLine[]> {
     const locationTrackIdsStr = locationTrackIds?.join(',');
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}_${includeSegmentEndPoints}_${includeShortTracks}_${locationTrackIdsStr}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}_${includeSegmentEndPoints}_${locationTrackIdsStr}`;
     const tileResolution = mapTile.resolution;
     const alignmentResolution = toMapAlignmentResolution(tileResolution);
-
-    // Tile resolution can be double the actual map resolution, therefore tile resolution is divided by two
-    // to get correct min length, otherwise long enough tracks may be filtered out.
-    const alignmentMinLength = getAlignmentMinLength(tileResolution / 2);
 
     const params = queryParams({
         resolution: alignmentResolution,
         bbox: bboxString(mapTile.area),
         type: fetchType.toUpperCase(),
         includeSegmentEndPoints: includeSegmentEndPoints,
-        minLength: includeShortTracks ? undefined : alignmentMinLength,
         locationTrackIds: locationTrackIds,
     });
     return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
@@ -610,10 +598,6 @@ async function getLocationTrackPolyline(
 
 export function toMapAlignmentResolution(tileResolution: number): number {
     return parseFloat(Math.floor(tileResolution * MAP_RESOLUTION_MULTIPLIER).toPrecision(1));
-}
-
-export function getAlignmentMinLength(resolution: number) {
-    return resolution * ALIGNMENT_MIN_LENGTH_IN_PIXELS;
 }
 
 export async function getTrackMeter(
