@@ -6,7 +6,7 @@ import { Point } from 'model/geometry';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import styles from './location-track-switch-links-infobox.scss';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { SwitchBadge } from 'geoviite-design-lib/switch/switch-badge';
+import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { OnSelectOptions } from 'selection/selection-model';
 import { LayoutValidationIssue } from 'publication/publication-model';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
@@ -50,6 +50,7 @@ export const LocationTrackSwitchRow: React.FC<LocationTrackSwitchRowProps> = ({
                 <SwitchBadge
                     switchItem={switchItem}
                     switchIsValid={validationIssues.length === 0}
+                    status={isLinkingOrSplitting ? SwitchBadgeStatus.DISABLED : undefined}
                     onClick={() =>
                         onSelect({
                             switches: [switchItem.id],

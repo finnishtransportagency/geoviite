@@ -13,11 +13,13 @@ import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track
 type JointTrackMeterProps = {
     jointTrackMeter: SwitchJointTrackMeter;
     addressPlaceHolder: string;
+    isLinkingOrSplitting?: boolean;
 };
 
 const JointTrackMeter: React.FC<JointTrackMeterProps> = ({
     jointTrackMeter,
     addressPlaceHolder,
+    isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
     return (
@@ -36,6 +38,7 @@ const JointTrackMeter: React.FC<JointTrackMeterProps> = ({
             <LocationTrackLink
                 locationTrackId={jointTrackMeter.locationTrackId}
                 locationTrackName={jointTrackMeter.locationTrackName}
+                disabled={isLinkingOrSplitting}
             />
         </span>
     );
@@ -45,12 +48,14 @@ export type SwitchInfoboxTrackMetersProps = {
     switchId: LayoutSwitchId;
     jointTrackMeters: SwitchJointTrackMeter[];
     presentationJoint?: JointNumber;
+    isLinkingOrSplitting?: boolean;
 };
 
 export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> = ({
     switchId,
     jointTrackMeters,
     presentationJoint,
+    isLinkingOrSplitting,
 }: SwitchInfoboxTrackMetersProps) => {
     const { t } = useTranslation();
 
@@ -82,6 +87,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                             <JointTrackMeter
                                 jointTrackMeter={pja}
                                 addressPlaceHolder={addressMissingText}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                         </li>
                     ))}
@@ -107,6 +113,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
                                         <JointTrackMeter
                                             jointTrackMeter={a}
                                             addressPlaceHolder={addressMissingText}
+                                            isLinkingOrSplitting={isLinkingOrSplitting}
                                         />
                                     </li>
                                 ))}

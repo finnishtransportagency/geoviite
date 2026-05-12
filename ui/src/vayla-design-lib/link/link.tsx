@@ -2,12 +2,16 @@ import * as React from 'react';
 import styles from './link.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
-export const Link: React.FC<React.HTMLProps<HTMLAnchorElement>> = (
-    props: React.HTMLProps<HTMLAnchorElement>,
-) => {
-    const className = createClassName(styles.link, props.className);
+type LinkProps = React.HTMLProps<HTMLAnchorElement> & { disabled?: boolean };
+
+export const Link: React.FC<LinkProps> = ({ disabled, onClick, ...props }: LinkProps) => {
+    const className = createClassName(
+        styles.link,
+        disabled && styles['link--disabled'],
+        props.className,
+    );
     return (
-        <a {...props} className={className}>
+        <a {...props} className={className} onClick={disabled ? undefined : onClick}>
             {props.children}
         </a>
     );

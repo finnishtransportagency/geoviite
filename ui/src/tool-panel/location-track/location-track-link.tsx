@@ -7,6 +7,7 @@ import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 export type LocationTrackLinkProps = {
     locationTrackId: LocationTrackId;
     locationTrackName: string;
+    disabled?: boolean;
 };
 
 export const LocationTrackLink: React.FC<LocationTrackLinkProps> = (
@@ -16,6 +17,7 @@ export const LocationTrackLink: React.FC<LocationTrackLinkProps> = (
 
     return (
         <AnchorLink
+            disabled={props.disabled}
             onClick={() => {
                 delegates.onSelect({
                     locationTracks: [props.locationTrackId],

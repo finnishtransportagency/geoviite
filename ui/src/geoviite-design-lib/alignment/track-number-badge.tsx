@@ -14,6 +14,7 @@ type TrackNumberBadgeLinkProps = {
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
     onClick?: (trackNumberId: LayoutTrackNumberId) => void;
+    disabled?: boolean;
 };
 
 type TrackNumberBadgeProps = {
@@ -35,6 +36,7 @@ export const TrackNumberBadgeLink: React.FC<TrackNumberBadgeLinkProps> = ({
     layoutContext,
     changeTime,
     onClick,
+    disabled,
 }: TrackNumberBadgeLinkProps) => {
     const [trackNumber, status] = useTrackNumberWithStatus(
         trackNumberId,
@@ -56,7 +58,11 @@ export const TrackNumberBadgeLink: React.FC<TrackNumberBadgeLinkProps> = ({
     }, [onClick, trackNumberId]);
 
     return status === LoaderStatus.Ready && trackNumber ? (
-        <TrackNumberBadge trackNumber={trackNumber} onClick={clickAction} />
+        <TrackNumberBadge
+            trackNumber={trackNumber}
+            onClick={disabled ? undefined : clickAction}
+            status={disabled ? TrackNumberBadgeStatus.DISABLED : undefined}
+        />
     ) : (
         <Spinner />
     );

@@ -133,6 +133,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
                 openEditLocationTrackDialog={openEditLocationTrackDialog}
+                isLinkingOrSplitting={!!linkingState || !!splittingState}
             />
             {splittingState && (
                 <LocationTrackSplittingInfoboxContainer

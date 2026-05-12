@@ -22,6 +22,7 @@ type LocationTrackInfoboxDuplicateTrackEntryProps = {
     currentTrackNumberId: LayoutTrackNumberId | undefined;
     trackNumbers: LayoutTrackNumber[] | undefined;
     explicitDuplicateLocationTrackNames: LayoutLocationTrack[];
+    isLinkingOrSplitting?: boolean;
 };
 
 type NoticeLevel = 'ERROR' | 'WARNING' | 'INFO';
@@ -199,6 +200,7 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
     currentTrackNumberId,
     trackNumbers,
     explicitDuplicateLocationTrackNames,
+    isLinkingOrSplitting,
 }: LocationTrackInfoboxDuplicateTrackEntryProps) => {
     const { t } = useTranslation();
 
@@ -269,6 +271,7 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
                 <LocationTrackLink
                     locationTrackId={duplicate.id}
                     locationTrackName={duplicate.name}
+                    disabled={isLinkingOrSplitting}
                 />
                 {notices.length > 0 && <LocationTrackDuplicateInfoIcon level={iconType} />}
             </span>

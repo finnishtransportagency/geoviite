@@ -89,6 +89,8 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
     const { t } = useTranslation();
     const delegates = useMemo(() => createDelegates(trackLayoutActionCreators), []);
     const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
     const operationalPointSwitchLinkingState =
         linkingState?.type === LinkingType.LinkingOperationalPointSwitches
             ? linkingState
@@ -257,6 +259,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 massLinkingAction={addAllSwitches}
                                 showArea={delegates.showArea}
                                 onSelectSwitch={onSelectSwitch}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <OperationalPointSwitchesDirectionInfobox
                                 layoutContext={layoutContext}
@@ -274,6 +277,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 massLinkingAction={removeAllSwitches}
                                 showArea={delegates.showArea}
                                 onSelectSwitch={onSelectSwitch}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <div
                                 className={

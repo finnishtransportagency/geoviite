@@ -12,6 +12,7 @@ import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 export type TrackNumberLinkContainerProps = {
     trackNumberId?: LayoutTrackNumberId;
+    disabled?: boolean;
 };
 
 export type TrackNumberLinkProps = {
@@ -19,6 +20,7 @@ export type TrackNumberLinkProps = {
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
     onClick?: (trackNumberId: LayoutTrackNumberId) => void;
+    disabled?: boolean;
 };
 
 function createSelectAction() {
@@ -34,6 +36,7 @@ function createSelectAction() {
 
 export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> = ({
     trackNumberId,
+    disabled,
 }) => {
     const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutTrackNumber);
@@ -43,6 +46,7 @@ export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> =
             trackNumberId={trackNumberId}
             layoutContext={layoutContext}
             changeTime={changeTime}
+            disabled={disabled}
         />
     );
 };
@@ -52,6 +56,7 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
     layoutContext,
     changeTime,
     onClick,
+    disabled,
 }: TrackNumberLinkProps) => {
     const { t } = useTranslation();
     const [trackNumber, status] = useTrackNumberWithStatus(
@@ -64,7 +69,7 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
 
     return status === LoaderStatus.Ready && trackNumber ? (
         <React.Fragment>
-            <AnchorLink onClick={() => clickAction(trackNumber.id)}>
+            <AnchorLink disabled={disabled} onClick={() => clickAction(trackNumber.id)}>
                 {trackNumber.number}
             </AnchorLink>
             {trackNumber.state === 'DELETED' ? (

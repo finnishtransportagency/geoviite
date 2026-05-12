@@ -38,6 +38,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             trackNumber={trackNumber}
             referenceLine={referenceLine}
             linkingState={trackLayoutState.linkingState}
+            splittingState={trackLayoutState.splittingState}
             onStartReferenceLineGeometryChange={(interval) => {
                 delegates.addForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.startAlignmentGeometryChange(interval);

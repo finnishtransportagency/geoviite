@@ -13,6 +13,7 @@ type OperationalPointBadgeLinkProps = {
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
     onClick?: (operationalPointId: OperationalPointId) => void;
+    disabled?: boolean;
 };
 
 type OperationalPointBadgeProps = {
@@ -32,6 +33,7 @@ export const OperationalPointBadgeLink: React.FC<OperationalPointBadgeLinkProps>
     layoutContext,
     changeTime,
     onClick,
+    disabled,
 }: OperationalPointBadgeLinkProps) => {
     const op = useOperationalPoint(operationalPointId, layoutContext, changeTime);
 
@@ -48,7 +50,15 @@ export const OperationalPointBadgeLink: React.FC<OperationalPointBadgeLinkProps>
         }
     }, [onClick, operationalPointId]);
 
-    return op ? <OperationalPointBadge operationalPoint={op} onClick={clickAction} /> : <Spinner />;
+    return op ? (
+        <OperationalPointBadge
+            operationalPoint={op}
+            onClick={disabled ? undefined : clickAction}
+            status={disabled ? OperationalPointBadgeStatus.DISABLED : undefined}
+        />
+    ) : (
+        <Spinner />
+    );
 };
 
 export const OperationalPointBadge: React.FC<OperationalPointBadgeProps> = ({

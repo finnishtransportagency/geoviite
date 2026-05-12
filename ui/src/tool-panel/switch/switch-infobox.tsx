@@ -54,6 +54,7 @@ import { SwitchOid } from 'track-layout/oid';
 import { SwitchChangeInfoInfobox } from 'tool-panel/switch/switch-change-info-infobox';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -136,12 +137,14 @@ export const getSwitchJointTrackMeters = async (
 const OperationalPointLink: React.FC<{
     operationalPoint: OperationalPoint;
     onSelect: (options: OnSelectOptions) => void;
-}> = ({ operationalPoint, onSelect }) => {
+    disabled?: boolean;
+}> = ({ operationalPoint, onSelect, disabled }) => {
     const { t } = useTranslation();
 
     return (
         <span>
             <AnchorLink
+                disabled={disabled}
                 onClick={() => {
                     onSelect({
                         operationalPoints: [operationalPoint.id],
@@ -171,6 +174,9 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     onSelectLocationTrackBadge,
 }: SwitchInfoboxProps) => {
     const { t } = useTranslation();
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
     const switchOwners = useLoader(() => getSwitchOwners(), []);
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
@@ -317,6 +323,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                         switchId={switchId}
                                         jointTrackMeters={switchJointTrackMeters}
                                         presentationJoint={structure?.presentationJointNumber}
+                                        isLinkingOrSplitting={isLinkingOrSplitting}
                                     />
                                 )) || <Spinner />
                             }
@@ -330,6 +337,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                     <OperationalPointLink
                                         operationalPoint={operationalPoint}
                                         onSelect={onSelect}
+                                        disabled={isLinkingOrSplitting}
                                     />
                                 ) : (
                                     t('tool-panel.switch.layout.not-linked')
@@ -399,6 +407,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             jointConnections={switchJointConnections}
                             layoutContext={layoutContext}
                             onSelectLocationTrackBadge={onSelectLocationTrackBadge}
+                            isLinkingOrSplitting={isLinkingOrSplitting}
                         />
                     )}
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>

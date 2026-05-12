@@ -10,6 +10,7 @@ import { getOperationalPointStationLinks } from 'track-layout/layout-operational
 import { StationLinkView } from 'tool-panel/operational-point/station-link-view';
 import styles from './operational-point-infobox.scss';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
@@ -35,6 +36,9 @@ export const OperationalPointStationLinksInfobox: React.FC<
     onSelectLocationTrack,
 }) => {
     const { t } = useTranslation();
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
 
     const changeTime = getMaxTimestamp(
         changeTimes.layoutLocationTrack,
@@ -74,6 +78,7 @@ export const OperationalPointStationLinksInfobox: React.FC<
                                             layoutContext={layoutContext}
                                             changeTimes={changeTimes}
                                             onSelectLocationTrack={onSelectLocationTrack}
+                                            isLinkingOrSplitting={isLinkingOrSplitting}
                                         />
                                     </li>
                                 ))}
