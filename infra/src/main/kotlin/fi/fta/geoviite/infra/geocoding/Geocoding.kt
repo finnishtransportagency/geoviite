@@ -855,9 +855,6 @@ private data class AddressPointWalkResult<M : AnyM<M>>(
 private data class AlignmentPointInterval<M : AnyM<M>>(val start: AlignmentPoint<M>, val end: AlignmentPoint<M>) {
     fun interpolateAlignmentPointAtPortion(proportion: Double): AlignmentPoint<M> =
         interpolateToAlignmentPoint(start, end, proportion)
-
-    val referenceDirection: Double
-        get() = directionBetweenPoints(start, end)
 }
 
 private fun <M : GeocodingAlignmentM<M>, TargetM : AlignmentM<TargetM>> getProjectedAddressPoints(
@@ -893,7 +890,8 @@ private class AlignmentWalk<TargetM : AnyM<TargetM>>(val alignmentEdges: List<Al
     fun <M : GeocodingAlignmentM<M>> stepWith(projection: ProjectionLine<M>): AddressPoint<TargetM>? {
         var lastStepDirection = 0
         while (true) {
-            val isEdgeAligned = angleDiffRads(edge.referenceDirection, projection.referenceDirection) <= PI / 2
+            val edge = edge
+            val isEdgeAligned = isEdgeAligned(edge, projection)
             val intersection = intersection(edge, projection.projection)
             val stepResult =
                 when (intersection.inSegment1) {
@@ -928,6 +926,18 @@ private class AlignmentWalk<TargetM : AnyM<TargetM>>(val alignmentEdges: List<Al
         } else {
             if (edgeIndex == 0) AddressDoesNotExistOnAlignment else ContinueStepping(direction)
         }
+}
+
+private fun <M : GeocodingAlignmentM<M>, TargetM : AnyM<TargetM>> isEdgeAligned(
+    edge: AlignmentPointInterval<TargetM>,
+    projection: ProjectionLine<M>,
+): Boolean {
+    val edgeVec = edge.end - edge.start
+    // checking if edgeVec is aligned with the projection line's reference direction (direction along the reference
+    // line): Since `projection.projection`'s direction is just `referenceDirection + PI/2`, we can flip it back by
+    // flipping the vector's x/y coordinates instead, and check edgeVec's projection onto that
+    val projVec = projection.projection.end - projection.projection.start
+    return edgeVec.x * projVec.y - edgeVec.y * projVec.x >= 0.0
 }
 
 private fun <M : GeocodingAlignmentM<M>> createStartProjectionIfNeeded(
