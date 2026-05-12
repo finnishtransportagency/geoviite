@@ -121,11 +121,12 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
 const PlanVisibilityToggle: React.FC<{
     section: AlignmentPlanSection;
     isVisible: boolean;
+    disabled?: boolean;
     togglePlanVisibility: (
         planId: GeometryPlanId,
         alignmentId: GeometryAlignmentId | undefined,
     ) => void;
-}> = ({ section, isVisible, togglePlanVisibility }) => {
+}> = ({ section, isVisible, disabled, togglePlanVisibility }) => {
     const planId = section.planId;
 
     return (
@@ -134,6 +135,7 @@ const PlanVisibilityToggle: React.FC<{
             {planId && section.isLinked && (
                 <Eye
                     visibility={isVisible}
+                    disabled={disabled}
                     onVisibilityToggle={() => {
                         togglePlanVisibility(planId, section.alignmentId);
                     }}
@@ -218,6 +220,7 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
                                 <PlanVisibilityToggle
                                     section={section}
                                     togglePlanVisibility={togglePlanVisibility}
+                                    disabled={isLinkingOrSplitting}
                                     isVisible={visiblePlans.some(
                                         (plan) => plan.id === section.planId,
                                     )}
