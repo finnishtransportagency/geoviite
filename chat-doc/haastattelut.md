@@ -291,3 +291,15 @@ Uusi luokittelu toimii seuraavasti:
   - Arvoa käytetään mm. kun geometriasuunnitelmia haetaan Geoviitteestä tietopyynnön täyttämiseksi
   - Vaihtoehdot: "Soveltuu kunnossapitoon", "Soveltuu suunnitelman pohjatiedoksi", "Soveltuu tilastointiin"
 
+
+**K: Mainitsit, että pohjadatan sisäänluvussa tehtiin automatisoitua korjausta. Jäikö alkuperäisestä datansiirrosta kuitenkin jälkiä, eli onko Geoviitteessä vielä tänä päivänä tunnistettavia datan laatu-ongelmia, jotka juontuvat tuosta alkuperäisestä miggraatiosta?**
+
+V: Kaikkia silloin tiedoissa olleita rataverkon ongelmia ei pystytty korjaamaan automaattisesti, koska niiden korjaaminen olisi vaatinut hyvää rataverkon tuntemusta ja useimmat tapauksista olisi pitänyt käsitellä yksitellen. Kaikkia mahdollisia ongelmia ei tuolloin myöskään vielä tiedostettu. Pohjadataan siis jäi laatu-ongelmia. Selkeitä ongelmiakohtia, jotka vaativat asiantuntijan päätöksen, koottiin listoihin, joita operaattori sitten kävivät läpi tuotantoonmenon jälkeen. Projektin aikana rataverkolta on myös löydetty uusia ongelmakohtia ja niiden havaitsemiseen/korjaamiseen on toteutettu automatiikkaa. Julkaisuvaliddointi pitää nykyisin melko hyvin huolta siitä, että muutoksia julkaistaessa rataverkon laatu ei voi heikentyä. Geoviite-operaattori ovat tehneet rataverkolle myös systemaattista eheyttämistä.
+
+
+**K: Mainitsit julkaisuvalidoinnin — mitä se käytännössä tarkistaa? Onko sillä jokin virheiden luokittelu tai priorisointi (esim. estävät vs. varoittavat säännöt)?**
+
+V: Julkaisuvalidointi huolehtii, että rataverkon muutoksia julkaistaessa rataverkon laatu ei heikenny. Validoinnissa suoritetaan joukko tarkistuksia, jotka tarkistavat kohteiden (raide, vaihde jne.) omia tietoja sekä suhteita muihin kohteisiin (esim. raiteiden suhde vaihteisiin). Validointivirheitä on kahden tasoisia: varoituksia sekä virheitä. Varoituksia sisältävä muutosjoukko on mahdollista julkaista, mutta virhe-tasoiset validointivirheet estävät julkaisun. Validointia suoritetaan ja validointivirheitä esitetään käyttäjälle myös muualla kuin julkaisun yhteydessä, niin että käyttäjällä on mahdollisimman ajantasainen tieto kohteiden eheydestä. Geoviite sallii käyttäjän muokata kohteita luonnostilassa niin, että ne niihin syntyy validointivirheitä, eli luonnostilassa rataverkon ei tarvitse olla eheä, tämä mahdollistaa ratavekon joustavan muokkauksen. Ainoastaan viralliseen paikannuspohjaan vietävän kokonaisuuden täytyy validoinnin mielestä olla ehyt.
+
+Validointisääntöjä on lisätty sitä mukaa, kun rataverkon mahdollisia ongelmia on havaittu tai tietoisuus liikentoimintalogiikasta on kehittynyt.
+
