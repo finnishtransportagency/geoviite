@@ -884,13 +884,10 @@ private class AlignmentWalk<TargetM : AnyM<TargetM>>(val alignmentEdges: List<Al
     var alignmentLooksValid = true
     private var edgeIndex = 0
 
-    private val edge
-        get() = alignmentEdges[edgeIndex]
-
     fun <M : GeocodingAlignmentM<M>> stepWith(projection: ProjectionLine<M>): AddressPoint<TargetM>? {
         var lastStepDirection = 0
         while (true) {
-            val edge = edge
+            val edge = alignmentEdges[edgeIndex]
             val isEdgeAligned = isEdgeAligned(edge, projection)
             val intersection = intersection(edge, projection.projection)
             val stepResult =
@@ -933,9 +930,9 @@ private fun <M : GeocodingAlignmentM<M>, TargetM : AnyM<TargetM>> isEdgeAligned(
     projection: ProjectionLine<M>,
 ): Boolean {
     val edgeVec = edge.end - edge.start
-    // checking if edgeVec is aligned with the projection line's reference direction (direction along the reference
-    // line): Since `projection.projection`'s direction is just `referenceDirection + PI/2`, we can flip it back by
-    // flipping the vector's x/y coordinates instead, and check edgeVec's projection onto that
+    // Checking whether edgeVec points along the reference direction: `projection.projection` is perpendicular to the
+    // reference line (`referenceDirection + PI/2`), so the sign of `edgeVec.x * projVec.y - edgeVec.y * projVec.x`
+    // is the same as the dot product of edgeVec with projVec rotated by 90° back to the reference direction.
     val projVec = projection.projection.end - projection.projection.start
     return edgeVec.x * projVec.y - edgeVec.y * projVec.x >= 0.0
 }
