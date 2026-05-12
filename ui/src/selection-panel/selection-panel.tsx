@@ -49,6 +49,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { Eye } from 'geoviite-design-lib/eye/eye';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 import { objectEntries } from 'utils/array-utils';
@@ -88,6 +89,7 @@ type SelectionPanelProps = {
     onMapLayerMenuItemChange: (change: MapLayerMenuChange) => void;
     mapLayoutMenu: MapLayerMenuItem[];
     splittingState: SplittingState | undefined;
+    linkingState: LinkingState | undefined;
     grouping: GeometryPlanGrouping;
     visibleSources: PlanSource[];
     planDownloadPopupOpen: boolean;
@@ -122,12 +124,14 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     onMapLayerMenuItemChange,
     mapLayoutMenu,
     splittingState,
+    linkingState,
     grouping,
     visibleSources,
     planDownloadPopupOpen,
     togglePlanDownloadPopupOpen,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [fixNamesDialogOpen, setFixNamesDialogOpen] = React.useState(false);
     const [fixNamesPreviews, setFixNamesPreviews] = React.useState<SwitchNameFixPreview[]>([]);
@@ -275,7 +279,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             <section>
                 <h3 className={styles['selection-panel__title']}>
                     {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
-                    {!splittingState && (
+                    {!isLinkingOrSplitting && (
                         <Eye
                             onVisibilityToggle={() => {
                                 if (diagramLayerMenuItem) {
@@ -296,7 +300,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
                         onSelectColor={onTrackNumberColorSelection}
-                        disabled={!!splittingState}
+                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')}
                     />
                 </div>
             </section>
@@ -318,7 +322,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     selectedTrackNumberIds={selectedTrackNumberIds}
                     togglePlanOpen={togglePlanOpen}
                     onSelect={onSelect}
-                    disabled={!!splittingState}
+                    disabled={isLinkingOrSplitting}
                     grouping={grouping}
                     visibleSources={visibleSources}
                     planDownloadPopupOpen={planDownloadPopupOpen}
@@ -342,7 +346,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                 isToggle: true,
                             })
                         }
-                        disabled={!!splittingState}
+                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('kmPosts')}
                     />
                 </div>
             </section>
@@ -359,7 +363,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedItems.trackNumbers}
                         canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
-                        disabled={!!splittingState}
+                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')}
                     />
                 </div>
             </section>
@@ -374,6 +378,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedLocationTracks={selectedItems.locationTracks}
                         canSelectLocationTrack={selectableItemTypes.includes('locationTracks')}
                         onToggleLocationTrackSelection={onToggleLocationTrackSelection}
+                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('locationTracks')}
                     />
                 </div>
             </section>
@@ -410,6 +415,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         switchCount={switchCount}
                         selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
+                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('switches')}
                     />
                     <FixSwitchNamesDialog
                         isOpen={fixNamesDialogOpen}
@@ -430,7 +436,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         onToggleOperationalPointSelection={(op) =>
                             onToggleOperationalPointSelection(op.id)
                         }
-                        disabled={!!splittingState}
+                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('operationalPoints')}
                     />
                 </div>
             </section>

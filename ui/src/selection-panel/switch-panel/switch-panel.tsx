@@ -10,6 +10,7 @@ type SwitchPanelProps = {
     switches: LayoutSwitch[];
     onToggleSwitchSelection: (layoutSwitchId: LayoutSwitchId) => void;
     selectedSwitches?: LayoutSwitchId[];
+    disabled?: boolean;
 };
 
 const SwitchPanel: React.FC<SwitchPanelProps> = ({
@@ -17,6 +18,7 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
     switchCount,
     onToggleSwitchSelection,
     selectedSwitches,
+    disabled,
 }: SwitchPanelProps) => {
     const { t } = useTranslation();
 
@@ -41,7 +43,7 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
                             <SwitchBadge
                                 switchItem={switchItem}
                                 onClick={() => onToggleSwitchSelection(switchItem.id)}
-                                status={isSelected ? SwitchBadgeStatus.SELECTED : undefined}
+                                status={disabled ? SwitchBadgeStatus.DISABLED : isSelected ? SwitchBadgeStatus.SELECTED : undefined}
                             />
                         </li>
                     );

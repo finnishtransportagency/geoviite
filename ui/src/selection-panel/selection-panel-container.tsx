@@ -119,6 +119,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
             mapLayoutMenu={state.map.layerMenu.layout}
             onMapLayerMenuItemChange={delegates.onLayerMenuItemChange}
             splittingState={state.splittingState}
+            linkingState={state.linkingState}
             grouping={state.geometryPlanViewSettings.grouping}
             visibleSources={state.geometryPlanViewSettings.visibleSources}
             togglePlanDownloadPopupOpen={togglePlanDownload}

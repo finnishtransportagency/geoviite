@@ -16,6 +16,7 @@ type LocationTracksPanelProps = {
     onToggleLocationTrackSelection: (locationTrack: LocationTrackId) => void;
     selectedLocationTracks?: LocationTrackId[];
     canSelectLocationTrack: boolean;
+    disabled?: boolean;
     max?: number;
     showMoreMax?: number;
 };
@@ -25,6 +26,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     onToggleLocationTrackSelection,
     selectedLocationTracks,
     canSelectLocationTrack,
+    disabled,
     max = 16,
     showMoreMax = 48,
 }: LocationTracksPanelProps) => {
@@ -91,7 +93,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                             }>
                             <LocationTrackBadge
                                 locationTrack={track}
-                                status={isSelected ? LocationTrackBadgeStatus.SELECTED : undefined}
+                                status={disabled ? LocationTrackBadgeStatus.DISABLED : isSelected ? LocationTrackBadgeStatus.SELECTED : undefined}
                             />
                             <span>
                                 <LocationTrackTypeLabel type={track.type} />
