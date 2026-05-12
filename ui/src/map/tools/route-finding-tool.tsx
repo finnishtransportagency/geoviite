@@ -111,6 +111,8 @@ export function createRouteFindingTool(
                 deactivate: () => {
                     map.un('click', clickEventsKey.listener);
                     map.un('pointermove', pointerMoveEventsKey.listener);
+
+                    onHoveredLocationChange(undefined);
                 },
             };
         },

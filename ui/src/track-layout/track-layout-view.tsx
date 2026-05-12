@@ -49,6 +49,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
 
+    const splittingState = useTrackLayoutAppSelector((s) => s.splittingState);
     const linkingState = useTrackLayoutAppSelector((s) => s.linkingState);
     const isPlacingOperationalPointArea =
         linkingState?.type === LinkingType.PlacingOperationalPointArea;
@@ -92,20 +93,24 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     );
 
     const mapTools = React.useMemo(() => {
-        const selectableTools = [selectOrHighlightComboTool, measurementTool, routeFindingTool].map(
-            (tool) => ({
-                ...tool,
-                disabled: isPlacingOperationalPointArea || isPlacingOperationalPointLocation,
-                hidden: false,
-            }),
-        );
+        const selectableTools = [selectOrHighlightComboTool, measurementTool].map((tool) => ({
+            ...tool,
+            disabled: isPlacingOperationalPointArea || isPlacingOperationalPointLocation,
+            hidden: false,
+        }));
+        const routeTool = {
+            ...routeFindingTool,
+            disabled: !!linkingState || !!splittingState,
+            hidden: false,
+        };
+
         const operationalPointTool = {
             ...operationalPointAreaTool,
             disabled: !isPlacingOperationalPointArea,
             hidden: !isPlacingOperationalPointArea,
         };
-        return [...selectableTools, operationalPointTool];
-    }, [isPlacingOperationalPointArea, isPlacingOperationalPointLocation, routeFindingTool]);
+        return [...selectableTools, routeTool, operationalPointTool];
+    }, [isPlacingOperationalPointArea, linkingState, splittingState, routeFindingTool]);
 
     return (
         <div className={className} qa-id="track-layout-content">
