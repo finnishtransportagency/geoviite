@@ -131,7 +131,11 @@ const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
         <>
             <LocationTrackBadge
                 locationTrack={trackItem}
-                status={isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined}
+                status={
+                    isLinkingOrSplitting && !isEditing
+                        ? LocationTrackBadgeStatus.DISABLED
+                        : undefined
+                }
                 onClick={() => onSelectLocationTrack(trackItem.id)}
             />
             <Hide when={!isEditing}>

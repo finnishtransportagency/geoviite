@@ -174,7 +174,11 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
             <div className={styles['operational-point-linking-infobox__switch-cell']}>
                 <SwitchBadge
                     switchItem={switchItem}
-                    status={isLinkingOrSplitting ? SwitchBadgeStatus.DISABLED : undefined}
+                    status={
+                        isLinkingOrSplitting && !isEditing
+                            ? SwitchBadgeStatus.DISABLED
+                            : undefined
+                    }
                     onClick={() => onSelectSwitch(switchItem.id)}
                 />
                 {switchLocation ? (
