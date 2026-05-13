@@ -982,7 +982,7 @@ private fun <M : GeocodingAlignmentM<M>> createProjectionLines(
         kms.flatMap { km ->
             km.getMetersSequence(resolution).map { meter ->
                 val referenceLineM = km.referenceLineM.min + meter.toDouble() - km.startMeters.toDouble()
-                while (edgeIndex < edges.lastIndex && edges[edgeIndex + 1].startM < referenceLineM) {
+                while (edgeIndex < edges.lastIndex && edges[edgeIndex].endM < referenceLineM) {
                     edgeIndex++
                 }
                 val edge = edges[edgeIndex]
