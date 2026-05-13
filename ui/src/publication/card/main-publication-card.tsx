@@ -209,7 +209,9 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
                         {currentRatkoPushError && (
                             <RatkoPushErrorDetails
                                 error={currentRatkoPushError.error}
-                                failedPublication={currentRatkoPushError.publication}
+                                failedPublication={allPublications.find(
+                                    (p) => p.id === currentRatkoPushError.publicationId,
+                                )}
                             />
                         )}
                         <MainPublicationList publications={nonSuccesses} />

@@ -2,19 +2,25 @@ import * as React from 'react';
 import { PublicationDetails } from 'publication/publication-model';
 import styles from 'ratko/ratko-push-error.scss';
 import { useTranslation } from 'react-i18next';
-import { RatkoAssetType, RatkoPushError, RatkoPushErrorAsset } from 'ratko/ratko-model';
+import {
+    isAssetError,
+    RatkoAssetType,
+    RatkoPushError,
+    RatkoPushErrorAsset,
+} from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
+import { useLayoutDesign, useLocationTrack, useSwitch, useTrackNumber } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { useEnvironmentInfo } from 'environment/environment-info';
+import { officialMainLayoutContext } from 'common/common-model';
 
 type RatkoPushErrorDetailsProps = {
     error: RatkoPushError;
-    failedPublication: PublicationDetails;
+    failedPublication: PublicationDetails | undefined;
 };
 
-const assetTranslationKeyByType = (errorAsset: RatkoPushErrorAsset) => {
-    switch (errorAsset.assetType) {
+const assetTranslationKeyByType = (assetType: RatkoAssetType) => {
+    switch (assetType) {
         case RatkoAssetType.LOCATION_TRACK:
             return `publication-card.push-error.location-track`;
         case RatkoAssetType.TRACK_NUMBER:
@@ -22,21 +28,37 @@ const assetTranslationKeyByType = (errorAsset: RatkoPushErrorAsset) => {
         case RatkoAssetType.SWITCH:
             return `publication-card.push-error.switch`;
         default:
-            return exhaustiveMatchingGuard(errorAsset);
+            return exhaustiveMatchingGuard(assetType);
     }
 };
 
-const assetNameByType = (errorAsset: RatkoPushErrorAsset) => {
+function useAssetName(errorAsset: RatkoPushErrorAsset | undefined): string | undefined {
+    const context = officialMainLayoutContext();
+    const locationTrack = useLocationTrack(
+        errorAsset?.assetType === RatkoAssetType.LOCATION_TRACK ? errorAsset.assetId : undefined,
+        context,
+    );
+    const layoutSwitch = useSwitch(
+        errorAsset?.assetType === RatkoAssetType.SWITCH ? errorAsset.assetId : undefined,
+        context,
+    );
+    const trackNumber = useTrackNumber(
+        errorAsset?.assetType === RatkoAssetType.TRACK_NUMBER ? errorAsset.assetId : undefined,
+        context,
+    );
+
+    if (!errorAsset) return undefined;
     switch (errorAsset.assetType) {
         case RatkoAssetType.LOCATION_TRACK:
+            return locationTrack?.name;
         case RatkoAssetType.SWITCH:
-            return errorAsset.asset.name;
+            return layoutSwitch?.name;
         case RatkoAssetType.TRACK_NUMBER:
-            return errorAsset.asset.number;
+            return trackNumber?.number;
         default:
             return exhaustiveMatchingGuard(errorAsset);
     }
-};
+}
 
 export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     error,
@@ -47,39 +69,48 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
 
     const design = useLayoutDesign(
         getChangeTimes().layoutDesign,
-        failedPublication.layoutBranch.branch,
+        failedPublication?.layoutBranch.branch ?? 'MAIN',
     )?.name;
 
-    const isConnectionIssue = failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE';
+    const errorAsset = isAssetError(error) ? error : undefined;
+    const assetName = useAssetName(errorAsset);
+
+    const isConnectionIssue = failedPublication?.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
-    const isFetchError = error.operation === 'FETCH_EXISTING';
+    const isFetchError = errorAsset?.operation === 'FETCH_EXISTING';
 
-    const ratkoFetchErrorString = t('publication-card.push-error.ratko-fetch-error', {
-        assetType: t(assetTranslationKeyByType(error)),
-        name: assetNameByType(error),
-        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-    });
+    const ratkoFetchErrorString =
+        errorAsset &&
+        t('publication-card.push-error.ratko-fetch-error', {
+            assetType: t(assetTranslationKeyByType(errorAsset.assetType)),
+            name: assetName,
+            operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
+        });
 
-    const ratkoErrorString = t('publication-card.push-error.ratko-error', {
-        assetType: t(assetTranslationKeyByType(error)),
-        errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-        name: assetNameByType(error),
-        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-    });
+    const ratkoErrorString =
+        errorAsset &&
+        t('publication-card.push-error.ratko-error', {
+            assetType: t(assetTranslationKeyByType(errorAsset.assetType)),
+            errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
+            name: assetName,
+            operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
+        });
 
-    const internalErrorString = t('publication-card.push-error.internal-error', {
-        assetType: t(assetTranslationKeyByType(error)),
-        errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-        name: assetNameByType(error),
-        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-        geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
-    });
+    const internalErrorString =
+        errorAsset &&
+        t('publication-card.push-error.internal-error', {
+            assetType: t(assetTranslationKeyByType(errorAsset.assetType)),
+            errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
+            name: assetName,
+            operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
+            geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
+        });
 
     const pushErrorString = (): string => {
-        if (isConnectionIssue) return 'publication-card.push-error.connection-issue';
-        else if (isInternalError) return internalErrorString;
-        else if (isFetchError) return ratkoFetchErrorString;
-        else return ratkoErrorString;
+        if (isConnectionIssue) return t('publication-card.push-error.connection-issue');
+        else if (isInternalError) return internalErrorString ?? t('publication-card.push-error.general-internal-error');
+        else if (isFetchError) return ratkoFetchErrorString ?? '';
+        else return ratkoErrorString ?? '';
     };
 
     return (
