@@ -38,12 +38,23 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
             <ol className={styles['switch-panel__switches']}>
                 {sortedSwitches.map((switchItem) => {
                     const isSelected = selectedSwitches?.some((p) => p === switchItem.id);
+
+                    const status = () => {
+                        if (disabled) {
+                            return SwitchBadgeStatus.DISABLED;
+                        } else if (isSelected) {
+                            return SwitchBadgeStatus.SELECTED;
+                        } else {
+                            return undefined;
+                        }
+                    };
+
                     return (
                         <li key={switchItem.id}>
                             <SwitchBadge
                                 switchItem={switchItem}
                                 onClick={() => onToggleSwitchSelection(switchItem.id)}
-                                status={disabled ? SwitchBadgeStatus.DISABLED : isSelected ? SwitchBadgeStatus.SELECTED : undefined}
+                                status={status()}
                             />
                         </li>
                     );

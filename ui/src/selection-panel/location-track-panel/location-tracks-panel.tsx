@@ -84,6 +84,16 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                         canSelectLocationTrack &&
                             'location-tracks-panel__location-track--can-select',
                     );
+                    const status = () => {
+                        if (disabled) {
+                            return LocationTrackBadgeStatus.DISABLED;
+                        } else if (isSelected) {
+                            return LocationTrackBadgeStatus.SELECTED;
+                        } else {
+                            return undefined;
+                        }
+                    };
+
                     return (
                         <li
                             key={track.id}
@@ -91,10 +101,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                             onClick={() =>
                                 canSelectLocationTrack && onToggleLocationTrackSelection(track.id)
                             }>
-                            <LocationTrackBadge
-                                locationTrack={track}
-                                status={disabled ? LocationTrackBadgeStatus.DISABLED : isSelected ? LocationTrackBadgeStatus.SELECTED : undefined}
-                            />
+                            <LocationTrackBadge locationTrack={track} status={status()} />
                             <span>
                                 <LocationTrackTypeLabel type={track.type} />
                             </span>

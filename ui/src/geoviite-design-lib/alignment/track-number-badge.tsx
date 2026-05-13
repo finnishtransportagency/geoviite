@@ -14,7 +14,7 @@ type TrackNumberBadgeLinkProps = {
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
     onClick?: (trackNumberId: LayoutTrackNumberId) => void;
-    disabled?: boolean;
+    status?: TrackNumberBadgeStatus;
 };
 
 type TrackNumberBadgeProps = {
@@ -36,9 +36,9 @@ export const TrackNumberBadgeLink: React.FC<TrackNumberBadgeLinkProps> = ({
     layoutContext,
     changeTime,
     onClick,
-    disabled,
+    status,
 }: TrackNumberBadgeLinkProps) => {
-    const [trackNumber, status] = useTrackNumberWithStatus(
+    const [trackNumber, trackNumberFetchStatus] = useTrackNumberWithStatus(
         trackNumberId,
         layoutContext,
         changeTime,
@@ -57,12 +57,8 @@ export const TrackNumberBadgeLink: React.FC<TrackNumberBadgeLinkProps> = ({
         }
     }, [onClick, trackNumberId]);
 
-    return status === LoaderStatus.Ready && trackNumber ? (
-        <TrackNumberBadge
-            trackNumber={trackNumber}
-            onClick={disabled ? undefined : clickAction}
-            status={disabled ? TrackNumberBadgeStatus.DISABLED : undefined}
-        />
+    return trackNumberFetchStatus === LoaderStatus.Ready && trackNumber ? (
+        <TrackNumberBadge trackNumber={trackNumber} onClick={clickAction} status={status} />
     ) : (
         <Spinner />
     );
@@ -73,15 +69,17 @@ export const TrackNumberBadge: React.FC<TrackNumberBadgeProps> = ({
     onClick,
     status = TrackNumberBadgeStatus.DEFAULT,
 }: TrackNumberBadgeProps) => {
+    const disabled = status === TrackNumberBadgeStatus.DISABLED;
+
     const classes = createClassName(
         styles['alignment-badge'],
         styles['alignment-badge--reference'],
         status,
-        onClick && styles['alignment-badge--clickable'],
+        !disabled && onClick && styles['alignment-badge--clickable'],
     );
 
     return (
-        <div className={classes} onClick={onClick}>
+        <div className={classes} onClick={!disabled ? onClick : undefined}>
             <span>{trackNumber.number}</span>
         </div>
     );

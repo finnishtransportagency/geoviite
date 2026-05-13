@@ -10,7 +10,10 @@ import {
 import { OperationalPointBadgeLink } from 'geoviite-design-lib/operational-point/operational-point-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import styles from './operational-point-infobox.scss';
-import { TrackNumberBadgeLink } from 'geoviite-design-lib/alignment/track-number-badge';
+import {
+    TrackNumberBadgeLink,
+    TrackNumberBadgeStatus,
+} from 'geoviite-design-lib/alignment/track-number-badge';
 
 export type StationLinkViewProps = {
     stationLink: StationLink;
@@ -62,7 +65,7 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                     trackNumberId={stationLink.trackNumberId}
                     layoutContext={layoutContext}
                     changeTime={changeTimes.layoutTrackNumber}
-                    disabled={isLinkingOrSplitting}
+                    status={isLinkingOrSplitting ? TrackNumberBadgeStatus.DISABLED : undefined}
                 />
                 <span className={styles['operational-point-infobox__station-link-length']}>
                     {Math.round(stationLink.length)} m
@@ -75,9 +78,7 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                             key={track.id}
                             locationTrack={track}
                             status={
-                                isLinkingOrSplitting
-                                    ? LocationTrackBadgeStatus.DISABLED
-                                    : undefined
+                                isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined
                             }
                             onClick={() => onSelectLocationTrack(track.id)}
                         />
