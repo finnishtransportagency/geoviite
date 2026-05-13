@@ -4,9 +4,9 @@ import styles from 'ratko/ratko-push-error.scss';
 import { useTranslation } from 'react-i18next';
 import {
     isAssetError,
+    RatkoAssetRef,
     RatkoAssetType,
     RatkoPushError,
-    RatkoPushErrorAsset,
 } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { useLayoutDesign, useLocationTrack, useSwitch, useTrackNumber } from 'track-layout/track-layout-react-utils';
@@ -32,23 +32,23 @@ const assetTranslationKeyByType = (assetType: RatkoAssetType) => {
     }
 };
 
-function useAssetName(errorAsset: RatkoPushErrorAsset | undefined): string | undefined {
+function useAssetName(assetRef: RatkoAssetRef | undefined): string | undefined {
     const context = officialMainLayoutContext();
     const locationTrack = useLocationTrack(
-        errorAsset?.assetType === RatkoAssetType.LOCATION_TRACK ? errorAsset.assetId : undefined,
+        assetRef?.type === RatkoAssetType.LOCATION_TRACK ? assetRef.id : undefined,
         context,
     );
     const layoutSwitch = useSwitch(
-        errorAsset?.assetType === RatkoAssetType.SWITCH ? errorAsset.assetId : undefined,
+        assetRef?.type === RatkoAssetType.SWITCH ? assetRef.id : undefined,
         context,
     );
     const trackNumber = useTrackNumber(
-        errorAsset?.assetType === RatkoAssetType.TRACK_NUMBER ? errorAsset.assetId : undefined,
+        assetRef?.type === RatkoAssetType.TRACK_NUMBER ? assetRef.id : undefined,
         context,
     );
 
-    if (!errorAsset) return undefined;
-    switch (errorAsset.assetType) {
+    if (!assetRef) return undefined;
+    switch (assetRef.type) {
         case RatkoAssetType.LOCATION_TRACK:
             return locationTrack?.name;
         case RatkoAssetType.SWITCH:
@@ -56,8 +56,13 @@ function useAssetName(errorAsset: RatkoPushErrorAsset | undefined): string | und
         case RatkoAssetType.TRACK_NUMBER:
             return trackNumber?.number;
         default:
-            return exhaustiveMatchingGuard(errorAsset);
+            return exhaustiveMatchingGuard(assetRef);
     }
+}
+
+function formatAssetLabel(name: string | undefined, oid: string | undefined): string | undefined {
+    if (name === undefined) return undefined;
+    return oid ? `${name} (${oid})` : name;
 }
 
 export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
@@ -73,7 +78,8 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     )?.name;
 
     const errorAsset = isAssetError(error) ? error : undefined;
-    const assetName = useAssetName(errorAsset);
+    const assetName = useAssetName(errorAsset?.assetRef);
+    const assetLabel = formatAssetLabel(assetName, errorAsset?.assetRef.oid);
 
     const isConnectionIssue = failedPublication?.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
@@ -82,26 +88,26 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     const ratkoFetchErrorString =
         errorAsset &&
         t('publication-card.push-error.ratko-fetch-error', {
-            assetType: t(assetTranslationKeyByType(errorAsset.assetType)),
-            name: assetName,
+            assetType: t(assetTranslationKeyByType(errorAsset.assetRef.type)),
+            name: assetLabel,
             operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
         });
 
     const ratkoErrorString =
         errorAsset &&
         t('publication-card.push-error.ratko-error', {
-            assetType: t(assetTranslationKeyByType(errorAsset.assetType)),
+            assetType: t(assetTranslationKeyByType(errorAsset.assetRef.type)),
             errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-            name: assetName,
+            name: assetLabel,
             operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
         });
 
     const internalErrorString =
         errorAsset &&
         t('publication-card.push-error.internal-error', {
-            assetType: t(assetTranslationKeyByType(errorAsset.assetType)),
+            assetType: t(assetTranslationKeyByType(errorAsset.assetRef.type)),
             errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-            name: assetName,
+            name: assetLabel,
             operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
             geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
         });

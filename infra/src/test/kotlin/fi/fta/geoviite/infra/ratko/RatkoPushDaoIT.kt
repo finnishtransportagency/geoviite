@@ -257,7 +257,7 @@ constructor(
         val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
 
         assertNotNull(ratkoPushError)
-        assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetId)
+        assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetRef.id)
         assertEquals(RatkoOperation.UPDATE, (ratkoPushError.first as RatkoPushAssetError<*>).operation)
         assertEquals(publicationId, ratkoPushError.second)
     }
@@ -280,7 +280,7 @@ constructor(
         val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
 
         assertNotNull(ratkoPushError)
-        assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetId)
+        assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetRef.id)
         assertEquals(RatkoOperation.UPDATE, (ratkoPushError.first as RatkoPushAssetError<*>).operation)
         assertEquals(publicationId, ratkoPushError.second)
     }

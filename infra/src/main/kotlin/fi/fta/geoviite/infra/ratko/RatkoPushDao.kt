@@ -2,9 +2,10 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.integration.RatkoAssetId
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.integration.RatkoAssetRef
 import fi.fta.geoviite.infra.integration.RatkoErrorData
-import fi.fta.geoviite.infra.integration.RatkoLocationTrackId
+import fi.fta.geoviite.infra.integration.RatkoLocationTrackRef
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPush
 import fi.fta.geoviite.infra.integration.RatkoPushAssetError
@@ -12,8 +13,8 @@ import fi.fta.geoviite.infra.integration.RatkoPushError
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushGeneralError
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
-import fi.fta.geoviite.infra.integration.RatkoSwitchId
-import fi.fta.geoviite.infra.integration.RatkoTrackNumberId
+import fi.fta.geoviite.infra.integration.RatkoSwitchRef
+import fi.fta.geoviite.infra.integration.RatkoTrackNumberRef
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
@@ -27,6 +28,7 @@ import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.produceIf
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
@@ -300,8 +302,11 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               ratko_push_error.error_type,
               ratko_push_error.operation,
               ratko_push_error.track_number_id,
+              ratko_push_error.track_number_oid,
               ratko_push_error.location_track_id,
+              ratko_push_error.location_track_oid,
               ratko_push_error.switch_id,
+              ratko_push_error.switch_oid,
               ratko_push_error.ratko_push_id,
               ratko_push_error.ratko_response_code,
               ratko_push_error.technical_message
@@ -330,10 +335,13 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                         val pushOperation =
                             rs.getEnumOrNull<RatkoOperation>("operation")?.let { operation ->
                                 operation to
-                                    toAssetId(
+                                    toAssetRef(
                                         rs.getIntIdOrNull("track_number_id"),
+                                        rs.getOidOrNull("track_number_oid"),
                                         rs.getIntIdOrNull("location_track_id"),
+                                        rs.getOidOrNull("location_track_oid"),
                                         rs.getIntIdOrNull("switch_id"),
+                                        rs.getOidOrNull("switch_oid"),
                                     )
                             }
 
@@ -349,15 +357,18 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             .also { logger.daoAccess(AccessType.FETCH, RatkoPushError::class) }
     }
 
-    private fun toAssetId(
+    private fun toAssetRef(
         trackNumberId: IntId<LayoutTrackNumber>?,
+        trackNumberOid: Oid<LayoutTrackNumber>?,
         locationTrackId: IntId<LocationTrack>?,
+        locationTrackOid: Oid<LocationTrack>?,
         switchId: IntId<LayoutSwitch>?,
-    ): RatkoAssetId<*> =
+        switchOid: Oid<LayoutSwitch>?,
+    ): RatkoAssetRef<*> =
         when {
-            trackNumberId != null -> RatkoTrackNumberId(trackNumberId)
-            locationTrackId != null -> RatkoLocationTrackId(locationTrackId)
-            switchId != null -> RatkoSwitchId(switchId)
+            trackNumberId != null -> RatkoTrackNumberRef(trackNumberId, trackNumberOid)
+            locationTrackId != null -> RatkoLocationTrackRef(locationTrackId, locationTrackOid)
+            switchId != null -> RatkoSwitchRef(switchId, switchOid)
             else -> error("Ratko push error without asset!")
         }
 }

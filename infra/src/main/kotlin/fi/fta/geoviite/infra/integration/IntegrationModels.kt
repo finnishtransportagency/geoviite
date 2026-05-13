@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.integration
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -53,20 +53,24 @@ data class RatkoErrorData(
     override val technicalMessage: String,
 ) : RatkoPushError
 
-sealed interface RatkoAssetId<T : LayoutAsset<T>> {
+sealed interface RatkoAssetRef<T : LayoutAsset<T>> {
     val id: IntId<T>
+    val oid: Oid<T>?
     val type: RatkoAssetType
 }
 
-data class RatkoSwitchId(override val id: IntId<LayoutSwitch>) : RatkoAssetId<LayoutSwitch> {
+data class RatkoSwitchRef(override val id: IntId<LayoutSwitch>, override val oid: Oid<LayoutSwitch>?) :
+    RatkoAssetRef<LayoutSwitch> {
     override val type: RatkoAssetType = RatkoAssetType.SWITCH
 }
 
-data class RatkoLocationTrackId(override val id: IntId<LocationTrack>) : RatkoAssetId<LocationTrack> {
+data class RatkoLocationTrackRef(override val id: IntId<LocationTrack>, override val oid: Oid<LocationTrack>?) :
+    RatkoAssetRef<LocationTrack> {
     override val type: RatkoAssetType = RatkoAssetType.LOCATION_TRACK
 }
 
-data class RatkoTrackNumberId(override val id: IntId<LayoutTrackNumber>) : RatkoAssetId<LayoutTrackNumber> {
+data class RatkoTrackNumberRef(override val id: IntId<LayoutTrackNumber>, override val oid: Oid<LayoutTrackNumber>?) :
+    RatkoAssetRef<LayoutTrackNumber> {
     override val type: RatkoAssetType = RatkoAssetType.TRACK_NUMBER
 }
 
@@ -75,14 +79,8 @@ data class RatkoPushGeneralError(private val data: RatkoErrorData) : RatkoPushEr
 data class RatkoPushAssetError<T : LayoutAsset<T>>(
     val operation: RatkoOperation,
     private val data: RatkoErrorData,
-    @JsonIgnore val ratkoAssetId: RatkoAssetId<T>,
-) : RatkoPushError by data {
-    val assetId: IntId<T>
-        get() = ratkoAssetId.id
-
-    val assetType: RatkoAssetType
-        get() = ratkoAssetId.type
-}
+    val assetRef: RatkoAssetRef<T>,
+) : RatkoPushError by data
 
 data class RatkoPushErrorResponse(val error: RatkoPushError, val publicationId: IntId<Publication>)
 

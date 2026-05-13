@@ -25,12 +25,8 @@ class RatkoLocalService
 constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
-    //    private val trackNumberService: LayoutTrackNumberService,
-    //    private val locationTrackService: LocationTrackService,
-    //    private val switchService: LayoutSwitchService,
     private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val operationalPointDao: OperationalPointDao,
-    //    private val publicationLogService: PublicationLogService,
 ) {
 
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
@@ -57,16 +53,6 @@ constructor(
     fun fetchCurrentRatkoPushError(): RatkoPushErrorResponse? =
         ratkoPushDao.getCurrentRatkoPushError()?.let { (ratkoError, publicationId) ->
             RatkoPushErrorResponse(ratkoError, publicationId)
-            //            val enrichedError: RatkoPushErrorResponse =
-            //                when (ratkoError) {
-            //                    is RatkoPushAssetError<*> ->
-            //                        RatkoPushErrorWithAsset(ratkoError, getAssetOrThrow(ratkoError.ratkoAssetId))
-            //                    is RatkoPushGeneralError -> ratkoError
-            //                    else -> error("")
-            //                }
-            //
-            //            RatkoPushErrorAndDetails(enrichedError,
-            // publicationLogService.getPublicationDetails(publicationId))
         }
 
     private fun updateAndFetchRatkoOperationalPointOids(
@@ -161,13 +147,4 @@ constructor(
             }
         }
     }
-
-    //    @Suppress("UNCHECKED_CAST")
-    //    private fun <T : LayoutAsset<T>> getAssetOrThrow(assetId: RatkoAssetId<T>): LayoutAsset<T> =
-    //        when (assetId) {
-    //            is RatkoSwitchId -> switchService.getOrThrow(MainLayoutContext.official, assetId.id)
-    //            is RatkoTrackNumberId -> trackNumberService.getOrThrow(MainLayoutContext.official, assetId.id)
-    //            is RatkoLocationTrackId -> locationTrackService.getOrThrow(MainLayoutContext.official, assetId.id)
-    //        }
-    //            as LayoutAsset<T>
 }
