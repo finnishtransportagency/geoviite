@@ -199,9 +199,9 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 "ratko_push_id" to ratkoPushId.intValue,
                 "error_type" to ratkoPushErrorType.name,
                 "operation" to operation?.name,
-                "track_number_oid" to (target as? RatkoPushTargetTrackNumber)?.oid.toString(),
-                "location_track_oid" to (target as? RatkoPushTargetLocationTrack)?.oid.toString(),
-                "switch_oid" to (target as? RatkoPushTargetSwitch)?.oid.toString(),
+                "track_number_oid" to (target as? RatkoPushTargetTrackNumber)?.oid,
+                "location_track_oid" to (target as? RatkoPushTargetLocationTrack)?.oid,
+                "switch_oid" to (target as? RatkoPushTargetSwitch)?.oid,
                 "ratko_response_code" to ratkoStatus,
                 "technical_message" to technicalMessage,
             )
@@ -334,8 +334,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                             )
                         val pushOperation =
                             rs.getEnumOrNull<RatkoOperation>("operation")?.let { operation ->
-                                operation to
-                                    toAssetRef(
+                                toAssetRef(
                                         rs.getIntIdOrNull("track_number_id"),
                                         rs.getOidOrNull("track_number_oid"),
                                         rs.getIntIdOrNull("location_track_id"),
@@ -343,6 +342,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                                         rs.getIntIdOrNull("switch_id"),
                                         rs.getOidOrNull("switch_oid"),
                                     )
+                                    ?.let { operation to it }
                             }
 
                         val pushError =
@@ -364,11 +364,11 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         locationTrackOid: Oid<LocationTrack>?,
         switchId: IntId<LayoutSwitch>?,
         switchOid: Oid<LayoutSwitch>?,
-    ): RatkoAssetRef<*> =
+    ): RatkoAssetRef<*>? =
         when {
             trackNumberId != null -> RatkoTrackNumberRef(trackNumberId, trackNumberOid)
             locationTrackId != null -> RatkoLocationTrackRef(locationTrackId, locationTrackOid)
             switchId != null -> RatkoSwitchRef(switchId, switchOid)
-            else -> error("Ratko push error without asset!")
+            else -> null
         }
 }

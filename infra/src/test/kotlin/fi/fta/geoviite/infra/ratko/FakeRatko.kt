@@ -606,7 +606,41 @@ class FakeRatko(port: Int) {
             )
     }
 
+    fun rejectsRouteNumberCreationWithError(oid: String, code: String, message: String) {
+        doesNotHaveRouteNumber(oid)
+        post("/api/infra/v1.0/routenumbers", mapOf("id" to oid)).respond(errorJson(code, message))
+    }
+
+    fun rejectsLocationTrackCreationWithError(oid: String, code: String, message: String) {
+        doesNotHaveLocationTrack(oid)
+        post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(errorJson(code, message))
+    }
+
+    fun rejectsSwitchCreationWithError(oid: String, code: String, message: String) {
+        doesNotHaveSwitch(oid)
+        post("/api/assets/v1.2", mapOf("type" to "turnout", "id" to oid)).respond(errorJson(code, message))
+    }
+
+    fun rejectsPlanCreationWithError(code: String, message: String) {
+        post("/api/plan/v1.0/plans").respond(errorJson(code, message))
+    }
+
+    fun respondsWithMalformedBodyForRouteNumberCreation(oid: String) {
+        doesNotHaveRouteNumber(oid)
+        post("/api/infra/v1.0/routenumbers", mapOf("id" to oid))
+            .respond(
+                HttpResponse.response("{not valid json}")
+                    .withStatusCode(200)
+                    .withContentType(MediaType.APPLICATION_JSON)
+            )
+    }
+
     private fun ok() = HttpResponse.response().withStatusCode(200)
+
+    private fun errorJson(code: String, message: String) =
+        HttpResponse.response(jsonMapper.writeValueAsString(mapOf("code" to code, "message" to message)))
+            .withStatusCode(400)
+            .withContentType(MediaType.APPLICATION_JSON)
 
     private fun notFoundJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))

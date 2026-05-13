@@ -20,7 +20,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.util.formatForLog
+import fi.fta.geoviite.infra.util.limitLength
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -32,10 +32,10 @@ const val MAX_RATKO_ERROR_CODE_LENGTH = 20
 
 data class RatkoErrorResponse(private val code: String, private val message: String) {
     val sanitizedCode: String
-        get() = formatForLog(code, MAX_RATKO_ERROR_CODE_LENGTH)
+        get() = limitLength(code, MAX_RATKO_ERROR_CODE_LENGTH)
 
     val sanitizedMessage: String
-        get() = formatForLog(message, MAX_RATKO_ERROR_LENGTH)
+        get() = limitLength(message, MAX_RATKO_ERROR_LENGTH)
 }
 
 data class RatkoOid<T>(val id: String) {

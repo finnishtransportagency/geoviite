@@ -62,7 +62,7 @@ function useAssetName(assetRef: RatkoAssetRef | undefined): string | undefined {
 
 function formatAssetLabel(name: string | undefined, oid: string | undefined): string | undefined {
     if (name === undefined) return undefined;
-    return oid ? `${name} (${oid})` : name;
+    return oid ? `${name}, OID ${oid}` : name;
 }
 
 export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
