@@ -34,7 +34,10 @@ type LocationTrackDuplicateNotice = {
 
 export const LocationTrackDuplicateInfoIcon: React.FC<{
     level: NoticeLevel;
-}> = ({ level }) => {
+    disabled: boolean;
+}> = ({ level, disabled }) => {
+    const color = disabled ? IconColor.DISABLED : IconColor.INHERIT;
+
     return (
         <span
             className={createClassName(
@@ -43,9 +46,9 @@ export const LocationTrackDuplicateInfoIcon: React.FC<{
                 level === 'ERROR' && styles['location-track-infobox-duplicate-of__icon--error'],
             )}>
             {level === 'ERROR' || level === 'WARNING' ? (
-                <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
+                <Icons.StatusError color={color} size={IconSize.SMALL} />
             ) : (
-                <Icons.Info color={IconColor.INHERIT} size={IconSize.SMALL} />
+                <Icons.Info color={color} size={IconSize.SMALL} />
             )}
         </span>
     );
@@ -273,7 +276,12 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
                     locationTrackName={duplicate.name}
                     disabled={isLinkingOrSplitting}
                 />
-                {notices.length > 0 && <LocationTrackDuplicateInfoIcon level={iconType} />}
+                {notices.length > 0 && (
+                    <LocationTrackDuplicateInfoIcon
+                        level={iconType}
+                        disabled={!!isLinkingOrSplitting}
+                    />
+                )}
             </span>
         </li>
     );

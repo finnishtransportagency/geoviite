@@ -23,14 +23,15 @@ export const LocationTrackBadge: React.FC<LocationTrackBadgeProps> = ({
     onClick,
     status = LocationTrackBadgeStatus.DEFAULT,
 }: LocationTrackBadgeProps) => {
+    const disabled = status === LocationTrackBadgeStatus.DISABLED;
     const classes = createClassName(
         styles['alignment-badge'],
         status,
-        onClick && styles['alignment-badge--clickable'],
+        !disabled && onClick && styles['alignment-badge--clickable'],
     );
 
     return (
-        <div className={classes} onClick={onClick}>
+        <div className={classes} onClick={!disabled ? onClick : undefined}>
             <span>{locationTrack.name}</span>
         </div>
     );

@@ -83,7 +83,9 @@ const LocationTrackInfoboxDuplicateOfM: React.FC<LocationTrackInfoboxDuplicateOf
                 disabled={isLinkingOrSplitting}
             />
             &nbsp;
-            {showWarningIcon && <LocationTrackDuplicateInfoIcon level={'ERROR'} />}
+            {showWarningIcon && (
+                <LocationTrackDuplicateInfoIcon level={'ERROR'} disabled={!!isLinkingOrSplitting} />
+            )}
         </span>
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
