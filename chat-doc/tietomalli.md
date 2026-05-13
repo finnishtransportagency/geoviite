@@ -379,6 +379,21 @@ Suunnitelmatilan luonnostila  →  julkaisu  →  Suunnitelmatilan rataverkko
 
 Virallisen rataverkon julkaisu vaatii kattavien validointisääntöjen läpäisyä. Suunnitelmatilan julkaisu on kevyemmin validoitu.
 
+#### Julkaisuvalidointi
+
+Julkaisuvalidointi varmistaa, että rataverkon laatu ei heikkene muutoksia julkaistaessa. Validointi tarkistaa kohteiden (raide, vaihde jne.) omia tietoja sekä niiden suhteita muihin kohteisiin.
+
+**Kaksi virheen tasoa:**
+
+| Taso | Vaikutus |
+|---|---|
+| **Varoitus** | Julkaisu on mahdollinen varoituksista huolimatta |
+| **Virhe** | Estää julkaisun — rataverkko ei ole riittävän eheä |
+
+Validointia suoritetaan myös muualla kuin julkaisun yhteydessä, jotta käyttäjällä on ajantasainen tieto kohteiden eheydestä. Luonnostilassa kohteilla *saa* olla validointivirheitä — tämä mahdollistaa joustavan muokkauksen. Eheyttä vaaditaan vasta viralliseen rataverkkoon julkaistaessa.
+
+Validointisääntöjä on lisätty sitä mukaa, kun rataverkon ongelmia on havaittu tai ymmärrys liikennetoimintalogiikasta on kehittynyt.
+
 ---
 
 ### Inframodel

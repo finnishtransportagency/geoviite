@@ -43,7 +43,38 @@ Ratkon tietomallin katsottiin soveltuvan hieman paremmin Geoviitteen paikannuspo
 |---|---|
 | Kehitys alkanut | tammikuu 2021 |
 | Tuotantoon siirtyminen | marraskuu 2022 |
+| Toimittajan vaihto | kevät 2026 (Solita → TwoDays) |
 | Nykyinen tila | Aktiivinen kehitys jatkuu |
+
+## Kehitystiimi ja -prosessi
+
+### Toimittaja
+
+Geoviitteen kehitystiimi on valittu Väyläviraston kilpailutuksella. Tiimissä on ollut keskimäärin 4–5 henkilöä:
+
+| Rooli | Huomio |
+|---|---|
+| Projektipäällikkö | Ainoa puhtaasti ei-tekninen rooli |
+| Tekninen arkkitehti | Tekee myös kehitystä |
+| UX / PO | Tekee myös kehitystä |
+| Kehittäjät | — |
+
+- **2021–2026:** Toimittajana **Solita Oy**
+- **2026→:** Toimittajana **TwoDays Oy** (uusi kilpailutus keväällä 2026)
+
+### Kehitysprosessi
+
+Tiimi käyttää **Scrumia väljästi sovellettuna**. Sprintit ovat nykyisin neljän viikon mittaisia (aiemmin kolme viikkoa).
+
+| Seremoniat | Kuvaus |
+|---|---|
+| **Suunnittelupalaveri** | Sovitaan prioriteetit ja konkreettiset tavoitteet; asiakas mukana. Sprintille priorisoidaan usein enemmän työtä kuin ehditään, jotta kaikki työ kohdistuisi tärkeimpiin asioihin. Työmäärät arvioidaan vain karkeasti. |
+| **Refinement** | Tarpeen mukaan; käsitellään tulevia tarpeita tarkemmalle tasolle ja muodostetaan yhteinen ymmärrys. |
+| **Daily** | Lyhyt päivittäinen tilannekatsaus: mitä tehty, mitä seuraavaksi, mahdolliset ongelmat ja julkaisun tilanne. |
+| **Katselmointi (Review)** | Sprintin päätteeksi; esitellään aikaansaannokset asiakkaalle ja operaattoreille. |
+| **Retro** | Sprintin lopuksi; käydään läpi työtavat ja hyvinvointi. Työtavat ovat asettuneet vakiintuneiksi projektin alkuvuosien jälkeen. |
+
+**Asiakkaan rooli:** Väylävirasto ohjaa kehitystä asettamalla prioriteetit ja osallistumalla suunnittelupalavereihin. Asiakas on myös aktiivisesti yhteydessä sprintin aikana uusista tarpeista ja kysymyksiin vastaamisessa.
 
 ## Keskeisimmät toiminnallisuudet
 
@@ -57,7 +88,7 @@ Ratkon tietomallin katsottiin soveltuvan hieman paremmin Geoviitteen paikannuspo
 - **Väylävirasto**
 
 ### Loppukäyttäjät
-- **Geoviite-operaattorit** — ylläpitävät rataverkon tietoja
+- **Geoviite-operaattorit** — ylläpitävät paikannuspohjaa ja geometriarekisteriä; noin 5 henkilöä kerrallaan, valitaan Väyläviraston kilpailutuksella muutamaksi vuodeksi. Kaksi ensimmäistä kautta (2022–) operaattorina on toiminut **Welado Oy**. Operaattoreilla tulee olla hyvä tietämys ratageometriasta ja siihen liittyvistä prosesseista. He käyttävät myös Ratko-järjestelmää tietojen oikeellisuuden tarkistamiseen ja päätöksenteon tueksi.
 - **Konsulttikäyttäjät** — lukuoikeuksilla, tarkastavat rataverkon tietoja
 
 ### Integraatiokumppanit

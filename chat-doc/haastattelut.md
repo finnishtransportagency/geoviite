@@ -303,3 +303,34 @@ V: Julkaisuvalidointi huolehtii, että rataverkon muutoksia julkaistaessa ratave
 
 Validointisääntöjä on lisätty sitä mukaa, kun rataverkon mahdollisia ongelmia on havaittu tai tietoisuus liikentoimintalogiikasta on kehittynyt.
 
+
+**K: Mainitsit, että Geoviite-operaattorit on valittu kilpailutuksella. Onko operaattoreita yksi vai useampia — ja onko operaattorin rooli ja vastuut määritelty jonkinlaisessa sopimuksessa tai palvelukuvauksessa?**
+
+V: Geoviite-operaattorit ovat Väyläviraston kilpailutuksella valitsema Geoviitteen käyttäjäryhmä, jonka vastuulla on ylläpitää paikannuspohjaa sekä geometriarekisteriä. Operaattoreiden vastuut on (ilmeisesti) määritetty palvelukuvauksessa, mutta operaattorit tuntuvat tekevän kaikkea ratageometrian hallintaan liittyviä työtä hyvin joustavasti. Operaattoreilla on oltava hyvä tiedot ratageometriasta ja prosesseista, joita geometrian tuottamiseen ja hyödyntämiseen liittyvät. Operaattorit käyttävät usein myös Ratko-järjestelmää, mm. tarkistaakseen Geoviitteestä siirrettyjen tietojen oikeellisuuden tai saadakseen lisätietoa päätöksen tueksi. Operaattoreita on ollut keskimäärin 5 henkilöä. Operaattorit valitaan muutamaksi vuodeksi kerrallaan. Kaksi ensimmäistä kautta (alkaen 2022 syksy) operaattorina on toiminut Welado.
+
+
+**K: Kuka tai ketkä ovat Geoviitteen kehittäjätiimin takana — onko kyseessä Väyläviraston sisäinen tiimi, vai onko kehitys ulkoistettu jollekin toimittajalle?**
+
+V: Geoviitteen toimittaja, eli kehitystiimi on myös valittu Väyläviraston kilpailutuksella. Kehitystiimin roolitus ja henkilöiden lukumäärä on vaihdellut hieman hankkeen aikana, mutta keskimäärin tiimissä on ollut 4-5 henkilöä. Roolit ovat olleet projektipäällikkö, tekninen arkkitehti, UX/PO sekä kehittäjiä, joskin kaikki muut paitsi projektipäällikkö ovat tehneet muun roolin lisäksi myös kehitystä. Ensimmäistä hanketta on toimittanut Solita Oy, vuodesta 2021 alken. 2026 keväällä oli uusi kilpailutus, jossa seuraavan hankkeen toimittajaksi valittiin TwoDays Oy.
+
+
+**K: Onko Geoviitteellä käytössä jokin kehitysmalli tai -prosessi (esim. Scrum, Kanban), ja miten Väylävirasto osallistuu kehityksen ohjaukseen?**
+
+V: Lyhyesti voisi sanoa, että asiakas määrittää suurempia suuntaviivoja ja priorisoi tekemistä kunkin hetken tarpeen mukaan. Tiimi selvittää asioita, kysyy tietoja asiakkaalta, ehdottaa asiakkaalle ratkaisuja ja toteuttaa asioita priorisoidussa järjestyksessä.
+
+Solitan tiimi on käyttänyt kehityksessä Scrum mallia, mutta suhteellisen väljästi. Meillä (kirjoittaja on osa tiimiä) on ollut käytössä alkuun kolmen ja myöhemmin neljän viikon sprintit. 
+
+Sprintin alussa on pidetty suunnittelupalaveri, jossa sovitaan seuraavan sprintin prioriteetit sekä konkreettiset tavoitteita kunkin priorisoidun kokonaisuuden osalta. Sprintille on useimmiten priorisoitu työtä enemmän kuin ehditään tekemään, niin että kaikki sprintillä tehtävä työ kohdistuisi priorisoituihin kokonaisuuksiin. Asiakas on tässä palaverissa mukana. Tehtävien työmääriä on arvoitu vain hyvin korkealla tasolla, jottei töiden organisointi olisi liian raskasta, mutta että asiakkaalla olisi kuitenkin ymmärrys kokonaisuuksien suuruusluokasta, jotta priorisointiin olisi tarvittavat tiedot olemassa. Tämä ideologia on toiminut tiimillä mielestäni hyvin.
+
+Suunnittelupalaverissa priorisoitavia tehtäviä on määritelty ja jalostettu (refine) tiimin kanssa etukäteen, joten kaikilla on jokseenkin selkeä kuva tehtävien sisällöistä. Mikäli jotain tehtävää on tarpeen selvittää tarkemmin, joko sprintin alussa tai myöhemmin, siitä keskustellaan pikaviestimissä ja pidetään palaveri, tässäkin noudatetaan joustavauutta ja tekemistä tarpeen mukaan. 
+
+Refinment-palavereja pidetään tarpeen mukaan. Näissä palaverissa jokin Geoviitteeseen kohdistuva tarve käsitellään tarkemmalle/konkreettisemmalle tasolle ja samalla yritetään muodostaa asiasta yhteinen ymmärrys tiimin sisällä.
+
+Joka päivä pidetään daily-palaveri, jossa kerrotaan lähinnä mitä kukin on tehnyt ja mitä aikoo tehdä seuraavaksi. Lisäksi käydään läpi mahdollisia ongelmatilanteita tai muuten ajankohtaisia yhteisiä asioita, esim. seuraavan julkaisun tilanne.
+
+Sprintin päätteeksi pidetään katselmointi (review), jossa aikaansaannokset esitellään asiakkaalle ja operaattoreille. Katselmoinnissa käydään myös läpi yleisiä sprintillä ilmenneitä asioita.
+
+Sprintin lopuksi pidetään myös retro, jossa käydään läpi mm. työtapoihin ja hyvinvointiin liittyviä asioita. Hankkeen ensimmäisten vuosien aikana työtapoja ja prosesseja hiottiin melko ahkerasti, mutta nykyiset tavat ovat asettuneet melko lailla pysyviksi.
+
+Asiakas on mukana ohjaamassa kehitystä myös sprintin aikana. He ottavat yhteyttä, kun tulee tietoon jokin Geoviitteeseen vaikuttava asia tai tarve. Tiimi myös kysyy asiakkaalta tietoja määritysten ja muiden ratkaisujen tueksi.
+
