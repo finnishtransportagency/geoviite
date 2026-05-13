@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.LockDao
-import fi.fta.geoviite.infra.integration.RatkoAssetType
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
@@ -29,10 +28,10 @@ import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.PushableDesignBranch
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.PushableMainBranch
+import fi.fta.geoviite.infra.ratko.model.RatkoErrorResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
-import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoSplit
 import fi.fta.geoviite.infra.ratko.model.existingRatkoPlan
 import fi.fta.geoviite.infra.ratko.model.newRatkoPlan
@@ -41,30 +40,31 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import java.time.Duration
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Duration
+import java.time.Instant
 
-open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
-    RuntimeException(cause)
+class RatkoException(
+    val type: RatkoPushErrorType,
+    val operation: RatkoOperation,
+    val response: RatkoErrorResponse?,
+    cause: Exception? = null,
+) : RuntimeException(cause)
 
-class RatkoSwitchPushException(exception: RatkoPushException, val switch: LayoutSwitch) :
-    RatkoPushException(exception.type, exception.operation, exception)
-
-class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
-    RatkoPushException(exception.type, exception.operation, exception)
-
-class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: LayoutTrackNumber) :
-    RatkoPushException(exception.type, exception.operation, exception)
+class RatkoAssetPushException(
+    val type: RatkoPushErrorType,
+    val operation: RatkoOperation,
+    val target: RatkoPushTarget<*>,
+    val response: RatkoErrorResponse?,
+    cause: Exception? = null,
+) : RuntimeException(cause)
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -242,32 +242,31 @@ constructor(
                     }
                     .map { switchChange -> toFakePublishedSwitch(branch, switchChange, latestPublicationMoment) }
 
-            val publishedLocationTrackChanges =
-                locationTrackChanges.map { locationTrackChange ->
-                    val locationTrack =
-                        locationTrackService.getOfficialAtMoment(
-                            branch = branch,
-                            id = locationTrackChange.locationTrackId,
-                            moment = latestPublicationMoment,
-                        )
-                    checkNotNull(locationTrack) {
-                        "No location track exists with id ${locationTrackChange.locationTrackId} and timestamp $latestPublicationMoment"
-                    }
-
-                    // Fake PublishedLocationTrack, Ratko integration is built around published
-                    // items
-                    PublishedLocationTrack(
-                        version =
-                            checkNotNull(locationTrack.version) {
-                                "Location track missing version, id=${locationTrackChange.locationTrackId}"
-                            },
-                        baseVersion = null,
-                        name = locationTrack.name,
-                        trackNumberId = locationTrack.trackNumberId,
-                        operation = Operation.MODIFY,
-                        changedKmNumbers = locationTrackChange.changedKmNumbers,
+            val publishedLocationTrackChanges = locationTrackChanges.map { locationTrackChange ->
+                val locationTrack =
+                    locationTrackService.getOfficialAtMoment(
+                        branch = branch,
+                        id = locationTrackChange.locationTrackId,
+                        moment = latestPublicationMoment,
                     )
+                checkNotNull(locationTrack) {
+                    "No location track exists with id ${locationTrackChange.locationTrackId} and timestamp $latestPublicationMoment"
                 }
+
+                // Fake PublishedLocationTrack, Ratko integration is built around published
+                // items
+                PublishedLocationTrack(
+                    version =
+                        checkNotNull(locationTrack.version) {
+                            "Location track missing version, id=${locationTrackChange.locationTrackId}"
+                        },
+                    baseVersion = null,
+                    name = locationTrack.name,
+                    trackNumberId = locationTrack.trackNumberId,
+                    operation = Operation.MODIFY,
+                    changedKmNumbers = locationTrackChange.changedKmNumbers,
+                )
+            }
 
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(
@@ -276,18 +275,15 @@ constructor(
                     latestPublicationMoment,
                 )
 
-            val distinctJoints =
-                switchChanges.map { switchChange ->
-                    switchChange.copy(
-                        changedJoints = switchChange.changedJoints.distinctBy { changedJoint -> changedJoint.number }
-                    )
-                }
+            val distinctJoints = switchChanges.map { switchChange ->
+                switchChange.copy(
+                    changedJoints = switchChange.changedJoints.distinctBy { changedJoint -> changedJoint.number }
+                )
+            }
             ratkoAssetService.pushSwitchChangesToRatko(pushableBranch, distinctJoints, latestPublicationMoment)
 
             try {
-                ratkoLocationTrackService.forceRedraw(
-                    pushedLocationTrackOids.map { RatkoOid<RatkoLocationTrack>(it) }.toSet()
-                )
+                ratkoLocationTrackService.forceRedraw(pushedLocationTrackOids.map(::RatkoOid).toSet())
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
             }
@@ -321,10 +317,9 @@ constructor(
                     lastPublicationTime,
                 )
 
-            val publicationsToSplits =
-                publications.mapNotNull { publication ->
-                    publication.split?.id?.let { splitId -> publication to splitService.getOrThrow(splitId) }
-                }
+            val publicationsToSplits = publications.mapNotNull { publication ->
+                publication.split?.id?.let { splitId -> publication to splitService.getOrThrow(splitId) }
+            }
 
             val locationTrackKilometersPushedInSplits =
                 publicationsToSplits
@@ -356,10 +351,9 @@ constructor(
                     lastPublicationTime,
                 )
 
-            val changedKilometersOverride =
-                locationTrackKilometersPushedInSplits
-                    .map { locationTrackKilometers -> locationTrackKilometers.id to locationTrackKilometers.kilometers }
-                    .toMap()
+            val changedKilometersOverride = locationTrackKilometersPushedInSplits.associate { locationTrackKilometers ->
+                locationTrackKilometers.id to locationTrackKilometers.kilometers
+            }
 
             pushSwitchChanges(
                 layoutBranch = pushableBranch,
@@ -373,20 +367,19 @@ constructor(
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.IN_PROGRESS_M_VALUES)
 
             try {
-                ratkoRouteNumberService.forceRedraw(
-                    pushedRouteNumberOids.map { RatkoOid<RatkoRouteNumber>(it) }.toSet()
-                )
+                ratkoRouteNumberService.forceRedraw(pushedRouteNumberOids.map { RatkoOid(it) }.toSet())
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for route numbers $pushedRouteNumberOids")
             }
 
-            val locationTrackOidsPushedInSplits =
-                locationTrackKilometersPushedInSplits.map { locationTrackKilometers -> locationTrackKilometers.oid }
+            val locationTrackOidsPushedInSplits = locationTrackKilometersPushedInSplits.map { locationTrackKilometers ->
+                locationTrackKilometers.oid
+            }
             try {
                 ratkoLocationTrackService.forceRedraw(
                     listOf(locationTrackOidsPushedInSplits, pushedLocationTrackOids)
                         .flatten()
-                        .map { RatkoOid<RatkoLocationTrack>(it) }
+                        .map { RatkoOid(it) }
                         .toSet()
                 )
             } catch (_: Exception) {
@@ -400,31 +393,28 @@ constructor(
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.SUCCESSFUL)
         } catch (ex: Exception) {
             when (ex) {
-                is RatkoTrackNumberPushException ->
+                is RatkoAssetPushException ->
                     ratkoPushDao.insertRatkoPushError(
                         ratkoPushId,
                         ex.type,
+                        ex.response?.sanitizedMessage ?: "Asset push failed",
+                        ex.response?.sanitizedCode,
                         ex.operation,
-                        RatkoAssetType.TRACK_NUMBER,
-                        ex.trackNumber.id as IntId,
+                        ex.target,
                     )
-
-                is RatkoLocationTrackPushException ->
+                is RatkoException ->
                     ratkoPushDao.insertRatkoPushError(
                         ratkoPushId,
                         ex.type,
+                        ex.response?.sanitizedMessage ?: "Asset push failed",
+                        ex.response?.sanitizedCode,
                         ex.operation,
-                        RatkoAssetType.LOCATION_TRACK,
-                        ex.locationTrack.id as IntId,
                     )
-
-                is RatkoSwitchPushException ->
+                else ->
                     ratkoPushDao.insertRatkoPushError(
                         ratkoPushId,
-                        ex.type,
-                        ex.operation,
-                        RatkoAssetType.SWITCH,
-                        ex.switch.id as IntId,
+                        RatkoPushErrorType.INTERNAL,
+                        "Ratko push failed with internal error (${ex::class.simpleName})",
                     )
             }
 

@@ -3,25 +3,11 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
-import fi.fta.geoviite.infra.integration.RatkoAssetType.LOCATION_TRACK
-import fi.fta.geoviite.infra.integration.RatkoAssetType.SWITCH
-import fi.fta.geoviite.infra.integration.RatkoAssetType.TRACK_NUMBER
-import fi.fta.geoviite.infra.integration.RatkoPushError
-import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
-import fi.fta.geoviite.infra.publication.PublicationDetails
-import fi.fta.geoviite.infra.publication.PublicationLogService
+import fi.fta.geoviite.infra.integration.RatkoPushErrorResponse
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
-import fi.fta.geoviite.infra.tracklayout.LayoutAsset
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
@@ -31,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.transaction.annotation.Transactional
 
-data class RatkoPushErrorAndDetails(val error: RatkoPushErrorWithAsset, val publication: PublicationDetails?)
+// data class RatkoPushErrorAndDetails(val error: RatkoPushError, val publication: PublicationDetails?)
 
 @GeoviiteService
 class RatkoLocalService
@@ -39,12 +25,12 @@ class RatkoLocalService
 constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
-    private val trackNumberService: LayoutTrackNumberService,
-    private val locationTrackService: LocationTrackService,
-    private val switchService: LayoutSwitchService,
+    //    private val trackNumberService: LayoutTrackNumberService,
+    //    private val locationTrackService: LocationTrackService,
+    //    private val switchService: LayoutSwitchService,
     private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val operationalPointDao: OperationalPointDao,
-    private val publicationLogService: PublicationLogService,
+    //    private val publicationLogService: PublicationLogService,
 ) {
 
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
@@ -68,20 +54,19 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun fetchCurrentRatkoPushError(): RatkoPushErrorAndDetails? =
+    fun fetchCurrentRatkoPushError(): RatkoPushErrorResponse? =
         ratkoPushDao.getCurrentRatkoPushError()?.let { (ratkoError, publicationId) ->
-            val asset = getErrorAssetOrThrow(ratkoError)
-
-            val errorWithAsset =
-                RatkoPushErrorWithAsset(
-                    ratkoError.id,
-                    ratkoError.ratkoPushId,
-                    ratkoError.errorType,
-                    ratkoError.operation,
-                    ratkoError.assetType,
-                    asset,
-                )
-            RatkoPushErrorAndDetails(errorWithAsset, publicationLogService.getPublicationDetails(publicationId))
+            RatkoPushErrorResponse(ratkoError, publicationId)
+            //            val enrichedError: RatkoPushErrorResponse =
+            //                when (ratkoError) {
+            //                    is RatkoPushAssetError<*> ->
+            //                        RatkoPushErrorWithAsset(ratkoError, getAssetOrThrow(ratkoError.ratkoAssetId))
+            //                    is RatkoPushGeneralError -> ratkoError
+            //                    else -> error("")
+            //                }
+            //
+            //            RatkoPushErrorAndDetails(enrichedError,
+            // publicationLogService.getPublicationDetails(publicationId))
         }
 
     private fun updateAndFetchRatkoOperationalPointOids(
@@ -177,18 +162,12 @@ constructor(
         }
     }
 
-    private fun getErrorAssetOrThrow(ratkoError: RatkoPushError<*>): LayoutAsset<*> {
-        val asset =
-            when (ratkoError.assetType) {
-                TRACK_NUMBER ->
-                    trackNumberService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LayoutTrackNumber>)
-
-                LOCATION_TRACK ->
-                    locationTrackService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LocationTrack>)
-
-                SWITCH -> switchService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LayoutSwitch>)
-            }
-        checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
-        return asset
-    }
+    //    @Suppress("UNCHECKED_CAST")
+    //    private fun <T : LayoutAsset<T>> getAssetOrThrow(assetId: RatkoAssetId<T>): LayoutAsset<T> =
+    //        when (assetId) {
+    //            is RatkoSwitchId -> switchService.getOrThrow(MainLayoutContext.official, assetId.id)
+    //            is RatkoTrackNumberId -> trackNumberService.getOrThrow(MainLayoutContext.official, assetId.id)
+    //            is RatkoLocationTrackId -> locationTrackService.getOrThrow(MainLayoutContext.official, assetId.id)
+    //        }
+    //            as LayoutAsset<T>
 }

@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.RatkoPushErrorResponse
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -46,7 +47,7 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/errors/current")
-    fun getLatestPublicationError(): ResponseEntity<RatkoPushErrorAndDetails> =
+    fun getLatestPublicationError(): ResponseEntity<RatkoPushErrorResponse> =
         toResponse(ratkoLocalService.fetchCurrentRatkoPushError())
 
     @PreAuthorize(AUTH_BASIC)

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 abstract class RatkoAsset(
@@ -15,7 +16,7 @@ abstract class RatkoAsset(
     open val properties: Collection<RatkoAssetProperty>,
     open val rowMetadata: RatkoMetadata,
     open val locations: List<RatkoAssetLocation>?,
-    val type: RatkoAssetType,
+    val type: RatkoSwitchAssetType,
     open val isPlanContext: Boolean,
     open val planItemIds: List<Int>?,
 ) {
@@ -31,7 +32,7 @@ data class RatkoMetadataAsset(
 ) :
     RatkoAsset(
         state = RatkoAssetState.IN_USE,
-        type = RatkoAssetType.METADATA,
+        type = RatkoSwitchAssetType.METADATA,
         rowMetadata = rowMetadata,
         properties = properties,
         locations = locations,
@@ -54,7 +55,7 @@ data class RatkoSwitchAsset(
 ) :
     RatkoAsset(
         state = state,
-        type = RatkoAssetType.TURNOUT,
+        type = RatkoSwitchAssetType.TURNOUT,
         rowMetadata = rowMetadata,
         properties = properties,
         locations = locations,
@@ -129,7 +130,7 @@ enum class RatkoAssetState(@get:JsonValue val value: String, val category: Layou
     @Suppress("unused") OLD("OLD"),
 }
 
-enum class RatkoAssetType(@get:JsonValue val value: String) {
+enum class RatkoSwitchAssetType(@get:JsonValue val value: String) {
     TURNOUT("turnout"),
     METADATA("metadata_location_accuracy"),
     RAILWAY_TRAFFIC_OPERATIONAL_POINT(
@@ -161,7 +162,7 @@ data class IncomingRatkoNodes(val nodes: Collection<IncomingRatkoNode> = listOf(
 
 data class IncomingRatkoNode(val point: IncomingRatkoPoint, val nodeType: RatkoNodeType)
 
-data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumber: RatkoOid<RatkoRouteNumber>)
+data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumber: RatkoOid<LayoutTrackNumber>)
 
 data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
 

@@ -18,14 +18,28 @@ import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.util.formatForLog
 import java.math.BigDecimal
 import java.math.RoundingMode
 
 val RATKO_SRID = WGS_84_SRID
 const val GEOVIITE_NAME = "GEOVIITE"
 
+const val MAX_RATKO_ERROR_LENGTH = 500
+const val MAX_RATKO_ERROR_CODE_LENGTH = 20
+
+data class RatkoErrorResponse(private val code: String, private val message: String) {
+    val sanitizedCode: String
+        get() = formatForLog(code, MAX_RATKO_ERROR_CODE_LENGTH)
+
+    val sanitizedMessage: String
+        get() = formatForLog(message, MAX_RATKO_ERROR_LENGTH)
+}
+
 data class RatkoOid<T>(val id: String) {
-    constructor(oid: Oid<*>) : this(oid.toString())
+    constructor(oid: Oid<T>) : this(oid.toString())
 
     override fun toString() = id
 }
@@ -52,8 +66,8 @@ data class RatkoPoint(
     val geometry: RatkoGeometry?,
     val state: RatkoPointState?,
     val rowMetadata: RatkoMetadata? = null,
-    val locationtrack: RatkoOid<RatkoLocationTrack>? = null,
-    val routenumber: RatkoOid<RatkoRouteNumber>? = null,
+    val locationtrack: RatkoOid<LocationTrack>? = null,
+    val routenumber: RatkoOid<LayoutTrackNumber>? = null,
 ) {
     fun withoutGeometry() = this.copy(geometry = null)
 }

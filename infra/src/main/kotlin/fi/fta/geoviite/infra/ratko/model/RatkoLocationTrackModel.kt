@@ -9,13 +9,14 @@ import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoLocationTrack(
     val id: Oid<LocationTrack>?,
-    val routenumber: RatkoOid<RatkoRouteNumber>?,
+    val routenumber: RatkoOid<LayoutTrackNumber>?,
     val nodecollection: RatkoNodes?,
     val name: String,
     val description: String,

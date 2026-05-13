@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.integration.RatkoAssetType
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoOperation.CREATE
 import fi.fta.geoviite.infra.integration.RatkoOperation.DELETE
@@ -26,14 +27,14 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorType.PROPERTIES
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType.STATE
 import fi.fta.geoviite.infra.logging.integrationCall
 import fi.fta.geoviite.infra.ratko.model.GEOVIITE_NAME
-import fi.fta.geoviite.infra.ratko.model.RatkoAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
-import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferResponse
+import fi.fta.geoviite.infra.ratko.model.RatkoErrorResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
+import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
@@ -47,11 +48,14 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
+import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
 import fi.fta.geoviite.infra.ratko.model.parseAsset
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -107,6 +111,35 @@ fun <T> isFakeOID(oid: RatkoOid<T>): Boolean = isFakeOID(oid.toString())
 
 fun <T> isFakeOID(oid: Oid<T>): Boolean = isFakeOID(oid.toString())
 
+sealed class RatkoPushTarget<T> {
+    abstract val oid: Oid<T>
+    abstract val assetType: RatkoAssetType
+}
+
+data class RatkoPushTargetLocationTrack(override val oid: Oid<LocationTrack>) : RatkoPushTarget<LocationTrack>() {
+    constructor(oid: RatkoOid<LocationTrack>) : this(Oid(oid.id))
+
+    constructor(track: RatkoLocationTrack) : this(requireNotNull(track.id))
+
+    override val assetType: RatkoAssetType = RatkoAssetType.LOCATION_TRACK
+}
+
+data class RatkoPushTargetTrackNumber(override val oid: Oid<LayoutTrackNumber>) : RatkoPushTarget<LayoutTrackNumber>() {
+    constructor(oid: RatkoOid<LayoutTrackNumber>) : this(Oid(oid.id))
+
+    constructor(routeNumber: RatkoRouteNumber) : this(requireNotNull(routeNumber.id))
+
+    override val assetType: RatkoAssetType = RatkoAssetType.TRACK_NUMBER
+}
+
+data class RatkoPushTargetSwitch(override val oid: Oid<LayoutSwitch>) : RatkoPushTarget<LayoutSwitch>() {
+    constructor(oid: RatkoOid<LayoutSwitch>) : this(Oid(oid.id))
+
+    constructor(switch: RatkoSwitchAsset) : this(requireNotNull(switch.id))
+
+    override val assetType: RatkoAssetType = RatkoAssetType.SWITCH
+}
+
 @Component
 @ConditionalOnBean(RatkoFakeOidGeneratorConfiguration::class)
 class RatkoFakeOidGenerator {
@@ -143,11 +176,11 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .block(defaultBlockTimeout) ?: RatkoStatus(RatkoConnectionStatus.OFFLINE, null)
     }
 
-    fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
+    fun getLocationTrack(locationTrackOid: RatkoOid<LocationTrack>): RatkoLocationTrack? {
         logger.integrationCall("getLocationTrack", "locationTrackOid" to locationTrackOid)
 
-        return getWithJsonResponseBody(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid), LOCATION)?.let {
-            response ->
+        val url = combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid)
+        return getWithJsonResponseBody(url, LOCATION, RatkoPushTargetLocationTrack(locationTrackOid))?.let { response ->
             ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
                 replaceKmM(locationTrackJsonNode.get("nodecollection"))
                 parseJsonNode<RatkoLocationTrack>(locationTrackJsonNode, "getLocationTrack")
@@ -158,22 +191,32 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack, oid: Oid<LocationTrack>) {
         logger.integrationCall("updateLocationTrackProperties", "locationTrack" to locationTrack)
 
-        patchWithoutResponseBody("$LOCATION_TRACK_PATCH_PATH/${oid}", locationTrack)
+        patchGeometryWithoutResponseBody(
+            "$LOCATION_TRACK_PATCH_PATH/${oid}",
+            locationTrack,
+            RatkoPushTargetLocationTrack(oid),
+        )
     }
 
-    fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
+    fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<LocationTrack>, km: KmNumber?) {
         logger.integrationCall("deleteLocationTrackPoints", "locationTrackOid" to locationTrackOid, "km" to km)
 
-        deletePoints(combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid, km))
+        deletePoints(
+            combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid, km),
+            RatkoPushTargetLocationTrack(locationTrackOid),
+        )
     }
 
-    fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, km: KmNumber?) {
+    fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<LayoutTrackNumber>, km: KmNumber?) {
         logger.integrationCall("deleteRouteNumberPoints", "routeNumberOid" to routeNumberOid, "km" to km)
 
-        deletePoints(combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid, km))
+        deletePoints(
+            combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid, km),
+            RatkoPushTargetTrackNumber(routeNumberOid),
+        )
     }
 
-    fun updateRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
+    fun updateRouteNumberPoints(routeNumberOid: RatkoOid<LayoutTrackNumber>, points: List<RatkoPoint>) {
         logger.integrationCall(
             "updateRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
@@ -188,11 +231,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
             )
 
-            patchWithoutResponseBody(combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid), chunk)
+            val pushTarget = RatkoPushTargetTrackNumber(routeNumberOid)
+            patchGeometryWithoutResponseBody(combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid), chunk, pushTarget)
         }
     }
 
-    fun createRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
+    fun createRouteNumberPoints(routeNumberOid: RatkoOid<LayoutTrackNumber>, points: List<RatkoPoint>) {
         logger.integrationCall(
             "createRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
@@ -208,14 +252,15 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             )
 
             val url = combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid)
+            val pushTarget = RatkoPushTargetTrackNumber(routeNumberOid)
             postSpec(url, chunk)
-                .defaultErrorHandler(GEOMETRY, CREATE, url, chunk)
+                .defaultErrorHandler(GEOMETRY, CREATE, pushTarget, url, chunk)
                 .toBodilessEntity()
                 .block(defaultBlockTimeout)
         }
     }
 
-    fun updateLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
+    fun updateLocationTrackPoints(locationTrackOid: RatkoOid<LocationTrack>, points: List<RatkoPoint>) {
         logger.integrationCall(
             "updateLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
@@ -224,10 +269,11 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         )
 
         val url = "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid?updateKmMvalues=true"
-        patchWithoutResponseBody(url, points)
+        val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
+        patchGeometryWithoutResponseBody(url, points, pushTarget)
     }
 
-    fun createLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
+    fun createLocationTrackPoints(locationTrackOid: RatkoOid<LocationTrack>, points: List<RatkoPoint>) {
         logger.integrationCall(
             "createLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
@@ -243,8 +289,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             )
 
             val url = combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid)
+            val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
             postSpec(url, chunk)
-                .defaultErrorHandler(GEOMETRY, CREATE, url, chunk)
+                .defaultErrorHandler(GEOMETRY, CREATE, pushTarget, url, chunk)
                 .toBodilessEntity()
                 .block(defaultBlockTimeout)
         }
@@ -272,6 +319,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             )
 
         val url = "$LOCATION_TRACK_PATCH_PATH/${targetTrackExternalId.oid}"
+        val pushTarget = RatkoPushTargetLocationTrack(targetTrackExternalId.oid)
 
         client
             .patch()
@@ -285,12 +333,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(mapOf<String, Any>())
             .retrieve()
-            .defaultErrorHandler(GEOMETRY, UPDATE, "$url?$params")
+            .defaultErrorHandler(GEOMETRY, UPDATE, pushTarget, "$url?$params")
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
 
-    fun forceRatkoToRedrawLocationTrack(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
+    fun forceRatkoToRedrawLocationTrack(locationTrackOids: Set<RatkoOid<LocationTrack>>) {
         logger.integrationCall("updateLocationTrackGeometryMValues", "locationTrackOids" to locationTrackOids)
 
         patchSpec(combinePaths(LOCATION_TRACK_PATH, "geom"), locationTrackOids.map { it.id })
@@ -300,49 +348,54 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun newLocationTrack(
         locationTrack: RatkoLocationTrack,
-        locationTrackOidOfGeometry: RatkoOid<RatkoLocationTrack>? = null,
-    ): RatkoOid<RatkoLocationTrack>? {
+        locationTrackOidOfGeometry: RatkoOid<LocationTrack>? = null,
+    ): RatkoOid<LocationTrack>? {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
         assert(locationTrack.id != null && !isFakeOID(locationTrack.id)) {
             "Cannot push fake OID ${locationTrack.id} into Ratko"
         }
 
+        val pushTarget = RatkoPushTargetLocationTrack(locationTrack)
         return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
-            postWithResponseBody(
-                "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}",
-                locationTrack,
-            )
-        } ?: postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
+            val url = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}"
+            postWithResponseBody(url, locationTrack, PROPERTIES, CREATE, pushTarget)
+        } ?: postWithResponseBody(LOCATION_TRACK_PATH, locationTrack, PROPERTIES, CREATE, pushTarget)
     }
 
-    fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
-        logger.integrationCall("newAsset", "asset" to asset)
-
-        return postWithJsonResponseBody(ASSET_PATH, asset.withoutGeometries())
+    fun newSwitch(switch: RatkoSwitchAsset): RatkoOid<LayoutSwitch>? {
+        logger.integrationCall("newSwitch", "switch" to switch)
+        val pushTarget = RatkoPushTargetSwitch(switch)
+        return postWithJsonResponseBody(ASSET_PATH, switch.withoutGeometries(), PROPERTIES, CREATE, pushTarget)
             ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
             ?.let(::RatkoOid)
     }
 
-    fun <T : RatkoAsset> replaceAssetLocations(assetOid: RatkoOid<T>, locations: List<RatkoAssetLocation>) {
-        logger.integrationCall("replaceAssetLocations", "assetOid" to assetOid, "locations" to locations)
-
-        putWithoutResponseBody(
-            combinePaths(ASSET_PATH, assetOid, "locations"),
-            locations.map { it.withoutGeometries() },
-            LOCATION,
-        )
+    fun newMetadataAsset(asset: RatkoMetadataAsset): RatkoOid<RatkoMetadataAsset>? {
+        logger.integrationCall("newMetadataAsset", "asset" to asset)
+        return postWithJsonResponseBody(ASSET_PATH, asset.withoutGeometries(), PROPERTIES, CREATE, null)
+            ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
+            ?.let(::RatkoOid)
     }
 
-    fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: Collection<RatkoAssetGeometry>) {
-        logger.integrationCall("replaceAssetGeoms", "assetOid" to assetOid, "geoms" to geoms)
-
-        putWithoutResponseBody(combinePaths(ASSET_PATH, assetOid, "geoms"), geoms, GEOMETRY)
+    fun replaceSwitchLocations(assetOid: RatkoOid<LayoutSwitch>, locations: List<RatkoAssetLocation>) {
+        logger.integrationCall("replaceSwitchLocations", "assetOid" to assetOid, "locations" to locations)
+        val url = combinePaths(ASSET_PATH, assetOid, "locations")
+        val pushTarget = RatkoPushTargetSwitch(assetOid)
+        putWithoutResponseBody(url, locations.map { it.withoutGeometries() }, LOCATION, pushTarget)
     }
 
-    fun <T : RatkoAsset> getSwitchAsset(assetOid: RatkoOid<T>): RatkoSwitchAsset? {
+    fun replaceSwitchGeoms(assetOid: RatkoOid<LayoutSwitch>, geoms: Collection<RatkoAssetGeometry>) {
+        logger.integrationCall("replaceSwitchGeoms", "assetOid" to assetOid, "geoms" to geoms)
+        val url = combinePaths(ASSET_PATH, assetOid, "geoms")
+        val pushTarget = RatkoPushTargetSwitch(assetOid)
+        putWithoutResponseBody(url, geoms, GEOMETRY, pushTarget)
+    }
+
+    fun getSwitchAsset(assetOid: RatkoOid<LayoutSwitch>): RatkoSwitchAsset? {
         logger.integrationCall("getSwitchAsset", "assetOid" to assetOid)
 
-        return getWithJsonResponseBody(combinePaths(ASSET_PATH, assetOid))
+        val pushTarget = RatkoPushTargetSwitch(assetOid)
+        return getWithJsonResponseBody(combinePaths(ASSET_PATH, assetOid), PROPERTIES, pushTarget)
             ?.let { response -> ratkoJsonMapper.readTree(response) }
             ?.let { switchJsonNode ->
                 switchJsonNode.get("assetGeoms")?.forEach { asset ->
@@ -353,14 +406,16 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
     }
 
-    fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
-        logger.integrationCall("updateAssetState", "assetOid" to assetOid, "state" to state)
+    fun updateSwitchState(switchOid: RatkoOid<LayoutSwitch>, state: RatkoAssetState) {
+        logger.integrationCall("updateSwitchState", "switchOid" to switchOid, "state" to state)
 
+        val pushTarget = RatkoPushTargetSwitch(switchOid)
         val responseJson =
-            getSpec(combinePaths(ASSET_PATH, assetOid))
+            getSpec(combinePaths(ASSET_PATH, switchOid))
                 .bodyToMono<String>()
                 .onErrorResume(WebClientResponseException::class.java) {
-                    Mono.error(RatkoPushException(PROPERTIES, FETCH_EXISTING, it))
+                    val response = parseErrorResponse(it.responseBodyAsString)
+                    Mono.error(RatkoAssetPushException(PROPERTIES, FETCH_EXISTING, pushTarget, response, it))
                 }
                 .block(defaultBlockTimeout)
 
@@ -410,23 +465,22 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         switchJsonObject.remove("childAssets")
 
-        putWithoutResponseBody(combinePaths(ASSET_PATH, assetOid), switchJsonObject.toString(), STATE)
+        putWithoutResponseBody(combinePaths(ASSET_PATH, switchOid), switchJsonObject.toString(), STATE, pushTarget)
     }
 
-    fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: Collection<RatkoAssetProperty>) {
-        logger.integrationCall("updateAssetProperties", "assetOid" to assetOid, "properties" to properties)
+    fun updateSwitchProperties(switchOid: RatkoOid<LayoutSwitch>, properties: Collection<RatkoAssetProperty>) {
+        logger.integrationCall("updateAssetProperties", "switchOid" to switchOid, "properties" to properties)
 
-        putWithoutResponseBody(combinePaths(ASSET_PATH, assetOid, "properties"), properties)
+        val url = combinePaths(ASSET_PATH, switchOid, "properties")
+        putWithoutResponseBody(url, properties, PROPERTIES, RatkoPushTargetSwitch(switchOid))
     }
 
     fun createPlanItem(ratkoPlanId: RatkoPlanId, realOid: Oid<*>?): RatkoPlanItemId {
         logger.integrationCall("createPlanItem")
 
-        val rv =
-            postWithResponseBody<RatkoPlanItem>(
-                "/api/plan/v1.0/plans/${ratkoPlanId.intValue}/plan_items",
-                RatkoPlanItem(id = null, state = RatkoPlanState.OPEN, planId = ratkoPlanId, realOid = realOid),
-            )
+        val url = "/api/plan/v1.0/plans/${ratkoPlanId.intValue}/plan_items"
+        val content = RatkoPlanItem(id = null, state = RatkoPlanState.OPEN, planId = ratkoPlanId, realOid = realOid)
+        val rv = postWithResponseBody<RatkoPlanItem>(url, content, PROPERTIES, CREATE, null)
         return requireNotNull(rv?.id) {
             "Expected plan item ID from Ratko when creating plan item in Ratko plan " +
                 "${ratkoPlanId.intValue} with real OID $realOid"
@@ -436,50 +490,59 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun updatePlanItem(item: RatkoPlanItem) {
         logger.integrationCall("updatePlanItem")
         val id = requireNotNull(item.id).intValue
-        putWithoutResponseBody("/api/plan/v1.0/plan_items/$id", item)
+        putWithoutResponseBody("/api/plan/v1.0/plan_items/$id", item, PROPERTIES, null)
     }
 
-    fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack> {
+    fun getNewLocationTrackOid(): RatkoOid<LocationTrack> {
         logger.integrationCall("getNewLocationTrackOid")
-
-        return requireNotNull(postWithResponseBody(LOCATION_TRACK_PATH, "{}"))
+        return requireNotNull(postWithResponseBody(LOCATION_TRACK_PATH, "{}", PROPERTIES, CREATE, null))
     }
 
-    fun getNewRouteNumberOid(): RatkoOid<RatkoRouteNumber> {
+    fun getNewRouteNumberOid(): RatkoOid<LayoutTrackNumber> {
         logger.integrationCall("getNewRouteNumberOid")
-
-        return requireNotNull(postWithResponseBody(ROUTE_NUMBER_PATH, "{}"))
+        return requireNotNull(postWithResponseBody(ROUTE_NUMBER_PATH, "{}", PROPERTIES, CREATE, null))
     }
 
-    fun getNewSwitchOid(): RatkoOid<RatkoSwitchAsset> {
+    fun getNewSwitchOid(): RatkoOid<LayoutSwitch> {
         logger.integrationCall("getNewSwitchOid")
-
         val body = "{\"type\":\"turnout\"}"
-
-        return requireNotNull(postWithResponseBody<List<RatkoOid<RatkoSwitchAsset>>>(ASSET_PATH, body)?.firstOrNull())
+        return requireNotNull(
+            postWithResponseBody<List<RatkoOid<LayoutSwitch>>>(ASSET_PATH, body, PROPERTIES, CREATE, null)
+                ?.firstOrNull()
+        )
     }
 
-    fun getRouteNumber(routeNumberOid: RatkoOid<RatkoRouteNumber>): RatkoRouteNumber? {
+    fun getRouteNumber(routeNumberOid: RatkoOid<LayoutTrackNumber>): RatkoRouteNumber? {
         logger.integrationCall("getRouteNumber", "routeNumberOid" to routeNumberOid)
 
-        return getWithJsonResponseBody(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))?.let { response ->
-            ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
-                replaceKmM(routeNumberJsonNode.get("nodecollection"))
-                parseJsonNode<RatkoRouteNumber>(routeNumberJsonNode, "getRouteNumber")
+        return getWithJsonResponseBody(
+                combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid),
+                PROPERTIES,
+                RatkoPushTargetTrackNumber(routeNumberOid),
+            )
+            ?.let { response ->
+                ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
+                    replaceKmM(routeNumberJsonNode.get("nodecollection"))
+                    parseJsonNode<RatkoRouteNumber>(routeNumberJsonNode, "getRouteNumber")
+                }
             }
-        }
     }
 
-    fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
+    fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<LayoutTrackNumber>? {
         logger.integrationCall("newRouteNumber", "routeNumber" to routeNumber)
         assert(routeNumber.id != null && !isFakeOID(routeNumber.id)) {
             "Cannot push fake OID ${routeNumber.id} into Ratko"
         }
-
-        return postWithResponseBody(ROUTE_NUMBER_PATH, routeNumber)
+        return postWithResponseBody(
+            ROUTE_NUMBER_PATH,
+            routeNumber,
+            PROPERTIES,
+            CREATE,
+            RatkoPushTargetTrackNumber(routeNumber),
+        )
     }
 
-    fun forceRatkoToRedrawRouteNumber(routeNumberOids: Set<RatkoOid<RatkoRouteNumber>>) {
+    fun forceRatkoToRedrawRouteNumber(routeNumberOids: Set<RatkoOid<LayoutTrackNumber>>) {
         logger.integrationCall("updateRouteNumberGeometryMValues", "routeNumberOids" to routeNumberOids)
 
         patchSpec(combinePaths(ROUTE_NUMBER_PATH, "geom"), routeNumberOids.map { it.id })
@@ -490,7 +553,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun updateRouteNumber(routeNumber: RatkoRouteNumber) {
         logger.integrationCall("updateRouteNumber", "routeNumber" to routeNumber)
 
-        putWithoutResponseBody(ROUTE_NUMBER_PATH, routeNumber)
+        putWithoutResponseBody(ROUTE_NUMBER_PATH, routeNumber, PROPERTIES, RatkoPushTargetTrackNumber(routeNumber))
     }
 
     fun fetchOperationalPoints(): List<RatkoOperationalPointParse> {
@@ -504,12 +567,15 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     postWithResponseBody<RatkoOperationalPointAssetsResponse>(
                             "$ASSET_PATH/search?fields=summary",
                             mapOf(
-                                "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
+                                "assetType" to RatkoSwitchAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
                                 "pageNumber" to pageNumber++,
                                 "size" to 100,
                                 "sortOrder" to "ASC",
                                 "secondarySortOrder" to "ASC",
                             ),
+                            PROPERTIES,
+                            CREATE,
+                            null,
                         )
                         ?.assets
                 ) {
@@ -528,6 +594,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             postWithResponseBody<RatkoBulkTransferResponse>(
                     url = "$BULK_TRANSFER_PATH/start",
                     content = mapOf("this-is-something-that-should-be-defined" to "in-the-future"),
+                    PROPERTIES,
+                    CREATE,
+                    null,
                 )
                 ?.id
         checkNotNull(bulkTransferId) { "Received bulk transfer id was null" }
@@ -556,14 +625,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun createPlan(plan: RatkoPlan): RatkoPlanId? {
         logger.integrationCall("createPlan", "plan" to plan)
-        val rv = postWithResponseBody<RatkoPlanResponse>(url = PLAN_PATH, plan)
+        val rv = postWithResponseBody<RatkoPlanResponse>(url = PLAN_PATH, plan, PROPERTIES, CREATE, null)
         return rv?.id
     }
 
     fun updatePlan(plan: RatkoPlan) {
         logger.integrationCall("updatePlan", "plan" to plan)
         val ratkoId = requireNotNull(plan.id).intValue
-        return putWithoutResponseBody(url = "$PLAN_PATH/$ratkoId", plan)
+        return putWithoutResponseBody(url = "$PLAN_PATH/$ratkoId", plan, PROPERTIES, null)
     }
 
     private fun replaceKmM(nodeCollection: JsonNode?) {
@@ -605,41 +674,62 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         }
     }
 
-    private fun postWithJsonResponseBody(url: String, content: Any): String? =
+    private fun postWithJsonResponseBody(
+        url: String,
+        content: Any,
+        errorType: RatkoPushErrorType,
+        operation: RatkoOperation,
+        target: RatkoPushTarget<*>?,
+    ): String? =
         postSpec(url, content)
-            .defaultErrorHandler(PROPERTIES, CREATE, url, content)
+            .defaultErrorHandler(errorType, operation, target, url, content)
             .bodyToMono<String>()
             .block(defaultBlockTimeout)
 
-    private inline fun <reified TOut : Any> postWithResponseBody(url: String, content: Any): TOut? =
-        postWithJsonResponseBody(url, content)?.let { parseJsonValue<TOut>(it, url) }
+    private inline fun <reified TOut : Any> postWithResponseBody(
+        url: String,
+        content: Any,
+        errorType: RatkoPushErrorType,
+        operation: RatkoOperation,
+        target: RatkoPushTarget<*>?,
+    ): TOut? =
+        postWithJsonResponseBody(url, content, errorType, operation, target)?.let { parseJsonValue<TOut>(it, url) }
 
-    private fun getWithJsonResponseBody(url: String, errorType: RatkoPushErrorType = PROPERTIES): String? =
+    private fun getWithJsonResponseBody(
+        url: String,
+        errorType: RatkoPushErrorType,
+        target: RatkoPushTarget<*>?,
+    ): String? =
         getSpec(url)
-            .defaultErrorHandler(errorType, FETCH_EXISTING, url)
+            .defaultErrorHandler(errorType, FETCH_EXISTING, target, url)
             .bodyToMono<String>()
             .onErrorResume(WebClientResponseException::class.java) { ex ->
                 if (ex.statusCode == NOT_FOUND) Mono.empty() else Mono.error(ex)
             }
             .block(defaultBlockTimeout)
 
-    private fun putWithoutResponseBody(url: String, content: Any, errorType: RatkoPushErrorType = PROPERTIES) {
+    private fun putWithoutResponseBody(
+        url: String,
+        content: Any,
+        errorType: RatkoPushErrorType,
+        target: RatkoPushTarget<*>?,
+    ) {
         putSpec(url, content)
-            .defaultErrorHandler(errorType, UPDATE, url, content)
+            .defaultErrorHandler(errorType, UPDATE, target, url, content)
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
 
-    private fun patchWithoutResponseBody(url: String, content: Any) {
+    private fun patchGeometryWithoutResponseBody(url: String, content: Any, target: RatkoPushTarget<*>) {
         patchSpec(url, content)
-            .defaultErrorHandler(GEOMETRY, UPDATE, url, content)
+            .defaultErrorHandler(GEOMETRY, UPDATE, target, url, content)
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
 
-    private fun deletePoints(url: String) {
+    private fun deletePoints(url: String, target: RatkoPushTarget<*>) {
         deleteSpec(url)
-            .defaultErrorHandler(GEOMETRY, DELETE, url)
+            .defaultErrorHandler(GEOMETRY, DELETE, target, url)
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) { ex ->
                 if (ex.statusCode == NOT_FOUND) Mono.empty() else Mono.error(ex)
@@ -663,6 +753,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     private fun WebClient.ResponseSpec.defaultErrorHandler(
         errorType: RatkoPushErrorType,
         operation: RatkoOperation,
+        target: RatkoPushTarget<*>?,
         requestUrl: String,
         requestBody: Any? = null,
     ) =
@@ -673,15 +764,24 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             },
             { response ->
                 response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { responseBody ->
+                    val errorResponse = parseErrorResponse(responseBody)
                     val request = getBodyJsonForLog(requestBody).take(MAX_JSON_LOG_LENGTH)
                     val truncatedResponse = responseBody.take(MAX_JSON_LOG_LENGTH)
                     logger.error(
                         "Error during Ratko push: status=${response.statusCode()} responseBody=$truncatedResponse requestUrl=\"$requestUrl\" requestBody=$request"
                     )
-                    Mono.error(RatkoPushException(errorType, operation))
+                    Mono.error(
+                        target?.let { RatkoAssetPushException(errorType, operation, target, errorResponse) }
+                            ?: RatkoException(errorType, operation, errorResponse)
+                    )
                 }
             },
         )
+
+    private fun parseErrorResponse(responseBody: String): RatkoErrorResponse? =
+        responseBody.takeIf(String::isNotEmpty)?.let {
+            runCatching { ratkoJsonMapper.readValue<RatkoErrorResponse>(responseBody) }.getOrNull()
+        }
 
     private fun getBodyJsonForLog(body: Any?): String =
         runCatching { body?.let { it as? String ?: ratkoJsonMapper.writeValueAsString(it) } ?: "null" }

@@ -21,9 +21,9 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 data class LayoutSwitchConnectionUpdates(val clearJoints: Boolean, val clearTracks: Boolean)
 
@@ -99,14 +99,15 @@ constructor(
         branch: LayoutBranch,
         ids: List<IntId<LayoutSwitch>>,
         operationalPointId: IntId<OperationalPoint>,
-    ): List<IntId<LayoutSwitch>> =
-        ids.map { id ->
-            saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
-        }
+    ): List<IntId<LayoutSwitch>> = ids.map { id ->
+        saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
+    }
 
     @Transactional
     fun unlinkFromOperationalPoint(branch: LayoutBranch, ids: List<IntId<LayoutSwitch>>): List<IntId<LayoutSwitch>> =
-        ids.map { id -> saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = null)).id }
+        ids.map { id ->
+            saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = null)).id
+        }
 
     fun findSwitchesRelatedToOperationalPoint(
         context: LayoutContext,
@@ -139,15 +140,13 @@ constructor(
                 },
         )
 
-    private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? {
-        if (ratkoClient != null)
-            return try {
-                ratkoClient.getSwitchAsset(RatkoOid(oid.toString())) != null
-            } catch (ex: Exception) {
-                logger.warn("checkRatkoOidPresence exception: $ex")
-                null
-            }
-        else return null
+    private fun checkRatkoOidPresence(oid: Oid<LayoutSwitch>): Boolean? = ratkoClient?.let { client ->
+        return try {
+            client.getSwitchAsset(RatkoOid(oid.toString())) != null
+        } catch (ex: Exception) {
+            logger.warn("checkRatkoOidPresence exception: $ex")
+            null
+        }
     }
 
     fun idMatches(
@@ -222,6 +221,7 @@ constructor(
             locationTrackService.updateDependencies(branch, switchId = v.id, noUpdateLocationTracks = setOf())
         }
 
+    @Transactional(readOnly = true)
     fun getSwitchesInArea(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
@@ -241,6 +241,7 @@ constructor(
         return SwitchAreaSummary(switchCount = totalCount, switches = switches)
     }
 
+    @Transactional(readOnly = true)
     fun previewNameFixes(layoutContext: LayoutContext, bbox: BoundingBox): List<SwitchNameFixPreview> {
         val filter = switchFilter(bbox = bbox, includeSwitchesWithNoJoints = false)
         val allSwitches = listWithStructure(layoutContext, includeDeleted = false)
@@ -282,8 +283,9 @@ fun pageSwitches(
     comparisonPoint: Point?,
 ): Page<LayoutSwitch> {
     return if (comparisonPoint != null) {
-        val switchesWithDistance: List<Pair<LayoutSwitch, Double?>> =
-            switches.map { (switch, structure) -> associateByDistance(switch, structure, comparisonPoint) }
+        val switchesWithDistance: List<Pair<LayoutSwitch, Double?>> = switches.map { (switch, structure) ->
+            associateByDistance(switch, structure, comparisonPoint)
+        }
         page(switchesWithDistance, offset ?: 0, limit, ::compareByDistanceNullsFirst).map { (s, _) -> s }
     } else {
         page(switches.map { (s, _) -> s }, offset ?: 0, limit, Comparator.comparing(LayoutSwitch::name))
