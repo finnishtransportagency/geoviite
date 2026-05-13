@@ -83,6 +83,8 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import java.math.BigDecimal
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -98,8 +100,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import java.math.BigDecimal
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -669,9 +669,9 @@ constructor(
     }
 
     @Test
-    fun `reverting split source track will remove the whole split`() {
+    fun `reverting only split source track throws because split is only partially included`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
+        val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         assertTrue {
             splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { split ->
@@ -679,42 +679,109 @@ constructor(
             }
         }
 
-        publicationService.revertPublicationCandidates(
-            LayoutBranch.main,
-            publicationRequest(locationTracks = listOf(splitSetup.sourceTrack.id)),
-        )
-
-        assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main).none { split ->
-                split.sourceLocationTrackId == splitSetup.sourceTrack.id
-            }
+        assertThrows<IllegalArgumentException> {
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = listOf(splitSetup.sourceTrack.id)),
+            )
         }
+
+        assertNotNull(splitDao.get(splitId))
     }
 
     @Test
-    fun `reverting one of the split target tracks will remove the whole split`() {
+    fun `reverting only one split target track throws because split is only partially included`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
+        val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
         val startTargetTrack = splitSetup.targetTracks.first().first
-        val endTargetTrack = splitSetup.targetTracks.last().first
 
-        assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { split ->
-                split.containsLocationTrack(endTargetTrack.id)
-            }
+        assertThrows<IllegalArgumentException> {
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = listOf(startTargetTrack.id)),
+            )
         }
+
+        assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `reverting all split location tracks deletes the split`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+        val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
+
+        assertNotNull(splitDao.get(splitId))
 
         publicationService.revertPublicationCandidates(
             LayoutBranch.main,
-            publicationRequest(locationTracks = listOf(startTargetTrack.id)),
+            publicationRequest(locationTracks = splitSetup.trackIds),
         )
 
-        assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main).none { split ->
-                split.containsLocationTrack(endTargetTrack.id)
-            }
+        assertNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `reverting split with all location tracks and relinked switches deletes the split`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+        val someSwitch = mainDraftContext.createSwitch()
+        val splitId =
+            publicationTestSupportService.saveSplit(
+                splitSetup.sourceTrack,
+                splitSetup.targetParams,
+                switches = listOf(someSwitch.id),
+            )
+
+        assertNotNull(splitDao.get(splitId))
+
+        publicationService.revertPublicationCandidates(
+            LayoutBranch.main,
+            publicationRequest(locationTracks = splitSetup.trackIds, switches = listOf(someSwitch.id)),
+        )
+
+        assertNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `reverting split with all location tracks but missing relinked switch throws`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+        val someSwitch = mainDraftContext.createSwitch()
+        val splitId =
+            publicationTestSupportService.saveSplit(
+                splitSetup.sourceTrack,
+                splitSetup.targetParams,
+                switches = listOf(someSwitch.id),
+            )
+
+        assertThrows<IllegalArgumentException> {
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = splitSetup.trackIds),
+            )
         }
+
+        assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `reverting only relinked switch of a split throws`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+        val someSwitch = mainDraftContext.createSwitch()
+        val splitId =
+            publicationTestSupportService.saveSplit(
+                splitSetup.sourceTrack,
+                splitSetup.targetParams,
+                switches = listOf(someSwitch.id),
+            )
+
+        assertThrows<IllegalArgumentException> {
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                publicationRequest(switches = listOf(someSwitch.id)),
+            )
+        }
+
+        assertNotNull(splitDao.get(splitId))
     }
 
     @Test

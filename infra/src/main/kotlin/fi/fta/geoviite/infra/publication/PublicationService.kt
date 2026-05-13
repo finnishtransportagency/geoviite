@@ -201,7 +201,16 @@ constructor(
 
     @Transactional
     fun revertPublicationCandidates(branch: LayoutBranch, toDelete: PublicationRequestIds): PublicationResultSummary {
-        splitService.fetchPublicationVersions(branch, toDelete.locationTracks, toDelete.switches).forEach { split ->
+        val toDeleteLocationTracks = toDelete.locationTracks.toSet()
+        val toDeleteSwitches = toDelete.switches.toSet()
+
+        splitService.findUnpublishedSplits(branch, toDelete.locationTracks, toDelete.switches).forEach { split ->
+            val allTracksIncluded = toDeleteLocationTracks.containsAll(split.locationTracks)
+            val allSwitchesIncluded = toDeleteSwitches.containsAll(split.relinkedSwitches)
+            require(allTracksIncluded && allSwitchesIncluded) {
+                "Cannot partially revert split ${split.id}: " +
+                    "all location tracks and relinked switches must be included in the revert request"
+            }
             splitService.deleteSplit(split.id)
         }
 
