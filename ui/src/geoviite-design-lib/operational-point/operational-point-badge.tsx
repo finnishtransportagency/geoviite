@@ -66,14 +66,19 @@ export const OperationalPointBadge: React.FC<OperationalPointBadgeProps> = ({
     onClick,
     status = OperationalPointBadgeStatus.DEFAULT,
 }: OperationalPointBadgeProps) => {
+    const disabled = status === OperationalPointBadgeStatus.DISABLED;
+
     const classes = createClassName(
         styles['operational-point-badge'],
         status,
-        onClick && styles['operational-point-badge--clickable'],
+        !disabled && onClick && styles['operational-point-badge--clickable'],
     );
 
     return (
-        <span className={classes} onClick={onClick} qa-id={'operational-point-badge'}>
+        <span
+            className={classes}
+            onClick={!disabled ? onClick : undefined}
+            qa-id={'operational-point-badge'}>
             {operationalPoint.name}
         </span>
     );
