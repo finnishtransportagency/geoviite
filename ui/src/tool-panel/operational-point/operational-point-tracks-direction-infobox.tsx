@@ -127,16 +127,14 @@ const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
     onSelectLocationTrack,
     isLinkingOrSplitting,
 }) => {
+    const isDisabled = isLinkingOrSplitting && !isEditing;
+
     return (
         <>
             <LocationTrackBadge
                 locationTrack={trackItem}
-                status={
-                    isLinkingOrSplitting && !isEditing
-                        ? LocationTrackBadgeStatus.DISABLED
-                        : undefined
-                }
-                onClick={() => onSelectLocationTrack(trackItem.id)}
+                status={isDisabled ? LocationTrackBadgeStatus.DISABLED : undefined}
+                onClick={isDisabled ? undefined : () => onSelectLocationTrack(trackItem.id)}
             />
             <Hide when={!isEditing}>
                 <Button

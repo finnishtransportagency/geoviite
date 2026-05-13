@@ -80,7 +80,11 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                             status={
                                 isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined
                             }
-                            onClick={() => onSelectLocationTrack(track.id)}
+                            onClick={
+                                isLinkingOrSplitting
+                                    ? undefined
+                                    : () => onSelectLocationTrack(track.id)
+                            }
                         />
                     ))}
                 </div>

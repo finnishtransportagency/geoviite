@@ -53,7 +53,11 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
                         <li key={switchItem.id}>
                             <SwitchBadge
                                 switchItem={switchItem}
-                                onClick={() => onToggleSwitchSelection(switchItem.id)}
+                                onClick={
+                                    disabled
+                                        ? undefined
+                                        : () => onToggleSwitchSelection(switchItem.id)
+                                }
                                 status={status()}
                             />
                         </li>

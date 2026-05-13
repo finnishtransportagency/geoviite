@@ -99,7 +99,9 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                             key={track.id}
                             className={itemClassName}
                             onClick={() =>
-                                canSelectLocationTrack && onToggleLocationTrackSelection(track.id)
+                                canSelectLocationTrack &&
+                                !disabled &&
+                                onToggleLocationTrackSelection(track.id)
                             }>
                             <LocationTrackBadge locationTrack={track} status={status()} />
                             <span>
