@@ -2,20 +2,20 @@ import * as React from 'react';
 import { PublicationDetails } from 'publication/publication-model';
 import styles from 'ratko/ratko-push-error.scss';
 import { useTranslation } from 'react-i18next';
-import {
-    isAssetError,
-    RatkoAssetRef,
-    RatkoAssetType,
-    RatkoPushError,
-} from 'ratko/ratko-model';
+import { isAssetError, RatkoAssetRef, RatkoAssetType, RatkoPushError } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { useLayoutDesign, useLocationTrack, useSwitch, useTrackNumber } from 'track-layout/track-layout-react-utils';
+import {
+    useLayoutDesign,
+    useLocationTrack,
+    useSwitch,
+    useTrackNumber,
+} from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { useEnvironmentInfo } from 'environment/environment-info';
 import { officialMainLayoutContext } from 'common/common-model';
 
 type RatkoPushErrorDetailsProps = {
-    error: RatkoPushError;
+    error: RatkoPushError | undefined;
     failedPublication: PublicationDetails | undefined;
 };
 
@@ -77,9 +77,13 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
         failedPublication?.layoutBranch.branch ?? 'MAIN',
     )?.name;
 
-    const errorAsset = isAssetError(error) ? error : undefined;
+    const errorAsset = error && isAssetError(error) ? error : undefined;
     const assetName = useAssetName(errorAsset?.assetRef);
     const assetLabel = formatAssetLabel(assetName, errorAsset?.assetRef.oid);
+
+    if (!error) {
+        return <div className={styles['ratko-push-error']}>Ratkovienti epäonnistui</div>;
+    }
 
     const isConnectionIssue = failedPublication?.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
@@ -114,15 +118,32 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
 
     const pushErrorString = (): string => {
         if (isConnectionIssue) return t('publication-card.push-error.connection-issue');
-        else if (isInternalError) return internalErrorString ?? t('publication-card.push-error.general-internal-error');
-        else if (isFetchError) return ratkoFetchErrorString ?? '';
-        else return ratkoErrorString ?? '';
+        if (isInternalError) {
+            return (
+                internalErrorString ??
+                t('publication-card.push-error.general-internal-error', {
+                    geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
+                })
+            );
+        }
+        if (isFetchError)
+            return ratkoFetchErrorString ?? t('publication-card.push-error.general-error');
+        return ratkoErrorString ?? t('publication-card.push-error.general-error');
     };
+
+    const technicalDetails = error.ratkoStatusCode
+        ? `[${error.ratkoStatusCode}] ${error.technicalMessage}`
+        : error.technicalMessage;
 
     return (
         <div className={styles['ratko-push-error']}>
-            {design && <span className={styles['ratko-push-error__design-name']}>{design}: </span>}
-            {pushErrorString()}
+            <div>
+                {design && (
+                    <span className={styles['ratko-push-error__design-name']}>{design}: </span>
+                )}
+                {pushErrorString()}
+            </div>
+            <div className={styles['ratko-push-error__technical-message']}>{technicalDetails}</div>
         </div>
     );
 };

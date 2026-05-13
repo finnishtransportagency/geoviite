@@ -11,4 +11,11 @@
         font-weight: 600;
         margin-right: 2px;
     }
+
+    &__technical-message {
+        font-size: 0.85em;
+        opacity: 0.85;
+        margin-top: 4px;
+        word-break: break-word;
+    }
 }

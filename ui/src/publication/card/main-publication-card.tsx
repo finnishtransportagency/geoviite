@@ -206,11 +206,11 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
                 )}
                 {nonSuccesses.length > 0 && (
                     <PublicationCardSection title={t('publication-card.waiting')}>
-                        {currentRatkoPushError && (
+                        {latestFailures.length > 0 && (
                             <RatkoPushErrorDetails
-                                error={currentRatkoPushError.error}
+                                error={currentRatkoPushError?.error}
                                 failedPublication={allPublications.find(
-                                    (p) => p.id === currentRatkoPushError.publicationId,
+                                    (p) => p.id === currentRatkoPushError?.publicationId,
                                 )}
                             />
                         )}
