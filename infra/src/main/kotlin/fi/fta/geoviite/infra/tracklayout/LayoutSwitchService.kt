@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FreeText
@@ -35,6 +36,7 @@ constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val ratkoClient: RatkoClient?,
+    private val splitDao: SplitDao,
 ) : LayoutAssetService<LayoutSwitch, NoParams, LayoutSwitchDao>(dao) {
 
     @Transactional
@@ -99,14 +101,15 @@ constructor(
         branch: LayoutBranch,
         ids: List<IntId<LayoutSwitch>>,
         operationalPointId: IntId<OperationalPoint>,
-    ): List<IntId<LayoutSwitch>> =
-        ids.map { id ->
-            saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
-        }
+    ): List<IntId<LayoutSwitch>> = ids.map { id ->
+        saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
+    }
 
     @Transactional
     fun unlinkFromOperationalPoint(branch: LayoutBranch, ids: List<IntId<LayoutSwitch>>): List<IntId<LayoutSwitch>> =
-        ids.map { id -> saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = null)).id }
+        ids.map { id ->
+            saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = null)).id
+        }
 
     fun findSwitchesRelatedToOperationalPoint(
         context: LayoutContext,
@@ -199,6 +202,13 @@ constructor(
         id: IntId<LayoutSwitch>,
         noUpdateLocationTracks: Set<IntId<LocationTrack>>,
     ): LayoutRowVersion<LayoutSwitch> {
+        require(
+            splitDao.fetchUnfinishedSplits(branch).none { split ->
+                split.publicationId == null && split.containsSwitch(id)
+            }
+        ) {
+            "Cannot delete draft for switch $id: it is part of an unpublished split"
+        }
         // If removal also breaks references, clear them out first
         if (dao.fetchVersion(branch.official, id) == null) {
             clearSwitchInformationFromTracks(branch, id)
@@ -282,8 +292,9 @@ fun pageSwitches(
     comparisonPoint: Point?,
 ): Page<LayoutSwitch> {
     return if (comparisonPoint != null) {
-        val switchesWithDistance: List<Pair<LayoutSwitch, Double?>> =
-            switches.map { (switch, structure) -> associateByDistance(switch, structure, comparisonPoint) }
+        val switchesWithDistance: List<Pair<LayoutSwitch, Double?>> = switches.map { (switch, structure) ->
+            associateByDistance(switch, structure, comparisonPoint)
+        }
         page(switchesWithDistance, offset ?: 0, limit, ::compareByDistanceNullsFirst).map { (s, _) -> s }
     } else {
         page(switches.map { (s, _) -> s }, offset ?: 0, limit, Comparator.comparing(LayoutSwitch::name))

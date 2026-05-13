@@ -204,9 +204,14 @@ constructor(
         val toDeleteLocationTracks = toDelete.locationTracks.toSet()
         val toDeleteSwitches = toDelete.switches.toSet()
 
+        val locationTrackCandidateIds = locationTrackDao.fetchCandidateVersions(branch.draft).map { it.id }.toSet()
+        val switchCandidateIds = switchDao.fetchCandidateVersions(branch.draft).map { it.id }.toSet()
+
         splitService.findUnpublishedSplits(branch, toDelete.locationTracks, toDelete.switches).forEach { split ->
-            val allTracksIncluded = toDeleteLocationTracks.containsAll(split.locationTracks)
-            val allSwitchesIncluded = toDeleteSwitches.containsAll(split.relinkedSwitches)
+            val draftTracks = split.locationTracks.filter { id -> locationTrackCandidateIds.contains(id) }
+            val draftSwitches = split.relinkedSwitches.filter { id -> switchCandidateIds.contains(id) }
+            val allTracksIncluded = toDeleteLocationTracks.containsAll(draftTracks)
+            val allSwitchesIncluded = toDeleteSwitches.containsAll(draftSwitches)
             require(allTracksIncluded && allSwitchesIncluded) {
                 "Cannot partially revert split ${split.id}: " +
                     "all location tracks and relinked switches must be included in the revert request"

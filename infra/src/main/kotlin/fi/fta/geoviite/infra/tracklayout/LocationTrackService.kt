@@ -200,6 +200,13 @@ class LocationTrackService(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> {
+        require(
+            splitDao.fetchUnfinishedSplits(branch).none { split ->
+                split.publicationId == null && split.containsLocationTrack(id)
+            }
+        ) {
+            "Cannot delete draft for location track $id: it is part of an unpublished split"
+        }
         // If removal also breaks references, clear them out first
         if (dao.fetchVersion(branch.official, id) == null) {
             clearDuplicateReferences(branch, id)

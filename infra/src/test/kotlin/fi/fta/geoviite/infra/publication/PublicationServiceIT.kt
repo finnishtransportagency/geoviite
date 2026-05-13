@@ -133,7 +133,7 @@ constructor(
 
     @BeforeEach
     fun cleanup() {
-        publicationTestSupportService.cleanupPublicationTables()
+        testDBService.clearAllTables()
     }
 
     @Test
@@ -704,6 +704,29 @@ constructor(
         }
 
         assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `deleting draft of a location track in an unpublished split throws`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+        publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
+
+        assertThrows<IllegalArgumentException> {
+            locationTrackService.deleteDraft(LayoutBranch.main, splitSetup.sourceTrack.id)
+        }
+    }
+
+    @Test
+    fun `deleting draft of a switch in an unpublished split throws`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+        val someSwitch = mainDraftContext.createSwitch()
+        publicationTestSupportService.saveSplit(
+            splitSetup.sourceTrack,
+            splitSetup.targetParams,
+            switches = listOf(someSwitch.id),
+        )
+
+        assertThrows<IllegalArgumentException> { switchService.deleteDraft(LayoutBranch.main, someSwitch.id) }
     }
 
     @Test
