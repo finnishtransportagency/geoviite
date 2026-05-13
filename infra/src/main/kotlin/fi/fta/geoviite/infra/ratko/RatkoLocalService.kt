@@ -17,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.transaction.annotation.Transactional
 
-// data class RatkoPushErrorAndDetails(val error: RatkoPushError, val publication: PublicationDetails?)
-
 @GeoviiteService
 class RatkoLocalService
 @Autowired
