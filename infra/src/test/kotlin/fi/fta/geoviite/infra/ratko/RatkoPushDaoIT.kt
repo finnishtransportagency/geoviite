@@ -4,12 +4,13 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.DirectChanges
 import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.integration.LocationTrackChange
-import fi.fta.geoviite.infra.integration.RatkoAssetType
 import fi.fta.geoviite.infra.integration.RatkoOperation
+import fi.fta.geoviite.infra.integration.RatkoPushAssetError
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
@@ -32,16 +33,16 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -56,6 +57,7 @@ constructor(
     lateinit var trackNumberId: IntId<LayoutTrackNumber>
     lateinit var publicationId: IntId<Publication>
     lateinit var locationTrackId: IntId<LocationTrack>
+    lateinit var locationTrackOid: Oid<LocationTrack>
     lateinit var publicationMoment: Instant
 
     @BeforeEach
@@ -77,6 +79,7 @@ constructor(
         trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackResponse = insertAndPublishLocationTrack()
         locationTrackId = locationTrackResponse.id
+        locationTrackOid = mainOfficialContext.generateOid(locationTrackId)
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()
         publicationId = createPublication(locationTracks = listOf(Change(null, locationTrackResponse)))
         publicationMoment = publicationDao.getPublication(publicationId).publicationTime
@@ -246,16 +249,16 @@ constructor(
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
-            RatkoOperation.UPDATE,
-            RatkoAssetType.LOCATION_TRACK,
-            locationTrackId,
+            "test error message",
+            operation = RatkoOperation.UPDATE,
+            target = RatkoPushTargetLocationTrack(locationTrackOid),
         )
         ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
         val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
 
         assertNotNull(ratkoPushError)
-        assertEquals(locationTrackId, ratkoPushError.first.assetId)
-        assertEquals(RatkoOperation.UPDATE, ratkoPushError.first.operation)
+        assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetId)
+        assertEquals(RatkoOperation.UPDATE, (ratkoPushError.first as RatkoPushAssetError<*>).operation)
         assertEquals(publicationId, ratkoPushError.second)
     }
 
@@ -265,9 +268,9 @@ constructor(
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
-            RatkoOperation.UPDATE,
-            RatkoAssetType.LOCATION_TRACK,
-            locationTrackId,
+            "test error message",
+            operation = RatkoOperation.UPDATE,
+            target = RatkoPushTargetLocationTrack(locationTrackOid),
         )
         ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
         val locationTrackResponse = insertAndPublishLocationTrack()
@@ -277,8 +280,8 @@ constructor(
         val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
 
         assertNotNull(ratkoPushError)
-        assertEquals(locationTrackId, ratkoPushError.first.assetId)
-        assertEquals(RatkoOperation.UPDATE, ratkoPushError.first.operation)
+        assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetId)
+        assertEquals(RatkoOperation.UPDATE, (ratkoPushError.first as RatkoPushAssetError<*>).operation)
         assertEquals(publicationId, ratkoPushError.second)
     }
 
@@ -288,9 +291,9 @@ constructor(
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
-            RatkoOperation.UPDATE,
-            RatkoAssetType.LOCATION_TRACK,
-            locationTrackId,
+            "test error message",
+            operation = RatkoOperation.UPDATE,
+            target = RatkoPushTargetLocationTrack(locationTrackOid),
         )
         ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
         val locationTrackResponse = insertAndPublishLocationTrack()

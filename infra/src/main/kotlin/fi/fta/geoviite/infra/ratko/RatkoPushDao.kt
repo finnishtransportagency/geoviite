@@ -302,7 +302,9 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               ratko_push_error.track_number_id,
               ratko_push_error.location_track_id,
               ratko_push_error.switch_id,
-              ratko_push_error.ratko_push_id
+              ratko_push_error.ratko_push_id,
+              ratko_push_error.ratko_response_code,
+              ratko_push_error.technical_message
             from integrations.ratko_push
               inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
               left join integrations.ratko_push_error on ratko_push_error.ratko_push_id = ratko_push.id
