@@ -250,6 +250,7 @@ constructor(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
             "test error message",
+            ratkoStatus = "RATKO_FAIL",
             operation = RatkoOperation.UPDATE,
             target = RatkoPushTargetLocationTrack(locationTrackOid),
         )
@@ -260,6 +261,8 @@ constructor(
         assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetRef.id)
         assertEquals(RatkoOperation.UPDATE, (ratkoPushError.first as RatkoPushAssetError<*>).operation)
         assertEquals(publicationId, ratkoPushError.second)
+        assertEquals("test error message", ratkoPushError.first.technicalMessage)
+        assertEquals("RATKO_FAIL", ratkoPushError.first.ratkoStatusCode)
     }
 
     @Test
@@ -269,6 +272,7 @@ constructor(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
             "test error message",
+            ratkoStatus = "RATKO_FAIL",
             operation = RatkoOperation.UPDATE,
             target = RatkoPushTargetLocationTrack(locationTrackOid),
         )
@@ -283,6 +287,8 @@ constructor(
         assertEquals(locationTrackId, (ratkoPushError.first as RatkoPushAssetError<*>).assetRef.id)
         assertEquals(RatkoOperation.UPDATE, (ratkoPushError.first as RatkoPushAssetError<*>).operation)
         assertEquals(publicationId, ratkoPushError.second)
+        assertEquals("test error message", ratkoPushError.first.technicalMessage)
+        assertEquals("RATKO_FAIL", ratkoPushError.first.ratkoStatusCode)
     }
 
     @Test
@@ -301,9 +307,7 @@ constructor(
 
         val ratkoPushId2 = ratkoPushDao.startPushing(listOf(publicationId2))
         ratkoPushDao.updatePushStatus(ratkoPushId2, status = RatkoPushStatus.SUCCESSFUL)
-        val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
-
-        assertNull(ratkoPushError)
+        assertNull(ratkoPushDao.getCurrentRatkoPushError())
     }
 
     fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
