@@ -304,9 +304,7 @@ constructor(
     }
 
     private fun ensureDraftIdExists(draftOid: Oid<LayoutSwitch>) {
-        requireNotNull(ratkoClient?.getSwitchAsset(RatkoOid(draftOid.toString()))) {
-            "OID $draftOid does not exist in Ratko"
-        }
+        requireNotNull(ratkoClient?.getSwitchAsset(RatkoOid(draftOid))) { "OID $draftOid does not exist in Ratko" }
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =

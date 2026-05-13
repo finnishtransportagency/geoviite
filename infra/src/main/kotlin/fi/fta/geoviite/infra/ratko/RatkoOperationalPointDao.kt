@@ -16,18 +16,14 @@ import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.time.Instant
 
-data class RatkoOperationalPointVersion(
-    val point: RatkoOperationalPoint,
-    val version: Int,
-    val deleted: Boolean,
-)
+data class RatkoOperationalPointVersion(val point: RatkoOperationalPoint, val version: Int, val deleted: Boolean)
 
 fun toRatkoOperationalPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
@@ -172,7 +168,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               where external_id = :oid and version = :version 
             """
                 .trimIndent()
-        return jdbcTemplate.queryOne(sql, mapOf("oid" to oid.toString(), "version" to version)) { rs, _ ->
+        return jdbcTemplate.queryOne(sql, mapOf("oid" to oid, "version" to version)) { rs, _ ->
             toRatkoOperationalPoint(rs)
         }
     }

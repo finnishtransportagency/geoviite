@@ -117,7 +117,7 @@ sealed class RatkoPushTarget<T> {
 }
 
 data class RatkoPushTargetLocationTrack(override val oid: Oid<LocationTrack>) : RatkoPushTarget<LocationTrack>() {
-    constructor(oid: RatkoOid<LocationTrack>) : this(Oid(oid.id))
+    constructor(oid: RatkoOid<LocationTrack>) : this(oid.toOid())
 
     constructor(track: RatkoLocationTrack) : this(requireNotNull(track.id))
 
@@ -125,7 +125,7 @@ data class RatkoPushTargetLocationTrack(override val oid: Oid<LocationTrack>) : 
 }
 
 data class RatkoPushTargetTrackNumber(override val oid: Oid<LayoutTrackNumber>) : RatkoPushTarget<LayoutTrackNumber>() {
-    constructor(oid: RatkoOid<LayoutTrackNumber>) : this(Oid(oid.id))
+    constructor(oid: RatkoOid<LayoutTrackNumber>) : this(oid.toOid())
 
     constructor(routeNumber: RatkoRouteNumber) : this(requireNotNull(routeNumber.id))
 
@@ -133,7 +133,7 @@ data class RatkoPushTargetTrackNumber(override val oid: Oid<LayoutTrackNumber>) 
 }
 
 data class RatkoPushTargetSwitch(override val oid: Oid<LayoutSwitch>) : RatkoPushTarget<LayoutSwitch>() {
-    constructor(oid: RatkoOid<LayoutSwitch>) : this(Oid(oid.id))
+    constructor(oid: RatkoOid<LayoutSwitch>) : this(oid.toOid())
 
     constructor(switch: RatkoSwitchAsset) : this(requireNotNull(switch.id))
 

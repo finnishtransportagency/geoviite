@@ -38,10 +38,17 @@ data class RatkoErrorResponse(private val code: String, private val message: Str
         get() = limitLength(message, MAX_RATKO_ERROR_LENGTH)
 }
 
+/**
+ * Ratko OID wrapper holds an extra layer compared to Geoviite Oid type:
+ * - Geoviite Oid maps in JSON to: "123.456.789"
+ * - Ratko Oid maps in JSON to: { id: "123.456.789" }
+ */
 data class RatkoOid<T>(val id: String) {
     constructor(oid: Oid<T>) : this(oid.toString())
 
     override fun toString() = id
+
+    fun toOid(): Oid<T> = Oid(id)
 }
 
 @JsonInclude(JsonInclude.Include.NON_NULL) data class RatkoMetadata(val sourceName: String = GEOVIITE_NAME)
