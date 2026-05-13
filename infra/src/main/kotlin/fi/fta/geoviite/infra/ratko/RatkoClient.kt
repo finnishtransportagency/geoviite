@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorType.PROPERTIES
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType.STATE
 import fi.fta.geoviite.infra.logging.integrationCall
 import fi.fta.geoviite.infra.ratko.model.GEOVIITE_NAME
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetApiType
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
@@ -48,7 +49,6 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
-import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoTrackMeter
 import fi.fta.geoviite.infra.ratko.model.parseAsset
 import fi.fta.geoviite.infra.split.BulkTransfer
@@ -567,7 +567,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     postWithResponseBody<RatkoOperationalPointAssetsResponse>(
                             "$ASSET_PATH/search?fields=summary",
                             mapOf(
-                                "assetType" to RatkoSwitchAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
+                                "assetType" to RatkoAssetApiType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
                                 "pageNumber" to pageNumber++,
                                 "size" to 100,
                                 "sortOrder" to "ASC",

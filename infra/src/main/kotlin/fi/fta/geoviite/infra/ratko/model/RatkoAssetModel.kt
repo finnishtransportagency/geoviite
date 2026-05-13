@@ -16,7 +16,7 @@ abstract class RatkoAsset(
     open val properties: Collection<RatkoAssetProperty>,
     open val rowMetadata: RatkoMetadata,
     open val locations: List<RatkoAssetLocation>?,
-    val type: RatkoSwitchAssetType,
+    val type: RatkoAssetApiType,
     open val isPlanContext: Boolean,
     open val planItemIds: List<Int>?,
 ) {
@@ -32,7 +32,7 @@ data class RatkoMetadataAsset(
 ) :
     RatkoAsset(
         state = RatkoAssetState.IN_USE,
-        type = RatkoSwitchAssetType.METADATA,
+        type = RatkoAssetApiType.METADATA,
         rowMetadata = rowMetadata,
         properties = properties,
         locations = locations,
@@ -55,7 +55,7 @@ data class RatkoSwitchAsset(
 ) :
     RatkoAsset(
         state = state,
-        type = RatkoSwitchAssetType.TURNOUT,
+        type = RatkoAssetApiType.TURNOUT,
         rowMetadata = rowMetadata,
         properties = properties,
         locations = locations,
@@ -130,7 +130,7 @@ enum class RatkoAssetState(@get:JsonValue val value: String, val category: Layou
     @Suppress("unused") OLD("OLD"),
 }
 
-enum class RatkoSwitchAssetType(@get:JsonValue val value: String) {
+enum class RatkoAssetApiType(@get:JsonValue val value: String) {
     TURNOUT("turnout"),
     METADATA("metadata_location_accuracy"),
     RAILWAY_TRAFFIC_OPERATIONAL_POINT(
