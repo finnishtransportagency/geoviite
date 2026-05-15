@@ -977,17 +977,15 @@ private fun <M : GeocodingAlignmentM<M>> createProjectionLines(
         return listOf()
     }
 
+    var edgeIndex = 0
     val midProjections =
-        kms.flatMapIndexed { index: Int, km: GeocodingKm<M> ->
+        kms.flatMap { km ->
             km.getMetersSequence(resolution).map { meter ->
                 val referenceLineM = km.referenceLineM.min + meter.toDouble() - km.startMeters.toDouble()
-                val edge =
-                    findEdge(referenceLineM, edges)
-                        ?: throw GeocodingFailureException(
-                            "Could not produce projection: " +
-                                "km=$km m=$meter refenceLineM=$referenceLineM " +
-                                "edges=${edges.filter { e -> e.startM in referenceLineM - 10.0..referenceLineM + 10.0 }}"
-                        )
+                while (edgeIndex < edges.lastIndex && edges[edgeIndex].endM < referenceLineM) {
+                    edgeIndex++
+                }
+                val edge = edges[edgeIndex]
                 val address = TrackMeter(km.kmNumber, meter)
                 ProjectionLine(address, edge.crossSectionAt(referenceLineM), referenceLineM, edge.referenceDirection)
             }
@@ -1115,21 +1113,6 @@ private fun <M : AlignmentM<M>> getPolyLineEdges(
         }
     }
 }
-
-/**
- * Since segment start distance and m-values are stored with a limited precision, allow finding a segment with that much
- * delta-value. Otherwise, it's possible to get a distance-value "between segments"
- */
-private fun <M : AlignmentM<M>> findEdge(
-    distance: LineM<M>,
-    all: List<PolyLineEdge<M>>,
-    delta: Double = 0.000001,
-): PolyLineEdge<M>? =
-    all.getOrNull(
-        all.binarySearch { edge ->
-            if (edge.startM > distance + delta) 1 else if (edge.endM < distance - delta) -1 else 0
-        }
-    )
 
 private fun intersection(edge: PolyLineEdge<*>, projection: Line) =
     lineIntersection(edge.start, edge.end, projection.start, projection.end)
