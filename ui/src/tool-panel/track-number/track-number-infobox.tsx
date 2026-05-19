@@ -21,6 +21,7 @@ import {
     useReferenceLineStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -49,6 +50,7 @@ type TrackNumberInfoboxProps = {
     referenceLine: LayoutReferenceLine | undefined;
     layoutContext: LayoutContext;
     linkingState?: LinkingState;
+    splittingState?: SplittingState;
     showArea: (area: BoundingBox) => void;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
@@ -86,6 +88,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     referenceLine,
     layoutContext,
     linkingState,
+    splittingState,
     showArea,
     onSelect,
     onUnselect,
@@ -99,6 +102,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     shownLocationTrackIds,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
     const trackNumberChangeTime = getMaxTimestamp(
         changeTimes.layoutTrackNumber,
         changeTimes.layoutReferenceLine,
@@ -357,6 +361,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 contentVisible={visibilities.locationTracks}
                 onContentVisibilityChange={() => visibilityChange('locationTracks')}
                 changeTime={changeTimes.layoutLocationTrack}
+                isLinkingOrSplitting={isLinkingOrSplitting}
             />
             {referenceLine && (
                 <PrivilegeRequired privilege={VIEW_GEOMETRY}>

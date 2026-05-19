@@ -16,6 +16,7 @@ type LocationTracksPanelProps = {
     onToggleLocationTrackSelection: (locationTrack: LocationTrackId) => void;
     selectedLocationTracks?: LocationTrackId[];
     canSelectLocationTrack: boolean;
+    disabled?: boolean;
     max?: number;
     showMoreMax?: number;
 };
@@ -25,6 +26,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     onToggleLocationTrackSelection,
     selectedLocationTracks,
     canSelectLocationTrack,
+    disabled,
     max = 16,
     showMoreMax = 48,
 }: LocationTracksPanelProps) => {
@@ -82,17 +84,26 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                         canSelectLocationTrack &&
                             'location-tracks-panel__location-track--can-select',
                     );
+                    const status = () => {
+                        if (disabled) {
+                            return LocationTrackBadgeStatus.DISABLED;
+                        } else if (isSelected) {
+                            return LocationTrackBadgeStatus.SELECTED;
+                        } else {
+                            return undefined;
+                        }
+                    };
+
                     return (
                         <li
                             key={track.id}
                             className={itemClassName}
                             onClick={() =>
-                                canSelectLocationTrack && onToggleLocationTrackSelection(track.id)
+                                canSelectLocationTrack &&
+                                !disabled &&
+                                onToggleLocationTrackSelection(track.id)
                             }>
-                            <LocationTrackBadge
-                                locationTrack={track}
-                                status={isSelected ? LocationTrackBadgeStatus.SELECTED : undefined}
-                            />
+                            <LocationTrackBadge locationTrack={track} status={status()} />
                             <span>
                                 <LocationTrackTypeLabel type={track.type} />
                             </span>

@@ -23,6 +23,7 @@ export type LocationTrackInfoboxDuplicateOfProps = {
     existingDuplicate: LocationTrackDuplicate | undefined;
     duplicatesOfLocationTrack: LocationTrackDuplicate[] | undefined;
     currentTrackNumberId: LayoutTrackNumberId | undefined;
+    isLinkingOrSplitting?: boolean;
 };
 
 const getTrackNumberName = (
@@ -36,6 +37,7 @@ const LocationTrackInfoboxDuplicateOfM: React.FC<LocationTrackInfoboxDuplicateOf
     duplicatesOfLocationTrack,
     currentTrackNumberId,
     layoutContext,
+    isLinkingOrSplitting,
 }: LocationTrackInfoboxDuplicateOfProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
@@ -78,9 +80,12 @@ const LocationTrackInfoboxDuplicateOfM: React.FC<LocationTrackInfoboxDuplicateOf
             <LocationTrackLink
                 locationTrackId={existingDuplicate.id}
                 locationTrackName={existingDuplicate.name}
+                disabled={isLinkingOrSplitting}
             />
             &nbsp;
-            {showWarningIcon && <LocationTrackDuplicateInfoIcon level={'ERROR'} />}
+            {showWarningIcon && (
+                <LocationTrackDuplicateInfoIcon level={'ERROR'} disabled={!!isLinkingOrSplitting} />
+            )}
         </span>
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
@@ -92,6 +97,7 @@ const LocationTrackInfoboxDuplicateOfM: React.FC<LocationTrackInfoboxDuplicateOf
                     explicitDuplicateLocationTrackNames={explicitDuplicateLocationTrackNames}
                     trackNumbers={trackNumbers}
                     currentTrackNumberId={currentTrackNumberId}
+                    isLinkingOrSplitting={isLinkingOrSplitting}
                 />
             ))}
         </ul>

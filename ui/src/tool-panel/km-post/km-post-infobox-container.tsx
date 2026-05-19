@@ -37,6 +37,9 @@ export const KmPostInfoboxContainer: React.FC<KmPostInfoboxContainerProps> = ({
             onDataChange={onDataChange}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
+            isLinkingOrSplitting={
+                !!trackLayoutState.linkingState || !!trackLayoutState.splittingState
+            }
             onShowOnMap={() =>
                 kmPost.layoutLocation &&
                 delegates.showArea(calculateBoundingBoxToShowAroundLocation(kmPost.layoutLocation))

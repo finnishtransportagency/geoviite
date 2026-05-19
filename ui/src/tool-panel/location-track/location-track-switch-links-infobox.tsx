@@ -17,6 +17,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import { LocationTrackSwitchRow } from './location-track-switch-row';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 const maxSwitchesToDisplay = 10;
 
@@ -64,6 +65,8 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
         useLocationTrackInfoboxExtras(locationTrack.id, layoutContext, changeTimes)[0]?.switches ??
         [];
     const switchIds = switches.map((s) => s.switchId);
+    const linkingState = useTrackLayoutAppSelector((s) => s.linkingState);
+    const splittingState = useTrackLayoutAppSelector((s) => s.splittingState);
 
     const [switchItems, switchItemLoadStatus] = useLoaderWithStatus(
         () =>
@@ -130,6 +133,7 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
                                         validationIssues={validationIssues}
                                         locationTrack={locationTrack}
                                         onSelect={onSelect}
+                                        isLinkingOrSplitting={!!linkingState || !!splittingState}
                                     />
                                 ))}
                             </div>

@@ -3,11 +3,17 @@ import { LocationTrackId, OperationalPointId, StationLink } from 'track-layout/t
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { useLocationTracks } from 'track-layout/track-layout-react-utils';
-import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
+import {
+    LocationTrackBadge,
+    LocationTrackBadgeStatus,
+} from 'geoviite-design-lib/alignment/location-track-badge';
 import { OperationalPointBadgeLink } from 'geoviite-design-lib/operational-point/operational-point-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import styles from './operational-point-infobox.scss';
-import { TrackNumberBadgeLink } from 'geoviite-design-lib/alignment/track-number-badge';
+import {
+    TrackNumberBadgeLink,
+    TrackNumberBadgeStatus,
+} from 'geoviite-design-lib/alignment/track-number-badge';
 
 export type StationLinkViewProps = {
     stationLink: StationLink;
@@ -15,6 +21,7 @@ export type StationLinkViewProps = {
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
+    isLinkingOrSplitting: boolean;
 };
 
 export const StationLinkView: React.FC<StationLinkViewProps> = ({
@@ -23,6 +30,7 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
     layoutContext,
     changeTimes,
     onSelectLocationTrack,
+    isLinkingOrSplitting,
 }) => {
     const locationTracks = useLocationTracks(
         stationLink.locationTrackIds,
@@ -43,18 +51,21 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                         operationalPointId={firstOp}
                         layoutContext={layoutContext}
                         changeTime={changeTimes.operationalPoints}
+                        disabled={isLinkingOrSplitting}
                     />
                     <Icons.Next size={IconSize.SMALL} color={IconColor.INHERIT} />
                     <OperationalPointBadgeLink
                         operationalPointId={secondOp}
                         layoutContext={layoutContext}
                         changeTime={changeTimes.operationalPoints}
+                        disabled={isLinkingOrSplitting}
                     />
                 </span>
                 <TrackNumberBadgeLink
                     trackNumberId={stationLink.trackNumberId}
                     layoutContext={layoutContext}
                     changeTime={changeTimes.layoutTrackNumber}
+                    status={isLinkingOrSplitting ? TrackNumberBadgeStatus.DISABLED : undefined}
                 />
                 <span className={styles['operational-point-infobox__station-link-length']}>
                     {Math.round(stationLink.length)} m
@@ -66,7 +77,14 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                         <LocationTrackBadge
                             key={track.id}
                             locationTrack={track}
-                            onClick={() => onSelectLocationTrack(track.id)}
+                            status={
+                                isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined
+                            }
+                            onClick={
+                                isLinkingOrSplitting
+                                    ? undefined
+                                    : () => onSelectLocationTrack(track.id)
+                            }
                         />
                     ))}
                 </div>

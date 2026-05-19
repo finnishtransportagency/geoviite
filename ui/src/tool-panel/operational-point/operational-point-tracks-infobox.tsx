@@ -75,6 +75,8 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
     const { t } = useTranslation();
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
     const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
     const operationalPointTrackLinkingState =
         linkingState?.type === LinkingType.LinkingOperationalPointTracks ? linkingState : undefined;
     const isEditing = !!operationalPointTrackLinkingState;
@@ -216,6 +218,7 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                                     delegates.setOperationalPointLinkedTracks([])
                                 }
                                 onSelectLocationTrack={onSelectLocationTrack}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <OperationalPointTracksDirectionInfobox
                                 tracksInOperationalPointPolygon={tracksInOperationalPointPolygon}
@@ -229,6 +232,7 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                                     )
                                 }
                                 onSelectLocationTrack={onSelectLocationTrack}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <div
                                 className={

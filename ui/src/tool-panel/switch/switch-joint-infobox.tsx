@@ -15,7 +15,10 @@ import {
 import { useLoader } from 'utils/react-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
-import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
+import {
+    LocationTrackBadge,
+    LocationTrackBadgeStatus,
+} from 'geoviite-design-lib/alignment/location-track-badge';
 import styles from './switch-infobox.scss';
 import { TopologicalJointConnection } from 'linking/linking-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
@@ -29,6 +32,7 @@ type SwitchJointInfobox = {
     switchesToDetach?: LayoutSwitchId[];
     layoutContext: LayoutContext;
     onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
+    isLinkingOrSplitting?: boolean;
 };
 
 const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
@@ -38,6 +42,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     switchesToDetach,
     layoutContext,
     onSelectLocationTrackBadge,
+    isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
     const locationTracksEndingAtJoint = combineLocationTrackIds(
@@ -92,6 +97,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                 <LocationTrackBadge
                     key={t.id}
                     locationTrack={t}
+                    status={isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined}
                     onClick={locationTrackBadgeOnClickHandler(t.id)}
                 />
             ));

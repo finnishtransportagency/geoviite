@@ -26,6 +26,7 @@ type TrackNumberLocationTrackInfoboxProps = {
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
     changeTime: TimeStamp;
+    isLinkingOrSplitting?: boolean;
 };
 
 const TrackNumberLocationTrackInfoboxM: React.FC<TrackNumberLocationTrackInfoboxProps> = ({
@@ -35,6 +36,7 @@ const TrackNumberLocationTrackInfoboxM: React.FC<TrackNumberLocationTrackInfobox
     contentVisible,
     onContentVisibilityChange,
     changeTime,
+    isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
     const [filterByVisibleArea, setFilterByVisibleArea] = React.useState(true);
@@ -87,6 +89,7 @@ const TrackNumberLocationTrackInfoboxM: React.FC<TrackNumberLocationTrackInfobox
                                         <LocationTrackLink
                                             locationTrackId={lt.id}
                                             locationTrackName={lt.name}
+                                            disabled={isLinkingOrSplitting}
                                         />
                                     </span>
                                     <span

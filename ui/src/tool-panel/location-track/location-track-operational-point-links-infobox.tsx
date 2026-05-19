@@ -16,6 +16,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import { LocationTrackOperationalPointRow } from './location-track-operational-point-row';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 const maxOperationalPointsToDisplay = 10;
 
@@ -39,6 +40,9 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
     onSelect,
 }) => {
     const { t } = useTranslation();
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
 
     const [infoboxExtras, infoboxExtrasLoadStatus] = useLocationTrackInfoboxExtras(
         locationTrack.id,
@@ -100,6 +104,7 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                                         layoutContext={layoutContext}
                                         locationTrack={locationTrack}
                                         onSelect={onSelect}
+                                        isLinkingOrSplitting={isLinkingOrSplitting}
                                     />
                                 ))}
                             </div>

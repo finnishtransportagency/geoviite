@@ -13,6 +13,7 @@ type OperationalPointBadgeLinkProps = {
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
     onClick?: (operationalPointId: OperationalPointId) => void;
+    disabled?: boolean;
 };
 
 type OperationalPointBadgeProps = {
@@ -32,6 +33,7 @@ export const OperationalPointBadgeLink: React.FC<OperationalPointBadgeLinkProps>
     layoutContext,
     changeTime,
     onClick,
+    disabled,
 }: OperationalPointBadgeLinkProps) => {
     const op = useOperationalPoint(operationalPointId, layoutContext, changeTime);
 
@@ -48,7 +50,15 @@ export const OperationalPointBadgeLink: React.FC<OperationalPointBadgeLinkProps>
         }
     }, [onClick, operationalPointId]);
 
-    return op ? <OperationalPointBadge operationalPoint={op} onClick={clickAction} /> : <Spinner />;
+    return op ? (
+        <OperationalPointBadge
+            operationalPoint={op}
+            onClick={disabled ? undefined : clickAction}
+            status={disabled ? OperationalPointBadgeStatus.DISABLED : undefined}
+        />
+    ) : (
+        <Spinner />
+    );
 };
 
 export const OperationalPointBadge: React.FC<OperationalPointBadgeProps> = ({
@@ -56,14 +66,19 @@ export const OperationalPointBadge: React.FC<OperationalPointBadgeProps> = ({
     onClick,
     status = OperationalPointBadgeStatus.DEFAULT,
 }: OperationalPointBadgeProps) => {
+    const disabled = status === OperationalPointBadgeStatus.DISABLED;
+
     const classes = createClassName(
         styles['operational-point-badge'],
         status,
-        onClick && styles['operational-point-badge--clickable'],
+        !disabled && onClick && styles['operational-point-badge--clickable'],
     );
 
     return (
-        <span className={classes} onClick={onClick} qa-id={'operational-point-badge'}>
+        <span
+            className={classes}
+            onClick={!disabled ? onClick : undefined}
+            qa-id={'operational-point-badge'}>
             {operationalPoint.name}
         </span>
     );

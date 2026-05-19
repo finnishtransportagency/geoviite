@@ -7,7 +7,10 @@ import { compareIgnoreCase } from 'utils/string-utils';
 import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
+import {
+    LocationTrackBadge,
+    LocationTrackBadgeStatus,
+} from 'geoviite-design-lib/alignment/location-track-badge';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 
 type OperationalPointTracksDirectionInfoboxProps = {
@@ -18,6 +21,7 @@ type OperationalPointTracksDirectionInfoboxProps = {
     linkingAction: (id: LocationTrackId) => void;
     massLinkingAction: () => void;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
+    isLinkingOrSplitting: boolean;
 };
 
 export const OperationalPointTracksDirectionInfobox: React.FC<
@@ -30,6 +34,7 @@ export const OperationalPointTracksDirectionInfobox: React.FC<
     linkingAction,
     massLinkingAction,
     onSelectLocationTrack,
+    isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
 
@@ -82,6 +87,7 @@ export const OperationalPointTracksDirectionInfobox: React.FC<
                                 isEditing={isEditing}
                                 linkingAction={linkingAction}
                                 onSelectLocationTrack={onSelectLocationTrack}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                         ))
                     )}
@@ -109,6 +115,7 @@ type OperationalPointTrackRowProps = {
     isEditing: boolean;
     linkingAction: (id: LocationTrackId) => void;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
+    isLinkingOrSplitting: boolean;
 };
 
 const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
@@ -118,12 +125,16 @@ const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
     isEditing,
     linkingAction,
     onSelectLocationTrack,
+    isLinkingOrSplitting,
 }) => {
+    const isDisabled = isLinkingOrSplitting && !isEditing;
+
     return (
         <>
             <LocationTrackBadge
                 locationTrack={trackItem}
-                onClick={() => onSelectLocationTrack(trackItem.id)}
+                status={isDisabled ? LocationTrackBadgeStatus.DISABLED : undefined}
+                onClick={isDisabled ? undefined : () => onSelectLocationTrack(trackItem.id)}
             />
             <Hide when={!isEditing}>
                 <Button

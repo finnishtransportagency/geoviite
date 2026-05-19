@@ -24,7 +24,7 @@ import {
     MAP_POINT_DEFAULT_BBOX_OFFSET,
 } from 'map/map-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { SwitchBadge } from 'geoviite-design-lib/switch/switch-badge';
+import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 
@@ -40,6 +40,7 @@ type OperationalPointSwitchesDirectionInfoboxProps = {
     massLinkingAction: () => void;
     showArea: (area: BoundingBox) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
+    isLinkingOrSplitting: boolean;
 };
 
 export const OperationalPointSwitchesDirectionInfobox: React.FC<
@@ -56,6 +57,7 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
     massLinkingAction,
     showArea,
     onSelectSwitch,
+    isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
 
@@ -110,6 +112,7 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
                                 linkingAction={linkingAction}
                                 showArea={showArea}
                                 onSelectSwitch={onSelectSwitch}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                         ))
                     )}
@@ -139,6 +142,7 @@ type OperationalPointSwitchRowProps = {
     linkingAction: (id: LayoutSwitchId) => void;
     showArea: (area: BoundingBox) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
+    isLinkingOrSplitting: boolean;
 };
 
 const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
@@ -150,6 +154,7 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
     linkingAction,
     showArea,
     onSelectSwitch,
+    isLinkingOrSplitting,
 }) => {
     const switchLocation = getSwitchLocation(switchItem);
 
@@ -169,6 +174,11 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
             <div className={styles['operational-point-linking-infobox__switch-cell']}>
                 <SwitchBadge
                     switchItem={switchItem}
+                    status={
+                        isLinkingOrSplitting && !isEditing
+                            ? SwitchBadgeStatus.DISABLED
+                            : undefined
+                    }
                     onClick={() => onSelectSwitch(switchItem.id)}
                 />
                 {switchLocation ? (

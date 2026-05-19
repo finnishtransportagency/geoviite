@@ -25,6 +25,7 @@ import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
 import { GeometryPlanApplicability } from 'tool-panel/geometry-plan/geometry-plan-applicability';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -78,6 +79,9 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
     const trackNumberId = usePlanTrackNumberId(changeTimes, planHeader.trackNumber);
     const coordinateSystemModel = useLoader(
         () =>
@@ -139,7 +143,10 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     label={t('tool-panel.geometry-plan.track-number')}
                     value={
                         trackNumberId ? (
-                            <TrackNumberLinkContainer trackNumberId={trackNumberId} />
+                            <TrackNumberLinkContainer
+                                trackNumberId={trackNumberId}
+                                disabled={isLinkingOrSplitting}
+                            />
                         ) : (
                             planHeader.trackNumber
                         )

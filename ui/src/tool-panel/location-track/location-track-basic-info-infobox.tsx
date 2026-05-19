@@ -40,6 +40,7 @@ type LocationTrackBasicInfoInfoboxContainerProps = {
     openEditLocationTrackDialog: () => void;
     editingDisabled: boolean;
     editingDisabledReason: string | undefined;
+    isLinkingOrSplitting?: boolean;
 };
 
 export const LocationTrackBasicInfoInfoboxContainer: React.FC<
@@ -73,6 +74,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
     openEditLocationTrackDialog,
     editingDisabled,
     editingDisabledReason,
+    isLinkingOrSplitting,
     onSelect,
     showArea,
 }) => {
@@ -91,6 +93,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
             return (
                 <span>
                     <AnchorLink
+                        disabled={isLinkingOrSplitting}
                         onClick={() => {
                             onSelect({
                                 switches: [switchId],
@@ -149,7 +152,12 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                 <InfoboxField
                     qaId="location-track-track-number"
                     label={t('tool-panel.location-track.track-number')}
-                    value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
+                    value={
+                        <TrackNumberLinkContainer
+                            trackNumberId={trackNumber?.id}
+                            disabled={isLinkingOrSplitting}
+                        />
+                    }
                 />
                 <InfoboxField
                     qaId="location-track-name"
@@ -188,6 +196,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                                 layoutContext={layoutContext}
                                 changeTime={changeTimes.layoutLocationTrack}
                                 currentTrackNumberId={trackNumber?.id}
+                                isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                         }
                     />

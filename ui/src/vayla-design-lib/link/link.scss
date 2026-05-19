@@ -3,4 +3,9 @@
 .link {
     cursor: pointer;
     color: colors.$color-blue-dark;
+
+    &--disabled {
+        cursor: default;
+        color: colors.$color-black-lighter;
+    }
 }

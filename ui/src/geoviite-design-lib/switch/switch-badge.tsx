@@ -25,14 +25,16 @@ export const SwitchBadge: React.FC<SwitchBadgeProps> = ({
     switchIsValid = true,
     status = SwitchBadgeStatus.DEFAULT,
 }: SwitchBadgeProps) => {
+    const disabled = status === SwitchBadgeStatus.DISABLED;
+
     const classes = createClassName(
         styles['switch-badge'],
         status,
         !switchIsValid && styles['switch-badge--invalid'],
-        onClick && styles['switch-badge--clickable'],
+        !disabled && onClick && styles['switch-badge--clickable'],
     );
     return (
-        <span className={classes} onClick={onClick}>
+        <span className={classes} onClick={!disabled ? onClick : undefined}>
             <Icons.Switch size={IconSize.SMALL} color={IconColor.INHERIT} />
             <span>{switchItem.name}</span>
         </span>

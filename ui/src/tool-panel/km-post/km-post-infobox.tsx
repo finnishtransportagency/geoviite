@@ -51,6 +51,7 @@ type KmPostInfoboxProps = {
     visibilities: KmPostInfoboxVisibilities;
     onVisibilityChange: (visibilities: KmPostInfoboxVisibilities) => void;
     changeTimes: ChangeTimes;
+    isLinkingOrSplitting?: boolean;
 };
 
 const CoordinateSystemField: React.FC<{
@@ -96,6 +97,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     visibilities,
     onVisibilityChange,
     changeTimes,
+    isLinkingOrSplitting,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -192,6 +194,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         value={
                             <TrackNumberLinkContainer
                                 trackNumberId={updatedKmPost?.trackNumberId}
+                                disabled={isLinkingOrSplitting}
                             />
                         }
                     />
@@ -284,6 +287,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                     )}{' '}
                                     <AnchorLink
                                         className={styles['km-post-infobox__plan-link']}
+                                        disabled={isLinkingOrSplitting}
                                         onClick={() => {
                                             if (infoboxExtras?.sourceGeometryPlanId) {
                                                 delegates.onSelect({

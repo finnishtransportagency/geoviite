@@ -5,7 +5,10 @@ import { LayoutContext, TrackMeter } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import styles from './location-track-operational-point-links-infobox.scss';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { OperationalPointBadge } from 'geoviite-design-lib/operational-point/operational-point-badge';
+import {
+    OperationalPointBadge,
+    OperationalPointBadgeStatus,
+} from 'geoviite-design-lib/operational-point/operational-point-badge';
 import { OnSelectOptions } from 'selection/selection-model';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -17,11 +20,17 @@ type LocationTrackOperationalPointRowProps = {
     layoutContext: LayoutContext;
     locationTrack: LayoutLocationTrack;
     onSelect: (items: OnSelectOptions) => void;
+    isLinkingOrSplitting: boolean;
 };
 
-export const LocationTrackOperationalPointRow: React.FC<
-    LocationTrackOperationalPointRowProps
-> = ({ operationalPoint, address, layoutContext, locationTrack, onSelect }) => {
+export const LocationTrackOperationalPointRow: React.FC<LocationTrackOperationalPointRowProps> = ({
+    operationalPoint,
+    address,
+    layoutContext,
+    locationTrack,
+    onSelect,
+    isLinkingOrSplitting,
+}) => {
     const { t } = useTranslation();
     const [showDetachDialog, setShowDetachDialog] = React.useState(false);
     const remarkClassNames = createClassName(
@@ -34,10 +43,14 @@ export const LocationTrackOperationalPointRow: React.FC<
             <div>
                 <OperationalPointBadge
                     operationalPoint={operationalPoint}
+                    status={isLinkingOrSplitting ? OperationalPointBadgeStatus.DISABLED : undefined}
                     onClick={() =>
                         onSelect({
                             operationalPoints: [operationalPoint.id],
-                            selectedTab: { id: operationalPoint.id, type: 'OPERATIONAL_POINT' },
+                            selectedTab: {
+                                id: operationalPoint.id,
+                                type: 'OPERATIONAL_POINT',
+                            },
                         })
                     }
                 />
@@ -60,6 +73,7 @@ export const LocationTrackOperationalPointRow: React.FC<
             <div>
                 {layoutContext.publicationState === 'DRAFT' && (
                     <Button
+                        disabled={isLinkingOrSplitting}
                         size={ButtonSize.SMALL}
                         variant={ButtonVariant.GHOST}
                         onClick={() => setShowDetachDialog(true)}>

@@ -49,6 +49,7 @@ type GeometryPlanLabelProps = {
     planName: string | undefined;
     alignmentName: string | undefined;
     onGeometryClick: () => void;
+    disabled?: boolean;
 };
 
 const GeometryPlanLabel: React.FC<GeometryPlanLabelProps> = ({
@@ -56,6 +57,7 @@ const GeometryPlanLabel: React.FC<GeometryPlanLabelProps> = ({
     planName,
     alignmentName,
     onGeometryClick,
+    disabled,
 }) => {
     const { t } = useTranslation();
 
@@ -66,6 +68,7 @@ const GeometryPlanLabel: React.FC<GeometryPlanLabelProps> = ({
                     <AnchorLink
                         title={`${planName}, ${alignmentName}`}
                         className={styles['alignment-plan-section-infobox__plan-link-content']}
+                        disabled={disabled}
                         onClick={onGeometryClick}>
                         {planName}
                     </AnchorLink>
@@ -118,11 +121,12 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
 const PlanVisibilityToggle: React.FC<{
     section: AlignmentPlanSection;
     isVisible: boolean;
+    disabled?: boolean;
     togglePlanVisibility: (
         planId: GeometryPlanId,
         alignmentId: GeometryAlignmentId | undefined,
     ) => void;
-}> = ({ section, isVisible, togglePlanVisibility }) => {
+}> = ({ section, isVisible, disabled, togglePlanVisibility }) => {
     const planId = section.planId;
 
     return (
@@ -131,6 +135,7 @@ const PlanVisibilityToggle: React.FC<{
             {planId && section.isLinked && (
                 <Eye
                     visibility={isVisible}
+                    disabled={disabled}
                     onVisibilityToggle={() => {
                         togglePlanVisibility(planId, section.alignmentId);
                     }}
@@ -146,6 +151,9 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
 }) => {
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+    const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
+    const isLinkingOrSplitting = !!linkingState || !!splittingState;
 
     function togglePlanVisibility(
         planId: GeometryPlanId,
@@ -198,6 +206,7 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
                                     planName={section.planName}
                                     alignmentName={section.alignmentName}
                                     onGeometryClick={() => selectGeometry(section.planId)}
+                                    disabled={isLinkingOrSplitting}
                                 />
                             </div>
                         }
@@ -211,6 +220,7 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
                                 <PlanVisibilityToggle
                                     section={section}
                                     togglePlanVisibility={togglePlanVisibility}
+                                    disabled={isLinkingOrSplitting}
                                     isVisible={visiblePlans.some(
                                         (plan) => plan.id === section.planId,
                                     )}
