@@ -18,9 +18,11 @@ import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType
@@ -196,14 +198,16 @@ class SplitService(
                     val contentIssues = splitIssues.mapNotNull { (split, error) ->
                         if (split.containsLocationTrack(version.id)) error else null
                     }
-                    version.id to ltSplitIssues + contentIssues
+                    version.id to (ltSplitIssues + contentIssues).distinct()
                 }
                 .filterValues { it.isNotEmpty() }
 
         val switchSplitIssues =
             candidates.switches.associate { version ->
-                version.id to
-                    splitIssues.mapNotNull { (split, error) -> if (split.containsSwitch(version.id)) error else null }
+                val switchIssues = validateSplitForSwitch(version.id, context)
+                val contentIssues = splitIssues.mapNotNull { (split, error) -> if (split.containsSwitch(version.id)) error else null }
+                version.id to (switchIssues + contentIssues).distinct()
+
             }
 
         return SplitLayoutValidationIssues(
@@ -247,6 +251,15 @@ class SplitService(
                 track,
             )
     }
+
+    private fun validateSplitForSwitch(
+        switchId: IntId<LayoutSwitch>,
+        context: ValidationContext,
+    ): List<LayoutValidationIssue> {
+        val switchInMultipleSplits = context.getUnfinishedSplits().count { split -> split.containsSwitch(switchId) } > 1
+        return listOf(validate(!switchInMultipleSplits, ERROR) { "$VALIDATION_SPLIT.switch-in-multiple-split" }).filterNotNull()
+    }
+
 
     private fun validateLocationTrackAbsence(
         trackId: IntId<LocationTrack>,

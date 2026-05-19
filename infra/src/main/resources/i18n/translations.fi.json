@@ -1948,6 +1948,7 @@
                 "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide",
                 "split-missing-location-tracks": "Kaikki jakoon liittyvät raiteet eivät ole mukana julkaisussa",
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",
+                "switch-in-multiple-split": "Vaihde liittyy useampaan jaettuun raiteeseen",
                 "multiple-splits-not-allowed": "Julkaisussa on mukana useampi jaettu raide",
                 "geometry-changed": "Jaettavan raiteen geometria on muuttunut",
                 "transfer-geometry-changed": "Säilytettävän osittaisen duplikaatin osoitteisto eroaa yli metrin jaettavasta raiteesta",
