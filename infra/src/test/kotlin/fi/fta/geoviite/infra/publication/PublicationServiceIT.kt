@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
+import fi.fta.geoviite.infra.error.PartialSplitRevertException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
@@ -679,7 +680,7 @@ constructor(
             }
         }
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<PartialSplitRevertException> {
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
                 publicationRequest(locationTracks = listOf(splitSetup.sourceTrack.id)),
@@ -696,7 +697,7 @@ constructor(
 
         val startTargetTrack = splitSetup.targetTracks.first().first
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<PartialSplitRevertException> {
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
                 publicationRequest(locationTracks = listOf(startTargetTrack.id)),
@@ -711,7 +712,7 @@ constructor(
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
         publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<PartialSplitRevertException> {
             locationTrackService.deleteDraft(LayoutBranch.main, splitSetup.sourceTrack.id)
         }
     }
@@ -726,7 +727,7 @@ constructor(
             switches = listOf(someSwitch.id),
         )
 
-        assertThrows<IllegalArgumentException> { switchService.deleteDraft(LayoutBranch.main, someSwitch.id) }
+        assertThrows<PartialSplitRevertException> { switchService.deleteDraft(LayoutBranch.main, someSwitch.id) }
     }
 
     @Test
@@ -761,7 +762,7 @@ constructor(
                 switches = listOf(someSwitch.id),
             )
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<PartialSplitRevertException> {
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
                 publicationRequest(locationTracks = splitSetup.trackIds),

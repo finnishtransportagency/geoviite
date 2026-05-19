@@ -99,6 +99,24 @@ class SplitFailureException(
     }
 }
 
+class PartialSplitRevertException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "partial-revert",
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) :
+    ClientException(
+        BAD_REQUEST,
+        "Split revert failed: $message",
+        cause,
+        "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+        localizationParams,
+    ) {
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "error.split"
+    }
+}
+
 class PublicationFailureException(
     message: String,
     cause: Throwable? = null,

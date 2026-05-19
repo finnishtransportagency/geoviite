@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.error.PartialSplitRevertException
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
@@ -200,12 +201,14 @@ class LocationTrackService(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): LayoutRowVersion<LocationTrack> {
-        require(
-            splitDao.fetchUnfinishedSplits(branch).none { split ->
+        if (
+            splitDao.fetchUnfinishedSplits(branch).any { split ->
                 split.publicationId == null && split.containsLocationTrack(id)
             }
         ) {
-            "Cannot delete draft for location track $id: it is part of an unpublished split"
+            throw PartialSplitRevertException(
+                "Cannot delete draft for location track $id: it is part of an unpublished split"
+            )
         }
         // If removal also breaks references, clear them out first
         if (dao.fetchVersion(branch.official, id) == null) {

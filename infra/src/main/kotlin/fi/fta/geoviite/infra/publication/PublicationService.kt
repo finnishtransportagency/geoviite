@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
+import fi.fta.geoviite.infra.error.PartialSplitRevertException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
@@ -212,9 +213,12 @@ constructor(
             val draftSwitches = split.relinkedSwitches.filter { id -> switchCandidateIds.contains(id) }
             val allTracksIncluded = toDeleteLocationTracks.containsAll(draftTracks)
             val allSwitchesIncluded = toDeleteSwitches.containsAll(draftSwitches)
-            require(allTracksIncluded && allSwitchesIncluded) {
-                "Cannot partially revert split ${split.id}: " +
-                    "all location tracks and relinked switches must be included in the revert request"
+            if (!allTracksIncluded || !allSwitchesIncluded) {
+                throw PartialSplitRevertException(
+                    message =
+                        "Cannot partially revert split ${split.id}: " +
+                            "all location tracks and relinked switches must be included in the revert request"
+                )
             }
             splitService.deleteSplit(split.id)
         }
