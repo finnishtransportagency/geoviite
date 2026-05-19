@@ -317,13 +317,11 @@
       const handleMyEnum = (myEnum: MyEnum) => {
           switch (myEnum) {
               case EnumValue1:
-                  handleValue1();
-                  break;
+                  return handleValue1();
               case EnumValue2:
-                  handleValue2();
-                  break;
+                  return handleValue2();
               default:
-                  exhaustiveMatchingGuard(myEnum);
+                  return exhaustiveMatchingGuard(myEnum);
           }
       }
       
@@ -346,7 +344,10 @@
     - The objects are anyhow cached, so fetching them again is not a relevant cost
     - If the page gets refreshed, the redux state remains, but cache is cleared: that works better when only IDs are
       stored
+- Persisted slices are defined in `store.ts` and stored in local storage
 - Redux is also used to store certain complex non-persistent UI state (e.g. edit dialogs)
+    - Create a new slice for your use case using `createSlice()`
+    - Initialize and store it in your component using `useReducer()`
 
 ### SQL
 
