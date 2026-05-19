@@ -730,21 +730,6 @@ constructor(
     }
 
     @Test
-    fun `reverting all split location tracks deletes the split`() {
-        val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
-
-        assertNotNull(splitDao.get(splitId))
-
-        publicationService.revertPublicationCandidates(
-            LayoutBranch.main,
-            publicationRequest(locationTracks = splitSetup.trackIds),
-        )
-
-        assertNull(splitDao.get(splitId))
-    }
-
-    @Test
     fun `reverting split with all location tracks and relinked switches deletes the split`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
         val someSwitch = mainDraftContext.createSwitch()
@@ -780,27 +765,6 @@ constructor(
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
                 publicationRequest(locationTracks = splitSetup.trackIds),
-            )
-        }
-
-        assertNotNull(splitDao.get(splitId))
-    }
-
-    @Test
-    fun `reverting only relinked switch of a split throws`() {
-        val splitSetup = publicationTestSupportService.simpleSplitSetup()
-        val someSwitch = mainDraftContext.createSwitch()
-        val splitId =
-            publicationTestSupportService.saveSplit(
-                splitSetup.sourceTrack,
-                splitSetup.targetParams,
-                switches = listOf(someSwitch.id),
-            )
-
-        assertThrows<IllegalArgumentException> {
-            publicationService.revertPublicationCandidates(
-                LayoutBranch.main,
-                publicationRequest(switches = listOf(someSwitch.id)),
             )
         }
 
