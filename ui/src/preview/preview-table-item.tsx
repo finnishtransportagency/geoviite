@@ -198,13 +198,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                       menuOptionRevertSingleChange,
                   ),
                   ...conditionalMenuOption(
-                      !tableEntry.publicationGroup,
-                      menuOptionRevertAllShownChanges,
-                  ),
-                  ...conditionalMenuOption(
                       tableEntry.publicationGroup,
                       menuOptionPublicationGroupRevert,
                   ),
+                  menuOptionRevertAllShownChanges,
               ]
             : []),
         ...conditionalMenuOption(canCancelChanges, menuOptionCancelSingleChange),

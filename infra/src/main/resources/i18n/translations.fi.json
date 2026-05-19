@@ -1696,17 +1696,21 @@
         "revert-confirm": {
             "title": {
                 "stage-changes": "Kaikkien listan muutosten hylkääminen",
+                "stage-changes-with-partial-splits": "Kaikkien listan muutosten hylkääminen",
                 "changes-with-dependencies": "Muutoksen hylkääminen",
                 "publication-group": "Kokonaisuuden hylkääminen"
             },
             "description": {
                 "stage-changes": "Haluatko hylätä kaikki listatut muutokset ({{amount}} kpl)?",
+                "stage-changes-with-partial-splits": "Listalla on osittaisia julkaisukokonaisuuksia. Ne tulee hylätä kokonaisuudessaan.",
                 "changes-with-dependencies": "Haluatko hylätä muutoksen",
                 "publication-group": "Haluatko hylätä kokonaisuuden ({{amount}} kpl)?"
             },
+            "include-splits-checkbox": "Hylkää myös kokonaisuudet ({{amount}} kpl)",
             "dependencies": "Tämän muutoksen hylkääminen aiheuttaa myös seuraavien riippuvien muutosten hylkäämisen:",
             "cancel": "Peruuta",
             "confirm": "Hylkää",
+            "selected-changes": "Valitut muutokset ({{amount}} kpl):",
             "revert-target": {
                 "location-track": "sijaintiraiteeseen",
                 "track-number": "ratanumeroon",
