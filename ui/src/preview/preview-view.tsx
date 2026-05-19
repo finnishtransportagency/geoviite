@@ -420,15 +420,54 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 ? stagedPublicationCandidates
                 : displayedUnstagedPublicationCandidates;
 
-        setChangesBeingReverted({
-            requestedRevertChange: {
-                type: RevertRequestType.STAGE_CHANGES,
-                source: revertRequestSource,
-                amount: candidatesToRevert.length,
-                stage: stage,
-            },
-            changeIncludingDependencies: candidatesToRevert,
+        const groupIds = [
+            ...new Set(
+                candidatesToRevert
+                    .map((c) => c.publicationGroup?.id)
+                    .filter((id): id is string => id !== undefined),
+            ),
+        ];
+
+        const hasPartialSplit = groupIds.some((groupId) => {
+            const allInGroup = publicationCandidates.filter(
+                (c) => c.publicationGroup?.id === groupId,
+            );
+            return !allInGroup.every((c) =>
+                candidatesToRevert.some((r) => candidateIdAndTypeMatches(r, c)),
+            );
         });
+
+        if (hasPartialSplit) {
+            const nonSplitCandidates = candidatesToRevert.filter((c) => !c.publicationGroup);
+            const fullSplitCandidates = publicationCandidates.filter((c) =>
+                groupIds.includes(c.publicationGroup?.id ?? ''),
+            );
+
+            const defaultIncludeSplits = nonSplitCandidates.length === 0;
+
+            setChangesBeingReverted({
+                requestedRevertChange: {
+                    type: RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS,
+                    source: revertRequestSource,
+                    stage: stage,
+                    nonSplitCandidates,
+                    fullSplitCandidates,
+                },
+                changeIncludingDependencies: defaultIncludeSplits
+                    ? [...nonSplitCandidates, ...fullSplitCandidates]
+                    : nonSplitCandidates,
+            });
+        } else {
+            setChangesBeingReverted({
+                requestedRevertChange: {
+                    type: RevertRequestType.STAGE_CHANGES,
+                    source: revertRequestSource,
+                    amount: candidatesToRevert.length,
+                    stage: stage,
+                },
+                changeIncludingDependencies: candidatesToRevert,
+            });
+        }
     };
 
     const revertPublicationGroup = (
@@ -661,6 +700,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 <PreviewConfirmRevertChangesDialog
                     layoutContext={props.layoutContext}
                     changesBeingReverted={changesBeingReverted}
+                    setChangesBeingReverted={setChangesBeingReverted}
                     cancelRevertChanges={() => {
                         setChangesBeingReverted(undefined);
                     }}

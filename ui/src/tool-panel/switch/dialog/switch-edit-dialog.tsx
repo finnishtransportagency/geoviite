@@ -42,9 +42,10 @@ import {
     updateSwitch,
 } from 'track-layout/layout-switch-api';
 import styles from './switch-edit-dialog.scss';
-import { useLoader, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSaveDisabledReasons, useSwitch } from 'track-layout/track-layout-react-utils';
 import SwitchRevertConfirmationDialog from './switch-revert-confirmation-dialog';
+import SwitchSplitRevertConfirmationDialog from './switch-split-revert-confirmation-dialog';
 import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
 import { first } from 'utils/array-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
@@ -55,6 +56,9 @@ import {
 import { TFunction } from 'i18next';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { getLocationTracksForJointConnections } from 'linking/linking-utils';
+import { getRevertRequestDependencies } from 'publication/publication-api';
+import { DraftChangeType } from 'publication/publication-model';
+import { RevertRequestType } from 'preview/preview-view-revert-request';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -111,7 +115,7 @@ export const SwitchEditDialog = ({
     const { t } = useTranslation();
     const [showStructureChangeConfirmationDialog, setShowStructureChangeConfirmationDialog] =
         React.useState(false);
-    const [showDeleteDraftConfirmDialog, setShowDeleteDraftConfirmDialog] = React.useState(false);
+    const [showDraftDeleteDialog, setShowDraftDeleteDialog] = React.useState(false);
     const [showDeleteOfficialConfirmDialog, setShowDeleteOfficialConfirmDialog] =
         React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] =
@@ -192,6 +196,21 @@ export const SwitchEditDialog = ({
             firstInputRef.current?.focus();
         }
     }, [switchId]);
+
+    const [revertDependencies, revertDepsFetchStatus] = useLoaderWithStatus(
+        () =>
+            existingSwitch?.isDraft && switchId
+                ? getRevertRequestDependencies(layoutContext.branch, [
+                      { id: switchId, type: DraftChangeType.SWITCH },
+                  ])
+                : Promise.resolve([]),
+        [existingSwitch?.id, existingSwitch?.isDraft],
+    );
+
+    const nonSelfDeps = revertDependencies?.filter(
+        (dep) => dep.type !== 'SWITCH' || dep.id !== existingSwitch?.id,
+    );
+    const hasDependencies = !!nonSelfDeps && nonSelfDeps.length > 0;
 
     React.useEffect(() => {
         getSwitchStructures().then((s) => {
@@ -383,8 +402,12 @@ export const SwitchEditDialog = ({
                     <React.Fragment>
                         {isExistingSwitch && (
                             <Button
-                                disabled={!existingSwitch?.isDraft}
-                                onClick={() => setShowDeleteDraftConfirmDialog(true)}
+                                disabled={
+                                    !existingSwitch?.isDraft ||
+                                    revertDepsFetchStatus !== LoaderStatus.Ready
+                                }
+                                isProcessing={revertDepsFetchStatus === LoaderStatus.Loading}
+                                onClick={() => setShowDraftDeleteDialog(true)}
                                 variant={ButtonVariant.WARNING}>
                                 {t('button.revert-draft')}
                             </Button>
@@ -579,17 +602,44 @@ export const SwitchEditDialog = ({
                     isSaving={isSaving}
                 />
             )}
-            {showDeleteDraftConfirmDialog && switchId && (
-                <SwitchRevertConfirmationDialog
-                    layoutContext={layoutContext}
-                    switchId={switchId}
-                    onSave={() => {
-                        handleOnDelete();
-                        onClose();
-                    }}
-                    onClose={() => setShowDeleteDraftConfirmDialog(false)}
-                />
-            )}
+            {showDraftDeleteDialog &&
+                revertDepsFetchStatus === LoaderStatus.Ready &&
+                !hasDependencies &&
+                switchId && (
+                    <SwitchRevertConfirmationDialog
+                        layoutContext={layoutContext}
+                        switchId={switchId}
+                        onSave={() => {
+                            handleOnDelete();
+                            onClose();
+                        }}
+                        onClose={() => setShowDraftDeleteDialog(false)}
+                    />
+                )}
+            {showDraftDeleteDialog &&
+                revertDepsFetchStatus === LoaderStatus.Ready &&
+                hasDependencies &&
+                switchId && (
+                    <SwitchSplitRevertConfirmationDialog
+                        layoutContext={layoutContext}
+                        changesBeingReverted={{
+                            requestedRevertChange: {
+                                type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
+                                source: {
+                                    type: DraftChangeType.SWITCH,
+                                    name: switchName,
+                                    id: switchId,
+                                },
+                            },
+                            changeIncludingDependencies: revertDependencies ?? [],
+                        }}
+                        onSave={() => {
+                            handleOnDelete();
+                            onClose();
+                        }}
+                        onClose={() => setShowDraftDeleteDialog(false)}
+                    />
+                )}
         </React.Fragment>
     );
 };

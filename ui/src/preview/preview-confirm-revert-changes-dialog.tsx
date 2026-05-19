@@ -13,10 +13,12 @@ import { getChangeTimes } from 'common/change-time-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { LayoutContext } from 'common/common-model';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 
 export interface PreviewRejectConfirmDialogProps {
     layoutContext: LayoutContext;
     changesBeingReverted: ChangesBeingReverted;
+    setChangesBeingReverted: (changes: ChangesBeingReverted) => void;
     confirmRevertChanges: () => void;
     cancelRevertChanges: () => void;
 }
@@ -24,6 +26,7 @@ export interface PreviewRejectConfirmDialogProps {
 export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDialogProps> = ({
     layoutContext,
     changesBeingReverted,
+    setChangesBeingReverted,
     cancelRevertChanges,
     confirmRevertChanges,
 }) => {
@@ -32,10 +35,18 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
 
     const revertType = changesBeingReverted.requestedRevertChange.type;
 
+    const defaultIncludeSplits =
+        revertType === RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS &&
+        changesBeingReverted.requestedRevertChange.nonSplitCandidates.length === 0;
+    const [includeSplits, setIncludeSplits] = React.useState(defaultIncludeSplits);
+
     const dialogTitle = (): string => {
         switch (revertType) {
             case RevertRequestType.STAGE_CHANGES:
                 return t('publish.revert-confirm.title.stage-changes');
+
+            case RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS:
+                return t('publish.revert-confirm.title.stage-changes-with-partial-splits');
 
             case RevertRequestType.CHANGES_WITH_DEPENDENCIES:
                 return t('publish.revert-confirm.title.changes-with-dependencies');
@@ -54,6 +65,10 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
                 return t('publish.revert-confirm.description.stage-changes', {
                     amount: changesBeingReverted.requestedRevertChange.amount,
                 });
+            }
+
+            case RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS: {
+                return t('publish.revert-confirm.description.stage-changes-with-partial-splits');
             }
 
             case RevertRequestType.CHANGES_WITH_DEPENDENCIES: {
@@ -82,6 +97,25 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
         }
     };
 
+    const handleIncludeSplitsChange = (checked: boolean) => {
+        setIncludeSplits(checked);
+        if (revertType === RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS) {
+            const { nonSplitCandidates, fullSplitCandidates } =
+                changesBeingReverted.requestedRevertChange;
+            setChangesBeingReverted({
+                ...changesBeingReverted,
+                changeIncludingDependencies: checked
+                    ? [...nonSplitCandidates, ...fullSplitCandidates]
+                    : nonSplitCandidates,
+            });
+        }
+    };
+
+    const handleConfirm = () => {
+        setIsReverting(true);
+        confirmRevertChanges();
+    };
+
     return (
         <Dialog
             title={dialogTitle()}
@@ -102,15 +136,31 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
                         disabled={isReverting}
                         isProcessing={isReverting}
                         variant={ButtonVariant.WARNING}
-                        onClick={() => {
-                            setIsReverting(true);
-                            confirmRevertChanges();
-                        }}>
+                        onClick={handleConfirm}>
                         {t('publish.revert-confirm.confirm')}
                     </Button>
                 </div>
             }>
             <div>{dialogQuestion()}</div>
+            {revertType === RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS && (
+                <React.Fragment>
+                    <p>
+                        <Checkbox
+                            checked={includeSplits}
+                            onChange={(e) => handleIncludeSplitsChange(e.target.checked)}>
+                            {t('publish.revert-confirm.include-splits-checkbox', {
+                                amount: changesBeingReverted.requestedRevertChange
+                                    .fullSplitCandidates.length,
+                            })}
+                        </Checkbox>
+                    </p>
+                    <p>
+                        {t('publish.revert-confirm.selected-changes', {
+                            amount: changesBeingReverted.changeIncludingDependencies.length,
+                        })}
+                    </p>
+                </React.Fragment>
+            )}
             <PublicationRequestDependencyList
                 layoutContext={layoutContext}
                 changeTimes={getChangeTimes()}

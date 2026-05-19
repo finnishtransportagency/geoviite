@@ -76,7 +76,8 @@
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
             "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui",
             "geocoding-failed": "Jakamista ei voitu suorittaa, koska jaettavan raiteen {{trackName}} geokoodaus epäonnistui",
-            "new-duplicate-reference-assignment-failed": "Jakamista ei voitu suorittaa, koska käyttämättömälle duplikaattiraiteelle {{duplicate}} ei löydetty päällekkäisyyttä jakamisen seurauksena syntyvistä raiteista"
+            "new-duplicate-reference-assignment-failed": "Jakamista ei voitu suorittaa, koska käyttämättömälle duplikaattiraiteelle {{duplicate}} ei löydetty päällekkäisyyttä jakamisen seurauksena syntyvistä raiteista",
+            "partial-revert": "Raiteen jakamista ei voi peruuttaa osittain"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",
@@ -859,6 +860,13 @@
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa sijaintiraiteen takaisin uusimpaan viralliseen tilaan. Sijaintiraide poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
                 "revert-succeeded": "Sijaintiraiteen luonnos hylätty",
                 "revert-failed": "Luonnoksen hylkääminen epäonnistui"
+            },
+            "split-revert-dialog": {
+                "title": "Hylätäänkö raiteen jakamiskokonaisuus?",
+                "guide": "Sijaintiraide on osa raiteen jakamisessa syntynyttä kokonaisuutta jota ei ole vielä julkaistu. Raiteiden jakamiset voidaan hylätä vain kokonaisuuksina, joten jos tämä raide hylätään, on hylättävä myös muut kokonaisuuden kohteet.",
+                "revert-draft-count": "Hylkää muutokset ({{count}} kpl)",
+                "success": "Muutokset hylätty",
+                "failed": "Luonnoksen hylkääminen epäonnistui"
             },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
@@ -1689,17 +1697,21 @@
         "revert-confirm": {
             "title": {
                 "stage-changes": "Kaikkien listan muutosten hylkääminen",
+                "stage-changes-with-partial-splits": "Kaikkien listan muutosten hylkääminen",
                 "changes-with-dependencies": "Muutoksen hylkääminen",
                 "publication-group": "Kokonaisuuden hylkääminen"
             },
             "description": {
                 "stage-changes": "Haluatko hylätä kaikki listatut muutokset ({{amount}} kpl)?",
+                "stage-changes-with-partial-splits": "Listalla on osittaisia julkaisukokonaisuuksia. Ne tulee hylätä kokonaisuudessaan.",
                 "changes-with-dependencies": "Haluatko hylätä muutoksen",
                 "publication-group": "Haluatko hylätä kokonaisuuden ({{amount}} kpl)?"
             },
+            "include-splits-checkbox": "Hylkää myös kokonaisuudet ({{amount}} kpl)",
             "dependencies": "Tämän muutoksen hylkääminen aiheuttaa myös seuraavien riippuvien muutosten hylkäämisen:",
             "cancel": "Peruuta",
             "confirm": "Hylkää",
+            "selected-changes": "Valitut muutokset ({{amount}} kpl):",
             "revert-target": {
                 "location-track": "sijaintiraiteeseen",
                 "track-number": "ratanumeroon",
@@ -2354,6 +2366,13 @@
         "title": "Hylätäänkö luonnos?",
         "guide": "Luonnoksen hylkääminen palauttaa vaihteen takaisin uusimpaan viralliseen tilaan. Vaihde poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
         "success": "Vaihteen luonnos hylätty"
+    },
+    "switch-split-revert-dialog": {
+        "title": "Hylätäänkö raiteen jakamiskokonaisuus?",
+        "guide": "Vaihde on osa raiteen jakamisessa syntynyttä kokonaisuutta jota ei ole vielä julkaistu. Raiteiden jakamiset voidaan hylätä vain kokonaisuuksina, joten jos tämä vaihde hylätään, on hylättävä myös muut kokonaisuuden kohteet.",
+        "revert-draft-count": "Hylkää muutokset ({{count}} kpl)",
+        "success": "Muutokset hylätty",
+        "failed": "Luonnosmuutosten hylkääminen epäonnistui"
     },
     "track-number-edit": {
         "title": {

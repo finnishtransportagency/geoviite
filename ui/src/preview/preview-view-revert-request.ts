@@ -1,14 +1,21 @@
 import { PublishableObjectId } from 'preview/preview-table';
-import { DraftChangeType, PublicationGroup, PublicationStage } from 'publication/publication-model';
+import {
+    DraftChangeType,
+    PublicationCandidate,
+    PublicationGroup,
+    PublicationStage,
+} from 'publication/publication-model';
 
 export enum RevertRequestType {
     STAGE_CHANGES,
+    STAGE_CHANGES_WITH_PARTIAL_SPLITS,
     CHANGES_WITH_DEPENDENCIES,
     PUBLICATION_GROUP,
 }
 
 export type RevertRequest =
     | RevertStageChanges
+    | RevertStageChangesWithPartialSplits
     | RevertChangesWithDependencies
     | RevertPublicationGroup;
 
@@ -22,6 +29,13 @@ export type RevertStageChanges = {
     type: RevertRequestType.STAGE_CHANGES;
     amount: number;
     stage: PublicationStage;
+};
+
+export type RevertStageChangesWithPartialSplits = {
+    type: RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS;
+    stage: PublicationStage;
+    nonSplitCandidates: PublicationCandidate[];
+    fullSplitCandidates: PublicationCandidate[];
 };
 
 export type RevertChangesWithDependencies = {

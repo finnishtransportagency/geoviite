@@ -226,6 +226,7 @@ const filterDisplayedDependencies = (
 
     switch (revertRequestType) {
         case RevertRequestType.STAGE_CHANGES:
+        case RevertRequestType.STAGE_CHANGES_WITH_PARTIAL_SPLITS:
         case RevertRequestType.PUBLICATION_GROUP:
             return changesBeingReverted.changeIncludingDependencies;
 

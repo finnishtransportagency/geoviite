@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
+import fi.fta.geoviite.infra.error.PartialSplitRevertException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
@@ -201,7 +202,24 @@ constructor(
 
     @Transactional
     fun revertPublicationCandidates(branch: LayoutBranch, toDelete: PublicationRequestIds): PublicationResultSummary {
-        splitService.fetchPublicationVersions(branch, toDelete.locationTracks, toDelete.switches).forEach { split ->
+        val toDeleteLocationTracks = toDelete.locationTracks.toSet()
+        val toDeleteSwitches = toDelete.switches.toSet()
+
+        val locationTrackCandidateIds = locationTrackDao.fetchCandidateVersions(branch.draft).map { it.id }.toSet()
+        val switchCandidateIds = switchDao.fetchCandidateVersions(branch.draft).map { it.id }.toSet()
+
+        splitService.findUnpublishedSplits(branch, toDelete.locationTracks, toDelete.switches).forEach { split ->
+            val draftTracks = split.locationTracks.filter { id -> locationTrackCandidateIds.contains(id) }
+            val draftSwitches = split.relinkedSwitches.filter { id -> switchCandidateIds.contains(id) }
+            val allTracksIncluded = toDeleteLocationTracks.containsAll(draftTracks)
+            val allSwitchesIncluded = toDeleteSwitches.containsAll(draftSwitches)
+            if (!allTracksIncluded || !allSwitchesIncluded) {
+                throw PartialSplitRevertException(
+                    message =
+                        "Cannot partially revert split ${split.id}: " +
+                            "all location tracks and relinked switches must be included in the revert request"
+                )
+            }
             splitService.deleteSplit(split.id)
         }
 

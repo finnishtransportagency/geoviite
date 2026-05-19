@@ -50,7 +50,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import LocationTrackRevertConfirmationDialog from 'tool-panel/location-track/location-track-revert-confirmation-dialog';
+import LocationTrackSplitRevertConfirmationDialog from 'tool-panel/location-track/location-track-split-revert-confirmation-dialog';
 import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
@@ -58,13 +58,17 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { ifDefined, isNil } from 'utils/type-utils';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { getLocationTrackOwners } from 'common/common-api';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { first } from 'utils/array-utils';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
 import { LocationTrackEditDialogNameSection } from 'tool-panel/location-track/dialog/location-track-edit-dialog-name-section';
+import { getRevertRequestDependencies } from 'publication/publication-api';
+import { DraftChangeType } from 'publication/publication-model';
+import { RevertRequestType } from 'preview/preview-view-revert-request';
+import LocationTrackRevertConfirmationDialog from 'tool-panel/location-track/location-track-revert-confirmation-dialog';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
@@ -130,8 +134,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     >(undefined);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.locationTrack?.state === 'DELETED');
-    const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
-        React.useState<boolean>();
+    const [showDraftDeleteDialog, setShowDraftDeleteDialog] = React.useState(false);
     const [locationTrackDescriptionSuffixMode, setLocationTrackDescriptionSuffixMode] =
         React.useState<LocationTrackDescriptionSuffixMode>();
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
@@ -140,6 +143,22 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     React.useEffect(() => {
         setLocationTrackDescriptionSuffixMode(state.locationTrack?.descriptionSuffix);
     }, [state.locationTrack]);
+
+    const [revertDependencies, revertDepsFetchStatus] = useLoaderWithStatus(
+        () =>
+            state.existingLocationTrack?.isDraft
+                ? getRevertRequestDependencies(props.layoutContext.branch, [
+                      { id: state.existingLocationTrack.id, type: DraftChangeType.LOCATION_TRACK },
+                  ])
+                : Promise.resolve([]),
+        [state.existingLocationTrack?.id, state.existingLocationTrack?.isDraft],
+    );
+
+    const nonSelfDeps = revertDependencies?.filter(
+        (dep) => dep.type !== 'LOCATION_TRACK' || dep.id !== props.locationTrack?.id,
+    );
+    const hasDependencies = !!nonSelfDeps && nonSelfDeps.length > 0;
+
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         state.existingLocationTrack?.id,
         layoutContextDraft,
@@ -401,11 +420,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         {!state.isNewLocationTrack && (
                             <div className={dialogStyles['dialog__footer-content--left-aligned']}>
                                 <Button
-                                    disabled={!state.existingLocationTrack?.isDraft}
-                                    onClick={() =>
-                                        state.existingLocationTrack &&
-                                        setDraftDeleteConfirmationVisible(true)
+                                    disabled={
+                                        !state.existingLocationTrack?.isDraft ||
+                                        revertDepsFetchStatus !== LoaderStatus.Ready
                                     }
+                                    isProcessing={revertDepsFetchStatus === LoaderStatus.Loading}
+                                    onClick={() => setShowDraftDeleteDialog(true)}
                                     variant={ButtonVariant.WARNING}>
                                     {t('button.revert-draft')}
                                 </Button>
@@ -738,19 +758,48 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     </div>
                 </Dialog>
             )}
-            {state.existingLocationTrack && draftDeleteConfirmationVisible && (
-                <LocationTrackRevertConfirmationDialog
-                    layoutContext={layoutContextDraft}
-                    id={state.existingLocationTrack?.id}
-                    onClose={() => setDraftDeleteConfirmationVisible(false)}
-                    onSave={() => {
-                        props.onSave &&
-                            state.existingLocationTrack &&
-                            props.onSave(state.existingLocationTrack.id);
-                        props.onClose();
-                    }}
-                />
-            )}
+            {state.existingLocationTrack &&
+                showDraftDeleteDialog &&
+                revertDepsFetchStatus === LoaderStatus.Ready &&
+                !hasDependencies && (
+                    <LocationTrackRevertConfirmationDialog
+                        layoutContext={layoutContextDraft}
+                        id={state.existingLocationTrack?.id}
+                        onClose={() => setShowDraftDeleteDialog(false)}
+                        onSave={() => {
+                            props.onSave &&
+                                state.existingLocationTrack &&
+                                props.onSave(state.existingLocationTrack.id);
+                            props.onClose();
+                        }}
+                    />
+                )}
+            {state.existingLocationTrack &&
+                showDraftDeleteDialog &&
+                revertDepsFetchStatus === LoaderStatus.Ready &&
+                hasDependencies && (
+                    <LocationTrackSplitRevertConfirmationDialog
+                        layoutContext={layoutContextDraft}
+                        changesBeingReverted={{
+                            requestedRevertChange: {
+                                type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
+                                source: {
+                                    type: DraftChangeType.LOCATION_TRACK,
+                                    name: state.existingLocationTrack.name,
+                                    id: state.existingLocationTrack.id,
+                                },
+                            },
+                            changeIncludingDependencies: revertDependencies ?? [],
+                        }}
+                        onClose={() => setShowDraftDeleteDialog(false)}
+                        onSave={() => {
+                            props.onSave &&
+                                state.existingLocationTrack &&
+                                props.onSave(state.existingLocationTrack.id);
+                            props.onClose();
+                        }}
+                    />
+                )}
         </React.Fragment>
     );
 };
