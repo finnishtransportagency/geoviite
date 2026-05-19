@@ -430,14 +430,14 @@ classDiagram
 
 #### Raiteiden nimien ja kuvausten dynaamisuus
 
-Raiteiden nimet ja kuvaukset voivat muodostua dynaamisesti raiteeseen liittyvien kohteiden tietojen perusteella. Nimen
-riippuvuudet riippuvat käytetystä nimeämisskeemasta ja kuvaus riippuu siitä onko kuvaukselle määritetty lisäosaa.
-Raiteen nimi voi sisältää päätyvaihteiden nimet tai ratanumeron tunnuksen ja kuvaus voi sisältää päätyvaihteiden nimet.
+Raiteiden nimet ja kuvaukset voivat muodostua dynaamisesti raiteeseen liittyvien kohteiden tietojen perusteella. Nimeen
+vaikuttavat käsitteet riippuvat käytetystä nimeämisskeemasta ja kuvaus riippuu siitä onko kuvaukselle määritetty
+lisäosaa. Raiteen nimi voi sisältää päätyvaihteiden nimet tai ratanumeron tunnuksen ja kuvaus voi sisältää
+päätyvaihteiden nimet.
 
-Käytännössä tämä tarkoittaa sitä, että raiteen nimi tai kuvaus voi muuttua ilman että raiteeseen itseensä koskettaisiin,
-esimerkiksi jos raiteen pään vaihteen nimi muuttuu. Tällöin raiteesta generoituu luonnos, joka pitää julkaista. Pelkkä
-päätyvaihteen nimen tai ratanumeron tunnuksen vaihtaminen ja yksinään sen julkaiseminen ei siis riitä raiteen nimen
-muuttamiseksi.
+Näistä riippuvuuksista johtuen raiteen nimi tai kuvaus voi siis muuttua ilman että raiteeseen itseensä koskettaisiin,
+esimerkiksi jos raiteen päätyvaihteen nimi muuttuu. Tällaisissa tilanteissa raiteesta generoituu automaattisesti
+luonnos, joka pitää julkaista samassa julkaisussa vaihteen/ratanumeron tunnuksen muutoksen kanssa.
 
 ##### Nimeämisskeemat
 
@@ -481,7 +481,8 @@ Nimissä ja kuvauksissa ei käytetä vaihteiden koko nimiä, vaan nimi jaetaan o
 
 1. Vaihteen koko nimi jaetaan liikennepaikan lyhenteeseen ja vaihteen numeroon. Esim. "TPE V0012" → etuliite "TPE",
    numero "V0012".
-2. Numeron mahdolliset etunollat poistetaan (jätetään kuitenkin minimissään 3 numeroa): "V0012" → "V012", "V1234" → "V1234".
+2. Numeron mahdolliset etunollat poistetaan (jätetään kuitenkin minimissään 3 numeroa): "V0012" → "V012", "V1234" → "
+   V1234".
 3. Jos vaihdenimessä on kaksi vinoviivalla erotettua numeroa (kaksoisvaihde), molemmat lyhennetään: "TPE
    V0123/V0124" → "TPE V123/124".
 4. Jos vaihteen nimeä ei pystytä parsimaan tähän muotoon, julkaisuvalidointi tuottaa virheen.
