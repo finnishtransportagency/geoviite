@@ -39,18 +39,18 @@ const LocationTrackSplitRevertConfirmationDialog: React.FC<
         )
             .then(
                 () => {
-                    Snackbar.success('tool-panel.location-track.revert-dialog.revert-succeeded');
+                    Snackbar.success('tool-panel.location-track.split-revert-dialog.success');
                     onSave && onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
                     onClose();
                 },
-                () => Snackbar.error('tool-panel.location-track.revert-dialog.revert-failed'),
+                () => Snackbar.error('tool-panel.location-track.split-revert-dialog.failed'),
             )
             .finally(() => setIsSaving(false));
     };
 
     return (
         <Dialog
-            title={t('tool-panel.location-track.revert-dialog.revert-draft-confirm')}
+            title={t('tool-panel.location-track.split-revert-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={false}
             footerContent={
@@ -63,11 +63,13 @@ const LocationTrackSplitRevertConfirmationDialog: React.FC<
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={revertLocationTrack}>
-                        {t('button.revert-draft')}
+                        {t('tool-panel.location-track.split-revert-dialog.revert-draft-count', {
+                            count: changesBeingReverted.changeIncludingDependencies.length,
+                        })}
                     </Button>
                 </div>
             }>
-            <p>{t('tool-panel.location-track.revert-dialog.can-be-reverted')}</p>
+            <p>{t('tool-panel.location-track.split-revert-dialog.guide')}</p>
             <PublicationRequestDependencyList
                 layoutContext={layoutContext}
                 changeTimes={getChangeTimes()}

@@ -154,7 +154,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         [state.existingLocationTrack?.id, state.existingLocationTrack?.isDraft],
     );
 
-    const hasDependencies = !!revertDependencies && revertDependencies.length > 0;
+    const nonSelfDeps = revertDependencies?.filter(
+        (dep) => dep.type !== 'LOCATION_TRACK' || dep.id !== props.locationTrack?.id,
+    );
+    const hasDependencies = !!nonSelfDeps && nonSelfDeps.length > 0;
+
     const [startAndEndPoints, _] = useLocationTrackStartAndEnd(
         state.existingLocationTrack?.id,
         layoutContextDraft,
@@ -785,7 +789,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     id: state.existingLocationTrack.id,
                                 },
                             },
-                            changeIncludingDependencies: revertDependencies,
+                            changeIncludingDependencies: revertDependencies ?? [],
                         }}
                         onClose={() => setShowDraftDeleteDialog(false)}
                         onSave={() => {

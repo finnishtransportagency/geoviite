@@ -36,17 +36,17 @@ const SwitchSplitRevertConfirmationDialog: React.FC<SwitchSplitRevertConfirmatio
             changesBeingReverted.changeIncludingDependencies,
         )
             .then(() => {
-                Snackbar.success('switch-revert-dialog.success');
+                Snackbar.success('switch-split-revert-dialog.success');
                 onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
                 onClose();
             })
-            .catch(() => Snackbar.error('publish.revert-failure'))
+            .catch(() => Snackbar.error('switch-split-revert-dialog.failed'))
             .finally(() => setIsSaving(false));
     };
 
     return (
         <Dialog
-            title={t('switch-revert-dialog.title')}
+            title={t('switch-split-revert-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={false}
             footerContent={
@@ -59,11 +59,13 @@ const SwitchSplitRevertConfirmationDialog: React.FC<SwitchSplitRevertConfirmatio
                         isProcessing={isSaving}
                         variant={ButtonVariant.PRIMARY_WARNING}
                         onClick={revertSwitch}>
-                        {t('button.revert-draft')}
+                        {t('switch-split-revert-dialog.revert-draft-count', {
+                            count: changesBeingReverted.changeIncludingDependencies.length,
+                        })}
                     </Button>
                 </div>
             }>
-            <p>{t('switch-revert-dialog.guide')}</p>
+            <p>{t('switch-split-revert-dialog.guide')}</p>
             <PublicationRequestDependencyList
                 layoutContext={layoutContext}
                 changeTimes={getChangeTimes()}

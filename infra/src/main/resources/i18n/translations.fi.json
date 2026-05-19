@@ -860,6 +860,13 @@
                 "revert-succeeded": "Sijaintiraiteen luonnos hylätty",
                 "revert-failed": "Luonnoksen hylkääminen epäonnistui"
             },
+            "split-revert-dialog": {
+                "title": "Hylätäänkö raiteen jakamiskokonaisuus?",
+                "guide": "Sijaintiraide on osa raiteen jakamisessa syntynyttä kokonaisuutta jota ei ole vielä julkaistu. Raiteiden jakamiset voidaan hylätä vain kokonaisuuksina, joten jos tämä raide hylätään, on hylättävä myös muut kokonaisuuden kohteet.",
+                "revert-draft-count": "Hylkää muutokset ({{count}} kpl)",
+                "success": "Muutokset hylätty",
+                "failed": "Luonnoksen hylkääminen epäonnistui"
+            },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
             "open-switch-relinking-dialog": "Linkitä raiteen vaihteet...",
@@ -2354,6 +2361,13 @@
         "title": "Hylätäänkö luonnos?",
         "guide": "Luonnoksen hylkääminen palauttaa vaihteen takaisin uusimpaan viralliseen tilaan. Vaihde poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
         "success": "Vaihteen luonnos hylätty"
+    },
+    "switch-split-revert-dialog": {
+        "title": "Hylätäänkö raiteen jakamiskokonaisuus?",
+        "guide": "Vaihde on osa raiteen jakamisessa syntynyttä kokonaisuutta jota ei ole vielä julkaistu. Raiteiden jakamiset voidaan hylätä vain kokonaisuuksina, joten jos tämä vaihde hylätään, on hylättävä myös muut kokonaisuuden kohteet.",
+        "revert-draft-count": "Hylkää muutokset ({{count}} kpl)",
+        "success": "Muutokset hylätty",
+        "failed": "Luonnosmuutosten hylkääminen epäonnistui"
     },
     "track-number-edit": {
         "title": {

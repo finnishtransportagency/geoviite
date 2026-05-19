@@ -207,7 +207,10 @@ export const SwitchEditDialog = ({
         [existingSwitch?.id, existingSwitch?.isDraft],
     );
 
-    const hasDependencies = !!revertDependencies && revertDependencies.length > 0;
+    const nonSelfDeps = revertDependencies?.filter(
+        (dep) => dep.type !== 'SWITCH' || dep.id !== existingSwitch?.id,
+    );
+    const hasDependencies = !!nonSelfDeps && nonSelfDeps.length > 0;
 
     React.useEffect(() => {
         getSwitchStructures().then((s) => {
@@ -628,7 +631,7 @@ export const SwitchEditDialog = ({
                                     id: switchId,
                                 },
                             },
-                            changeIncludingDependencies: revertDependencies,
+                            changeIncludingDependencies: revertDependencies ?? [],
                         }}
                         onSave={() => {
                             handleOnDelete();
