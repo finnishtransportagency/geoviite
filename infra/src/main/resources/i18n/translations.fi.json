@@ -991,7 +991,7 @@
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä",
                     "branch-not-main": "Raiteita voi jakaa vain luonnostilassa",
-                    "switches-part-of-other-splits": "Osa raiteen vaihteista on mukana julkaisemattomissa raiteiden jakamisissa."
+                    "switches-part-of-other-splits": "Osa raiteen vaihteista on mukana raiteen jakamiskokonaisuuksissa joita ei ole vielä julkaistu."
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
