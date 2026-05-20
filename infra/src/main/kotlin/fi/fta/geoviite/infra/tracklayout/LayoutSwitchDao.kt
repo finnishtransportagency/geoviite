@@ -35,16 +35,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.plus
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 
@@ -243,7 +240,7 @@ class LayoutSwitchDao(
                     "switch_structure_id" to item.switchStructureId.intValue,
                     "state_category" to item.stateCategory.name,
                     "trap_point" to item.trapPoint,
-                    "owner_id" to item.ownerId?.intValue,
+                    "owner_id" to item.ownerId.intValue,
                     "operational_point_id" to item.operationalPointId?.intValue,
                     "draft" to item.isDraft,
                     "design_asset_state" to item.designAssetState?.name,

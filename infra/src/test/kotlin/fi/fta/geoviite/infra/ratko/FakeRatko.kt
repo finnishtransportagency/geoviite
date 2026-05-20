@@ -16,10 +16,10 @@ import fi.fta.geoviite.infra.ratko.model.IncomingRatkoGeometry
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoNode
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoNodes
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetApiType
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
-import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoCrs
 import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -118,7 +118,7 @@ class FakeRatko(port: Int) {
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.1/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
-        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetApiType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
@@ -141,7 +141,7 @@ class FakeRatko(port: Int) {
 
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
         patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
-        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetApiType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
@@ -164,7 +164,7 @@ class FakeRatko(port: Int) {
             .respond(ok())
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
         patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
-        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetApiType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
@@ -194,7 +194,7 @@ class FakeRatko(port: Int) {
             )
             .respond(ok())
         patch("/api/infra/v1.1/points/${oid}").respond(ok())
-        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetApiType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
@@ -228,7 +228,7 @@ class FakeRatko(port: Int) {
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
         patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
-        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetApiType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
@@ -368,7 +368,7 @@ class FakeRatko(port: Int) {
                     .withMethod("POST")
                     .withBody(
                         JsonBody.json(
-                            mapOf("type" to RatkoAssetType.METADATA.value) +
+                            mapOf("type" to RatkoAssetApiType.METADATA.value) +
                                 (locationTrackOid?.let { oid -> metadataFilterOn("locationtrack", oid) } ?: mapOf()) +
                                 (routeNumberOid?.let { oid -> metadataFilterOn("routenumber", oid) } ?: mapOf())
                         )
@@ -551,30 +551,96 @@ class FakeRatko(port: Int) {
 
     fun doesNotHaveRouteNumber(oid: String) {
         get("/api/locations/v1.1/routenumber/$oid")
-            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Route number couldn't be found with the external id [$oid]")))
+            .respond(
+                notFoundJson(
+                    mapOf(
+                        "code" to "NOT_FOUND",
+                        "message" to "Route number couldn't be found with the external id [$oid]",
+                    )
+                )
+            )
     }
 
     fun doesNotHaveLocationTrack(oid: String) {
         get("/api/locations/v1.1/locationtracks/$oid")
-            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Location track couldn't be found with the external id [$oid]")))
+            .respond(
+                notFoundJson(
+                    mapOf(
+                        "code" to "NOT_FOUND",
+                        "message" to "Location track couldn't be found with the external id [$oid]",
+                    )
+                )
+            )
     }
 
     fun doesNotHaveSwitch(oid: String) {
         get("/api/assets/v1.2/$oid")
-            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Switch couldn't be found with the external id [$oid]")))
+            .respond(
+                notFoundJson(
+                    mapOf("code" to "NOT_FOUND", "message" to "Switch couldn't be found with the external id [$oid]")
+                )
+            )
     }
 
     fun doesNotHaveLocationTrackPoints(oid: String, km: String) {
         delete("/api/infra/v1.0/points/$oid/$km")
-            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Points couldn't be found for location track [$oid] at km [$km]")))
+            .respond(
+                notFoundJson(
+                    mapOf(
+                        "code" to "NOT_FOUND",
+                        "message" to "Points couldn't be found for location track [$oid] at km [$km]",
+                    )
+                )
+            )
     }
 
     fun doesNotHaveRouteNumberPoints(oid: String, km: String) {
         delete("/api/infra/v1.0/routenumber/points/$oid/$km")
-            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Points couldn't be found for route number [$oid] at km [$km]")))
+            .respond(
+                notFoundJson(
+                    mapOf(
+                        "code" to "NOT_FOUND",
+                        "message" to "Points couldn't be found for route number [$oid] at km [$km]",
+                    )
+                )
+            )
+    }
+
+    fun rejectsRouteNumberCreationWithError(oid: String, code: String, message: String) {
+        doesNotHaveRouteNumber(oid)
+        post("/api/infra/v1.0/routenumbers", mapOf("id" to oid)).respond(errorJson(code, message))
+    }
+
+    fun rejectsLocationTrackCreationWithError(oid: String, code: String, message: String) {
+        doesNotHaveLocationTrack(oid)
+        post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(errorJson(code, message))
+    }
+
+    fun rejectsSwitchCreationWithError(oid: String, code: String, message: String) {
+        doesNotHaveSwitch(oid)
+        post("/api/assets/v1.2", mapOf("type" to "turnout", "id" to oid)).respond(errorJson(code, message))
+    }
+
+    fun rejectsPlanCreationWithError(code: String, message: String) {
+        post("/api/plan/v1.0/plans").respond(errorJson(code, message))
+    }
+
+    fun respondsWithMalformedBodyForRouteNumberCreation(oid: String) {
+        doesNotHaveRouteNumber(oid)
+        post("/api/infra/v1.0/routenumbers", mapOf("id" to oid))
+            .respond(
+                HttpResponse.response("{not valid json}")
+                    .withStatusCode(200)
+                    .withContentType(MediaType.APPLICATION_JSON)
+            )
     }
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
+
+    private fun errorJson(code: String, message: String) =
+        HttpResponse.response(jsonMapper.writeValueAsString(mapOf("code" to code, "message" to message)))
+            .withStatusCode(400)
+            .withContentType(MediaType.APPLICATION_JSON)
 
     private fun notFoundJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))

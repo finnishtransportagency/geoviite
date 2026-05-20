@@ -16,15 +16,12 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.integration.RatkoOperation
-import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.publication.PublishedSwitchJoint
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
-import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodes
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoSplit
@@ -48,11 +45,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Instant
 
 data class LocationTrackKilometers(
     val id: IntId<LocationTrack>,
@@ -257,8 +254,9 @@ constructor(
         publicationTime: Instant,
         geocodingContext: GeocodingContext<ReferenceLineM>,
     ): Set<KmNumber> {
-        val switchesToUpdate =
-            relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in splitTargetTrack.track.switchIds }
+        val switchesToUpdate = relinkedSwitches.filter { relinkedSwitch ->
+            relinkedSwitch in splitTargetTrack.track.switchIds
+        }
 
         val trackKmsToUpdate =
             switchesToUpdate
@@ -313,41 +311,36 @@ constructor(
                         locationTrackDao::savePlanItemId,
                     )
                 requireNotNull(externalId) { "OID required for location track, lt=${locationTrack.id}" }
-                try {
-                    ratkoClient.getLocationTrack(RatkoOid(externalId.oid))?.let { existingLocationTrack ->
-                        if (
-                            locationTrack.state == LocationTrackState.DELETED ||
-                                locationTrack.designAssetState == DesignAssetState.CANCELLED
-                        ) {
-                            deleteLocationTrack(
-                                branch = branch.branch,
-                                locationTrack = locationTrack,
-                                locationTrackExternalId = externalId,
-                                existingRatkoLocationTrack = existingLocationTrack,
-                                moment = publicationTime,
-                            )
-                        } else {
-                            updateLocationTrack(
-                                branch = branch.branch,
-                                locationTrack = locationTrack,
-                                locationTrackExternalId = externalId,
-                                existingRatkoLocationTrack = existingLocationTrack,
-                                changedKmNumbers = changedKmNumbers,
-                                moment = publicationTime,
-                            )
-                        }
+                ratkoClient.getLocationTrack(RatkoOid(externalId.oid))?.let { existingLocationTrack ->
+                    if (
+                        locationTrack.state == LocationTrackState.DELETED ||
+                            locationTrack.designAssetState == DesignAssetState.CANCELLED
+                    ) {
+                        deleteLocationTrack(
+                            branch = branch.branch,
+                            locationTrack = locationTrack,
+                            locationTrackExternalId = externalId,
+                            existingRatkoLocationTrack = existingLocationTrack,
+                        )
+                    } else {
+                        updateLocationTrack(
+                            branch = branch.branch,
+                            locationTrack = locationTrack,
+                            locationTrackExternalId = externalId,
+                            existingRatkoLocationTrack = existingLocationTrack,
+                            changedKmNumbers = changedKmNumbers,
+                            moment = publicationTime,
+                        )
                     }
-                        ?: if (
-                            locationTrack.state != LocationTrackState.DELETED &&
-                                locationTrack.designAssetState != DesignAssetState.CANCELLED
-                        ) {
-                            createLocationTrack(branch.branch, locationTrack, externalId, publicationTime)
-                        } else {
-                            null
-                        }
-                } catch (ex: RatkoPushException) {
-                    throw RatkoLocationTrackPushException(ex, locationTrack)
                 }
+                    ?: if (
+                        locationTrack.state != LocationTrackState.DELETED &&
+                            locationTrack.designAssetState != DesignAssetState.CANCELLED
+                    ) {
+                        createLocationTrack(branch.branch, locationTrack, externalId, publicationTime)
+                    } else {
+                        null
+                    }
                 externalId.oid
             }
     }
@@ -365,7 +358,7 @@ constructor(
     private fun getExternalId(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>): Oid<LocationTrack>? =
         locationTrackDao.fetchExternalId(branch, locationTrackId)?.oid
 
-    fun forceRedraw(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
+    fun forceRedraw(locationTrackOids: Set<RatkoOid<LocationTrack>>) {
         if (locationTrackOids.isNotEmpty()) {
             ratkoClient.forceRatkoToRedrawLocationTrack(locationTrackOids)
         }
@@ -378,64 +371,57 @@ constructor(
         moment: Instant,
         locationTrackOidOfGeometry: MainBranchRatkoExternalId<LocationTrack>? = null,
     ) {
-        try {
-            val (addresses, jointPoints) = getLocationTrackPoints(branch, locationTrack, moment)
+        val (addresses, jointPoints) = getLocationTrackPoints(branch, locationTrack, moment)
 
-            val ratkoNodes = convertToRatkoNodeCollection(addresses)
-            val trackNumberOid = getDesignOrInheritedTrackNumberOid(branch, locationTrack.trackNumberId)
+        val ratkoNodes = convertToRatkoNodeCollection(addresses)
+        val trackNumberOid = getDesignOrInheritedTrackNumberOid(branch, locationTrack.trackNumberId)
 
-            val duplicateOfOidLocationTrack =
-                locationTrack.duplicateOf?.let { duplicateId -> getExternalId(branch, duplicateId) }
-            val owner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId)
+        val duplicateOfOidLocationTrack =
+            locationTrack.duplicateOf?.let { duplicateId -> getExternalId(branch, duplicateId) }
+        val owner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId)
 
-            val ratkoLocationTrack =
-                convertToRatkoLocationTrack(
-                    locationTrack = locationTrack,
-                    locationTrackExternalId = locationTrackExternalId,
-                    trackNumberOid = trackNumberOid,
-                    nodeCollection = ratkoNodes,
-                    duplicateOfOid = duplicateOfOidLocationTrack,
-                    owner = owner,
-                )
-            checkNotNull(
-                ratkoClient.newLocationTrack(ratkoLocationTrack, locationTrackOidOfGeometry?.oid?.let(::RatkoOid))
-            ) {
-                "Did not receive oid from Ratko for location track $ratkoLocationTrack"
-            }
+        val ratkoLocationTrack =
+            convertToRatkoLocationTrack(
+                locationTrack = locationTrack,
+                locationTrackExternalId = locationTrackExternalId,
+                trackNumberOid = trackNumberOid,
+                nodeCollection = ratkoNodes,
+                duplicateOfOid = duplicateOfOidLocationTrack,
+                owner = owner,
+            )
+        checkNotNull(
+            ratkoClient.newLocationTrack(ratkoLocationTrack, locationTrackOidOfGeometry?.oid?.let(::RatkoOid))
+        ) {
+            "Did not receive oid from Ratko for location track $ratkoLocationTrack"
+        }
 
-            val switchPoints =
-                jointPoints.filterNot { jp ->
-                    jp.address == addresses.startPoint.address || jp.address == addresses.endPoint.address
-                }
+        val switchPoints = jointPoints.filterNot { jp ->
+            jp.address == addresses.startPoint.address || jp.address == addresses.endPoint.address
+        }
 
-            val midPoints = (addresses.midPoints + switchPoints).sortedBy { p -> p.address }
+        val midPoints = (addresses.midPoints + switchPoints).sortedBy { p -> p.address }
 
-            locationTrackOidOfGeometry?.let { referencedGeometryOid ->
-                logger.info(
-                    "Referenced geometry from track=$referencedGeometryOid was already set for ${locationTrackExternalId.oid}"
-                )
-            } ?: createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
+        locationTrackOidOfGeometry?.let { referencedGeometryOid ->
+            logger.info(
+                "Referenced geometry from track=$referencedGeometryOid was already set for ${locationTrackExternalId.oid}"
+            )
+        } ?: createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
 
-            if (branch is MainBranch) {
-                val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
-                createLocationTrackMetadata(
-                    branch,
-                    locationTrack,
-                    locationTrackExternalId,
-                    allPoints,
-                    trackNumberOid,
-                    moment,
-                )
-            }
-        } catch (ex: RatkoPushException) {
-            throw ex
-        } catch (ex: Exception) {
-            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
+        if (branch is MainBranch) {
+            val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
+            createLocationTrackMetadata(
+                branch,
+                locationTrack,
+                locationTrackExternalId,
+                allPoints,
+                trackNumberOid,
+                moment,
+            )
         }
     }
 
     private fun createLocationTrackPoints(
-        locationTrackOid: RatkoOid<RatkoLocationTrack>,
+        locationTrackOid: RatkoOid<LocationTrack>,
         addressPoints: Collection<AddressPoint<LocationTrackM>>,
     ) =
         toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
@@ -480,44 +466,38 @@ constructor(
                         if (changedKmNumbers == null) listOf(origMetaDataRange)
                         else geocodingContext.cutRangeByKms(origMetaDataRange, changedKmNumbers)
 
-                    val splitMetaDataAssets =
-                        splitAddressRanges.mapNotNull { addressRange ->
-                            val startPoint =
-                                findAddressPoint(
-                                    points = alignmentPoints,
-                                    seek = addressRange.start,
-                                    rounding = AddressRounding.UP,
-                                )
+                    val splitMetaDataAssets = splitAddressRanges.mapNotNull { addressRange ->
+                        val startPoint =
+                            findAddressPoint(
+                                points = alignmentPoints,
+                                seek = addressRange.start,
+                                rounding = AddressRounding.UP,
+                            )
 
-                            val endPoint =
-                                findAddressPoint(
-                                    points = alignmentPoints,
-                                    seek = addressRange.endInclusive,
-                                    rounding = AddressRounding.DOWN,
-                                )
+                        val endPoint =
+                            findAddressPoint(
+                                points = alignmentPoints,
+                                seek = addressRange.endInclusive,
+                                rounding = AddressRounding.DOWN,
+                            )
 
-                            val splitMetaData =
-                                metadata.copy(
-                                    startPoint = startPoint.point.toPoint(),
-                                    endPoint = endPoint.point.toPoint(),
-                                )
+                        val splitMetaData =
+                            metadata.copy(startPoint = startPoint.point.toPoint(), endPoint = endPoint.point.toPoint())
 
-                            // Ignore metadata where the address range is under 1m, since there are
-                            // no address points for it
-                            if (startPoint.address + 1 <= endPoint.address)
-                                convertToRatkoMetadataAsset(
-                                    trackNumberOid = trackNumberOid,
-                                    locationTrackExternalId = locationTrackExternalId,
-                                    segmentMetadata = splitMetaData,
-                                    startTrackMeter = startPoint.address,
-                                    endTrackMeter = endPoint.address,
-                                )
-                            else null
-                        }
-
-                    splitMetaDataAssets.forEach { metadataAsset ->
-                        ratkoClient.newAsset<RatkoMetadataAsset>(metadataAsset)
+                        // Ignore metadata where the address range is under 1m, since there are
+                        // no address points for it
+                        if (startPoint.address + 1 <= endPoint.address)
+                            convertToRatkoMetadataAsset(
+                                trackNumberOid = trackNumberOid,
+                                locationTrackExternalId = locationTrackExternalId,
+                                segmentMetadata = splitMetaData,
+                                startTrackMeter = startPoint.address,
+                                endTrackMeter = endPoint.address,
+                            )
+                        else null
                     }
+
+                    splitMetaDataAssets.forEach { metadataAsset -> ratkoClient.newMetadataAsset(metadataAsset) }
                 }
             }
     }
@@ -542,25 +522,18 @@ constructor(
         locationTrack: LocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         existingRatkoLocationTrack: RatkoLocationTrack,
-        moment: Instant,
     ) {
-        try {
-            val deletedEndsPoints =
-                existingRatkoLocationTrack.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
+        val deletedEndsPoints =
+            existingRatkoLocationTrack.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
 
-            updateLocationTrackProperties(
-                branch = branch,
-                locationTrack = locationTrack,
-                locationTrackExternalId = locationTrackExternalId,
-                changedNodeCollection = deletedEndsPoints,
-            )
+        updateLocationTrackProperties(
+            branch = branch,
+            locationTrack = locationTrack,
+            locationTrackExternalId = locationTrackExternalId,
+            changedNodeCollection = deletedEndsPoints,
+        )
 
-            ratkoClient.deleteLocationTrackPoints(RatkoOid(locationTrackExternalId.oid), null)
-        } catch (ex: RatkoPushException) {
-            throw ex
-        } catch (ex: Exception) {
-            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
-        }
+        ratkoClient.deleteLocationTrackPoints(RatkoOid(locationTrackExternalId.oid), null)
     }
 
     private fun updateLocationTrack(
@@ -574,103 +547,93 @@ constructor(
         locationTrackOidOfGeometry: MainBranchRatkoExternalId<LocationTrack>? = null,
         splitStartAndEnd: Pair<TrackMeter, TrackMeter>? = null,
     ): Set<KmNumber> {
-        try {
-            val locationTrackRatkoOid = RatkoOid<RatkoLocationTrack>(locationTrackExternalId.oid)
-            val trackNumberOid = getDesignOrInheritedTrackNumberOid(branch, locationTrack.trackNumberId)
+        val locationTrackRatkoOid = RatkoOid(locationTrackExternalId.oid)
+        val trackNumberOid = getDesignOrInheritedTrackNumberOid(branch, locationTrack.trackNumberId)
 
-            val (addresses, jointPoints) = getLocationTrackPoints(branch, locationTrack, moment)
-            val existingStartNode = existingRatkoLocationTrack.nodecollection?.getStartNode()
-            val existingEndNode = existingRatkoLocationTrack.nodecollection?.getEndNode()
+        val (addresses, jointPoints) = getLocationTrackPoints(branch, locationTrack, moment)
+        val existingStartNode = existingRatkoLocationTrack.nodecollection?.getStartNode()
+        val existingEndNode = existingRatkoLocationTrack.nodecollection?.getEndNode()
 
-            val updatedEndPointNodeCollection =
-                getEndPointNodeCollection(
-                    alignmentAddresses = addresses,
-                    changedKmNumbers = changedKmNumbers,
-                    existingStartNode = existingStartNode,
-                    existingEndNode = existingEndNode,
+        val updatedEndPointNodeCollection =
+            getEndPointNodeCollection(
+                alignmentAddresses = addresses,
+                changedKmNumbers = changedKmNumbers,
+                existingStartNode = existingStartNode,
+                existingEndNode = existingEndNode,
+            )
+
+        val switchPoints = jointPoints.filterNot { jp ->
+            jp.address == addresses.startPoint.address || jp.address == addresses.endPoint.address
+        }
+
+        val changedMidPoints =
+            (addresses.midPoints + switchPoints)
+                .filter { p -> changedKmNumbers.contains(p.address.kmNumber) }
+                .sortedBy { p -> p.address }
+
+        // Update location track end points before deleting anything, otherwise old end points
+        // will stay in use
+        updateLocationTrackProperties(
+            branch = branch,
+            locationTrack = locationTrack,
+            locationTrackExternalId = locationTrackExternalId,
+            changedNodeCollection = updatedEndPointNodeCollection,
+            locationTrackStateOverride = locationTrackStateOverride,
+        )
+
+        val allKms = addresses.allPoints.asSequence().map { point -> point.address.kmNumber }.toSet()
+        val updatedKmNumbers =
+            if (locationTrackOidOfGeometry != null) {
+                val (startAddress, endAddress) = splitStartAndEnd.let(::requireNotNull)
+                ratkoClient.patchLocationTrackPoints(
+                    sourceTrackExternalId = locationTrackOidOfGeometry,
+                    targetTrackExternalId = MainBranchRatkoExternalId(locationTrackExternalId.oid),
+                    startAddress = startAddress,
+                    endAddress = endAddress,
                 )
+                val copiedKmNumbers =
+                    allKms
+                        .filter { kmNumber -> kmNumber >= startAddress.kmNumber && kmNumber <= endAddress.kmNumber }
+                        .toSet()
+                copiedKmNumbers
+            } else {
+                val minTrackKm = allKms.min()
+                val maxTrackKm = allKms.max()
 
-            val switchPoints =
-                jointPoints.filterNot { jp ->
-                    jp.address == addresses.startPoint.address || jp.address == addresses.endPoint.address
-                }
+                // This happens for example when a km-post has been removed in the "middle" of a
+                // track.
+                val removedKmsWithinTrackBoundaries =
+                    changedKmNumbers
+                        .filterNot { changedKm -> changedKm in allKms }
+                        .filter { kmNumber -> kmNumber > minTrackKm && kmNumber < maxTrackKm }
+                        .toSet()
 
-            val changedMidPoints =
-                (addresses.midPoints + switchPoints)
-                    .filter { p -> changedKmNumbers.contains(p.address.kmNumber) }
-                    .sortedBy { p -> p.address }
+                deleteLocationTrackPoints(removedKmsWithinTrackBoundaries, locationTrackRatkoOid)
+                updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
+                changedKmNumbers
+            }
 
-            // Update location track end points before deleting anything, otherwise old end points
-            // will stay in use
-            updateLocationTrackProperties(
+        if (branch is MainBranch) {
+            createLocationTrackMetadata(
                 branch = branch,
                 locationTrack = locationTrack,
                 locationTrackExternalId = locationTrackExternalId,
-                changedNodeCollection = updatedEndPointNodeCollection,
-                locationTrackStateOverride = locationTrackStateOverride,
+                alignmentPoints = listOf(addresses.startPoint) + changedMidPoints + listOf(addresses.endPoint),
+                trackNumberOid = trackNumberOid,
+                moment = moment,
+                changedKmNumbers = changedKmNumbers,
             )
-
-            val allKms = addresses.allPoints.asSequence().map { point -> point.address.kmNumber }.toSet()
-            val updatedKmNumbers =
-                if (locationTrackOidOfGeometry != null) {
-                    val (startAddress, endAddress) = splitStartAndEnd.let(::requireNotNull)
-                    ratkoClient.patchLocationTrackPoints(
-                        sourceTrackExternalId = locationTrackOidOfGeometry,
-                        targetTrackExternalId = MainBranchRatkoExternalId(locationTrackExternalId.oid),
-                        startAddress = startAddress,
-                        endAddress = endAddress,
-                    )
-                    val copiedKmNumbers =
-                        allKms
-                            .filter { kmNumber -> kmNumber >= startAddress.kmNumber && kmNumber <= endAddress.kmNumber }
-                            .toSet()
-                    copiedKmNumbers
-                } else {
-                    val minTrackKm = allKms.min()
-                    val maxTrackKm = allKms.max()
-
-                    // This happens for example when a km-post has been removed in the "middle" of a
-                    // track.
-                    val removedKmsWithinTrackBoundaries =
-                        changedKmNumbers
-                            .filterNot { changedKm -> changedKm in allKms }
-                            .filter { kmNumber -> kmNumber > minTrackKm && kmNumber < maxTrackKm }
-                            .toSet()
-
-                    deleteLocationTrackPoints(removedKmsWithinTrackBoundaries, locationTrackRatkoOid)
-                    updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
-                    changedKmNumbers
-                }
-
-            if (branch is MainBranch) {
-                createLocationTrackMetadata(
-                    branch = branch,
-                    locationTrack = locationTrack,
-                    locationTrackExternalId = locationTrackExternalId,
-                    alignmentPoints = listOf(addresses.startPoint) + changedMidPoints + listOf(addresses.endPoint),
-                    trackNumberOid = trackNumberOid,
-                    moment = moment,
-                    changedKmNumbers = changedKmNumbers,
-                )
-            }
-
-            return updatedKmNumbers
-        } catch (ex: RatkoPushException) {
-            throw ex
-        } catch (ex: Exception) {
-            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
         }
+
+        return updatedKmNumbers
     }
 
-    private fun deleteLocationTrackPoints(
-        changedKmNumbers: Set<KmNumber>,
-        locationTrackOid: RatkoOid<RatkoLocationTrack>,
-    ) {
+    private fun deleteLocationTrackPoints(changedKmNumbers: Set<KmNumber>, locationTrackOid: RatkoOid<LocationTrack>) {
         changedKmNumbers.forEach { kmNumber -> ratkoClient.deleteLocationTrackPoints(locationTrackOid, kmNumber) }
     }
 
     private fun updateLocationTrackGeometry(
-        locationTrackOid: RatkoOid<RatkoLocationTrack>,
+        locationTrackOid: RatkoOid<LocationTrack>,
         newPoints: Collection<AddressPoint<LocationTrackM>>,
     ) =
         toRatkoPointsGroupedByKm(newPoints).forEach { points ->

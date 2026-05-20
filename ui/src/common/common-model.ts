@@ -64,6 +64,17 @@ const draftMainContext: LayoutContext = Object.freeze({
     branch: 'MAIN',
 });
 
+export const officialContext = (branch: LayoutBranch): LayoutContext => {
+    if (branch === 'MAIN') {
+        return officialMainContext;
+    } else {
+        return {
+            publicationState: 'DRAFT',
+            branch: branch,
+        };
+    }
+};
+
 export const officialMainLayoutContext = (): LayoutContext => officialMainContext;
 export const draftMainLayoutContext = (): LayoutContext => draftMainContext;
 

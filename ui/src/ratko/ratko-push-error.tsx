@@ -2,19 +2,25 @@ import * as React from 'react';
 import { PublicationDetails } from 'publication/publication-model';
 import styles from 'ratko/ratko-push-error.scss';
 import { useTranslation } from 'react-i18next';
-import { RatkoAssetType, RatkoPushError, RatkoPushErrorAsset } from 'ratko/ratko-model';
+import { isAssetError, RatkoAssetRef, RatkoAssetType, RatkoPushError } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
+import {
+    useLayoutDesign,
+    useLocationTrack,
+    useSwitch,
+    useTrackNumber,
+} from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { useEnvironmentInfo } from 'environment/environment-info';
+import { LayoutBranch, officialContext } from 'common/common-model';
 
 type RatkoPushErrorDetailsProps = {
-    error: RatkoPushError;
-    failedPublication: PublicationDetails;
+    error: RatkoPushError | undefined;
+    failedPublication: PublicationDetails | undefined;
 };
 
-const assetTranslationKeyByType = (errorAsset: RatkoPushErrorAsset) => {
-    switch (errorAsset.assetType) {
+const assetTranslationKeyByType = (assetType: RatkoAssetType) => {
+    switch (assetType) {
         case RatkoAssetType.LOCATION_TRACK:
             return `publication-card.push-error.location-track`;
         case RatkoAssetType.TRACK_NUMBER:
@@ -22,21 +28,45 @@ const assetTranslationKeyByType = (errorAsset: RatkoPushErrorAsset) => {
         case RatkoAssetType.SWITCH:
             return `publication-card.push-error.switch`;
         default:
-            return exhaustiveMatchingGuard(errorAsset);
+            return exhaustiveMatchingGuard(assetType);
     }
 };
 
-const assetNameByType = (errorAsset: RatkoPushErrorAsset) => {
-    switch (errorAsset.assetType) {
+function useAssetName(assetRef: RatkoAssetRef, branch: LayoutBranch): string | undefined {
+    const context = officialContext(branch);
+    const locationTrack = useLocationTrack(
+        assetRef?.type === RatkoAssetType.LOCATION_TRACK ? assetRef.id : undefined,
+        context,
+    );
+    const layoutSwitch = useSwitch(
+        assetRef?.type === RatkoAssetType.SWITCH ? assetRef.id : undefined,
+        context,
+    );
+    const trackNumber = useTrackNumber(
+        assetRef?.type === RatkoAssetType.TRACK_NUMBER ? assetRef.id : undefined,
+        context,
+    );
+
+    switch (assetRef?.type) {
+        case undefined:
+            return undefined;
         case RatkoAssetType.LOCATION_TRACK:
+            return locationTrack?.name;
         case RatkoAssetType.SWITCH:
-            return errorAsset.asset.name;
+            return layoutSwitch?.name;
         case RatkoAssetType.TRACK_NUMBER:
-            return errorAsset.asset.number;
+            return trackNumber?.number;
         default:
-            return exhaustiveMatchingGuard(errorAsset);
+            return exhaustiveMatchingGuard(assetRef);
     }
-};
+}
+
+function formatAssetLabel(name: string | undefined, oid: string | undefined): string | undefined {
+    if (name === undefined && oid === undefined) return undefined;
+    else if (name === undefined) return `OID ${oid}`;
+    else if (oid === undefined) return name;
+    else return `${name}, OID ${oid}`;
+}
 
 export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     error,
@@ -45,47 +75,80 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     const { t } = useTranslation();
     const environmentInfo = useEnvironmentInfo();
 
-    const design = useLayoutDesign(
-        getChangeTimes().layoutDesign,
-        failedPublication.layoutBranch.branch,
-    )?.name;
+    const branch = failedPublication?.layoutBranch.branch ?? 'MAIN';
+    const design = useLayoutDesign(getChangeTimes().layoutDesign, branch)?.name;
 
-    const isConnectionIssue = failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE';
+    const errorAsset = error && isAssetError(error) ? error : undefined;
+    const assetName = errorAsset ? useAssetName(errorAsset.assetRef, branch) : undefined;
+    const assetLabel = formatAssetLabel(assetName, errorAsset?.assetRef.oid);
+
+    if (!error) {
+        return (
+            <div className={styles['ratko-push-error']}>
+                {t('publication-card.push-error.general-error')}
+            </div>
+        );
+    }
+
+    const isConnectionIssue = failedPublication?.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
-    const isFetchError = error.operation === 'FETCH_EXISTING';
+    const isFetchError = errorAsset?.operation === 'FETCH_EXISTING';
 
-    const ratkoFetchErrorString = t('publication-card.push-error.ratko-fetch-error', {
-        assetType: t(assetTranslationKeyByType(error)),
-        name: assetNameByType(error),
-        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-    });
+    const ratkoFetchErrorString =
+        errorAsset &&
+        t('publication-card.push-error.ratko-fetch-error', {
+            assetType: t(assetTranslationKeyByType(errorAsset.assetRef.type)),
+            name: assetLabel,
+            operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
+        });
 
-    const ratkoErrorString = t('publication-card.push-error.ratko-error', {
-        assetType: t(assetTranslationKeyByType(error)),
-        errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-        name: assetNameByType(error),
-        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-    });
+    const ratkoErrorString =
+        errorAsset &&
+        t('publication-card.push-error.ratko-error', {
+            assetType: t(assetTranslationKeyByType(errorAsset.assetRef.type)),
+            errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
+            name: assetLabel,
+            operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
+        });
 
-    const internalErrorString = t('publication-card.push-error.internal-error', {
-        assetType: t(assetTranslationKeyByType(error)),
-        errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
-        name: assetNameByType(error),
-        operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-        geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
-    });
+    const internalErrorString =
+        errorAsset &&
+        t('publication-card.push-error.internal-error', {
+            assetType: t(assetTranslationKeyByType(errorAsset.assetRef.type)),
+            errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
+            name: assetLabel,
+            operation: t(`enum.RatkoPushErrorOperation.${errorAsset.operation}`),
+            geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
+        });
 
     const pushErrorString = (): string => {
-        if (isConnectionIssue) return 'publication-card.push-error.connection-issue';
-        else if (isInternalError) return internalErrorString;
-        else if (isFetchError) return ratkoFetchErrorString;
-        else return ratkoErrorString;
+        if (isConnectionIssue) return t('publication-card.push-error.connection-issue');
+        if (isInternalError) {
+            return (
+                internalErrorString ??
+                t('publication-card.push-error.general-internal-error', {
+                    geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
+                })
+            );
+        }
+        if (isFetchError)
+            return ratkoFetchErrorString ?? t('publication-card.push-error.general-error');
+        return ratkoErrorString ?? t('publication-card.push-error.general-error');
     };
+
+    const technicalDetails = error.ratkoStatusCode
+        ? `[${error.ratkoStatusCode}] ${error.technicalMessage}`
+        : error.technicalMessage;
 
     return (
         <div className={styles['ratko-push-error']}>
-            {design && <span className={styles['ratko-push-error__design-name']}>{design}: </span>}
-            {pushErrorString()}
+            <div>
+                {design && (
+                    <span className={styles['ratko-push-error__design-name']}>{design}: </span>
+                )}
+                {pushErrorString()}
+            </div>
+            <div className={styles['ratko-push-error__technical-message']}>{technicalDetails}</div>
         </div>
     );
 };

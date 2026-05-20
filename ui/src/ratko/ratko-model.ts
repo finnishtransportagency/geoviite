@@ -1,7 +1,7 @@
 import {
-    LayoutLocationTrack,
-    LayoutSwitch,
-    LayoutTrackNumber,
+    LayoutSwitchId,
+    LayoutTrackNumberId,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 
 export enum RatkoPushStatus {
@@ -36,33 +36,45 @@ export enum RatkoAssetType {
     SWITCH = 'SWITCH',
 }
 
+export type RatkoLocationTrackRef = {
+    type: RatkoAssetType.LOCATION_TRACK;
+    id: LocationTrackId;
+    oid?: string;
+};
+
+export type RatkoTrackNumberRef = {
+    type: RatkoAssetType.TRACK_NUMBER;
+    id: LayoutTrackNumberId;
+    oid?: string;
+};
+
+export type RatkoSwitchRef = {
+    type: RatkoAssetType.SWITCH;
+    id: LayoutSwitchId;
+    oid?: string;
+};
+
+export type RatkoAssetRef = RatkoLocationTrackRef | RatkoTrackNumberRef | RatkoSwitchRef;
+
 export type RatkoPushErrorId = string;
 
 export type RatkoPushId = string;
 
-export type RatkoPushError = {
+type RatkoPushErrorBase = {
     id: RatkoPushErrorId;
     ratkoPushId: RatkoPushId;
     errorType: RatkoPushErrorType;
+    ratkoStatusCode?: string;
+    technicalMessage: string;
+};
+
+export type RatkoPushAssetError = RatkoPushErrorBase & {
     operation: RatkoPushErrorOperation;
-} & RatkoPushErrorAsset;
-
-export type RatkoPushErrorAsset =
-    | RatkoPushErrorTrackNumber
-    | RatkoPushErrorLocationTrack
-    | RatkoPushErrorSwitch;
-
-type RatkoPushErrorLocationTrack = {
-    assetType: RatkoAssetType.LOCATION_TRACK;
-    asset: LayoutLocationTrack;
+    assetRef: RatkoAssetRef;
 };
 
-type RatkoPushErrorTrackNumber = {
-    assetType: RatkoAssetType.TRACK_NUMBER;
-    asset: LayoutTrackNumber;
-};
+export type RatkoPushError = RatkoPushErrorBase | RatkoPushAssetError;
 
-type RatkoPushErrorSwitch = {
-    assetType: RatkoAssetType.SWITCH;
-    asset: LayoutSwitch;
-};
+export function isAssetError(error: RatkoPushError): error is RatkoPushAssetError {
+    return 'assetRef' in error;
+}

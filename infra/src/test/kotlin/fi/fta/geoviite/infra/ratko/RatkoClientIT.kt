@@ -74,7 +74,7 @@ constructor(
         fakeRatko.hasSwitch(ratkoSwitch(oid))
         val layoutSwitch = switch(draft = false)
         val basicUpdateSwitch = createRatkoBasicUpdateSwitch(layoutSwitch, oid)
-        ratkoClient.updateAssetProperties(RatkoOid(oid), basicUpdateSwitch.properties)
+        ratkoClient.updateSwitchProperties(RatkoOid(oid), basicUpdateSwitch.properties)
     }
 
     private fun createRatkoBasicUpdateSwitch(layoutSwitch: LayoutSwitch, oid: String): RatkoSwitchAsset {

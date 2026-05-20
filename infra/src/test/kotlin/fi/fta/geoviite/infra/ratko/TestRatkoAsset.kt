@@ -1,6 +1,24 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeomAccuracyType
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometryType
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
+import fi.fta.geoviite.infra.ratko.model.RatkoCrs
+import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackType
+import fi.fta.geoviite.infra.ratko.model.RatkoMetadata
+import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
+import fi.fta.geoviite.infra.ratko.model.RatkoNodesType
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoPointState
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberState
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
+import fi.fta.geoviite.infra.ratko.model.RatkoTopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 
 /*
 Shadow clones of the parts of Ratko's API that we actually use, in the specific form that Ratko sends them, which can
@@ -20,8 +38,8 @@ data class InterfaceRatkoPoint(
     val geometry: InterfaceRatkoGeometry?,
     val state: RatkoPointState?,
     val rowMetadata: RatkoMetadata? = null,
-    val locationtrack: RatkoOid<RatkoLocationTrack>? = null,
-    val routenumber: RatkoOid<RatkoRouteNumber>? = null,
+    val locationtrack: RatkoOid<LocationTrack>? = null,
+    val routenumber: RatkoOid<LayoutTrackNumber>? = null,
 )
 
 data class InterfaceRatkoNode(val nodeType: RatkoNodeType, val point: InterfaceRatkoPoint)
@@ -42,7 +60,7 @@ data class InterfaceRatkoLocationTrack(
     val id: String,
     val name: String,
     val description: String,
-    val routenumber: RatkoOid<RatkoRouteNumber>?,
+    val routenumber: RatkoOid<LayoutTrackNumber>?,
     val nodecollection: InterfaceRatkoNodes,
     val type: RatkoLocationTrackType,
     val state: RatkoLocationTrackState,
@@ -75,7 +93,7 @@ fun ratkoLocationTrack(
     id: String,
     name: String = "trackname-$id",
     description: String = "description",
-    routenumber: RatkoOid<RatkoRouteNumber> = RatkoOid("1.2.3.4.5"),
+    routenumber: RatkoOid<LayoutTrackNumber> = RatkoOid("1.2.3.4.5"),
     nodecollection: InterfaceRatkoNodes = InterfaceRatkoNodes(listOf(), RatkoNodesType.POINT),
     type: RatkoLocationTrackType = RatkoLocationTrackType.MAIN,
     state: RatkoLocationTrackState = RatkoLocationTrackState.IN_USE,

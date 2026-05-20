@@ -21,6 +21,10 @@ import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.lineFromOrigin
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.integration.RatkoAssetType
+import fi.fta.geoviite.infra.integration.RatkoPushAssetError
+import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.integration.RatkoPushGeneralError
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
@@ -132,7 +136,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
@@ -165,6 +171,7 @@ constructor(
     val layoutDesignDao: LayoutDesignDao,
     val publicationTestSupportService: PublicationTestSupportService,
     val ratkoTestService: RatkoTestService,
+    val ratkoPushDao: RatkoPushDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -2588,6 +2595,111 @@ constructor(
                     .map { edge -> layoutContext.save(locationTrack(trackNumberId), trackGeometry(edge)) }
                     .map { version -> version.id },
         )
+    }
+
+    @Test
+    fun `unexpected exception during push is stored as INTERNAL error`() {
+        val (trackNumberId, trackNumberOid) =
+            mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineVersion = insertReferenceLineFor(trackNumberId, draft = true)
+
+        fakeRatko.respondsWithMalformedBodyForRouteNumberCreation(trackNumberOid.toString())
+
+        runCatching {
+            publishAndPush(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineVersion.id))
+        }
+
+        val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
+        assertIs<RatkoPushGeneralError>(error)
+        assertEquals(RatkoPushErrorType.INTERNAL, error.errorType)
+        assertNull(error.ratkoStatusCode)
+    }
+
+    @Test
+    fun `RatkoException during push is stored with ratko-provided message and no asset ref`() {
+        val design = testDBService.createDesignBranch()
+        fakeRatko.rejectsPlanCreationWithError("PLAN_ERROR", "Plan creation failed in Ratko")
+        publicationService.publishManualPublication(design, publicationRequest(message = ""))
+        runCatching { ratkoService.pushChangesToRatko(design) }
+
+        val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
+        assertIs<RatkoPushGeneralError>(error)
+        assertEquals("Plan creation failed in Ratko", error.technicalMessage)
+        assertEquals("PLAN_ERROR", error.ratkoStatusCode)
+    }
+
+    @Test
+    fun `RatkoAssetPushException during track number push is stored with correct ref`() {
+        val (trackNumberId, trackNumberOid) =
+            mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineVersion = insertReferenceLineFor(trackNumberId, draft = true)
+
+        fakeRatko.rejectsRouteNumberCreationWithError(trackNumberOid.toString(), "TN_ERROR", "Track number push failed")
+
+        runCatching {
+            publishAndPush(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineVersion.id))
+        }
+
+        val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
+        assertIs<RatkoPushAssetError<*>>(error)
+        assertEquals(RatkoAssetType.TRACK_NUMBER, error.assetRef.type)
+        assertEquals(trackNumberId, error.assetRef.id)
+        assertEquals(trackNumberOid, error.assetRef.oid)
+        assertEquals("Track number push failed", error.technicalMessage)
+        assertEquals("TN_ERROR", error.ratkoStatusCode)
+    }
+
+    @Test
+    fun `RatkoAssetPushException during location track push is stored with correct ref`() {
+        val trackNumber = establishedTrackNumber()
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
+        testDBService.generateOid(switch.id, LayoutBranch.main)
+        val throughTrackOid = testDBService.generateOid(throughTrack.id, LayoutBranch.main)
+        val branchingTrackOid = testDBService.generateOid(branchingTrack.id, LayoutBranch.main)
+
+        fakeRatko.rejectsLocationTrackCreationWithError(
+            throughTrackOid.toString(),
+            "LT_ERROR",
+            "Location track push failed",
+        )
+        fakeRatko.doesNotHaveLocationTrack(branchingTrackOid.toString())
+
+        runCatching {
+            publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
+        }
+
+        val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
+        assertIs<RatkoPushAssetError<*>>(error)
+        assertEquals(RatkoAssetType.LOCATION_TRACK, error.assetRef.type)
+        assertEquals(throughTrack.id, error.assetRef.id)
+        assertEquals(throughTrackOid, error.assetRef.oid)
+        assertEquals("Location track push failed", error.technicalMessage)
+        assertEquals("LT_ERROR", error.ratkoStatusCode)
+    }
+
+    @Test
+    fun `RatkoAssetPushException during switch push is stored with correct ref`() {
+        val trackNumber = establishedTrackNumber()
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
+        val switchOid = testDBService.generateOid(switch.id, LayoutBranch.main)
+        val throughTrackOid = testDBService.generateOid(throughTrack.id, LayoutBranch.main)
+        val branchingTrackOid = testDBService.generateOid(branchingTrack.id, LayoutBranch.main)
+
+        fakeRatko.acceptsNewLocationTrackGivingItOid(throughTrackOid.toString())
+        fakeRatko.acceptsNewLocationTrackGivingItOid(branchingTrackOid.toString())
+        fakeRatko.rejectsSwitchCreationWithError(switchOid.toString(), "SW_ERROR", "Switch push failed")
+
+        runCatching {
+            publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
+        }
+
+        val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
+        assertIs<RatkoPushAssetError<*>>(error)
+        assertEquals(RatkoAssetType.SWITCH, error.assetRef.type)
+        assertEquals(switch.id, error.assetRef.id)
+        assertEquals(switchOid, error.assetRef.oid)
+        assertEquals("Switch push failed", error.technicalMessage)
+        assertEquals("SW_ERROR", error.ratkoStatusCode)
     }
 }
 

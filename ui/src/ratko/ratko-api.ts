@@ -1,8 +1,9 @@
 import { API_URI, getNonNullAdt, getNullable, postNullable } from 'api/api-fetch';
-import { LayoutBranchType, PublicationDetails } from 'publication/publication-model';
+import { LayoutBranchType } from 'publication/publication-model';
 import { RatkoPushError } from 'ratko/ratko-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { KmNumber } from 'common/common-model';
+import { PublicationId } from 'publication/publication-model';
 
 const RATKO_URI = `${API_URI}/ratko`;
 
@@ -43,7 +44,7 @@ export function pushLocationTracksToRatko(locationTrackChanges: LocationTrackCha
 
 type RatkoPushErrorAndPublication = {
     error: RatkoPushError;
-    publication: PublicationDetails;
+    publicationId: PublicationId;
 };
 
 export const getCurrentPublicationFailure = async () =>

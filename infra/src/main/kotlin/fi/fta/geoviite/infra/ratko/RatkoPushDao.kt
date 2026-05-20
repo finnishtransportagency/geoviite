@@ -2,12 +2,19 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.integration.RatkoAssetType
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.integration.RatkoAssetRef
+import fi.fta.geoviite.infra.integration.RatkoErrorData
+import fi.fta.geoviite.infra.integration.RatkoLocationTrackRef
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPush
+import fi.fta.geoviite.infra.integration.RatkoPushAssetError
 import fi.fta.geoviite.infra.integration.RatkoPushError
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.integration.RatkoPushGeneralError
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
+import fi.fta.geoviite.infra.integration.RatkoSwitchRef
+import fi.fta.geoviite.infra.integration.RatkoTrackNumberRef
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
@@ -16,18 +23,20 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.produceIf
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.collections.emptyMap
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -64,14 +73,19 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                     else status
                 end
             where end_time is null
-            returning id
+            returning id, status
             """
                 .trimIndent()
 
         jdbcTemplate.setUser()
-        jdbcTemplate
-            .query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }
-            .also { updatedPushes -> logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes) }
+        val updatedPushes =
+            jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") to rs.getEnum<RatkoPushStatus>("status") }
+        updatedPushes
+            .filter { (_, status) -> status == RatkoPushStatus.FAILED }
+            .forEach { (pushId, _) ->
+                insertRatkoPushError(pushId, RatkoPushErrorType.INTERNAL, "Stuck operation cleared as FAILED")
+            }
+        logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes)
     }
 
     @Transactional
@@ -143,31 +157,42 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     }
 
     @Transactional
-    fun <T> insertRatkoPushError(
+    fun insertRatkoPushError(
         ratkoPushId: IntId<RatkoPush>,
         ratkoPushErrorType: RatkoPushErrorType,
-        operation: RatkoOperation,
-        assetType: RatkoAssetType,
-        assetId: IntId<T>,
-    ): IntId<RatkoPushError<T>> {
+        technicalMessage: String,
+        ratkoStatus: String? = null,
+        operation: RatkoOperation? = null,
+        target: RatkoPushTarget<*>? = null,
+    ): IntId<RatkoPushError> {
         // language=SQL
         val sql =
             """
             insert into integrations.ratko_push_error(
               ratko_push_id,
+              track_number_oid,
               track_number_id,
+              location_track_oid,
               location_track_id,
+              switch_oid,
               switch_id,
               error_type,
-              operation
+              operation,
+              ratko_response_code,
+              technical_message
             )
             values(
               :ratko_push_id, 
-              :track_number_id, 
-              :location_track_id, 
-              :switch_id,
+              :track_number_oid, 
+              (select id from layout.track_number_external_id where external_id = :track_number_oid), 
+              :location_track_oid, 
+              (select id from layout.location_track_external_id where external_id = :location_track_oid), 
+              :switch_oid,
+              (select id from layout.switch_external_id where external_id = :switch_oid), 
               :error_type::integrations.ratko_push_error_type, 
-              :operation::integrations.ratko_push_error_operation
+              :operation::integrations.ratko_push_error_operation,
+              :ratko_response_code,
+              :technical_message
             )
             returning id
             """
@@ -176,14 +201,16 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             mapOf(
                 "ratko_push_id" to ratkoPushId.intValue,
                 "error_type" to ratkoPushErrorType.name,
-                "operation" to operation.name,
-                "track_number_id" to if (assetType == RatkoAssetType.TRACK_NUMBER) assetId.intValue else null,
-                "location_track_id" to if (assetType == RatkoAssetType.LOCATION_TRACK) assetId.intValue else null,
-                "switch_id" to if (assetType == RatkoAssetType.SWITCH) assetId.intValue else null,
+                "operation" to operation?.name,
+                "track_number_oid" to (target as? RatkoPushTargetTrackNumber)?.oid,
+                "location_track_oid" to (target as? RatkoPushTargetLocationTrack)?.oid,
+                "switch_oid" to (target as? RatkoPushTargetSwitch)?.oid,
+                "ratko_response_code" to ratkoStatus,
+                "technical_message" to technicalMessage,
             )
 
         return jdbcTemplate
-            .queryOne<IntId<RatkoPushError<T>>>(sql, params, ratkoPushId.toString()) { rs, _ -> rs.getIntId("id") }
+            .queryOne<IntId<RatkoPushError>>(sql, params, ratkoPushId.toString()) { rs, _ -> rs.getIntId("id") }
             .also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
     }
 
@@ -268,7 +295,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             .onEach { (_, pushes) -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, pushes.map { it.id }) }
     }
 
-    fun getCurrentRatkoPushError(): Pair<RatkoPushError<*>, IntId<Publication>>? {
+    fun getCurrentRatkoPushError(): Pair<RatkoPushError, IntId<Publication>>? {
         val sql =
             """
             select 
@@ -278,9 +305,14 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               ratko_push_error.error_type,
               ratko_push_error.operation,
               ratko_push_error.track_number_id,
+              ratko_push_error.track_number_oid,
               ratko_push_error.location_track_id,
+              ratko_push_error.location_track_oid,
               ratko_push_error.switch_id,
-              ratko_push_error.ratko_push_id
+              ratko_push_error.switch_oid,
+              ratko_push_error.ratko_push_id,
+              ratko_push_error.ratko_response_code,
+              ratko_push_error.technical_message
             from integrations.ratko_push
               inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
               left join integrations.ratko_push_error on ratko_push_error.ratko_push_id = ratko_push.id
@@ -291,35 +323,55 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 .trimIndent()
 
         return jdbcTemplate
-            .queryOptional(sql, emptyMap<String, Object>()) { rs, _ ->
+            .queryOptional(sql, emptyMap<String, Any>()) { rs, _ ->
                 val status = rs.getEnum<RatkoPushStatus>("status")
-                if (status != RatkoPushStatus.SUCCESSFUL) {
-                    val errorId = rs.getIntId<RatkoPushError<*>>("id")
-                    val trackNumberId = rs.getIntIdOrNull<LayoutTrackNumber>("track_number_id")
-                    val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
-                    val switchId = rs.getIntIdOrNull<LayoutSwitch>("switch_id")
-                    val pushError =
-                        RatkoPushError(
-                            id = errorId,
-                            ratkoPushId = rs.getIntId("ratko_push_id"),
-                            errorType = rs.getEnum("error_type"),
-                            operation = rs.getEnum("operation"),
-                            assetId =
-                                trackNumberId
-                                    ?: locationTrackId
-                                    ?: switchId
-                                    ?: error("Encountered Ratko push error without asset! id: $errorId"),
-                            assetType =
-                                trackNumberId?.let { RatkoAssetType.TRACK_NUMBER }
-                                    ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
-                                    ?: switchId.let { RatkoAssetType.SWITCH },
-                        )
+                produceIf(status != RatkoPushStatus.SUCCESSFUL) { rs.getIntIdOrNull<RatkoPushError>("id") }
+                    ?.let { errorId ->
+                        val errorData =
+                            RatkoErrorData(
+                                id = errorId,
+                                ratkoPushId = rs.getIntId("ratko_push_id"),
+                                errorType = rs.getEnum("error_type"),
+                                ratkoStatusCode = rs.getString("ratko_response_code"),
+                                technicalMessage = rs.getString("technical_message"),
+                            )
+                        val pushOperation =
+                            rs.getEnumOrNull<RatkoOperation>("operation")?.let { operation ->
+                                toAssetRef(
+                                        rs.getIntIdOrNull("track_number_id"),
+                                        rs.getOidOrNull("track_number_oid"),
+                                        rs.getIntIdOrNull("location_track_id"),
+                                        rs.getOidOrNull("location_track_oid"),
+                                        rs.getIntIdOrNull("switch_id"),
+                                        rs.getOidOrNull("switch_oid"),
+                                    )
+                                    ?.let { operation to it }
+                            }
 
-                    pushError to rs.getIntId<Publication>("publication_id")
-                } else {
-                    null
-                }
+                        val pushError =
+                            when (pushOperation) {
+                                null -> RatkoPushGeneralError(errorData)
+                                else -> RatkoPushAssetError(pushOperation.first, errorData, pushOperation.second)
+                            }
+
+                        pushError to rs.getIntId<Publication>("publication_id")
+                    }
             }
             .also { logger.daoAccess(AccessType.FETCH, RatkoPushError::class) }
     }
+
+    private fun toAssetRef(
+        trackNumberId: IntId<LayoutTrackNumber>?,
+        trackNumberOid: Oid<LayoutTrackNumber>?,
+        locationTrackId: IntId<LocationTrack>?,
+        locationTrackOid: Oid<LocationTrack>?,
+        switchId: IntId<LayoutSwitch>?,
+        switchOid: Oid<LayoutSwitch>?,
+    ): RatkoAssetRef<*>? =
+        when {
+            trackNumberId != null -> RatkoTrackNumberRef(trackNumberId, trackNumberOid)
+            locationTrackId != null -> RatkoLocationTrackRef(locationTrackId, locationTrackOid)
+            switchId != null -> RatkoSwitchRef(switchId, switchOid)
+            else -> null
+        }
 }
