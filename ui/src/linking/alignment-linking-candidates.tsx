@@ -20,24 +20,37 @@ import {
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from 'tool-panel/geometry-alignment/geometry-alignment-infobox.scss';
 
-function useScrollSelectedIntoView<TId extends string>(selectedId: TId | undefined) {
-    const elementsRef = React.useRef(new Map<TId, HTMLLIElement>());
+type SelectionCandidateProps = {
+    isSelected: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+};
 
-    const setRef = (id: TId) => (el: HTMLLIElement | null) => {
-        if (el) elementsRef.current.set(id, el);
-        else elementsRef.current.delete(id);
-    };
+const SelectionCandidate: React.FC<SelectionCandidateProps> = ({
+    isSelected,
+    onClick,
+    children,
+}) => {
+    const ref = React.useRef<HTMLLIElement>(null);
 
     React.useEffect(() => {
-        if (selectedId === undefined) return;
-        elementsRef.current.get(selectedId)?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-        });
-    }, [selectedId]);
+        if (isSelected) {
+            ref.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+        }
+    }, [isSelected]);
 
-    return setRef;
-}
+    return (
+        <li
+            ref={ref}
+            className={styles['geometry-alignment-infobox__alignment']}
+            onClick={onClick}>
+            {children}
+        </li>
+    );
+};
 
 type CandidatesListProps = {
     isLoading: boolean;
@@ -79,42 +92,37 @@ export const LocationTrackCandidates: React.FC<LocationTrackCandidatesProps> = (
     isLoading,
     emptyMessage,
     onSelect,
-}) => {
-    const setRef = useScrollSelectedIntoView<LocationTrackId>(selectedId);
-
-    return (
-        <CandidatesList
-            isLoading={isLoading}
-            isEmpty={candidates.length === 0}
-            emptyMessage={emptyMessage}>
-            {candidates.map((track) => {
-                const isSelected = track.id === selectedId;
-                return (
-                    <li
-                        key={track.id}
-                        ref={setRef(track.id)}
-                        className={styles['geometry-alignment-infobox__alignment']}
-                        onClick={() => onSelect(track.id)}>
-                        <LocationTrackBadge
-                            locationTrack={track}
-                            status={
-                                isSelected
-                                    ? LocationTrackBadgeStatus.SELECTED
-                                    : LocationTrackBadgeStatus.DEFAULT
-                            }
-                        />
-                        {lockedAlignmentId === track.id && (
-                            <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
-                        )}
-                        <span>
-                            <LocationTrackTypeLabel type={track.type} />
-                        </span>
-                    </li>
-                );
-            })}
-        </CandidatesList>
-    );
-};
+}) => (
+    <CandidatesList
+        isLoading={isLoading}
+        isEmpty={candidates.length === 0}
+        emptyMessage={emptyMessage}>
+        {candidates.map((track) => {
+            const isSelected = track.id === selectedId;
+            return (
+                <SelectionCandidate
+                    key={track.id}
+                    isSelected={isSelected}
+                    onClick={() => onSelect(track.id)}>
+                    <LocationTrackBadge
+                        locationTrack={track}
+                        status={
+                            isSelected
+                                ? LocationTrackBadgeStatus.SELECTED
+                                : LocationTrackBadgeStatus.DEFAULT
+                        }
+                    />
+                    {lockedAlignmentId === track.id && (
+                        <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
+                    )}
+                    <span>
+                        <LocationTrackTypeLabel type={track.type} />
+                    </span>
+                </SelectionCandidate>
+            );
+        })}
+    </CandidatesList>
+);
 
 export type ReferenceLineCandidate = {
     referenceLine: LayoutReferenceLine;
@@ -137,36 +145,31 @@ export const ReferenceLineCandidates: React.FC<ReferenceLineCandidatesProps> = (
     isLoading,
     emptyMessage,
     onSelect,
-}) => {
-    const setRef = useScrollSelectedIntoView<ReferenceLineId>(selectedId);
-
-    return (
-        <CandidatesList
-            isLoading={isLoading}
-            isEmpty={candidates.length === 0}
-            emptyMessage={emptyMessage}>
-            {candidates.map(({ referenceLine, trackNumber }) => {
-                const isSelected = referenceLine.id === selectedId;
-                return (
-                    <li
-                        key={referenceLine.id}
-                        ref={setRef(referenceLine.id)}
-                        className={styles['geometry-alignment-infobox__alignment']}
-                        onClick={() => onSelect(referenceLine.trackNumberId)}>
-                        <TrackNumberBadge
-                            trackNumber={trackNumber}
-                            status={
-                                isSelected
-                                    ? TrackNumberBadgeStatus.SELECTED
-                                    : TrackNumberBadgeStatus.DEFAULT
-                            }
-                        />
-                        {lockedAlignmentId === referenceLine.id && (
-                            <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
-                        )}
-                    </li>
-                );
-            })}
-        </CandidatesList>
-    );
-};
+}) => (
+    <CandidatesList
+        isLoading={isLoading}
+        isEmpty={candidates.length === 0}
+        emptyMessage={emptyMessage}>
+        {candidates.map(({ referenceLine, trackNumber }) => {
+            const isSelected = referenceLine.id === selectedId;
+            return (
+                <SelectionCandidate
+                    key={referenceLine.id}
+                    isSelected={isSelected}
+                    onClick={() => onSelect(referenceLine.trackNumberId)}>
+                    <TrackNumberBadge
+                        trackNumber={trackNumber}
+                        status={
+                            isSelected
+                                ? TrackNumberBadgeStatus.SELECTED
+                                : TrackNumberBadgeStatus.DEFAULT
+                        }
+                    />
+                    {lockedAlignmentId === referenceLine.id && (
+                        <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
+                    )}
+                </SelectionCandidate>
+            );
+        })}
+    </CandidatesList>
+);
