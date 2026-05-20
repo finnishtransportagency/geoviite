@@ -78,7 +78,7 @@
             "geocoding-failed": "Jakamista ei voitu suorittaa, koska jaettavan raiteen {{trackName}} geokoodaus epäonnistui",
             "new-duplicate-reference-assignment-failed": "Jakamista ei voitu suorittaa, koska käyttämättömälle duplikaattiraiteelle {{duplicate}} ei löydetty päällekkäisyyttä jakamisen seurauksena syntyvistä raiteista",
             "partial-revert": "Raiteen jakamista ei voi peruuttaa osittain",
-            "switches-in-unpublished-split": "Jaettavan raiteen vaihteita on osana muita julkaisemattomia raiteen jakamisiskokonaisuuksia"
+            "switches-in-unpublished-split": "Jaettavan raiteen vaihteita on osana muita julkaisemattomia raiteen jakamiskokonaisuuksia"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",
