@@ -301,6 +301,9 @@ fun validateKmPostNumberDuplication(
 fun validateSwitchLocation(switch: LayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) { "$VALIDATION_SWITCH.no-location" })
 
+fun validateSwitchNameParts(switch: LayoutSwitch): List<LayoutValidationIssue> =
+    listOfNotNull(validate(switch.nameParts != null, WARNING) { "$VALIDATION_SWITCH.unshortenable-name" })
+
 fun validateSwitchJointConnectionsOnDuplicateTracks(
     switch: LayoutSwitch,
     jointConnections: List<LayoutSwitchJointConnection>,
@@ -308,30 +311,29 @@ fun validateSwitchJointConnectionsOnDuplicateTracks(
 ): List<LayoutValidationIssue> {
     val trackById = tracks.associateBy { track -> track.id as IntId }
 
-    val differingJointsOnDuplicateTracks =
-        jointConnections.flatMap { jointConnection ->
-            jointConnection.accurateMatches.flatMap { match ->
-                val duplicateTrackMatches =
-                    jointConnection.accurateMatches.filter { otherMatch ->
-                        trackById[otherMatch.locationTrackId]?.duplicateOf == match.locationTrackId
-                    }
-                duplicateTrackMatches.mapNotNull { duplicateMatch ->
-                    if (!match.location.isSame(duplicateMatch.location, 0.0001)) {
-                        val track =
-                            requireNotNull(trackById[match.locationTrackId]) {
-                                "Location track ${match.locationTrackId} not found in given tracks"
-                            }
-                        val duplicateTrack =
-                            requireNotNull(trackById[duplicateMatch.locationTrackId]) {
-                                "Duplicate location track ${duplicateMatch.locationTrackId} not found in given tracks"
-                            }
-                        (track to duplicateTrack) to jointConnection.number
-                    } else {
-                        null
-                    }
+    val differingJointsOnDuplicateTracks = jointConnections.flatMap { jointConnection ->
+        jointConnection.accurateMatches.flatMap { match ->
+            val duplicateTrackMatches =
+                jointConnection.accurateMatches.filter { otherMatch ->
+                    trackById[otherMatch.locationTrackId]?.duplicateOf == match.locationTrackId
+                }
+            duplicateTrackMatches.mapNotNull { duplicateMatch ->
+                if (!match.location.isSame(duplicateMatch.location, 0.0001)) {
+                    val track =
+                        requireNotNull(trackById[match.locationTrackId]) {
+                            "Location track ${match.locationTrackId} not found in given tracks"
+                        }
+                    val duplicateTrack =
+                        requireNotNull(trackById[duplicateMatch.locationTrackId]) {
+                            "Duplicate location track ${duplicateMatch.locationTrackId} not found in given tracks"
+                        }
+                    (track to duplicateTrack) to jointConnection.number
+                } else {
+                    null
                 }
             }
         }
+    }
 
     val validationIssues =
         differingJointsOnDuplicateTracks
@@ -512,27 +514,25 @@ fun validateSwitchLocationTrackLinkStructure(
     locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<LayoutValidationIssue> {
     if (!switch.exists) return emptyList()
-    val indexedLinks =
-        locationTracksAndGeometries.mapNotNull { (track, geometry) ->
-            geometry
-                .takeIf { track.exists }
-                ?.let { geom ->
-                    geom.trackSwitchLinks
-                        .mapIndexed { index, link -> index to link }
-                        .filter { (_, link) -> link.switchId == switch.id }
-                }
-                ?.takeIf { links -> links.isNotEmpty() }
-                ?.let { links -> track to links }
-        }
+    val indexedLinks = locationTracksAndGeometries.mapNotNull { (track, geometry) ->
+        geometry
+            .takeIf { track.exists }
+            ?.let { geom ->
+                geom.trackSwitchLinks
+                    .mapIndexed { index, link -> index to link }
+                    .filter { (_, link) -> link.switchId == switch.id }
+            }
+            ?.takeIf { links -> links.isNotEmpty() }
+            ?.let { links -> track to links }
+    }
     val trackLinks = indexedLinks.map { (track, links) -> track to links.map { (_, link) -> link } }
-    val tracksWithPartialSwitchEdges =
-        locationTracksAndGeometries.mapNotNull { (track, geometry) ->
-            track.name.takeIf {
-                geometry.edges.any { edge ->
-                    edge.containsSwitch(switch.id as IntId) && getEdgePartialSwitchIds(edge).contains(switch.id)
-                }
+    val tracksWithPartialSwitchEdges = locationTracksAndGeometries.mapNotNull { (track, geometry) ->
+        track.name.takeIf {
+            geometry.edges.any { edge ->
+                edge.containsSwitch(switch.id as IntId) && getEdgePartialSwitchIds(edge).contains(switch.id)
             }
         }
+    }
 
     val structureJoints = collectJoints(structure)
 
@@ -675,17 +675,16 @@ private fun tracksWithOutsideConnection(
     switchId: IntId<LayoutSwitch>,
     jointNumber: JointNumber,
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-): List<LocationTrack> =
-    tracks.mapNotNull { (track, geometry) ->
-        track.takeIf {
-            geometry.nodes.isNotEmpty() &&
-                (geometry.startNode?.switchOut?.matches(switchId, jointNumber) ?: false ||
-                    geometry.endNode?.switchOut?.matches(switchId, jointNumber) ?: false ||
-                    geometry.nodes.subList(1, geometry.nodes.lastIndex).any { node ->
-                        node.containsJoint(switchId, jointNumber)
-                    })
-        }
+): List<LocationTrack> = tracks.mapNotNull { (track, geometry) ->
+    track.takeIf {
+        geometry.nodes.isNotEmpty() &&
+            (geometry.startNode?.switchOut?.matches(switchId, jointNumber) ?: false ||
+                geometry.endNode?.switchOut?.matches(switchId, jointNumber) ?: false ||
+                geometry.nodes.subList(1, geometry.nodes.lastIndex).any { node ->
+                    node.containsJoint(switchId, jointNumber)
+                })
     }
+}
 
 private fun summarizeSwitchAlignmentLocationTrackLinks(
     links: List<Pair<LocationTrack, SwitchStructureAlignment>>
@@ -707,24 +706,21 @@ fun validateSwitchAlignmentTopology(
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
     val structureAlignmentsToCheck = switchConnectivity(switchStructure).alignments.filter { !it.isSplittable }
-    val qualitiesToValidate =
-        structureAlignmentsToCheck.map { alignment ->
-            alignmentLinkingQuality(switchId, alignment, locationTracksAndGeometries)
-        }
-    val switchHasTopologicalConnections =
-        locationTracksAndGeometries.any { (_, geom) ->
-            geom.outerStartSwitch?.id == switchId || geom.outerEndSwitch?.id == switchId
-        }
+    val qualitiesToValidate = structureAlignmentsToCheck.map { alignment ->
+        alignmentLinkingQuality(switchId, alignment, locationTracksAndGeometries)
+    }
+    val switchHasTopologicalConnections = locationTracksAndGeometries.any { (_, geom) ->
+        geom.outerStartSwitch?.id == switchId || geom.outerEndSwitch?.id == switchId
+    }
 
     val notLinked = qualitiesToValidate.filter { !it.hasSomethingLinked() }
     val linkedOnlyToDuplicates =
         qualitiesToValidate
             .filter { it.nonDuplicateTracks.isEmpty() }
             .flatMap { alignment -> alignment.duplicateTracks.map { dup -> dup to alignment.originalAlignment } }
-    val linkedPartially =
-        qualitiesToValidate.flatMap { alignment ->
-            alignment.partiallyLinked.map { part -> part to alignment.originalAlignment }
-        }
+    val linkedPartially = qualitiesToValidate.flatMap { alignment ->
+        alignment.partiallyLinked.map { part -> part to alignment.originalAlignment }
+    }
     val linkedMultiply =
         qualitiesToValidate
             .filter { it.nonDuplicateTracks.size > 1 }
@@ -1215,7 +1211,9 @@ private fun nodeAndJointLocationsAgree(switch: LayoutSwitch, trackLinks: List<Tr
         }
 
 private fun trackJointGroupFound(trackJoints: List<JointNumber>, structureJointGroups: List<List<JointNumber>>) =
-    structureJointGroups.any { structureJoints -> jointGroupMatches(trackJoints, structureJoints) }
+    structureJointGroups.any { structureJoints ->
+        jointGroupMatches(trackJoints, structureJoints)
+    }
 
 private fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false
@@ -1316,8 +1314,9 @@ private fun relateIssuesTo(
     issues: List<LayoutValidationIssue>,
     switches: List<DomainId<LayoutSwitch>> = listOf(),
     locationTracks: List<DomainId<LocationTrack>> = listOf(),
-): List<LayoutValidationIssue> =
-    issues.map { issue -> issue.copy(inRelationTo = relateTo(switches = switches, locationTracks = locationTracks)) }
+): List<LayoutValidationIssue> = issues.map { issue ->
+    issue.copy(inRelationTo = relateTo(switches = switches, locationTracks = locationTracks))
+}
 
 private fun validateReferenceFromByTrackNumber(
     keyPrefix: String,
