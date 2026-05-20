@@ -428,3 +428,17 @@ export async function getLocationTrackLinkingSummary(
             ),
     );
 }
+
+const elementsPreventingPlanAlignmentLinkingCache = asyncCache<string, string[] | undefined>();
+
+export async function checkElementsPreventingPlanAlignmentLinking(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+): Promise<string[] | undefined> {
+    const key = `${planId}_${alignmentId}`;
+    return elementsPreventingPlanAlignmentLinkingCache.get(getChangeTimes().geometryPlan, key, () =>
+        getNullable(
+            `${GEOMETRY_URI}/plans/${planId}/alignments/${alignmentId}/elements-preventing-linking`,
+        ),
+    );
+}

@@ -65,6 +65,7 @@ import { EDIT_LAYOUT } from 'user/user-model';
 import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { LocalizationKey } from 'infra-model/infra-model-slice';
+import { checkElementsPreventingPlanAlignmentLinking } from 'geometry/geometry-api';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -232,6 +233,11 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         selectedLayoutLocationTrack?.id,
         layoutContext,
         changeTimes,
+    );
+
+    const elementsPreventingPlanAlignmentLinking = useLoader(
+        () => checkElementsPreventingPlanAlignmentLinking(planId, geometryAlignment.id),
+        [planId, geometryAlignment.id],
     );
 
     const canLink =
@@ -450,9 +456,28 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
                     {linkingState === undefined && (
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                            {layoutContext.publicationState === 'DRAFT' &&
+                                elementsPreventingPlanAlignmentLinking !== undefined &&
+                                elementsPreventingPlanAlignmentLinking.length > 0 && (
+                                    <MessageBox>
+                                        {t(
+                                            'tool-panel.alignment.geometry.elements-prevent-plan-linking',
+                                            {
+                                                elementNames:
+                                                    elementsPreventingPlanAlignmentLinking.join(
+                                                        ', ',
+                                                    ),
+                                            },
+                                        )}
+                                    </MessageBox>
+                                )}
                             <InfoboxButtons>
                                 <Button
-                                    disabled={layoutContext.publicationState !== 'DRAFT'}
+                                    disabled={
+                                        layoutContext.publicationState !== 'DRAFT' ||
+                                        elementsPreventingPlanAlignmentLinking === undefined ||
+                                        elementsPreventingPlanAlignmentLinking.length > 0
+                                    }
                                     title={
                                         layoutContext.publicationState === 'OFFICIAL'
                                             ? t(
