@@ -485,6 +485,8 @@ constructor(
                 validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
             }
 
+            val nameIssues = validateSwitchNameParts(switch)
+
             val duplicationIssues =
                 validateSwitchNameDuplication(
                     switch,
@@ -498,7 +500,8 @@ constructor(
                         switchDao.get(row.context, row.id)
                     },
                 )
-            return incomingReferencesIssues +
+            return nameIssues +
+                incomingReferencesIssues +
                 outgoingReferencesIssues +
                 structureIssues +
                 duplicationIssues +
