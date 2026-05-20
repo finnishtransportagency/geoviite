@@ -523,7 +523,10 @@ class LocationTrackService(
                                 ?.getAddress(location)
                                 ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
                                 ?.first,
-                            partOfUnfinishedSplit = allUnfinishedSplits.any { split -> split.containsSwitch(switchId) },
+                            partOfUnfinishedSplit =
+                                allUnfinishedSplits
+                                    .filter { split -> split.publicationId == null }
+                                    .any { split -> split.containsSwitch(switchId) },
                         )
                     }
                     .values
