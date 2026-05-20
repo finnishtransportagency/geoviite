@@ -72,6 +72,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -85,7 +86,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1711,11 +1711,13 @@ constructor(
         val trackNumber = designOfficialContext.save(trackNumber()).id
         val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
         designOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry).id
+
+        val switchName = "TST V0001"
         val switch =
             designOfficialContext
                 .save(
                     switch(
-                        name = "some switch",
+                        name = switchName,
                         joints =
                             listOf(
                                 LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 0.0), null),
@@ -1794,7 +1796,7 @@ constructor(
                     localizationKey =
                         LocalizationKey.of("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
                     type = LayoutValidationIssueType.WARNING,
-                    params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
+                    params = LocalizationParams(mapOf("switch" to switchName, "alignments" to "1-3")),
                     inRelationTo = setOf(PublicationLogAsset(switch, PublicationLogAssetType.SWITCH)),
                 )
             ),
@@ -1808,7 +1810,7 @@ constructor(
                         "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
                     ),
                 type = LayoutValidationIssueType.WARNING,
-                params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
+                params = LocalizationParams(mapOf("switch" to switchName, "alignments" to "1-3")),
                 inRelationTo =
                     setOf(
                         PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),
@@ -1824,7 +1826,7 @@ constructor(
                             "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
                         ),
                     type = LayoutValidationIssueType.WARNING,
-                    params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
+                    params = LocalizationParams(mapOf("switch" to switchName, "alignments" to "1-3")),
                     inRelationTo =
                         setOf(
                             PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),

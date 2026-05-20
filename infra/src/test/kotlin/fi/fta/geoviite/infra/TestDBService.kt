@@ -193,6 +193,7 @@ class TestDBService(
                     "node_port",
                     "operational_point",
                     "operational_point_version",
+                    "operational_point_external_id",
                 ),
         )
     }

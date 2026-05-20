@@ -947,7 +947,7 @@ private var switchNameCounter = 0
 fun switch(
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id,
     joints: List<LayoutSwitchJoint> = listOf(),
-    name: String = "TV${switchNameCounter++}",
+    name: String = "TST V0${switchNameCounter++}",
     stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
     id: IntId<LayoutSwitch>? = null,
     draft: Boolean = false,
