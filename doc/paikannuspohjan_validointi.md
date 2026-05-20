@@ -126,6 +126,7 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
       ei tarvitse korjata kerralla
 - Raiteen rakenteellinen nimi ja kuvaus ovat eheät, eli nimeämiskaavan vaatimat linkit (esim. päätyvaihteet) on
   määritelty ja valideja tähän käyttöön (parsittavissa)
+    - Kts. [Tietomalli-dokumentin](tietomalli.md) kuvaus sijaintiraiteen dynaamisista nimistä ja kuvauksista
 - Raiteella on ei-tyhjä keskilinjageometria
     - Huom. sisäinen validius oliokohtaisessa validoinnissa varmistaa että ei-tyhjä geometria on jatkuva jne (kts. yllä)
 - Raide on koko matkaltaan geokoodattavissa, eli sille löytyy geokoodauskonteksti jonka avulla voidaan tuottaa kaikki
