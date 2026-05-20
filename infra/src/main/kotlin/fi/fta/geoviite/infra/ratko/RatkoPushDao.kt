@@ -73,15 +73,18 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                     else status
                 end
             where end_time is null
-            returning id
+            returning id, status
             """
                 .trimIndent()
 
         jdbcTemplate.setUser()
-        val updatedPushes = jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }
-        updatedPushes.forEach { pushId ->
-            insertRatkoPushError(pushId, RatkoPushErrorType.INTERNAL, "Stuck operation cleared as FAILED")
-        }
+        val updatedPushes =
+            jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") to rs.getEnum<RatkoPushStatus>("status") }
+        updatedPushes
+            .filter { (_, status) -> status == RatkoPushStatus.FAILED }
+            .forEach { (pushId, _) ->
+                insertRatkoPushError(pushId, RatkoPushErrorType.INTERNAL, "Stuck operation cleared as FAILED")
+            }
         logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes)
     }
 

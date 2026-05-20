@@ -12,7 +12,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { useEnvironmentInfo } from 'environment/environment-info';
-import { officialMainLayoutContext } from 'common/common-model';
+import { LayoutBranch, officialContext } from 'common/common-model';
 
 type RatkoPushErrorDetailsProps = {
     error: RatkoPushError | undefined;
@@ -32,8 +32,8 @@ const assetTranslationKeyByType = (assetType: RatkoAssetType) => {
     }
 };
 
-function useAssetName(assetRef: RatkoAssetRef | undefined): string | undefined {
-    const context = officialMainLayoutContext();
+function useAssetName(assetRef: RatkoAssetRef, branch: LayoutBranch): string | undefined {
+    const context = officialContext(branch);
     const locationTrack = useLocationTrack(
         assetRef?.type === RatkoAssetType.LOCATION_TRACK ? assetRef.id : undefined,
         context,
@@ -47,8 +47,9 @@ function useAssetName(assetRef: RatkoAssetRef | undefined): string | undefined {
         context,
     );
 
-    if (!assetRef) return undefined;
-    switch (assetRef.type) {
+    switch (assetRef?.type) {
+        case undefined:
+            return undefined;
         case RatkoAssetType.LOCATION_TRACK:
             return locationTrack?.name;
         case RatkoAssetType.SWITCH:
@@ -61,8 +62,10 @@ function useAssetName(assetRef: RatkoAssetRef | undefined): string | undefined {
 }
 
 function formatAssetLabel(name: string | undefined, oid: string | undefined): string | undefined {
-    if (name === undefined) return undefined;
-    return oid ? `${name}, OID ${oid}` : name;
+    if (name === undefined && oid === undefined) return undefined;
+    else if (name === undefined) return `OID ${oid}`;
+    else if (oid === undefined) return name;
+    else return `${name}, OID ${oid}`;
 }
 
 export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
@@ -72,17 +75,19 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     const { t } = useTranslation();
     const environmentInfo = useEnvironmentInfo();
 
-    const design = useLayoutDesign(
-        getChangeTimes().layoutDesign,
-        failedPublication?.layoutBranch.branch ?? 'MAIN',
-    )?.name;
+    const branch = failedPublication?.layoutBranch.branch ?? 'MAIN';
+    const design = useLayoutDesign(getChangeTimes().layoutDesign, branch)?.name;
 
     const errorAsset = error && isAssetError(error) ? error : undefined;
-    const assetName = useAssetName(errorAsset?.assetRef);
+    const assetName = errorAsset ? useAssetName(errorAsset.assetRef, branch) : undefined;
     const assetLabel = formatAssetLabel(assetName, errorAsset?.assetRef.oid);
 
     if (!error) {
-        return <div className={styles['ratko-push-error']}>Ratkovienti epäonnistui</div>;
+        return (
+            <div className={styles['ratko-push-error']}>
+                {t('publication-card.push-error.general-error')}
+            </div>
+        );
     }
 
     const isConnectionIssue = failedPublication?.ratkoPushStatus === 'CONNECTION_ISSUE';
