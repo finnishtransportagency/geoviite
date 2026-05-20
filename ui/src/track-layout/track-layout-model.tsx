@@ -367,6 +367,7 @@ export type LocationTrackInfoboxSwitch = {
     switchId: LayoutSwitchId;
     location: Point;
     displayAddress?: TrackMeter;
+    partOfUnfinishedSplit: boolean;
 };
 
 export type LocationTrackInfoboxOperationalPoint = {

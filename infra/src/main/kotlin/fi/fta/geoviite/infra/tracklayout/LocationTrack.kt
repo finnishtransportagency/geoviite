@@ -310,6 +310,7 @@ data class LocationTrackInfoboxSwitch(
     val switchId: IntId<LayoutSwitch>,
     val location: Point,
     val displayAddress: TrackMeter?,
+    val partOfUnfinishedSplit: Boolean,
 )
 
 data class LocationTrackInfoboxOperationalPoint(

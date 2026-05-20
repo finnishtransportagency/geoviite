@@ -1271,6 +1271,79 @@ constructor(
         }
     }
 
+    @Test
+    fun `getInfoboxExtras sets partOfUnfinishedSplit for switches in unfinished splits`() {
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+
+        val point1 = Point(0.0, 0.0)
+        val point2 = Point(10.0, 0.0)
+
+        val switchId =
+            mainOfficialContext.createSwitch(joints = listOf(switchJoint(1, point1), switchJoint(2, point2))).id
+
+        val trackVersion =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometry(
+                    edge(
+                        listOf(segment(point1, point2)),
+                        startInnerSwitch = switchLinkYV(switchId, 1),
+                    )
+                ),
+            )
+
+        // Before any split, switch should not be part of unfinished split
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, trackVersion.id).also { extras ->
+            assertNotNull(extras)
+            val s = extras!!.switches.find { it.switchId == switchId }
+            assertNotNull(s)
+            assertFalse(s!!.partOfUnfinishedSplit)
+        }
+
+        // Create a different location track and an unfinished split for it, with the switch as relinked
+        val otherTrackVersion = mainOfficialContext.save(
+            locationTrack(trackNumberId),
+            trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+        )
+        val targetTrackVersion = mainDraftContext.save(
+            locationTrack(trackNumberId),
+            trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+        )
+
+        val splitId = splitDao.saveSplit(
+            otherTrackVersion,
+            listOf(
+                fi.fta.geoviite.infra.split.SplitTarget(
+                    targetTrackVersion.id,
+                    0..0,
+                    fi.fta.geoviite.infra.split.SplitTargetOperation.CREATE,
+                )
+            ),
+            listOf(switchId),
+            updatedDuplicates = emptyList(),
+        )
+
+        // After split, switch should be part of unfinished split (on a different track)
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, trackVersion.id).also { extras ->
+            assertNotNull(extras)
+            val s = extras!!.switches.find { it.switchId == switchId }
+            assertNotNull(s)
+            assertTrue(s!!.partOfUnfinishedSplit)
+        }
+
+        // Publish the split target and mark split as finished (simulates full publish + bulk transfer)
+        publish(targetTrackVersion.id)
+        splitDao.updateSplit(splitId, bulkTransferState = fi.fta.geoviite.infra.split.BulkTransferState.DONE)
+
+        // After split is finished, switch should no longer be part of unfinished split
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, trackVersion.id).also { extras ->
+            assertNotNull(extras)
+            val s = extras!!.switches.find { it.switchId == switchId }
+            assertNotNull(s)
+            assertFalse(s!!.partOfUnfinishedSplit)
+        }
+    }
+
     private fun updateDraft(
         id: IntId<LocationTrack>,
         op: (LocationTrack, LocationTrackGeometry) -> Pair<LocationTrack, LocationTrackGeometry>,

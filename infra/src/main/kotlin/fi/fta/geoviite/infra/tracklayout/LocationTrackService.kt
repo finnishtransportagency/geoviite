@@ -500,8 +500,8 @@ class LocationTrackService(
             val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
-            val unfinishedSplits =
-                splitDao.getUnfinishedSplitsContainingLocationTracks(layoutContext.branch, listOf(id))
+            val allUnfinishedSplits = splitDao.fetchUnfinishedSplits(layoutContext.branch)
+            val unfinishedSplits = allUnfinishedSplits.filter { split -> split.containsLocationTrack(id) }
 
             val partOfSplit =
                 when {
@@ -514,15 +514,16 @@ class LocationTrackService(
             val switches =
                 geometry.trackSwitchLinks
                     .groupBy { link -> link.switchId }
-                    .mapValues { (id, links) ->
+                    .mapValues { (switchId, links) ->
                         val location = links.minBy { it.jointRole }.location.toPoint()
                         LocationTrackInfoboxSwitch(
-                            id,
+                            switchId,
                             location,
                             geocodingContext
                                 ?.getAddress(location)
                                 ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
                                 ?.first,
+                            partOfUnfinishedSplit = allUnfinishedSplits.any { split -> split.containsSwitch(switchId) },
                         )
                     }
                     .values
