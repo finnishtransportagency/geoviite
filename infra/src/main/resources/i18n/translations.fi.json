@@ -1880,7 +1880,7 @@
                     "deleted": "Vaihde viittaa poistettuun toiminnalliseen pisteeseen {{target}}"
                 },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
-                "unshortenable-name": "Vaihteen {{switchName}} nimi ei ole määrämuotoinen, eikä sitä voida käyttää sijaintiraidetunnuksissa tai raiteiden kuvauksissa",
+                "unshortenable-name": "Vaihteen nimi ei ole määrämuotoinen, eikä sitä voida käyttää sijaintiraidetunnuksissa tai raiteiden kuvauksissa",
                 "duplicate-track-locations-differ": "Vaihteella {{switchName}} linjaraiteen ja duplikaattiraiteen pistesijainnit poikkeavat toisistaan, {{trackName}}, {{duplicateTrackName}}, pisteet {{jointNumbers}} ",
                 "location-track": {
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
