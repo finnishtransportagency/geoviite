@@ -29,12 +29,14 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
+import fi.fta.geoviite.infra.error.SplitFailureException
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -432,6 +434,95 @@ constructor(
             splitResult.targetLocationTracks[3].locationTrackId,
             unusedDuplicateWithFlippedPartialOverlap.duplicateOf,
         )
+    }
+
+    @Test
+    fun `split should fail when a switch is already part of an unpublished split`() {
+        val preEdge = verticalEdge(Point(0.0, 0.0), 3)
+
+        val (switch1, straightEdges1, turningEdges1) =
+            splitTestDataService.createSwitchAndGeometry(preEdge.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges1))
+
+        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
+
+        val (switch2, straightEdges2, turningEdges2) =
+            splitTestDataService.createSwitchAndGeometry(edge1To2.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges2))
+
+        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
+        val track =
+            mainOfficialContext.createLocationTrackWithReferenceLine(
+                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
+            )
+
+        // Create an existing unpublished split that contains switch1
+        val otherTrack = mainOfficialContext.save(
+            locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+            trackGeometryOfSegments(segment(Point(200.0, 0.0), Point(210.0, 0.0))),
+        )
+        splitDao.saveSplit(
+            otherTrack,
+            listOf(SplitTarget(otherTrack.id, 0..0, SplitTargetOperation.CREATE)),
+            listOf(switch1.id),
+            updatedDuplicates = emptyList(),
+        )
+
+        // Splitting the track should fail because switch1 is in an existing unpublished split
+        val request = splitRequest(
+            track.id,
+            targetRequest(null, "part1"),
+            targetRequest(switch1.id, "part2"),
+            targetRequest(switch2.id, "part3"),
+        )
+        assertThrows<SplitFailureException> {
+            splitService.split(LayoutBranch.main, request)
+        }
+    }
+
+    @Test
+    fun `split should succeed when a switch is part of an already published split`() {
+        val preEdge = verticalEdge(Point(0.0, 0.0), 3)
+
+        val (switch1, straightEdges1, turningEdges1) =
+            splitTestDataService.createSwitchAndGeometry(preEdge.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges1))
+
+        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
+
+        val (switch2, straightEdges2, turningEdges2) =
+            splitTestDataService.createSwitchAndGeometry(edge1To2.lastSegmentEnd)
+        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges2))
+
+        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
+        val track =
+            mainOfficialContext.createLocationTrackWithReferenceLine(
+                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
+            )
+
+        // Create an existing split that contains switch1, but mark it as published
+        val otherTrack = mainOfficialContext.save(
+            locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+            trackGeometryOfSegments(segment(Point(200.0, 0.0), Point(210.0, 0.0))),
+        )
+        val existingSplitId = splitDao.saveSplit(
+            otherTrack,
+            listOf(SplitTarget(otherTrack.id, 0..0, SplitTargetOperation.CREATE)),
+            listOf(switch1.id),
+            updatedDuplicates = emptyList(),
+        )
+        val publicationId = testDBService.createPublication()
+        splitDao.updateSplit(existingSplitId, publicationId = publicationId, sourceTrackVersion = otherTrack)
+
+        // Splitting should succeed because the existing split is already published
+        val request = splitRequest(
+            track.id,
+            targetRequest(null, "part1"),
+            targetRequest(switch1.id, "part2"),
+            targetRequest(switch2.id, "part3"),
+        )
+        val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
+        assertSplitMatchesRequest(request, result)
     }
 
     private fun getYvStructure(): SwitchStructure =

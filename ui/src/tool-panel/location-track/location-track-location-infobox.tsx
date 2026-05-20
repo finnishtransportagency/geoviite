@@ -172,6 +172,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     );
     const startAndEndAddressDefined =
         startAndEndPoints?.start?.address && startAndEndPoints?.end?.address;
+    const anySwitchesPartOfOtherSplits = extraInfo?.switches?.some(
+        (sw) => sw.partOfUnfinishedSplit,
+    );
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
@@ -212,6 +215,11 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         if (!startAndEndAddressDefined) {
             reasons.push(
                 t('tool-panel.location-track.splitting.validation.unresolved-start-or-end-address'),
+            );
+        }
+        if (anySwitchesPartOfOtherSplits) {
+            reasons.push(
+                t('tool-panel.location-track.splitting.validation.switches-part-of-other-splits'),
             );
         }
 
@@ -384,6 +392,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         isPartOfUnfinishedSplit(extraInfo?.partOfSplit) ||
         startingSplitting ||
         !startAndEndAddressDefined ||
+        anySwitchesPartOfOtherSplits ||
         layoutContext.branch !== 'MAIN';
 
     return (
