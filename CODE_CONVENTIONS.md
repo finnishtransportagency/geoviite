@@ -66,9 +66,11 @@
     - A path targets a resource, not an action
         - A resource is most often a domain object, or a collection of them (even "all of them")
         - A resource can also be an attribute of an object
-        - It can make sense to to invent a virtual resource, like "validity" or "linking" that doesn't exist in the domain model as such
+        - It can make sense to to invent a virtual resource, like "validity" or "linking" that doesn't exist in the
+          domain model as such
         - Likewise, collections can be virtual, thought of like views
-    - When targeting a collection, query parameters can be used to filter it, if it doesn't make sense to invent a new collection resource
+    - When targeting a collection, query parameters can be used to filter it, if it doesn't make sense to invent a new
+      collection resource
 
 ### Service
 
@@ -104,9 +106,31 @@
 - Create own package for each domain area
 - Domain concepts described in X-model.ts
 - Redux store contains domain model objects, in X-store.ts
+- Most promise errors are handled in a generic way in api-fetch.ts -- if you only need a toast, you don't need to handle
+  it in the component
+    - See doc/virhekasittely.md for more details
+
+### Calling the backend API
+
 - API calls are always abstracted behind functions in X-api.ts, not used directly from the components
-- Most promise errors are handled in a generic way in api-fetch.ts -- if you only need a toast, you don't need to handle it in the component
-  - See doc/virhekasittely.md for more details
+- Results should be cached in the API functions using `asyncCache`
+- Invalidate caches using change times
+- Use `useLoader` and its variants in actual React components
+    - Data can be fetched in any component, just make sure there is a cache for it
+    - There are certain asset-specific variants already (e.g. `useLocationTrack()`, `useSwitch()`, `useTrackNumber()`
+      etc.)
+    - Use `useLoaderWithStatus` if you need to indicate that a fetch is running
+- Actual request plumbing is in `api-fetch.ts`
+    - Prefer using the non-ADT versions of fetch functions if possible (e.g. use `putNonNull()` instead of
+      `putNonNullAdt()`)
+
+### Using OpenLayers with React
+
+- Only one instance of the map should ever be created. It's saved to `window.map` and can be accessed from there
+- Layers are reused whenever possible
+- Map tools are handled using OpenLayers interactions
+    - **Note:** Some Interactions (i.e. `Modify`) have their own internal state that cannot be accessed from the
+      outside. The instances of these kinds of interactions should be reused whenever possible
 
 ## Code Style
 
@@ -167,6 +191,11 @@
 - Favor immutable objects, especially Kotlin data classes
 - Composition can typically do whatever inheritance can... with reduced headache
 - Favor pure functions (outside service objects) for more complex logic
+- Don't use the `value!!` outside of tests, there are multiple better alternatives:
+    - If you know something exists in the database, fetch it using `getOrThrow`-style functions instead of `get`
+    - Use `requireNotNull()` with a descriptive error message
+    - Use `value?.let { }` if it's ok for the value to be null
+    - `value!!` is OK in tests
 - Kotlin external functions are useful for expanding library APIs like JDBC and ResultSet: place these in a clearly
   named separate file, e.g. `ResultSetExternal.kt`
 - Consider if using `let`, `map`, `takeIf` etc. chains would be cleaner than local variables or if-structures
@@ -175,34 +204,34 @@
   connection pool is limited and thread context carries user information needed for database logging.
 - You can use `also` -blocks to group side-effecting code like assertions in tests without needing variables that are
   visible to the entire test
-  - For example, the current codebase has plenty of code like this:
-    ```kotlin
-    @Test
-    fun `should do the thing`() {
-        val result = doTheThing()
-        assertEquals(expectedValue, result.value)
-        assertTrue(result.isValid)
-        val result2 = doTheOtherThing()
-        // If we use "result" again here by accident, we're asserting something wrong
-        assertEquals(expectedValue, result2.value)
-        assertTrue(result2.isValid)
-    }
-    ```
-  - The same could be done like this, with tighter scoping and no need for numbered variables:
-    ```kotlin
-    @Test
-    fun `should do the thing`() {
-        doTheThing().also { result ->
-            assertEquals(expectedValue, result.value)
-            assertTrue(result.isValid)
-        }
-        doTheOtherThing().also { result ->
-            // Now we can just reuse the name "result" as it's scoped.
-            assertEquals(expectedValue, result.value)
-            assertTrue(result.isValid)
-        }
-    }
-    ```
+    - For example, the current codebase has plenty of code like this:
+      ```kotlin
+      @Test
+      fun `should do the thing`() {
+          val result = doTheThing()
+          assertEquals(expectedValue, result.value)
+          assertTrue(result.isValid)
+          val result2 = doTheOtherThing()
+          // If we use "result" again here by accident, we're asserting something wrong
+          assertEquals(expectedValue, result2.value)
+          assertTrue(result2.isValid)
+      }
+      ```
+    - The same could be done like this, with tighter scoping and no need for numbered variables:
+      ```kotlin
+      @Test
+      fun `should do the thing`() {
+          doTheThing().also { result ->
+              assertEquals(expectedValue, result.value)
+              assertTrue(result.isValid)
+          }
+          doTheOtherThing().also { result ->
+              // Now we can just reuse the name "result" as it's scoped.
+              assertEquals(expectedValue, result.value)
+              assertTrue(result.isValid)
+          }
+      }
+      ```
 
 #### Tests
 
@@ -218,7 +247,15 @@
     - Test SQL with these -- don't mock the DB
 - E2E tests are written in files ending `UI.kt`
     - Just like IT-tests, you can use the full Spring context, particularly for initializing data
+    - Prefer fetching elements using `qa-id` attributes whenever possible
     - Use Selenium for manipulating the browser
+        - **Do not, however,** fetch elements using raw Selenium calls. Instead fetch HTML elements using the E2E page
+          model (
+          `E2ETrackLayoutPage.kt`, `E2EButton.kt` etc.) and helper functions defined in `Elements.kt`
+            - Rationale: These handle waiting for elements to appear/disappear and reference staleness internally
+    - Using the map in E2E tests is cumbersome, so only manipulate the map in tests if it's absolutely necessary
+        - Prefer selecting assets via other means such as selection panel
+        - You can use `map-loading-spinner` to check if the map is still loading
 - Kotlin supports spaces in function names with backticks -- favor these in test names for readability:
     - Good:
       ```kotlin
@@ -241,18 +278,56 @@
       assert(actualList.contains("item1"))
       assert(actualList.contains("item2"))
       ```
-    - Rationale: Kotlin's default `equals` for collections provides better error messages showing the actual contents of both lists, making it easier to debug failures
+    - Rationale: Kotlin's default `equals` for collections provides better error messages showing the actual contents of
+      both lists, making it easier to debug failures
 
 ### TypeScript
 
 - Use strong types, not `any`
 - Favor undefined over null in potentially missing values
     - Especially avoid `value | null | undefined`
+- Use `brand()` to make the compiler distinguish between different types that still map to the same actual end-type
+    - E.g. `LocationTrackId` and `LayoutTrackNumberId` are both actually `String` but shouldn't be mixed up
 - Class naming:
     - Domain concepts can be named as-is:
         - Track, Switch, etc.
     - View components should contain some view-related name, so it's not confused with the domain concept:
         - TrackView, SwitchLabel, etc.
+- When working with enums, prefer using switch-case structures with exhaustive matching guards, even if it means
+  creating a small helper function for the guard
+    - Bad:
+      ```
+      let value = undefined;
+      if (myEnum === EnumValue1) {
+          value = handleValue1();
+      } else if (myEnum === EnumValue2) {
+          value = handleValue2();
+      } else {
+          value = undefined;
+      }
+      ```
+    - Also bad:
+        ```
+        const value = myEnum === EnumValue1 ? handleValue1() :
+            myEnum === EnumValue2 ? handleValue2() :
+                undefined
+        ```
+    - Good:
+      ```
+      const handleMyEnum = (myEnum: MyEnum) => {
+          switch (myEnum) {
+              case EnumValue1:
+                  return handleValue1();
+              case EnumValue2:
+                  return handleValue2();
+              default:
+                  return exhaustiveMatchingGuard(myEnum);
+          }
+      }
+      
+      const value = handleMyEnum(myEnum);
+      ```
+    - Rationale: The compiler will warn you if you forget to handle a case when the enum is updated
 
 ### Frontend state (Redux)
 
@@ -269,6 +344,10 @@
     - The objects are anyhow cached, so fetching them again is not a relevant cost
     - If the page gets refreshed, the redux state remains, but cache is cleared: that works better when only IDs are
       stored
+- Persisted slices are defined in `store.ts` and stored in local storage
+- Redux is also used to store certain complex non-persistent UI state (e.g. edit dialogs)
+    - Create a new slice for your use case using `createSlice()`
+    - Initialize and store it in your component using `useReducer()`
 
 ### SQL
 
