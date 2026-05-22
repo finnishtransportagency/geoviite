@@ -728,6 +728,7 @@ fun <T> Change<T?>.ifHasEndState(): Change<T>? = if (new != null) Change(old, ne
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
+    val oid: Change<Oid<LocationTrack>?>,
     val name: Change<AlignmentName>,
     val namingScheme: Change<LocationTrackNamingScheme>,
     val description: Change<FreeText>,
@@ -765,6 +766,7 @@ data class TrackJointChange(
 
 data class OperationalPointChanges(
     val id: IntId<OperationalPoint>,
+    val oid: Change<Oid<OperationalPoint>?>,
     val name: Change<OperationalPointName>,
     val abbreviation: Change<OperationalPointAbbreviation?>,
     val uicCode: Change<UicCode>,
@@ -779,6 +781,7 @@ data class OperationalPointChanges(
 
 data class SwitchChanges(
     val id: IntId<LayoutSwitch>,
+    val oid: Change<Oid<LayoutSwitch>?>,
     val name: Change<SwitchName>,
     val state: Change<LayoutStateCategory>,
     val trapPoint: Change<TrapPoint>,
@@ -851,6 +854,7 @@ data class ReferenceLineChanges(
 
 data class TrackNumberChanges(
     val id: IntId<LayoutTrackNumber>,
+    val oid: Change<Oid<LayoutTrackNumber>?>,
     val trackNumber: Change<TrackNumber>,
     val description: Change<TrackNumberDescription>,
     val state: Change<LayoutState>,
