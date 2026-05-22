@@ -428,6 +428,85 @@ classDiagram
     }
 ```
 
+#### Raiteiden nimien ja kuvausten dynaamisuus
+
+Raiteiden nimet ja kuvaukset voivat muodostua dynaamisesti raiteeseen liittyvien kohteiden tietojen perusteella. Nimeen
+vaikuttavat käsitteet riippuvat käytetystä nimeämisskeemasta ja kuvaus riippuu siitä onko kuvaukselle määritetty
+lisäosaa. Raiteen nimi voi sisältää päätyvaihteiden nimet tai ratanumeron tunnuksen ja kuvaus voi sisältää
+päätyvaihteiden nimet.
+
+Näistä riippuvuuksista johtuen raiteen nimi tai kuvaus voi siis muuttua ilman että raiteeseen itseensä koskettaisiin,
+esimerkiksi jos raiteen päätyvaihteen nimi muuttuu. Tällaisissa tilanteissa raiteesta generoituu automaattisesti
+luonnos, joka pitää julkaista samassa julkaisussa vaihteen/ratanumeron tunnuksen muutoksen kanssa.
+
+##### Nimeämisskeemat
+
+Raiteen nimi muodostuu nimeämisskeeman (UI:lla kenttä "Tunnuksen muoto") mukaisesti. Skeema määrittää nimen rakenteen ja
+sen, mitä osia käyttäjä voi vapaasti muokata ja mitkä tulevat raiteeseen liittyvistä kohteista (ratanumero,
+päätyvaihteet). Nimeämisskeema on pakollinen tieto.
+
+Valittavissa olevat skeemat:
+
+| Suomeksi                        | Syötekenttä(t)                                           | Riippuvuudet         | Esimerkki                 |
+|---------------------------------|----------------------------------------------------------|----------------------|---------------------------|
+| Vapaa teksti                    | Sijaintiraidetunnus (pakollinen)                         | —                    | `006`                     |
+| Liikennepaikan raide            | Sijaintiraidetunnus (pakollinen)                         | —                    | `TPE 002`                 |
+| Ratanumeron raide               | Tarkenne (valinnainen), Liikennepaikkaväli (valinnainen) | ratanumero           | `003 IsR HKI-KE`          |
+| Liikennepaikkojen välinen raide | Tarkenne (valinnainen)                                   | alku- ja loppuvaihde | `PSL V410-OLK V506 (PsR)` |
+| Kujaraide                       | —                                                        | alku- ja loppuvaihde | `TPE V012-V005`           |
+
+Vaihdenimet lyhennetään raiteiden nimissä "Vaihdenimien lyhentäminen nimissä ja kuvauksissa" -kappaleessa kuvatulla
+tavalla. Ratanumerot esitetään raiteiden nimissä sellaisinaan.
+
+**Huom.!** Vapaa teksti -skeema on tarkoitettu lähinnä tukemaan rataverkolla aiemmin olleita outouksia ja
+epäjohdonmukaisuuksia, eikä sen käyttöä uusille raiteille suositella.
+
+##### Kuvausten rakenne
+
+Raiteen kuvaus koostuu perusosasta ja lisäosasta. Perusosa on käyttäjän vapaasti kirjoittama kuvaus. Lisäosa on
+ennaltamäärätty malli, joka lisää perusosan perään vaihdetietoja.
+
+| Suomeksi                       | Riippuvuudet         | Esimerkki                        |
+|--------------------------------|----------------------|----------------------------------|
+| Ei lisäosaa                    | —                    | `Kouvola-Kontiomäki`             |
+| Vaihde alussa – vaihde lopussa | alku- ja loppuvaihde | `Sivuraide V012 - V015`          |
+| Vaihde – Puskin                | yksi päätyvaihde     | `Turvaraide V033 - puskin`       |
+| Vaihde – Omistusraja           | yksi päätyvaihde     | `Huoltoraide V007 - omistusraja` |
+
+Vaihdenimet lyhennetään "Vaihdenimien lyhentäminen nimissä ja kuvauksissa" -kappaleessa kuvatulla tavalla.
+
+##### Vaihdenimien lyhentäminen nimissä ja kuvauksissa
+
+Nimissä ja kuvauksissa ei käytetä vaihteiden koko nimiä, vaan nimi jaetaan osiin ja lyhennetään seuraavasti:
+
+1. Vaihteen koko nimi jaetaan liikennepaikan lyhenteeseen ja vaihteen numeroon. Esim. "TPE V0012" → etuliite "TPE",
+   numero "V0012".
+2. Numeron mahdolliset etunollat poistetaan (jätetään kuitenkin minimissään 3 numeroa): "V0012" → "V012", "V1234" → "
+   V1234".
+3. Jos vaihdenimessä on kaksi vinoviivalla erotettua numeroa (kaksoisvaihde), molemmat lyhennetään: "TPE
+   V0123/V0124" → "TPE V123/124".
+4. Jos vaihteen nimeä ei pystytä parsimaan tähän muotoon, julkaisuvalidointi tuottaa virheen.
+
+**Erikoistapaukset:**
+
+**Kujaraiteiden nimeäminen:** Jos raiteen molempien päiden vaihteet ovat saman liikennepaikan sisällä (esim. TPE V012,
+TPE V005), käytetään nimeämistä `<etuliite> <nro>-<nro>` ("TPE V012-V005"). Jos raiteen päiden vaihteet ovat eri
+liikennepaikoilla (esim. HKI V012, OLK V005), käytetään nimeämistä `<lyhenne>-<lyhenne>` ("HKI V012-OLK V005").
+
+**Vaihteiden nimet kuvauksissa:** Kuvauksissa käytetään vaihteista pelkästään lyhennettyä numero-osaa ilman
+liikennepaikan lyhennettä, esim. "Helsinki Raide: 117 V079 - V058"
+
+##### Nimien ja kuvausten validointi
+
+Valittu nimeämisskeema ja kuvauksen lisäosa vaikuttavat raiteen validointiin. Validointi tarkastaa seuraavat asiat:
+
+- Ovatko päätyvaihteiden nimet parsittavassa muodossa
+- Onko raiteella oikea määrä päätyvaihteita
+    - Jos nimeämisskeema tai kuvauksen lisäosa edellyttää vaihteet molempiin päihin, tarkastetaan että raiteella on
+      oikeasti päätyvaihteet molemmissa päissä
+    - Jos kuvauksen lisäosa edellyttää vain yhden vaihteen, tarkastetaan että raiteella on oikeasti vain yksi
+      päätyvaihde
+
 #### Vaihteiden tietomalli
 
 Vaihteen keskeisimpiä ominaisuustietoja on sen tyyppi. Vaihdetyyppi kuvataan vaihderakenteina (SwitchStructure),

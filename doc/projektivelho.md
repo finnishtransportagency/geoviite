@@ -2,34 +2,38 @@
 
 ## Yleistä
 
-ProjektiVelho-integraatio on tiedostojen käsin uploadaamisen ohella toinen tapa tuoda 
-rata-aineistoja Geoviitteeseen. Tätä tarkoitusta varten on toteutettu integraatio, jossa Geoviite 
-kyselee periodisesti ProjektiVelholta listauksen uusimmista sinne syötetyistä 
-InfraModel-tiedostoista ja suodattaa niistä pois valistuneella arvauksella kaikki 
-ei-rata-aineistot. Koska koneellinen suodatus ei ole pomminvarmaa, haettuja aineistoja ei lisätä 
-käytettäviksi inframalleiksi automaattisesti, vaan ne ainoastaan listataan operaattoreille 
+ProjektiVelho-integraatio on tiedostojen käsin uploadaamisen ohella toinen tapa tuoda
+rata-aineistoja Geoviitteeseen. Tätä tarkoitusta varten on toteutettu integraatio, jossa Geoviite
+kyselee periodisesti ProjektiVelholta listauksen uusimmista sinne syötetyistä
+InfraModel-tiedostoista ja suodattaa niistä pois valistuneella arvauksella kaikki
+ei-rata-aineistot. Koska koneellinen suodatus ei ole pomminvarmaa, haettuja aineistoja ei lisätä
+käytettäviksi inframalleiksi automaattisesti, vaan ne ainoastaan listataan operaattoreille
 manuaalista läpikäyntiä varten. Lopullinen valta aineistojen hyväksymiseen ja hylkäämiseen on aina
-Geoviite-operaattorilla. 
+Geoviite-operaattorilla.
+
+**Huom.!** Projektivelho-integraatio on käännetty pois käytöstä kaikissa ympäristöissä, sillä sitä kautta haettu data ei
+ollut riittävän laadukasta. Jos integraatio halutaan ottaa joskus uudestaan käyttöön, se tulee testata kunnolla, sillä
+Projektivelhoa kehitetään jatkuvasti ja sen rajapinta siten elää jatkuvasti.
 
 ## Tekninen yleiskuvaus
 
-ProjektiVelho-integraatio on pull-tyyppinen integraatio, jossa Geoviite käy periodisesti 
-kyselemässä ProjektiVelholta uusia aineistoja. Haku koostuu kahdesta osasta, jotka on ajastettu 
+ProjektiVelho-integraatio on pull-tyyppinen integraatio, jossa Geoviite käy periodisesti
+kyselemässä ProjektiVelholta uusia aineistoja. Haku koostuu kahdesta osasta, jotka on ajastettu
 bäkkärille erillisinä tausta-ajoina (ajotiheys konfiguroitavissa.) Nämä tausta-ajot ovat:
 
-1. Uusien aineistojen pollaus, jossa projektivelhosta kysellään mitä uusia aineistoja olisi 
-saatavilla (ajetaan harvemmin, esim. muutaman kerran päivässä)
-2. Käynnissä olevan pollauksen seuranta ja aineistohaku, jossa aineistot metatietoineen ladataan 
-Geoviitteeseen (ajetaan useammin, esim. monta kertaa tunnissa)
+1. Uusien aineistojen pollaus, jossa projektivelhosta kysellään mitä uusia aineistoja olisi
+   saatavilla (ajetaan harvemmin, esim. muutaman kerran päivässä)
+2. Käynnissä olevan pollauksen seuranta ja aineistohaku, jossa aineistot metatietoineen ladataan
+   Geoviitteeseen (ajetaan useammin, esim. monta kertaa tunnissa)
 
 Pollaus kysyy ProjektiVelholta viimeistä onnistuneesti tallennettua aineistoa seuraavat N aineistoa
 (defaulttina N=100, mutta N on konfiguroitavissa.) Tämä haku kestää pitkään, joten sen tuloksia ei
 jäädä odottelemaan tässä osassa.
 
-Aineistohaku kyselee käynnissä olevan pollauksen tilan Velholta ja jos se on valmis, niin se 
-suorittaa varsinaisen aineistojen haun ja tallentamisen Geoviitteeseen. Tässä yhteydessä 
-päivitetään myös Geoviitteen käsitys Projektivelhon koodistosta. Kukin aineisto käsitellään 
-yksitellen. Jos käsittely epäonnistuu, niin nostetaan kädet ilmaan. Seuraavalla kierroksella 
+Aineistohaku kyselee käynnissä olevan pollauksen tilan Velholta ja jos se on valmis, niin se
+suorittaa varsinaisen aineistojen haun ja tallentamisen Geoviitteeseen. Tässä yhteydessä
+päivitetään myös Geoviitteen käsitys Projektivelhon koodistosta. Kukin aineisto käsitellään
+yksitellen. Jos käsittely epäonnistuu, niin nostetaan kädet ilmaan. Seuraavalla kierroksella
 aloitetaan uudestaan epäonnistuneesta aineistosta.
 
 Yksityiskohtaisempi sekvenssikaavio aiheesta:
@@ -88,14 +92,14 @@ sequenceDiagram
 
 ## Tietomalli
 
-Geooviitteeseen tallennetaan erikseen Projektivelhosta tuodut dokumentit sekä niihin liittyvät 
-toimeksiannot, projektit ja projektijoukot. Näistä voidaan haluttaessa tuoda tietyt dokumentit 
+Geoviitteeseen tallennetaan erikseen Projektivelhosta tuodut dokumentit sekä niihin liittyvät
+toimeksiannot, projektit ja projektijoukot. Näistä voidaan haluttaessa tuoda tietyt dokumentit
 geoviitteen inframalli-listaukseen erillisenä käyttäjän operaationa.
 
-Geoviitteeseen synkronoidaan tarvittavilta osin myös Projektivelhon nimikkeistöt (Dictionary), 
-joita käytetään sieltä saatujen tietojen tulkitsemiseen. Näitä on mm. materiaalin luokitteluun ja 
-tilaan liittyvät enumeraatiot. Käytännössä ne ovat koodi-nimi pareja, joista koodia käytetään 
-dokumenttien sisällön kuvaamisessa ja nimeä siinä kohtaa kun arvo halutaan esittää 
+Geoviitteeseen synkronoidaan tarvittavilta osin myös Projektivelhon nimikkeistöt (Dictionary),
+joita käytetään sieltä saatujen tietojen tulkitsemiseen. Näitä on mm. materiaalin luokitteluun ja
+tilaan liittyvät enumeraatiot. Käytännössä ne ovat koodi-nimi pareja, joista koodia käytetään
+dokumenttien sisällön kuvaamisessa ja nimeä siinä kohtaa kun arvo halutaan esittää
 käyttöliittymällä.
 
 ```mermaid
@@ -144,19 +148,19 @@ classDiagram
 
 ## Aineistojen metatiedotus (koodisto ja projektihierarkia)
 
-Projektivelhosta tuotavat inframallit sisältävät InfraModel-tiedostojen ulkopuolista metatietoa, 
-josta osa tallennetaan Geoviitteeseen. Aineiston projektihierarkia (projektijoukko,- projekti- ja 
+Projektivelhosta tuotavat inframallit sisältävät InfraModel-tiedostojen ulkopuolista metatietoa,
+josta osa tallennetaan Geoviitteeseen. Aineiston projektihierarkia (projektijoukko,- projekti- ja
 toimeksiantoviittaukset) ja koodistotiedot tallennetaan siksi, että niitä näytetään UI:lla
-operaattorille. Operaattorin on näiden avulla mahdollista navigoida niiden kautta Projektivelhoon 
-tutkimaan suurempaa kokonaisuutta aineiston ympäriltä. Tämä informaatio on saatavilla vain 
-projektivelhon kautta tuoduille aineistoille. Tiedoston versiotiedot tallennetaan siksi, että 
+operaattorille. Operaattorin on näiden avulla mahdollista navigoida niiden kautta Projektivelhoon
+tutkimaan suurempaa kokonaisuutta aineiston ympäriltä. Tämä informaatio on saatavilla vain
+projektivelhon kautta tuoduille aineistoille. Tiedoston versiotiedot tallennetaan siksi, että
 tällä pystytään varmentumaan siitä onko ka. aineisto tuotu jo Geoviitteeseen.
 
 ## Muuta teknistä
 
-- Frontti ei ole koskaan suoraan yhteydessä Projektivelhoon (myös redirectit kulkevat bäkkärin 
-kautta) 
+- Frontti ei ole koskaan suoraan yhteydessä Projektivelhoon (myös redirectit kulkevat bäkkärin
+  kautta)
 - Projektivelhoon ei (ainakaan toistaiseksi) suoriteta yhtäaikaisia kutsuja
-- Autentikaatio hoidetaan Bearer-authilla. Tokenin ikä tarkastellaan aina jokaisen kutsun alussa 
-ja se päivitetään aina hieman ennen sen vanhenemista. Login-osoite on eri kuin varsinaisten 
-kyselyiden osoite, joten se tarvitsee oman `WebClient`:in
+- Autentikaatio hoidetaan Bearer-authilla. Tokenin ikä tarkastellaan aina jokaisen kutsun alussa
+  ja se päivitetään aina hieman ennen sen vanhenemista. Login-osoite on eri kuin varsinaisten
+  kyselyiden osoite, joten se tarvitsee oman `WebClient`:in
