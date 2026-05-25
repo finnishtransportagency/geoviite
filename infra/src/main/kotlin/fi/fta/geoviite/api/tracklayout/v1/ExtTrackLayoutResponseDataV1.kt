@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.geography.isKKJ
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
+import fi.fta.geoviite.infra.split.SplitAdministrativeChangeType
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
@@ -297,6 +298,14 @@ const val FI_BOUNDARY_CHANGE = "vaihtumiskohdan_siirto"
 enum class ExtTrackBoundaryChangeTypeV1(val value: String) {
     SPLIT(FI_SPLIT),
     BOUNDARY_CHANGE(FI_BOUNDARY_CHANGE);
+
+    companion object {
+        fun of(splitType: SplitAdministrativeChangeType) =
+            when (splitType) {
+                SplitAdministrativeChangeType.SPLIT -> SPLIT
+                SplitAdministrativeChangeType.BOUNDARY_CHANGE -> BOUNDARY_CHANGE
+            }
+    }
 
     @JsonValue override fun toString() = value
 }

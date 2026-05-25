@@ -41,4 +41,19 @@ class SplitController(private val splitService: SplitService) {
     ): IntId<Split> {
         return splitService.updateSplit(id, state).id
     }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/boundary-change")
+    fun saveTrackBoundaryChange(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: TrackBoundaryChangeRequest,
+    ): IntId<Split> {
+        return splitService.saveTrackBoundaryChange(
+            branch,
+            request.shortenedTrackId,
+            request.lengthenedTrackId,
+            request.switchId,
+            request.jointNumber,
+        )
+    }
 }

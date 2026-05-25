@@ -122,7 +122,7 @@ constructor(
             val trackNumberOid = oidLookup(trackNumberDao, branch, trackNumberId)
             BoundaryChangeData(
                 publication = publication,
-                type = ExtTrackBoundaryChangeTypeV1.SPLIT,
+                type = ExtTrackBoundaryChangeTypeV1.of(split.administrativeChangeType),
                 trackNumber = trackNumber,
                 trackNumberOid = trackNumberOid,
                 geocodingContext = geocodingContext,

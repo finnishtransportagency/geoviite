@@ -32,6 +32,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitAdministrativeChangeType
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
@@ -103,11 +104,11 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -2580,6 +2581,7 @@ class PublicationDao(
     data class TrackBoundaryChange(
         val publicationId: IntId<Publication>,
         val segments: List<TrackBoundaryChangeSegment>,
+        val administrativeChangeType: SplitAdministrativeChangeType,
     ) {
         val allTrackIds = segments.flatMap { listOf(it.sourceTrackVersion.id, it.targetTrackVersion.id) }.toSet()
     }
@@ -2595,6 +2597,7 @@ class PublicationDao(
               split.source_location_track_id source_track_id,
               split.layout_context_id source_track_layout_context_id,
               split.source_location_track_version source_track_version,
+              split.administrative_change_type,
               target_track.id target_track_id,
               target_track.layout_context_id target_track_layout_context_id,
               target_track.version target_track_version,
@@ -2639,10 +2642,15 @@ class PublicationDao(
                         operation = rs.getEnum("operation"),
                     )
                 val publicationId = rs.getIntId<Publication>("publication_id")
-                publicationId to changeTarget
+                val administrativeChangeType = rs.getEnum<SplitAdministrativeChangeType>("administrative_change_type")
+                val split = publicationId to administrativeChangeType
+                split to changeTarget
             }
             .groupBy({ it.first }, { it.second })
-            .map { (publicationId, targets) -> TrackBoundaryChange(publicationId, targets) }
+            .map { (splitInfo, targets) ->
+                val (publicationId, administrativeChangeType) = splitInfo
+                TrackBoundaryChange(publicationId, targets, administrativeChangeType)
+            }
             .also { logger.daoAccess(FETCH, TrackBoundaryChange::class, it.map { it.publicationId }) }
     }
 

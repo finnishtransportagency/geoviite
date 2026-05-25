@@ -46,6 +46,7 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) =
         targetLocationTracks = targetLocationTracks,
         relinkedSwitches = rs.getIntIdArray("switch_ids"),
         updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
+        administrativeChangeType = rs.getEnum("administrative_change_type"),
     )
 
 @Transactional(readOnly = true)
@@ -196,6 +197,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 source_track.design_id as source_location_track_design_id,
                 source_track.draft as source_location_track_draft,
                 split.source_location_track_version,
+                split.administrative_change_type,
                 (select coalesce(array_agg(split_relinked_switch.switch_id), '{}')
                  from publication.split_relinked_switch where split.id = split_relinked_switch.split_id) as switch_ids,
                 (select coalesce(array_agg(split_updated_duplicate.duplicate_location_track_id), '{}')
@@ -330,6 +332,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 split.source_location_track_id,
                 ltv.design_id as source_location_track_design_id,
                 ltv.draft as source_location_track_draft,
+                split.administrative_change_type,
                 split.source_location_track_version
             from publication.split 
                 left join publication.publication on split.publication_id = publication.id

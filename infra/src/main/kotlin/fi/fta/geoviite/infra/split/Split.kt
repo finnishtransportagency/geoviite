@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
@@ -63,6 +64,7 @@ data class Split(
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<LayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,
+    val administrativeChangeType: SplitAdministrativeChangeType,
 ) {
     init {
         if (publicationId != null) {
@@ -163,6 +165,13 @@ data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTrack
         }
     }
 }
+
+data class TrackBoundaryChangeRequest(
+    val shortenedTrackId: IntId<LocationTrack>,
+    val lengthenedTrackId: IntId<LocationTrack>,
+    val switchId: IntId<LayoutSwitch>,
+    val jointNumber: JointNumber,
+)
 
 data class SplittingInitializationParameters(
     val id: IntId<LocationTrack>,

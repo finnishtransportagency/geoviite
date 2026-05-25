@@ -14,9 +14,11 @@ import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.Publication
@@ -512,6 +514,43 @@ class SplitService(
                     SplitAdministrativeChangeType.SPLIT,
                 )
             }
+    }
+
+    @Transactional
+    fun saveTrackBoundaryChange(
+        layoutBranch: LayoutBranch,
+        shorteningTrackId: IntId<LocationTrack>,
+        lengtheningTrackId: IntId<LocationTrack>,
+        switch: IntId<LayoutSwitch>,
+        switchJoint: JointNumber,
+    ): IntId<Split> {
+        val context = layoutBranch.draft
+        val shorteningTrackVersion = locationTrackDao.fetchVersionOrThrow(context, shorteningTrackId)
+        val lengtheningTrackVersion = locationTrackDao.fetchVersionOrThrow(context, lengtheningTrackId)
+
+        val (shorteningTrack, shorteningTrackGeometry) = locationTrackService.getWithGeometry(shorteningTrackVersion)
+        val (lengtheningTrack, lengtheningTrackGeometry) = locationTrackService.getWithGeometry(lengtheningTrackVersion)
+        val geometries =
+            getTrackBoundaryChangeGeometry(
+                shorteningTrackGeometry = shorteningTrackGeometry,
+                lengtheningTrackGeometry = lengtheningTrackGeometry,
+                shorteningTrackId = shorteningTrackVersion.id,
+                lengtheningTrackId = lengtheningTrackVersion.id,
+                switch,
+                switchJoint,
+            )
+        locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
+        locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
+        return splitDao.saveSplit(
+            sourceLocationTrackVersion = shorteningTrackVersion,
+            splitTargets =
+                listOf(
+                    SplitTarget(lengtheningTrackVersion.id, geometries.movedEdgeRange, SplitTargetOperation.TRANSFER)
+                ),
+            relinkedSwitches = listOf(),
+            updatedDuplicates = listOf(),
+            administrativeChangeType = SplitAdministrativeChangeType.BOUNDARY_CHANGE,
+        )
     }
 
     private fun updateUnusedDuplicateReferencesToSplitTargetTracks(
@@ -1012,4 +1051,64 @@ fun getSplitTargetTrackStartAndEndAddresses(
     val endAddress = listOf(endBySegments, endByTarget).min()
 
     return startAddress to endAddress
+}
+
+private data class TrackBoundaryChangeGeometry(
+    val movedEdgeRange: IntRange,
+    val shortenedGeometry: TmpLocationTrackGeometry,
+    val lengthenedGeometry: TmpLocationTrackGeometry,
+)
+
+private fun getTrackBoundaryChangeGeometry(
+    shorteningTrackGeometry: LocationTrackGeometry,
+    lengtheningTrackGeometry: LocationTrackGeometry,
+    shorteningTrackId: IntId<LocationTrack>,
+    lengtheningTrackId: IntId<LocationTrack>,
+    switch: IntId<LayoutSwitch>,
+    switchJoint: JointNumber,
+): TrackBoundaryChangeGeometry {
+    val closestEnds =
+        listOf(
+                TrackEnd.START to TrackEnd.START,
+                TrackEnd.START to TrackEnd.END,
+                TrackEnd.END to TrackEnd.START,
+                TrackEnd.END to TrackEnd.END,
+            )
+            .minBy { (shorteningEnd, lengtheningEnd) ->
+                lineLength(
+                    requireNotNull(shorteningEnd.of(shorteningTrackGeometry)),
+                    requireNotNull(lengtheningEnd.of(lengtheningTrackGeometry)),
+                )
+            }
+    val shorteningEnd = closestEnds.first
+    val lengtheningEnd = closestEnds.second
+
+    val shorteningEndPoint = requireNotNull(shorteningEnd.of(shorteningTrackGeometry))
+    val lengtheningEndPoint = requireNotNull(lengtheningEnd.of(lengtheningTrackGeometry))
+    require(lineLength(shorteningEndPoint, lengtheningEndPoint) < 1.0) { "endpoints to move must be near each other" }
+    require(shorteningEnd != lengtheningEnd) { "can't extend location tracks with geometry going to opposing sides" }
+    val switchNodeIndex = shorteningTrackGeometry.nodes.indexOfFirst { n -> n.containsJoint(switch, switchJoint) }
+    require(switchNodeIndex >= 0) {
+        "track to shorten $shorteningTrackId must contain switch $switch joint $switchJoint"
+    }
+    val edgeRangeToMove =
+        if (shorteningEnd == TrackEnd.START) IntRange(0, switchNodeIndex - 1)
+        else IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+    val edgesToMove = shorteningTrackGeometry.edges.slice(edgeRangeToMove)
+    val remainingEdgeRange =
+        if (shorteningEnd == TrackEnd.START) IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+        else IntRange(0, switchNodeIndex - 1)
+    val lengthenedGeometry =
+        TmpLocationTrackGeometry.of(
+            if (lengtheningEnd == TrackEnd.START) edgesToMove + lengtheningTrackGeometry.edges
+            else lengtheningTrackGeometry.edges + edgesToMove,
+            lengtheningTrackId,
+        )
+    val shortenedGeometry =
+        TmpLocationTrackGeometry.of(shorteningTrackGeometry.edges.slice(remainingEdgeRange), shorteningTrackId)
+    return TrackBoundaryChangeGeometry(
+        movedEdgeRange = edgeRangeToMove,
+        lengthenedGeometry = lengthenedGeometry,
+        shortenedGeometry = shortenedGeometry,
+    )
 }
