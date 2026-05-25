@@ -70,11 +70,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -84,6 +79,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1683,18 +1683,19 @@ constructor(
             layoutTrackNumberDao.fetch(
                 layoutTrackNumberDao.save(trackNumber(TrackNumber("TEST TN $sequence"), draft = false))
             )
-        val kmPosts = kmPostData.map { (kmNumber, location) ->
-            layoutKmPostDao.fetch(
-                layoutKmPostDao.save(
-                    kmPost(
-                        trackNumberId = trackNumber.id as IntId,
-                        km = kmNumber,
-                        gkLocation = kmPostGkLocation(refPoint + location),
-                        draft = false,
+        val kmPosts =
+            kmPostData.map { (kmNumber, location) ->
+                layoutKmPostDao.fetch(
+                    layoutKmPostDao.save(
+                        kmPost(
+                            trackNumberId = trackNumber.id as IntId,
+                            km = kmNumber,
+                            gkLocation = kmPostGkLocation(refPoint + location),
+                            draft = false,
+                        )
                     )
                 )
-            )
-        }
+            }
         val referenceLineGeometryVersion =
             layoutAlignmentDao.insert(
                 referenceLineGeometry(
@@ -1716,50 +1717,54 @@ constructor(
             )
 
         var locationTrackSequence = 0
-        val locationTracksAndGeometries = locationTrackData.map { line ->
-            locationTrackService.getWithGeometry(
-                locationTrackDao.save(
-                    locationTrack(
-                        trackNumberId = trackNumber.id as IntId,
-                        name = "TEST LocTr $sequence ${locationTrackSequence++}",
-                        draft = false,
-                    ),
-                    trackGeometryOfSegments(segments(refPoint + line.start, refPoint + line.end, 10.0)),
+        val locationTracksAndGeometries =
+            locationTrackData.map { line ->
+                locationTrackService.getWithGeometry(
+                    locationTrackDao.save(
+                        locationTrack(
+                            trackNumberId = trackNumber.id as IntId,
+                            name = "TEST LocTr $sequence ${locationTrackSequence++}",
+                            draft = false,
+                        ),
+                        trackGeometryOfSegments(segments(refPoint + line.start, refPoint + line.end, 10.0)),
+                    )
                 )
-            )
-        }
-
-        val switches = switchData.map { switch ->
-            linkTestSwitch(
-                refPoint + switch.location,
-                locationTracksAndGeometries[switch.locationTrackIndexA],
-                locationTracksAndGeometries[switch.locationTrackIndexB],
-                switch.name,
-            )
-        }
-
-        val publishedLocationTracksAndGeometries = locationTracksAndGeometries.map { (locationTrack, _) ->
-            val id = locationTrack.id as IntId
-            val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-            val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
-            if (edited.isDraft) {
-                val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion).published
-                locationTrackService.getWithGeometry(publicationResponse)
-            } else {
-                edited to editedGeometry
             }
-        }
-        val publishedSwitches = switches.map { switch ->
-            val id = switch.id as IntId
-            val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-            val edited = switchDao.fetch(rowVersion)
-            if (edited.isDraft) {
-                val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion).published
-                switchDao.fetch(publicationResponse)
-            } else {
-                edited
+
+        val switches =
+            switchData.map { switch ->
+                linkTestSwitch(
+                    refPoint + switch.location,
+                    locationTracksAndGeometries[switch.locationTrackIndexA],
+                    locationTracksAndGeometries[switch.locationTrackIndexB],
+                    switch.name,
+                )
             }
-        }
+
+        val publishedLocationTracksAndGeometries =
+            locationTracksAndGeometries.map { (locationTrack, _) ->
+                val id = locationTrack.id as IntId
+                val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
+                val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
+                if (edited.isDraft) {
+                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion).published
+                    locationTrackService.getWithGeometry(publicationResponse)
+                } else {
+                    edited to editedGeometry
+                }
+            }
+        val publishedSwitches =
+            switches.map { switch ->
+                val id = switch.id as IntId
+                val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
+                val edited = switchDao.fetch(rowVersion)
+                if (edited.isDraft) {
+                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion).published
+                    switchDao.fetch(publicationResponse)
+                } else {
+                    edited
+                }
+            }
 
         return TestData(
             trackNumber = trackNumber,
@@ -1902,6 +1907,7 @@ constructor(
             operationalPoints =
                 operationalPointDao.fetchCandidateVersions(target.candidateContext, operationalPointIds),
             splits = listOf(),
+            trackBoundaryMoves = listOf(),
         )
     }
 

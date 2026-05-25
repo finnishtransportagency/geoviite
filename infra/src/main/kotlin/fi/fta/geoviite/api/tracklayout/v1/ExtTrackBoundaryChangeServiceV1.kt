@@ -45,13 +45,12 @@ constructor(
     ): ExtTrackBoundaryChangeResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            val splits =
-                getSplitData(
-                    branch = publications.to.layoutBranch.branch,
-                    startMoment = publications.from.publicationTime,
-                    endMoment = publications.to.publicationTime,
-                )
-            val boundaryChanges = splits.map(::createBoundaryChange)
+            val branch = publications.to.layoutBranch.branch
+            val startMoment = publications.from.publicationTime
+            val endMoment = publications.to.publicationTime
+            val splits = getSplitData(branch, startMoment, endMoment)
+            val moves = getBoundaryMoveData(branch, startMoment, endMoment)
+            val boundaryChanges = (splits + moves).map(::createBoundaryChange)
             ExtTrackBoundaryChangeResponseV1(
                 layoutVersionFrom = ExtLayoutVersionV1(publications.from.uuid),
                 layoutVersionTo = ExtLayoutVersionV1(publications.to.uuid),
@@ -127,6 +126,67 @@ constructor(
                 trackNumberOid = trackNumberOid,
                 geocodingContext = geocodingContext,
                 segments = changeTargets,
+            )
+        }
+    }
+
+    private fun getBoundaryMoveData(
+        branch: LayoutBranch,
+        startMoment: Instant,
+        endMoment: Instant,
+    ): List<BoundaryChangeData> {
+        val moves = publicationDao.fetchPublishedBoundaryMovesBetween(startMoment, endMoment)
+        if (moves.isEmpty()) return emptyList()
+
+        val allTrackIds = moves.flatMap { it.allTrackIds }.distinct()
+        val locationTrackOids = locationTrackDao.fetchExternalIds(branch, allTrackIds)
+        val publications = publicationDao.getPublications(moves.map { it.publicationId }.toSet())
+        val getTrackOid = { id: DomainId<LocationTrack> -> locationTrackOids[id]?.oid ?: throwOidNotFound(branch, id) }
+
+        val sourceTracks: Map<LayoutRowVersion<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
+            locationTrackService
+                .getManyWithGeometries(moves.map { it.shortenedTrackVersion }.distinct())
+                .associateBy { it.first.getVersionOrThrow() }
+        val targetTracks =
+            locationTrackDao.fetchManyByVersion(moves.map { it.lengthenedTrackVersion })
+
+        val geocodingContexts = geocodingService.getLazyGeocodingContextsByMoments(branch)
+
+        return moves.map { move ->
+            val publication =
+                requireNotNull(publications[move.publicationId]) { "Publication not found: ${move.publicationId}" }
+            val moment = publication.publicationTime
+            val (sourceTrack, sourceGeometry) =
+                sourceTracks[move.shortenedTrackVersion] ?: throwLocationTrackNotFound(move.shortenedTrackVersion)
+            val targetTrack =
+                targetTracks[move.lengthenedTrackVersion] ?: throwLocationTrackNotFound(move.lengthenedTrackVersion)
+
+            val segment =
+                BoundaryChangeSegmentData(
+                    sourceTrackOid = getTrackOid(sourceTrack.id),
+                    sourceTrack = sourceTrack,
+                    sourceGeometry = sourceGeometry,
+                    targetTrackOid = getTrackOid(targetTrack.id),
+                    targetTrack = targetTrack,
+                    splitOperation = null,
+                    sourceEdgeIndices = move.edgeRange,
+                )
+
+            val trackNumberId = sourceTrack.trackNumberId
+            val trackNumber =
+                trackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)
+                    ?: throwTrackNumberNotFound(branch, moment, trackNumberId)
+            val geocodingContext =
+                geocodingContexts(trackNumberId, moment) ?: throwGeocodingContextNotFound(branch, moment, trackNumberId)
+            val trackNumberOid = oidLookup(trackNumberDao, branch, trackNumberId)
+
+            BoundaryChangeData(
+                publication = publication,
+                type = ExtTrackBoundaryChangeTypeV1.BOUNDARY_MOVE,
+                trackNumber = trackNumber,
+                trackNumberOid = trackNumberOid,
+                geocodingContext = geocodingContext,
+                segments = listOf(segment),
             )
         }
     }

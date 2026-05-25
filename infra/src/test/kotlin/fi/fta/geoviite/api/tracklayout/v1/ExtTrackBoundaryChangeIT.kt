@@ -3,8 +3,10 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.CREATE_NEW
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.REPLACE_DUPLICATE
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.REPLACE_DUPLICATE_PARTIAL
+import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.TRANSFER_GEOMETRY
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitRequest
@@ -13,6 +15,7 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.split.targetRequest
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -37,8 +40,13 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private val splitService: SplitService) :
-    DBTestBase() {
+class ExtTrackBoundaryChangeIT
+@Autowired
+constructor(
+    mockMvc: MockMvc,
+    private val splitService: SplitService,
+    private var trackBoundaryMoveService: TrackBoundaryMoveService,
+) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -185,6 +193,102 @@ class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private 
                     assertEquals("0000+0300.000", change.alkuosoite)
                     assertEquals("0000+0400.000", change.loppuosoite)
                     assertEquals(REPLACE_DUPLICATE.value, change.geometrian_muutos)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Track boundary change shows up with vaihtumiskohdan_siirto type`() {
+        val tn = testDBService.getUnusedTrackNumber()
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(tn))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+
+        // Switch1 at 100: current boundary between tracks
+        // Switch2 at 200: new boundary point (on shortening track)
+        val structureId = switchStructureYV60_300_1_9().id
+        val switch1Joints = listOf(switchJoint(1, Point(100.0, 0.0)), switchJoint(2, Point(110.0, 10.0)))
+        val switch1Id = mainDraftContext.save(switch(structureId, switch1Joints)).id
+        val switch2Joints = listOf(switchJoint(1, Point(200.0, 0.0)), switchJoint(2, Point(210.0, 10.0)))
+        val switch2Id = mainDraftContext.save(switch(structureId, switch2Joints)).id
+
+        // Lengthening track: 0 to 110, ending at switch1
+        val lengtheningTrackGeom =
+            trackGeometry(
+                edge(
+                    segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+                    endOuterSwitch = switchLinkYV(switch1Id, 1),
+                ),
+                edge(
+                    segments = listOf(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch1Id, 1),
+                    endInnerSwitch = switchLinkYV(switch1Id, 2),
+                ),
+            )
+        val (lengtheningId, lengtheningOid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "LengtheningTrack"), lengtheningTrackGeom)
+
+        // Shortening track: 110 to 400, starts at switch1, has switch2
+        val shorteningTrackGeom =
+            trackGeometry(
+                edge(
+                    segments = listOf(segment(Point(110.0, 0.0), Point(200.0, 0.0))),
+                    startOuterSwitch = switchLinkYV(switch1Id, 2),
+                    endOuterSwitch = switchLinkYV(switch2Id, 1),
+                ),
+                edge(
+                    segments = listOf(segment(Point(200.0, 0.0), Point(210.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch2Id, 1),
+                    endInnerSwitch = switchLinkYV(switch2Id, 2),
+                ),
+                edge(
+                    segments = listOf(segment(Point(210.0, 0.0), Point(400.0, 0.0))),
+                    startOuterSwitch = switchLinkYV(switch2Id, 2),
+                ),
+            )
+        val (shorteningId, shorteningOid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "ShorteningTrack"), shorteningTrackGeom)
+
+        val basePublication =
+            testDBService.publish(
+                trackNumbers = listOf(tnId),
+                referenceLines = listOf(rlId),
+                locationTracks = listOf(shorteningId, lengtheningId),
+                switches = listOf(switch1Id, switch2Id),
+            )
+
+        val trackBoundaryChangeId =
+            trackBoundaryMoveService.saveTrackBoundaryMove(
+                LayoutBranch.main,
+                shorteningId,
+                lengtheningId,
+                switch2Id,
+                JointNumber(1),
+            )
+
+        val trackBoundaryChange = trackBoundaryMoveService.get(trackBoundaryChangeId)!!
+
+        val changePublication = testDBService.publish(locationTracks = trackBoundaryChange.locationTracks.map { it.id })
+
+        api.trackBoundaryCollection.getModifiedBetween(basePublication.uuid, changePublication.uuid).let { response ->
+            assertEquals(basePublication.uuid.toString(), response.alkuversio)
+            assertEquals(changePublication.uuid.toString(), response.loppuversio)
+            assertEquals(1, response.rajojen_muutokset.size)
+            response.rajojen_muutokset[0].let { changeOperation ->
+                assertEquals(changePublication.uuid.toString(), changeOperation.rataverkon_versio)
+                assertEquals(tnOid.toString(), changeOperation.ratanumero_oid)
+                assertEquals(tn.toString(), changeOperation.ratanumero)
+                assertEquals("vaihtumiskohdan_siirto", changeOperation.tyyppi)
+                assertEquals(1, changeOperation.muutokset.size)
+                changeOperation.muutokset[0].also { change ->
+                    assertEquals(shorteningOid.toString(), change.geometrian_lahderaide_oid)
+                    assertEquals("ShorteningTrack", change.geometrian_lahderaide_tunnus)
+                    assertEquals(lengtheningOid.toString(), change.geometrian_kohderaide_oid)
+                    assertEquals("LengtheningTrack", change.geometrian_kohderaide_tunnus)
+                    assertEquals("0000+0110.000", change.alkuosoite)
+                    assertEquals("0000+0200.000", change.loppuosoite)
+                    assertEquals(TRANSFER_GEOMETRY.value, change.geometrian_muutos)
                 }
             }
         }

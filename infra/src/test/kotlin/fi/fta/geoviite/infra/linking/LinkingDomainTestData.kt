@@ -51,6 +51,7 @@ fun validationVersions(
         switches = switches,
         operationalPoints = operationalPoints,
         splits = listOf(),
+        trackBoundaryMoves = listOf(),
     )
 
 fun publish(

@@ -124,6 +124,7 @@ class LayoutDesignService(
                 kmPosts,
                 operationalPoints,
                 listOf(),
+                listOf(),
             )
 
         publicationService.publishChanges(

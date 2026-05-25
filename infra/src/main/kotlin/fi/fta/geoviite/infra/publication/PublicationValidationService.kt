@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -51,6 +52,7 @@ constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingCacheService: GeocodingCacheService,
     private val splitService: SplitService,
+    private val trackBoundaryMoveService: TrackBoundaryMoveService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -255,6 +257,7 @@ constructor(
                 kmPosts,
                 operationalPoints,
                 emptyList(),
+                emptyList(),
             )
         )
 
@@ -285,7 +288,12 @@ constructor(
                 locationTracks = candidates.locationTracks.map { it.id },
                 switches = candidates.switches.map { it.id },
             )
-        val versions = candidates.getValidationVersions(candidates.transition, splitVersions)
+        val boundaryMoveVersions =
+            trackBoundaryMoveService.fetchPublicationVersions(
+                branch = candidates.transition.candidateBranch,
+                locationTracks = candidates.locationTracks.map { it.id },
+            )
+        val versions = candidates.getValidationVersions(candidates.transition, splitVersions, boundaryMoveVersions)
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
         val splitIssues = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
@@ -481,9 +489,10 @@ constructor(
             val jointConnectionsDifferIssues =
                 validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, linkedTracks)
 
-            val structureIssues = locationIssues.ifEmpty {
-                validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
-            }
+            val structureIssues =
+                locationIssues.ifEmpty {
+                    validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
+                }
 
             val duplicationIssues =
                 validateSwitchNameDuplication(
