@@ -463,6 +463,7 @@ constructor(
             listOf(SplitTarget(endTrack.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = emptyList(),
+            administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
         )
     }
 

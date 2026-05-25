@@ -43,6 +43,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                     listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
                     listOf(relinkedSwitchId),
                     updatedDuplicates = emptyList(),
+                    administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
                 )
                 .let(splitDao::getOrThrow)
 
@@ -71,6 +72,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                     listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
                     listOf(relinkedSwitchId),
                     updatedDuplicates = emptyList(),
+                    administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
                 )
                 .let(splitDao::getOrThrow)
 
@@ -115,6 +117,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                     listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
                     listOf(relinkedSwitchId1),
                     updatedDuplicates = emptyList(),
+                    administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
                 )
                 .also { splitId ->
                     val split = splitDao.getOrThrow(splitId)
@@ -127,6 +130,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 listOf(SplitTarget(targetTrack2.id, 0..0, SplitTargetOperation.CREATE)),
                 listOf(relinkedSwitchId2),
                 updatedDuplicates = emptyList(),
+                administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
             )
 
         val splits = splitDao.fetchUnfinishedSplits(LayoutBranch.main)
@@ -150,6 +154,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
                 listOf(mainOfficialContext.createSwitch().id),
                 updatedDuplicates = emptyList(),
+                administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
             )
 
         assertFalse(splitDao.isSplitSource(LayoutBranch.main, sourceTrack.id))
@@ -179,6 +184,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.OVERWRITE)),
                 listOf(relinkedSwitchId),
                 updatedDuplicates = listOf(someDuplicateTrack.id),
+                administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
             )
 
         assertTrue { splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { it.id == splitId } }
@@ -204,6 +210,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
                 listOf(relinkedSwitchId),
                 updatedDuplicates = emptyList(),
+                administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
             )
 
         val splitHeader = splitDao.getSplitHeader(splitId)
@@ -284,6 +291,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
             listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.OVERWRITE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = listOf(someDuplicateTrack.id),
+            administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
         )
     }
 }

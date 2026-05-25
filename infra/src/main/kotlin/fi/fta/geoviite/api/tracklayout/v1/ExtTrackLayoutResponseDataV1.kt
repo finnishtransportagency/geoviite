@@ -291,12 +291,12 @@ enum class ExtAreaTypeV1(val value: String) {
 }
 
 const val FI_SPLIT = "raiteen_jakaminen"
-const val FI_BOUNDARY_SHIFT = "vaihtumiskohdan_siirto"
+const val FI_BOUNDARY_CHANGE = "vaihtumiskohdan_siirto"
 
-@Schema(name = "Hallinnollisen muutoksen tyyppi", type = "string", allowableValues = [FI_SPLIT, FI_BOUNDARY_SHIFT])
+@Schema(name = "Hallinnollisen muutoksen tyyppi", type = "string", allowableValues = [FI_SPLIT, FI_BOUNDARY_CHANGE])
 enum class ExtTrackBoundaryChangeTypeV1(val value: String) {
     SPLIT(FI_SPLIT),
-    BOUNDARY_SHIFT(FI_BOUNDARY_SHIFT);
+    BOUNDARY_CHANGE(FI_BOUNDARY_CHANGE);
 
     @JsonValue override fun toString() = value
 }
@@ -355,11 +355,7 @@ enum class ExtVerticalCoordinateSystemV1(val value: String) {
 const val FI_TOP_OF_SLEEPER = "Korkeusviiva"
 const val FI_TOP_OF_RAIL = "Kiskon selkä"
 
-@Schema(
-    name = "Korkeusaseman mittaustapa",
-    type = "string",
-    allowableValues = [FI_TOP_OF_SLEEPER, FI_TOP_OF_RAIL],
-)
+@Schema(name = "Korkeusaseman mittaustapa", type = "string", allowableValues = [FI_TOP_OF_SLEEPER, FI_TOP_OF_RAIL])
 enum class ExtElevationMeasurementMethodV1(val value: String) {
     TOP_OF_SLEEPER(FI_TOP_OF_SLEEPER),
     TOP_OF_RAIL(FI_TOP_OF_RAIL);

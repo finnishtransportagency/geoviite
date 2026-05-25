@@ -58,6 +58,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         splitTargets: Collection<SplitTarget>,
         relinkedSwitches: Collection<IntId<LayoutSwitch>>,
         updatedDuplicates: Collection<IntId<LocationTrack>>,
+        administrativeChangeType: SplitAdministrativeChangeType,
     ): IntId<Split> {
         val sql =
             """
@@ -65,6 +66,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               source_location_track_id,
               layout_context_id,
               source_location_track_version,
+              administrative_change_type,
               bulk_transfer_state,
               bulk_transfer_id,
               publication_id
@@ -73,6 +75,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               :source_location_track_id,
               :layout_context_id,
               :source_location_track_version,
+              :administrative_change_type::publication.split_administrative_change_type,
               'PENDING',
               null,
               null
@@ -87,6 +90,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 "source_location_track_id" to sourceLocationTrackVersion.id.intValue,
                 "layout_context_id" to sourceLocationTrackVersion.context.toSqlString(),
                 "source_location_track_version" to sourceLocationTrackVersion.version,
+                "administrative_change_type" to administrativeChangeType.name,
             )
         val splitId =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<Split>("id") }
@@ -109,9 +113,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
                 .trimIndent()
 
-        val params = relinkedSwitches.map { switchId ->
-            mapOf("splitId" to splitId.intValue, "switchId" to switchId.intValue)
-        }
+        val params =
+            relinkedSwitches.map { switchId -> mapOf("splitId" to splitId.intValue, "switchId" to switchId.intValue) }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
@@ -124,9 +127,10 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
                 .trimIndent()
 
-        val params = updatedDuplicates.map { duplicateId ->
-            mapOf("splitId" to splitId.intValue, "duplicateLocationTrackId" to duplicateId.intValue)
-        }
+        val params =
+            updatedDuplicates.map { duplicateId ->
+                mapOf("splitId" to splitId.intValue, "duplicateLocationTrackId" to duplicateId.intValue)
+            }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
@@ -161,15 +165,16 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
                 .trimIndent()
 
-        val params = splitTargets.map { st ->
-            mapOf(
-                "splitId" to splitId.intValue,
-                "trackId" to st.locationTrackId.intValue,
-                "edgeStart" to st.edgeIndices.first,
-                "edgeEnd" to st.edgeIndices.last,
-                "operation" to st.operation.name,
-            )
-        }
+        val params =
+            splitTargets.map { st ->
+                mapOf(
+                    "splitId" to splitId.intValue,
+                    "trackId" to st.locationTrackId.intValue,
+                    "edgeStart" to st.edgeIndices.first,
+                    "edgeEnd" to st.edgeIndices.last,
+                    "operation" to st.operation.name,
+                )
+            }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }

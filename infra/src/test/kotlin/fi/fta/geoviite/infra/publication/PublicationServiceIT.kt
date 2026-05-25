@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
+import fi.fta.geoviite.infra.split.SplitAdministrativeChangeType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTarget
@@ -231,14 +232,15 @@ constructor(
         val switch = mainDraftContext.save(switch())
         val trackNumberIds =
             listOf(mainOfficialContext.createLayoutTrackNumber().id, mainOfficialContext.createLayoutTrackNumber().id)
-        val locationTracks = trackNumberIds.map { trackNumberId ->
-            val edge =
-                edge(
-                    startInnerSwitch = switchLinkYV(switch.id, 1),
-                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
-                )
-            mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
-        }
+        val locationTracks =
+            trackNumberIds.map { trackNumberId ->
+                val edge =
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    )
+                mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
+            }
 
         val publicationResult =
             publish(publicationService, locationTracks = locationTracks.map { it.id }, switches = listOf(switch.id))
@@ -2282,6 +2284,7 @@ constructor(
             ),
             relinkedSwitches = someSwitches,
             updatedDuplicates = someDuplicates,
+            administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
         )
 
         return PublicationGroupTestData(

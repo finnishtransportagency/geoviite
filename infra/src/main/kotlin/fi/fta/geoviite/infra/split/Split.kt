@@ -178,3 +178,8 @@ data class SplitDuplicateTrack(
     val length: LineM<LocationTrackM>,
     val status: DuplicateStatus,
 )
+
+enum class SplitAdministrativeChangeType {
+    SPLIT,
+    BOUNDARY_CHANGE,
+}

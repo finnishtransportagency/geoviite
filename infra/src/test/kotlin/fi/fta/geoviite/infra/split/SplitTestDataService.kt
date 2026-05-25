@@ -73,6 +73,7 @@ constructor(
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
             relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
+            administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
         )
     }
 

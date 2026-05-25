@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.SplitAdministrativeChangeType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
@@ -287,6 +288,7 @@ constructor(
             listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
             relinkedSwitches = emptyList(),
             updatedDuplicates = emptyList(),
+            administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
         )
 
         val ex =
@@ -357,6 +359,7 @@ constructor(
                     listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
                     relinkedSwitches = emptyList(),
                     updatedDuplicates = emptyList(),
+                    administrativeChangeType = SplitAdministrativeChangeType.SPLIT,
                 )
             )
         splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
