@@ -24,6 +24,10 @@ REST-rajapinta toteutettu Kotlinilla Spring-kehyksen päälle.
 ### Tietokanta
 PostgreSQL-tietokanta PostGIS-laajennuksella geometriatietojen tallentamiseen ja hakemiseen.
 
+### Koordinaatistomuunnokset
+
+Koordinaattien muuntamiseen koordinaatistosta toiseen käytetään **GeoTools**-kirjastoa. KKJ-koordinaattien muuntamisessa hyödynnetään lisäksi korjausparametreja sisältävää **kolmioverkkoa** tarkkuuden parantamiseksi. Ks. koordinaatistot tarkemmin [tietomalli.md — Koordinaatistot](./tietomalli.md#koordinaatistot).
+
 ## Integraatioarkkitehtuuri
 
 Geoviite integroi useisiin ulkoisiin järjestelmiin. Ks. integraatiokumppanit tarkemmin [overview.md](./overview.md).

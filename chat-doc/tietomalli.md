@@ -30,6 +30,7 @@ Alla listattu kaikki tunnistetut ydinkäsitteet. ✅ = kuvattu, ⬜ = kuvaus puu
 | Suunnitelmatila | ✅ |
 | Luonnostila | ✅ |
 | Inframodel | ✅ |
+| Koordinaatistot | ✅ |
 
 ---
 
@@ -411,3 +412,58 @@ Alkuperäinen tiedosto tallennetaan Geoviitteeseen, mutta järjestelmä käyttä
 > **Tuleva:** IFC-tiedostojen tuki suunnitteilla, mutta ratasuunnittelujärjestelmät eivät vielä tue IFC:tä riittävän hyvin.
 
 <!-- Lisää käsitteet tähän sitä mukaa kun haastatteluja tehdään -->
+
+---
+
+## Koordinaatistot
+
+Geoviitteessä käytetään useita eri koordinaattijärjestelmiä. Alla kuvaus järjestelmistä ja niiden käyttötarkoituksista.
+
+### Käytössä olevat koordinaattijärjestelmät
+
+| Koordinaattijärjestelmä | Käyttötarkoitus Geoviitteessä | Huomio |
+|---|---|---|
+| **TM35FIN** | Paikannuspohja (sijaintiraiteet, vaihteet, jne.), karttanäkymä frontendissä | Koko Suomen kattava yhtenäinen tasokoordinaatisto; laajasti käytössä RAIDE-järjestelmissä ja muissa rataverkkoa käsittelevissä järjestelmissä |
+| **GK-kaistat** (Gauss–Krüger) | Geometriasuunnitelmat (uudet), tasakilometripisteiden tarkat sijainnit | Pienempi mittavääristymä kuin TM35FIN → parempi tarkkuus suunnittelutyöhön |
+| **KKJ** | Vanhat geometriasuunnitelmat | Vanhempi kansallinen koordinaatisto; muunnostuessa käytetään kolmioverkkoa tarkkuuden parantamiseksi |
+| **VVJ** | Erittäin vanhat geometriasuunnitelmat (n. 170 kpl / ~2 400:sta) | **Ei tuettu muunnoksissa** — ks. rajoitukset alla |
+
+### Miksi GK TM35FINin sijaan geometriasuunnitelmissa?
+
+Molemmat ovat tasokoordinaatistoja, mutta niiden eroavaisuudet vaikuttavat tarkkuuteen:
+
+- **TM35FIN** kattaa koko Suomen → mittasuhteet vääristyvät koordinaatiston laidoilla (esim. länsilaidalla 1 m TM35FIN ≈ 1,002 m maastossa). Käytännöllinen yleiskäyttöön.
+- **GK-kaista** kattaa vain kapean pystykaistan → vääristymä ei ehdi kasvaa yhtä suureksi. Lisäksi GK-projektiossa karttaprojektio on **sivuava** (ei leikkaava), mikä vähentää vääristymää kaistan keskimediaanilla entisestään.
+
+Suurempaa tarkkuutta vaativassa geometriasuunnittelussa GK-kaistat ovat siksi ensisijainen valinta.
+
+### Tasakilometripisteet ja koordinaatisto
+
+Tasakilometripisteiden tarkat sijainnit tallennetaan siinä GK-kaistassa, joka soveltuu parhaiten kunkin pisteen esittämiseen. Syy: tasakilometripisteiden sijainteja käytetään suoraan uusissa geometriasuunnitelmissa, jotka laaditaan GK-koordinaatistossa. Kun koordinaatisto on sama, koordinaattimuunnosta ei tarvita → tarkkuuden häviötä ei synny.
+
+### Koordinaattimuunnokset Geoviitteessä
+
+- **Kirjasto:** [GeoTools](https://geotools.org/)
+- **KKJ → muut:** Käytetään lisäksi korjausparametreja sisältävää **kolmioverkkoa** tarkkuuden parantamiseksi muunnoksessa.
+- **Renderöinti / linkitys:** Geometriaelementtien koordinaatit muunnetaan tarvittaessa TM35FIN-koordinaatistoon kartalla esittämistä ja linkitystä varten.
+
+### Koordinaatiston tallennus geometriasuunnitelmille
+
+Koordinaatistotieto voi sijaita **kahdessa paikassa**, ja ne voivat olla ristiriidassa:
+
+| Paikka | Sisältö |
+|---|---|
+| Inframodel-tiedosto | Tiedoston sisäinen koordinaatistomerkintä; koskematon Geoviitteessä |
+| Geoviitteen tietokanta | Operaattorin valitsema koordinaatisto käyttöliittymässä |
+
+Geoviite käyttää tietokantaan tallennettua koordinaatistoa. Geometriasuunnitelman koordinaattitiedot (esim. geometriaelementit) tallennetaan kantaan operaattorin valitsemassa koordinaatistossa.
+
+**Virheellinen koordinaatistotieto:** Geoviite saattaa havaita ristiriidan, jos koordinaatit eivät osu koordinaatiston sallitulle alueelle — tällöin geometriaa ei näytetä kartalla. Operaattori voi myös havaita ongelman visuaalisesti (geometria piirtyy väärään paikkaan). Korjaus: operaattori muokkaa Inframodel-tiedostoa tekstieditorilla tai valitsee oikean koordinaatiston Geoviitteen käyttöliittymässä.
+
+### VVJ-koordinaatiston rajoitus
+
+Geoviite **ei tue** VVJ-koordinaatiston muuntamista muihin koordinaatistojärjestelmiin. Tämä tarkoittaa, että n. 170 erittäin vanhaa geometriasuunnitelmaa ei suoraan sovellu linkitykseen.
+
+**Kiertotapa:** Operaattori lataa VVJ-suunnitelman Geoviitteestä, muuntaa sen suunnitteluohjelmistolla tuettuun koordinaatistoon (esim. GK), ja lataa muunnetun suunnitelman takaisin Geoviitteeseen metatiedoilla varustettuna (jotta sitä ei sekoiteta alkuperäiseen eikä se päädy tietopyyntöihin).
+
+VVJ-tukea ei ole suunniteltu kehitettäväksi, koska uusia VVJ-suunnitelmia ei enää synny.

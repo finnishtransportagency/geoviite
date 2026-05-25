@@ -334,3 +334,42 @@ Sprintin lopuksi pidetään myös retro, jossa käydään läpi mm. työtapoihin
 
 Asiakas on mukana ohjaamassa kehitystä myös sprintin aikana. He ottavat yhteyttä, kun tulee tietoon jokin Geoviitteeseen vaikuttava asia tai tarve. Tiimi myös kysyy asiakkaalta tietoja määritysten ja muiden ratkaisujen tueksi.
 
+---
+
+## 2026-05-25 — KS
+
+**K: Dokumenteissa mainitaan GK-koordinaatisto (Gauss-Krüger). Voitko selittää, miksi Geoviite käyttää GK-koordinaatistoa eikä esimerkiksi WGS84:ää tai ETRS89:ää — ja miten koordinaatistojen välillä liikutaan järjestelmässä?**
+
+V: Seuraavassa puhutaan koordinaatistoista ja koordinaattijärjestelmistä luovasti sekaisin. Geoviitteessä käytetään useampia koordinaattijärjestelmiä. Yhtenäisen paikannuspohjan koordinaatit ovat pääasiassa TM35FIN koordinaattijärjestelmässä, koska se on koko suomen laajuinen yhtenäinen tasokoordinaatisto, jota käyteään laajalti myös RAIDE-järjestelmissä sekä monissa muissa rataverkkoa käsittelevissä järjestelmissä/prosessissa. Koko Suomen yhtenäinen koordinaatisto on käytännöllinen, kun halutaa käsitellä ja verrata koordinaatteja keskenään. Koordinaatiston käsittely tasona helpottaa myös esim. matemaattisia toimenpiteitä, kun pallopintaa ei tarvitse huomioida. Haittapuolena yhtenäisessä ja laajassa tasokoordinaatistossa on mittasuhteiden vääristyminen tasokoordinaatiston laidoilla, esim. metri TM35FIN koordinaatiston länsireunalla on noin 1.002 metriä maastossa. GK koordinaatistot ovat myös tasokoordinaatistoja, mutta kukin GK-kaista määrittää huomattavasti kapeamman alueen maapallosta kuin TM35FIN koordinaatisto, jolloin vääristymä GK-kaistan laidalla ei ehdi kasvaa niin suureksi kuin yhtenäisessä TM35FIN koordinaatistossa. GK-koordinaattijärjestelmässä karttaprojektio on lisäksi sivuava, ei leikkaava, joka vähentää vääristymää koordinaatiston keskimediaanilla. Pienemmän vääristymän vuoksi GK kaistoja suositaan suurempaa tarkkuutta vaativassa paikannuksessa, kuten esimerkiksi geometriasuunnittelussa. Uudet geometriasuunnitelmat ovat pääsääntöisesti GK koordinaatistoissa.
+
+Poikkeuksena paikannuspohjan koordinaateista muodostavat tasakilometripisteiden tarkat sijainnit, jotka on ilmoitettu siinä GK koordinaattijärjestelmän kaistassa, joka sopii parhaiten kunkin koordinaatin esittämiseen. GK koordinaatistojen käyttö tasakilometripisteiden paikantamisessa johtuu siitä, että tasakilometripisteiden sijainteja käytetään uusissa geometriasuunnitelmissa ja uudet geometriasuunnitelmat suunnitellaan niin ikään GK koordinaatistossa, jolloin suunnittelussa hyödynnettäviä tasakilometripisteiden sijainteja ei tarvitse muuntaa toiseen koordinaatistoon, jolloin ei synny muunnoksessa tapahtuvaa tarkkuuden häviämistä.
+
+Vaikka uudet geometriasuunnitelmat suunnitellaan pääsääntöisesti GK-koordinaatistoissa, on Geoviitteessä myös vanhempia geometriasuunnitelmia, jotka ovat muissa koordinaatistoissa, mm. vanhemmassa KKJ-koordinaatistoissa ja jopa vielä vanhemmissa VVJ-koordinaatistoissa. Geoviite ei tue VVJ-koordinaatiston koordinaattien käsittelyä, esim. muuntamista TM35FIN koordinaatistoon, joten joitain vanhoja geometriasuunnitelmia ei siksi voi hyödyntää raiteen geometrian linkityksessä.
+
+Geoviitteessä koordinaattien muuntamiseksi koordinaatistosta toiseen käytetään GeoTools-kirjastoa. Lisäksi KKJ-koordinaattien muuntamisessa toisiin järjestelmiin käytetään korjausparametreja sisältävää kolmioverkkoa, jotta muunnoksessa tapahtuva tarkkuuden häviö olisi pienempi.
+
+---
+
+**K: Mainitsit, että Geoviitteessä on geometriasuunnitelmia useissa eri koordinaatistossa (GK-kaistat, KKJ, VVJ). Kun uusi geometriasuunnitelma tuodaan Geoviitteeseen, miten järjestelmä tietää, missä koordinaatistossa suunnitelman koordinaatit ovat — ja mitä tapahtuu, jos koordinaatistotieto puuttuu tai on virheellinen?**
+
+V: Geometriasuunnitelma toimitetaan Geoviite-operaattorille tällä hetkellä Inframodel-tiedostona. Tiedosto sisältää mm. tiedon koordinaatistosta. Kuitenkin tiedostossa ilmoitettu koordinaatisto voi olla väärä, eli tiedoston sisältämät koordinaati ovat oikeasti jossain toisessa koordinaatistossa, tämä on kuitenkin harvinainen tilanne. Jos koordinaatisto ei täsmää koordinaatteihin, Geoviite saattaa huomata sen siitä, että koordinaatit eivät ole koordinaatiston sallimalla alueella, tällöin Geoviite ei edes yritä näyttää tiedoston sisältämiä geometrioita kartalla. Myös operaattori voi havaita ongelman silmämääräisesti, kun tiedoston sisältämät raiteen geometriat piirretään kartalla erikoiseen sijaintiin. Ongelmatilanteessa operaattori voi muokata inframodel-tiedostoon (esim. tekstieditorilla) oikean koordinaatiston, jolloin tiedosto sisältää oikean koordinaatiston myös myöhempää käyttöä varten, esim. kun tiedosto välitetään Geoviitteestä tietopyynnön myötä.
+
+Operaattori voi valita geometriasuunnitelmalle oikean koordinaatiston myös Geoviitteen käyttöliittymässä, tällöin tieto oikeasta koordinaatistosta on Geoviitteen tietokannassa, mutta koska Geoviite ei muokkaa geometriasuunnitelmatiedoston sisältöä, tiedostoon jää edelleen väärä koordinaatisto.
+
+---
+
+**K: Mainitsit aiemmin, että Geoviite ei tue VVJ-koordinaatiston muuntamista, joten joitain vanhoja geometriasuunnitelmia ei voi hyödyntää linkityksessä. Kuinka iso käytännön ongelma tämä on — onko VVJ-suunnitelmia paljon, ja onko niille mitään suunniteltua ratkaisua?**
+
+V: VVJ-koordinaatiston geometriasuunnitelmia on Geoviitteessä noin 170 kpl, kaikkiaan suunnitelmia on noin 2400 kpl. VVJ-koordinaatiston suunnitelmat ovat pääasiassa hyvin vanhoja, joten niiden geometriaa tarvitaan harvoin. Kuitenkin joissain tilanteissa, esim. rataverkon dataa eheytettäessä, sijaintiraiteelle on tarve linkittää geometriaa sellaiselta rataverkon alueelta, jolle on oleamssa vain VVJ-koordinaatiston geometriasuunnitelmia. Tässä tilanteessa Geoviite-operaattori on ladannut VVJ-koordinaatiston suunnitelmatiedoston Geoviitteestä, muuntanut suunnitelman suunnitteluohjelmistolla johonkin Geoviitteen tukemaan koordinaatistoon (esim. GK-koordinaatisto) ja ladannut muokatun suunnitelman Geoviitteeseen. Muokatun tiedoston Geoviite-operaattori meta-tiedoittaa niin, että sitä ei sekoita alkuperäiseen geometriasuunnitelmaan, niin ettei sitä epähuomiossa palauteta esim. tietopyyntöjen mukana. Edellä kuvattu korjausprosessi on harmillisen työläs, mutta koska uusia VVJ-koordinaatiston suunnitelmia ei enää tule, toistaiseksi ei ole suunniteltu VVJ-koordinaatistojen tuen kehittämistä Geoviitteeseen.
+
+---
+
+**K: Mainitsit, että paikannuspohja on pääasiassa TM35FIN-koordinaatistossa, mutta karttanäkymässä raiteet pitää tietenkin näyttää myös selainpuolella. Missä koordinaatistossa karttanäkymä toimii frontendissä — ja miten koordinaattimuunnokset hoidetaan backend/frontend-rajapinnassa?**
+
+V: Karttanäkymässä käytetään TM35FIN koordinaatistoa.
+
+---
+
+**K: Mainitsit aiemmin, että geometriasuunnitelmissa on eroa "tiedostossa tallennetun koordinaatiston" ja "Geoviitteen tietokannassa tallennetun koordinaatiston" välillä. Miten Geoviite käsittelee geometriasuunnitelman sisältämät koordinaatit linkitysvaiheessa — muunnetaanko ne tietokantaan TM35FIN-muodossa, vai säilytetäänkö ne alkuperäisessä koordinaatistossa?**
+
+V: Geometriatiedoston sisältö säilyy Geoviitteessä koskemattomana. Käyttöliittymässä operaattori voi valita geometriasuunnitelmalle koordinaatiston, tämä tieto tallentuu Geoviitteen tietokantaan. Myös geometriasuunnitelman sisältämät koordinaattititiedot (esim. geometriaelementtien tiedot) tallennetaan kantaan operaattorin valitsemassa koordinaatistossa. Kun geometriaelementistä muodostetaan kartalla esitettävää geometriaa, mm. linkitystä varten, koordinaattisijainnit muunnetaan geometriaelementin koordinaatistosta TM35FIN koordinaatistoon. Eli suunniteltu geometria on Geoviitteessä operaattorin valitsemassa koordinaatistossa, joka on useimmiten sama kuin geometriatiedoston sisältämä koordinaatisto, paikannuspohjan koordinaattitiedot (esim. raiteiden geometria, vaihteiden sijainnit jne.) ovat pääasiassa TM35FIN koordinaatistossa.
