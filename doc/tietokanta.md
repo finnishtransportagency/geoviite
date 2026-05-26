@@ -88,21 +88,55 @@ aikaleimalla.
 
 Versiotauluihin voidaan tarvittaessa lisätä haluttuja indeksejä suorituskykyisempiä hakuja varten.
 
-## Skeemat
+## Migraatiot (Flyway)
 
-Tietokanta-skeemat ylläpidetään versioituvilla Flyway-migraatioilla:
+Tietokanta-skeemat ylläpidetään versioituvilla Flyway-migraatioilla. Migraatiot ajetaan automaattisesti Geoviitteen
+käynnistyksen yhteydessä, joten tavallisesti niitä ei tarvitse ajaa erikseen.
 
 * Migraatiot
   versionhallinnassa: https://github.com/finnishtransportagency/geoviite/tree/main/infra/src/main/resources/db/migration
 * Dokumentaatio: https://flywaydb.org/documentation/
 
+SQL migraatiotiedostojen tulee seurata Flywayn nimeämiskäytäntöjä, niin kuin ne on
+kuvattu [Flywayn dokumentaatiossa](https://flywaydb.org/documentation/concepts/migrations.html#naming)
+
+- Versioidut eli V-migraatiot ajetaan niiden nimen (numeroinnin) mukaisessa järjestyksessä, alkaen vanhimmasta jota ei
+  vielä ole ajettu
+    - Nämä tiedostot eivät saa muuttua! Tiedoston hash tarkastetaan joka käynnistyksellä ja jos joku jo ajetuista
+      migraatioista on muuttunut, palvelu ei käynnisty.
+    - Koska tiedostot eivät voi muuttua, ne tulee toteuttaa iteratiivisina edellisten muutosten päälle
+- Toistettavat (repeatable) eli R-migraatiot ajetaan (uusien) V-migraatioiden jälkeen
+    - Nämä voivat myös muuttua, jolloin ne ajetaan uudelleen
+    - Koska R-migraatioita voidaan muuttaa ja siten ajaa uudelleen, niiden tulee olla idempotentteja, eli niiden tulee
+      tuottaa sama lopputulos riippumatta siitä kuinka monta kertaa ne ajetaan
+    - Koska R-migraatiot ajetaan V-migraatioiden jälkeen, niissä voidaan viitata V-migraatioissa luotuihin rakenteisiin
+      mutta ei toisin päin
+- Flyway tallentaa migraatioiden tilan (ajetut migraatiot, hash-arvot, jne) omaan skemaansa tietokantaan
+
+### Mitä tapahtuu jos migraatioiden "sääntöjä rikotaan"?
+
+Jos V-migraatiotiedosto muuttuu (hash-arvo ei täsmää), palvelu ei käynnisty. Näin varmistetaan että tuotantoon ei pääse
+vahingossa rikkinäisiä migraatioita, jotka voisivat aiheuttaa datan menetyksen tai muuten rikkoa sovelluksen toimintaa.
+
+Jos tilanne syntyy kehitysvaiheessa ja mitään versiota migraatiosta ei ole viety vielä tuotantoon, tilanteen voi korjata
+resetoimalla tietokannan migraatiota (sen ensimmäistä ajoa) edeltävään tilaan, jolloin uusi versio migraatiosta pitäisi
+toimia normaalisti.
+
+Jos tilanne syntyy tuotannossa, uusi versio on vain rikki. Migraatio pitää palauttaa aiempaan tilaansa (joka on jo
+ajettu tuotannon kantaan) ja tehdä sen päälle uusi iteratiivinen migraatio joka vie skeeman haluttuun tilaan.
+
+Äärimmäisessä tilanteessa Flywayn tilaa on myös mahdollista korjata muokkaamalla sen tila-skeeman taulujen sisältöä tai
+Flywayn komentorivityökaluilla. Tätä kannattaa kuitenkin välttää lähtökohtaisesti, sillä se on riskialtista ja hävittää
+migraatiohistorian.
+
+## Skeemat
+
 ### Flyway
 
 Flyway-skeema sisältää Flyway-kirjaston tuottamat migraatiotaulut, jotka ylläpitää päivityksissä tapahtuvaa
-migraatioiden
-tilaa. Flyway-kirjasto muokkaa näitä itse tarpeen mukaan eikä niihin viitata Geoviitteen datasta. Käytännössä
-migraatiotauluun voi joskus olla tarve koskea jos migraatiot ovat päässeet virheellisenä tuotantoon, mutta tämä on
-harvinaista.
+migraatioiden tilaa. Flyway-kirjasto muokkaa näitä itse tarpeen mukaan eikä niihin viitata Geoviitteen datasta.
+Käytännössä migraatiotauluun voi joskus olla tarve koskea jos migraatiot ovat päässeet virheellisenä tuotantoon, mutta
+tämä on harvinaista.
 
 ### Postgis
 
