@@ -97,7 +97,7 @@ käynnistyksen yhteydessä, joten tavallisesti niitä ei tarvitse ajaa erikseen.
   versionhallinnassa: https://github.com/finnishtransportagency/geoviite/tree/main/infra/src/main/resources/db/migration
 * Dokumentaatio: https://flywaydb.org/documentation/
 
-SQL migraatiotiedostojen tulee seurata Flywayn nimeämiskäytäntöjä, niin kuin ne on
+SQL-migraatiotiedostojen tulee seurata Flywayn nimeämiskäytäntöjä, niin kuin ne on
 kuvattu [Flywayn dokumentaatiossa](https://flywaydb.org/documentation/concepts/migrations.html#naming)
 
 - Versioidut eli V-migraatiot ajetaan niiden nimen (numeroinnin) mukaisessa järjestyksessä, alkaen vanhimmasta jota ei
@@ -133,7 +133,7 @@ migraatiohistorian.
 
 ### Flyway
 
-Flyway-skeema sisältää Flyway-kirjaston tuottamat migraatiotaulut, jotka ylläpitää päivityksissä tapahtuvaa
+Flyway-skeema sisältää Flyway-kirjaston tuottamat migraatiotaulut, jotka ylläpitävät päivityksissä tapahtuvaa
 migraatioiden tilaa. Flyway-kirjasto muokkaa näitä itse tarpeen mukaan eikä niihin viitata Geoviitteen datasta.
 Käytännössä migraatiotauluun voi joskus olla tarve koskea jos migraatiot ovat päässeet virheellisenä tuotantoon, mutta
 tämä on harvinaista.
