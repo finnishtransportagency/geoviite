@@ -10,6 +10,7 @@ Geoviitteen dokumentaatio säilytetään versionhallinnassa, koodin rinnalla mar
 * [Ajoitetut tehtävät](ajoitetut_tehtavat.md)
 * [Automaatiotestit](automaatiotestit.md)
 * [Geokoodaus](geokoodaus.md)
+* [Koordinaattimuunnokset](koordinaattimuunnokset.md)
 * [InfraModel validointi](inframodel_validointi.md)
 * [Julkaisut](julkaisut.md)
 * [Koodin formatointi](koodin_formatointi.md)
