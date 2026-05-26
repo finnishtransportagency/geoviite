@@ -109,15 +109,18 @@ private fun getTrackBoundaryMoveGeometry(
     require(switchNodeIndex >= 0) {
         "track to shorten $shorteningTrackId must contain switch $switch joint $switchJoint"
     }
-    val edgeRangeToMove = when (direction) {
-        LengtheningDirection.ASCENDING -> IntRange(0, switchNodeIndex - 1)
-        LengtheningDirection.DESCENDING -> IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
-    }
+    val edgeRangeToMove =
+        when (direction) {
+            LengtheningDirection.ASCENDING -> IntRange(0, switchNodeIndex - 1)
+            LengtheningDirection.DESCENDING -> IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+        }
+    require(!edgeRangeToMove.isEmpty()) { "track boundary move must move track boundary" }
     val edgesToMove = shorteningTrackGeometry.edges.slice(edgeRangeToMove)
-    val remainingEdgeRange = when (direction) {
-        LengtheningDirection.ASCENDING -> IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
-        LengtheningDirection.DESCENDING -> IntRange(0, switchNodeIndex - 1)
-    }
+    val remainingEdgeRange =
+        when (direction) {
+            LengtheningDirection.ASCENDING -> IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+            LengtheningDirection.DESCENDING -> IntRange(0, switchNodeIndex - 1)
+        }
     val lengthenedGeometry =
         TmpLocationTrackGeometry.of(
             combineEdges(
