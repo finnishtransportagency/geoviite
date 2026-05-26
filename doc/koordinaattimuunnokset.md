@@ -13,9 +13,9 @@ Muunnokset ovat tarvittaessa myös käytettävissä `GeographyController` tarjoa
 
 Geoviitteen käyttämä yhtenäiskoordinaatisto (sekä kartan esityskoordinaatisto) on **ETRS-TM35FIN** (EPSG:3067).
 
-Yleisimmät koordinaatistot joihin Geoviitteessä törmää on listattuna alla. Näiden lisäksi joskus esiintyy myös muitakin
-järjestelmiä, erityisesti vanhemmissa suunnitelmissa käytettyjä kunnallisia tasokoordinaatistoja. Itse muunnosmekanismi
-ei kuitenkaan rajoitu tässä listattuihin järjestelmiin.
+Yleisimmät koordinaatistot joihin Geoviitteessä törmää ovat listattuna alla. Näiden lisäksi joskus esiintyy myös
+muitakin järjestelmiä, erityisesti vanhemmissa suunnitelmissa käytettyjä kunnallisia tasokoordinaatistoja. Itse
+muunnosmekanismi ei kuitenkaan rajoitu tässä listattuihin järjestelmiin.
 
 | Koordinaattijärjestelmä | Huomioita                                                                        |
 |-------------------------|----------------------------------------------------------------------------------|
@@ -28,15 +28,15 @@ ei kuitenkaan rajoitu tässä listattuihin järjestelmiin.
 ### Arkkitehtuuri
 
 Kaikki muunnoskoodi sijaitsee paketissa `fi.fta.geoviite.infra.geography` ja siellä keskittyen tiedostoon
-`GeoToolsGeometries.kt`. Kaikki Geotools-kirjaston käyttö on kapseloitu tähän tiedostoon, jotta muu sovelluskoodi ei
-ole suoraan riippuvainen Geotoolsista ja erinäisten muunnosolioiden (Crs jne.) välimuisti voidaan toteuttaa
+`GeoToolsGeometries.kt`. Kaikki GeoTools-kirjaston käyttö on kapseloitu tähän tiedostoon, jotta muu sovelluskoodi ei
+ole suoraan riippuvainen GeoToolsista ja erinäisten muunnosolioiden (Crs jne.) välimuisti voidaan toteuttaa
 keskitetysti.
 
 Muunnokset perustuvat `Transformation`-luokkahierarkiaan:
 
 ```
 Transformation (sealed class)
-├── GeotoolsTransformation        – GeoTools-pohjainen muunnos (ei-KKJ-järjestelmät)
+├── GeoToolsTransformation        – GeoTools-pohjainen muunnos (ei-KKJ-järjestelmät)
 ├── KKJToTM35FINTransformation    – KKJ → TM35FIN triangulointiverkolla
 └── TM35FINToKKJTransformation    – TM35FIN → KKJ triangulointiverkolla
 ```
@@ -69,7 +69,7 @@ Muunnosalgoritmi:
 
 Triangulointiverkko ladataan tietokannasta `KkjTm35finTriangulationDao`-luokassa Spring-välimuistin läpi. Koska nämä
 muunnokset riippuvat tietokantaan tallennetuista triangulointiverkoista, täytyy muunnos hakea aina
-`CoordinateTransformationService`-palvelun kautta. Jos muunnosta koittaa tehdä puhtailla `GeotoolsGeometries.kt`
+`CoordinateTransformationService`-palvelun kautta. Jos muunnosta koittaa tehdä puhtailla `GeoToolsGeometries.kt`
 funktioilla kuten `transformNonKKJCoordinate`, muunnos heittää poikkeuksen.
 
 #### Muut muunnokset — GeoTools
@@ -82,13 +82,13 @@ Muunnos huomioi myös koordinaattien esitysjärjestyksen (EAST_NORTH / NORTH_EAS
 tarvittaessa.
 
 Nämä Transformation-oliot voi hakea samoin kuin KKJ-muunnoksetkin, `CoordinateTransformationService`-palvelun kautta.
-Tarvittaessa niitä voi kuitenkin käyttää myös suoraan tietokantariippumattomasti `GeotoolsGeometries.kt`-tiedoston
+Tarvittaessa niitä voi kuitenkin käyttää myös suoraan tietokantariippumattomasti `GeoToolsGeometries.kt`-tiedoston
 funktioilla, kuten `transformNonKKJCoordinate`.
 
 #### Muunnokset tietokannassa — Postgis
 
 Muunnoksia voidaan tehdä myös suoraan tietokannassa postgis-laajennuksen `ST_Transform`-funktioilla. Pääasiassa
-Geoviitteessä kuitenkin suositaan Kotlin-puolella tapahtuvaa Geotools-pohjaista muunnosta, jotta tulokset ovat varmasti
+Geoviitteessä kuitenkin suositaan Kotlin-puolella tapahtuvaa GeoTools-pohjaista muunnosta, jotta tulokset ovat varmasti
 yhteneväiset.
 
 ### Tunnettujen koordinaattijärjestelmien listaus tietokannassa
@@ -104,15 +104,15 @@ Tietokantataulu `common.coordinate_system` sisältää Geoviitteen "tunnetut" ko
 Näitä järjestelmiä käytetään esimerkiksi käyttöliittymässä järjestelmien listaamiseen ja
 `GeographyService.getCoordinateSystems()` palauttaa taulun sisällön.
 
-Joitain erikoisempia järjestelmiä (esim vanhat kuntakohtaiset järjestelmät) ei välttämättä löydy tuosta taulusta, joten
+Joitain erikoisempia järjestelmiä (esim. vanhat kuntakohtaiset järjestelmät) ei välttämättä löydy tuosta taulusta, joten
 suunnitelmien tietojen esittäminen ei voi olettaa että järjestelmä on aina määritelty. Jos järjestelmälle on
-keksittävissä SRID (esim suoraan suunnitelman sisältä), se voidaan muuntaa geotoolsilla riippumatta siitä onko ko.
+keksittävissä SRID (esim. suoraan suunnitelman sisältä), se voidaan muuntaa GeoToolsilla riippumatta siitä onko ko.
 järjestelmää tässä taulussa määritelty.
 
 ## Korkeusjärjestelmämuunnokset
 
 Geoviitteeseen tuotavissa suunnitelmissa on myös useita eri korkeusjärjestelmiä. Yhtenäistä esitystä varten nekin
-muunnetaan yhteiseen järjestelmään, joka on N2000. Käytännössä suomessa on historiallisesti ollut käytössä kolme eri
+muunnetaan yhteiseen järjestelmään, joka on N2000. Käytännössä Suomessa on historiallisesti ollut käytössä kolme eri
 korkeusjärjestelmää, N43, N60 ja N2000. Näistä tuoreinta, eli N2000:aa, käytetään Geoviitteessä yhtenäistettyihin
 esityksiin ja siihen on toteutettu muunnos N60:sta. N43-korkeusjärjestelmän muunnos N2000:aan ei ole toteutettu, koska
 se on niin vanha että sitä esiintyi suunnitelmissa vain harvoin.
