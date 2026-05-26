@@ -6,6 +6,11 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 
+enum class LengtheningDirection {
+    ASCENDING,
+    DESCENDING,
+}
+
 data class TrackBoundaryMove(
     val version: RowVersion<TrackBoundaryMove>,
     val shortenedLocationTrack: LayoutRowVersion<LocationTrack>,

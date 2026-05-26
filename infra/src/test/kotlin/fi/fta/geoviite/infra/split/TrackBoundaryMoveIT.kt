@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.trackBoundaryMove.LengtheningDirection
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -101,6 +102,7 @@ constructor(
                 lengtheningTrack.id,
                 switch2,
                 JointNumber(1),
+                LengtheningDirection.ASCENDING,
             )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
@@ -152,6 +154,7 @@ constructor(
                 lengtheningTrack.id,
                 switch1,
                 JointNumber(1),
+                LengtheningDirection.DESCENDING,
             )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
@@ -222,6 +225,7 @@ constructor(
             lengtheningTrack.id,
             switch3,
             JointNumber(1),
+            LengtheningDirection.ASCENDING,
         )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
@@ -255,6 +259,7 @@ constructor(
             lengtheningTrack.id,
             switch1,
             JointNumber(1),
+            LengtheningDirection.ASCENDING,
         )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second

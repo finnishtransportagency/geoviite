@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.split.targetRequest
+import fi.fta.geoviite.infra.trackBoundaryMove.LengtheningDirection
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -265,6 +266,7 @@ constructor(
                 lengtheningId,
                 switch2Id,
                 JointNumber(1),
+                LengtheningDirection.ASCENDING,
             )
 
         val trackBoundaryChange = trackBoundaryMoveService.get(trackBoundaryChangeId)!!

@@ -5,8 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.linking.TrackEnd
-import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -35,6 +33,7 @@ class TrackBoundaryMoveService(
         lengtheningTrackId: IntId<LocationTrack>,
         switch: IntId<LayoutSwitch>,
         switchJoint: JointNumber,
+        direction: LengtheningDirection,
     ): IntId<TrackBoundaryMove> {
         val context = layoutBranch.draft
         val shorteningTrackVersion = locationTrackDao.fetchVersionOrThrow(context, shorteningTrackId)
@@ -50,6 +49,7 @@ class TrackBoundaryMoveService(
                 lengtheningTrackId = lengtheningTrackVersion.id,
                 switch,
                 switchJoint,
+                direction,
             )
         locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
         locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
@@ -103,43 +103,28 @@ private fun getTrackBoundaryMoveGeometry(
     lengtheningTrackId: IntId<LocationTrack>,
     switch: IntId<LayoutSwitch>,
     switchJoint: JointNumber,
+    direction: LengtheningDirection,
 ): TrackBoundaryMoveGeometry {
-    val closestEnds =
-        listOf(
-                TrackEnd.START to TrackEnd.START,
-                TrackEnd.START to TrackEnd.END,
-                TrackEnd.END to TrackEnd.START,
-                TrackEnd.END to TrackEnd.END,
-            )
-            .minBy { (shorteningEnd, lengtheningEnd) ->
-                lineLength(
-                    requireNotNull(shorteningEnd.of(shorteningTrackGeometry)),
-                    requireNotNull(lengtheningEnd.of(lengtheningTrackGeometry)),
-                )
-            }
-    val shorteningEnd = closestEnds.first
-    val lengtheningEnd = closestEnds.second
-
-    val shorteningEndPoint = requireNotNull(shorteningEnd.of(shorteningTrackGeometry))
-    val lengtheningEndPoint = requireNotNull(lengtheningEnd.of(lengtheningTrackGeometry))
-    require(lineLength(shorteningEndPoint, lengtheningEndPoint) < 1.0) { "endpoints to move must be near each other" }
-    require(shorteningEnd != lengtheningEnd) { "can't extend location tracks with geometry going to opposing sides" }
     val switchNodeIndex = shorteningTrackGeometry.nodes.indexOfFirst { n -> n.containsJoint(switch, switchJoint) }
     require(switchNodeIndex >= 0) {
         "track to shorten $shorteningTrackId must contain switch $switch joint $switchJoint"
     }
-    val edgeRangeToMove =
-        if (shorteningEnd == TrackEnd.START) IntRange(0, switchNodeIndex - 1)
-        else IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+    val edgeRangeToMove = when (direction) {
+        LengtheningDirection.ASCENDING -> IntRange(0, switchNodeIndex - 1)
+        LengtheningDirection.DESCENDING -> IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+    }
     val edgesToMove = shorteningTrackGeometry.edges.slice(edgeRangeToMove)
-    val remainingEdgeRange =
-        if (shorteningEnd == TrackEnd.START) IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
-        else IntRange(0, switchNodeIndex - 1)
+    val remainingEdgeRange = when (direction) {
+        LengtheningDirection.ASCENDING -> IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+        LengtheningDirection.DESCENDING -> IntRange(0, switchNodeIndex - 1)
+    }
     val lengthenedGeometry =
         TmpLocationTrackGeometry.of(
             combineEdges(
-                if (lengtheningEnd == TrackEnd.START) edgesToMove + lengtheningTrackGeometry.edges
-                else lengtheningTrackGeometry.edges + edgesToMove
+                when (direction) {
+                    LengtheningDirection.ASCENDING -> lengtheningTrackGeometry.edges + edgesToMove
+                    LengtheningDirection.DESCENDING -> edgesToMove + lengtheningTrackGeometry.edges
+                }
             ),
             lengtheningTrackId,
         )
