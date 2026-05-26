@@ -35,7 +35,6 @@ constructor(
         testDBService.clearLayoutTables()
     }
 
-    // todo: test publications, multiple publications with multiple boundary changes even
     @Test
     fun `move along ascending track`() {
         val trackNumber = testDBService.save(trackNumber()).id
@@ -229,6 +228,41 @@ constructor(
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id).second
         assertEquals(5, newLengthenedGeometry.edges.size)
+        assertEquals(0, newShortenedGeometry.edges.size)
+    }
+
+    @Test
+    fun `combine unconnected tracks with combinable geometries`() {
+        val trackNumber = testDBService.save(trackNumber()).id
+
+        val switch1 = testDBService.save(switch()).id
+        // initially topologically disconnected tracks
+        val lengtheningTrack =
+            testDBService.save(
+                locationTrack(trackNumber),
+                trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))),
+            )
+        val shorteningTrack =
+            testDBService.save(
+                locationTrack(trackNumber),
+                trackGeometry(
+                    edge(listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1))
+                ),
+            )
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.Companion.main,
+            shorteningTrack.id,
+            lengtheningTrack.id,
+            switch1,
+            JointNumber(1),
+        )
+        val newLengthenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
+        val newShortenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id).second
+        assertEquals(1, newLengthenedGeometry.edges.size)
+        assertEquals(Point(0.0, 0.0), newLengthenedGeometry.edges[0].start.toPoint())
+        assertEquals(Point(20.0, 0.0), newLengthenedGeometry.edges[0].end.toPoint())
         assertEquals(0, newShortenedGeometry.edges.size)
     }
 }

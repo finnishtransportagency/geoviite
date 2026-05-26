@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
@@ -136,8 +137,10 @@ private fun getTrackBoundaryMoveGeometry(
         else IntRange(0, switchNodeIndex - 1)
     val lengthenedGeometry =
         TmpLocationTrackGeometry.of(
-            if (lengtheningEnd == TrackEnd.START) edgesToMove + lengtheningTrackGeometry.edges
-            else lengtheningTrackGeometry.edges + edgesToMove,
+            combineEdges(
+                if (lengtheningEnd == TrackEnd.START) edgesToMove + lengtheningTrackGeometry.edges
+                else lengtheningTrackGeometry.edges + edgesToMove
+            ),
             lengtheningTrackId,
         )
     val shortenedGeometry =
