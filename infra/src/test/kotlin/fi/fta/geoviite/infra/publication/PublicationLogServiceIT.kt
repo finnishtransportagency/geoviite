@@ -80,6 +80,11 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -88,11 +93,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1669,6 +1669,105 @@ constructor(
         publish(publicationService, kmPosts = listOf(kmPost))
         val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
         assertEquals(Operation.CREATE, latestPub.kmPosts[0].operation)
+    }
+
+    @Test
+    fun `OID from design branch appears in publication log`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val (trackNumberId, trackNumberOid) = designDraftContext.saveWithOid(trackNumber())
+        designDraftContext.save(
+            referenceLine(trackNumberId),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        val (locationTrackId, locationTrackOid) =
+            designDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
+        val (switchId, switchOid) = designDraftContext.saveWithOid(switch())
+        val (operationalPointId, operationalPointOid) = designDraftContext.saveWithOid(operationalPoint())
+
+        val publication =
+            publish(
+                publicationService,
+                designBranch,
+                trackNumbers = listOf(trackNumberId),
+                locationTracks = listOf(locationTrackId),
+                switches = listOf(switchId),
+                operationalPoints = listOf(operationalPointId),
+            )
+        val publicationId = publication.publicationId!!
+        val now = Instant.now()
+
+        /* TODO: Uncomment after GVT-3632 has been done
+        val tnChanges =
+            publicationDao.fetchPublicationTrackNumberChanges(designBranch, publicationId, now)
+        val tnDiff =
+            publicationLogService.diffTrackNumber(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                tnChanges.getValue(trackNumberId),
+                now,
+                now,
+            ) { _, _ -> null }
+        val tnOidChange = tnDiff.find { it.propKey.key.toString() == "oid" }
+        assertNotNull(tnOidChange)
+        assertEquals(null, tnOidChange.value.oldValue)
+        assertEquals(trackNumberOid, tnOidChange.value.newValue)*/
+
+        val ltChanges = publicationDao.fetchPublicationLocationTrackChanges(publicationId)
+        val ltDiff =
+            publicationLogService.diffLocationTrack(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                ltChanges.getValue(locationTrackId),
+                PublicationReferencedAssetSetChanges.empty(),
+                { _ -> throw IllegalStateException("didn't expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                designBranch,
+                now,
+                now,
+                trackNumberDao.fetchTrackNumberNames(designBranch),
+                emptySet(),
+                mapOf(),
+                mapOf(),
+            ) { _, _ ->
+                null
+            }
+        val ltOidChange = ltDiff.find { it.propKey.key.toString() == "oid" }
+        assertNotNull(ltOidChange)
+        assertEquals(null, ltOidChange.value.oldValue)
+        assertEquals(locationTrackOid, ltOidChange.value.newValue)
+
+        val swChanges = publicationDao.fetchPublicationSwitchChanges(publicationId)
+        val swDiff =
+            publicationLogService.diffSwitch(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                swChanges.getValue(switchId),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
+                now,
+                now,
+                trackNumberDao.fetchTrackNumberNames(designBranch),
+            ) { _, _ ->
+                null
+            }
+        val swOidChange = swDiff.find { it.propKey.key.toString() == "oid" }
+        assertNotNull(swOidChange)
+        assertEquals(null, swOidChange.value.oldValue)
+        assertEquals(switchOid, swOidChange.value.newValue)
+
+        val opChanges = publicationDao.fetchPublicationOperationalPointChanges(publicationId)
+        val opDiff =
+            publicationLogService.diffOperationalPoint(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                opChanges.getValue(operationalPointId),
+            )
+        val opOidChange = opDiff.find { it.propKey.key.toString() == "oid" }
+        assertNotNull(opOidChange)
+        assertEquals(null, opOidChange.value.oldValue)
+        assertEquals(operationalPointOid, opOidChange.value.newValue)
     }
 }
 

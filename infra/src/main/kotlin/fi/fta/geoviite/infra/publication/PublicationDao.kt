@@ -833,9 +833,9 @@ class PublicationDao(
                 on tn.id = track_number.id
                   and tn.version = track_number.version
                   and tn.layout_context_id = track_number.layout_context_id
-              left join layout.track_number_external_id tn_ext
-                on tn_ext.id = track_number.id and tn_ext.design_id is null
               left join publication.publication p on p.id = publication_id
+              left join layout.track_number_external_id tn_ext
+                on tn_ext.id = track_number.id and tn_ext.design_id is not distinct from p.design_id
               left join lateral
                 (select * from layout.reference_line_version rl
                  where rl.track_number_id = tn.id and not rl.draft and rl.design_id is null
@@ -933,7 +933,7 @@ class PublicationDao(
                             and location_track.layout_context_id = ltv.layout_context_id
                             and location_track.version = ltv.version
                 left join layout.location_track_external_id lt_ext
-                          on lt_ext.id = location_track.id and lt_ext.design_id is null
+                          on lt_ext.id = location_track.id and lt_ext.design_id is not distinct from publication.design_id
                 left join layout.location_track_version_ends_view ltv_ends
                           on ltv_ends.id = ltv.id
                             and ltv_ends.layout_context_id = ltv.layout_context_id
@@ -1417,7 +1417,7 @@ class PublicationDao(
                             and switch.layout_context_id = switch_version.layout_context_id
                             and switch.version = switch_version.version
                 left join layout.switch_external_id switch_ext
-                          on switch_ext.id = switch.id and switch_ext.design_id is null
+                          on switch_ext.id = switch.id and switch_ext.design_id is not distinct from publication.design_id
                 left join common.switch_structure switch_structure
                           on switch_structure.id = switch_version.switch_structure_id
                 left join common.switch_owner on switch_owner.id = switch_version.owner_id
@@ -1550,12 +1550,13 @@ class PublicationDao(
               op_ext.external_id as oid,
               case when point.base_version is not null then op_ext.external_id end as old_oid
             from publication.operational_point point
+              join publication.publication on publication.id = point.publication_id
               left join layout.operational_point_version_view point_version
                       on point_version.id = point.id
                         and point_version.layout_context_id = point.layout_context_id
                         and point_version.version = point.version
               left join layout.operational_point_external_id op_ext
-                      on op_ext.id = point.id and op_ext.design_id is null
+                      on op_ext.id = point.id and op_ext.design_id is not distinct from publication.design_id
               left join layout.operational_point_version_view old_point_version
                       on old_point_version.id = point.id
                         and old_point_version.layout_context_id = point.base_layout_context_id
