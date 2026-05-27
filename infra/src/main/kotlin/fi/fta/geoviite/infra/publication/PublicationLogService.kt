@@ -526,6 +526,7 @@ constructor(
             }
 
         return listOfNotNull(
+            compareChangeValues(trackNumberChanges.oid, { it }, PropKey("oid")),
             compareChangeValues(trackNumberChanges.trackNumber, { it }, PropKey("track-number")),
             compareChangeValues(trackNumberChanges.state, { it }, PropKey("state"), null, "LayoutState"),
             compareChangeValues(trackNumberChanges.description, { it }, PropKey("description")),
@@ -592,6 +593,7 @@ constructor(
         val operationalPointLinkChanges = referenceChanges.locationTrackOperationalPoints[locationTrackChanges.id]
 
         return listOfNotNull(
+            compareChangeValues(locationTrackChanges.oid, { it }, PropKey("oid")),
             compareChangeValues(
                 locationTrackChanges.trackNumberId,
                 { tnIdFromChange ->
@@ -844,6 +846,7 @@ constructor(
         val newRinfId = changes.rinfIdOverride.new ?: changes.rinfIdGenerated.new
 
         return listOfNotNull(
+            compareChangeValues(changes.oid, { it }, PropKey("oid")),
             compareChangeValues(changes.name, { it }, PropKey("operational-point")),
             compareChangeValues(changes.abbreviation, { it }, PropKey("abbreviation")),
             compareChangeValues(changes.uicCode, { it }, PropKey("uic-code")),
@@ -1003,6 +1006,7 @@ constructor(
                 }
 
         return listOfNotNull(
+            compareChangeValues(changes.oid, { it }, PropKey("oid")),
             compareChangeValues(changes.name, { it }, PropKey("switch")),
             compareChangeValues(changes.state, { it }, PropKey("state-category"), null, "LayoutStateCategory"),
             compareChangeValues(changes.type, { it.typeName }, PropKey("switch-type")),

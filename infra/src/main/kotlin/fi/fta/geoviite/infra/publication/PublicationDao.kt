@@ -825,13 +825,17 @@ class PublicationDao(
               postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
               postgis.st_y(postgis.st_endpoint(old_sg_last.geometry)) as old_end_y,
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
+              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y,
+              tn_ext.external_id as oid,
+              case when track_number.base_version is not null then tn_ext.external_id end as old_oid
             from publication.track_number
               left join layout.track_number_version tn
                 on tn.id = track_number.id
                   and tn.version = track_number.version
                   and tn.layout_context_id = track_number.layout_context_id
               left join publication.publication p on p.id = publication_id
+              left join layout.track_number_external_id tn_ext
+                on tn_ext.id = track_number.id and tn_ext.design_id is not distinct from p.design_id
               left join lateral
                 (select * from layout.reference_line_version rl
                  where rl.track_number_id = tn.id and not rl.draft and rl.design_id is null
@@ -868,6 +872,7 @@ class PublicationDao(
                 id to
                     TrackNumberChanges(
                         id,
+                        oid = rs.getNullableChange("oid", rs::getOidOrNull),
                         trackNumber = rs.getChange("track_number", rs::getTrackNumberOrNull),
                         description = rs.getChange("description") { rs.getString(it)?.let(::TrackNumberDescription) },
                         state = rs.getChange("state") { rs.getEnumOrNull<LayoutState>(it) },
@@ -918,13 +923,17 @@ class PublicationDao(
               postgis.st_y(ltv_ends.start_point) as start_y,
               postgis.st_x(ltv_ends.end_point) as end_x,
               postgis.st_y(ltv_ends.end_point) as end_y,
-              geometry_change_summary_computed
+              geometry_change_summary_computed,
+              lt_ext.external_id as oid,
+              case when location_track.base_version is not null then lt_ext.external_id end as old_oid
               from publication.location_track
                 join publication.publication on location_track.publication_id = publication.id
                 left join layout.location_track_version ltv
                           on location_track.id = ltv.id
                             and location_track.layout_context_id = ltv.layout_context_id
                             and location_track.version = ltv.version
+                left join layout.location_track_external_id lt_ext
+                          on lt_ext.id = location_track.id and lt_ext.design_id is not distinct from publication.design_id
                 left join layout.location_track_version_ends_view ltv_ends
                           on ltv_ends.id = ltv.id
                             and ltv_ends.layout_context_id = ltv.layout_context_id
@@ -948,6 +957,7 @@ class PublicationDao(
                 id to
                     LocationTrackChanges(
                         id,
+                        oid = rs.getNullableChange("oid", rs::getOidOrNull),
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                         name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
                         namingScheme =
@@ -1397,13 +1407,17 @@ class PublicationDao(
               joints.track_names,
               joints.track_joint_numbers,
               joints.track_joint_locations_x,
-              joints.track_joint_locations_y
+              joints.track_joint_locations_y,
+              switch_ext.external_id as oid,
+              case when switch.base_version is not null then switch_ext.external_id end as old_oid
               from publication.switch
                 join publication.publication on switch.publication_id = publication.id
                 left join layout.switch_version switch_version
                           on switch.id = switch_version.id
                             and switch.layout_context_id = switch_version.layout_context_id
                             and switch.version = switch_version.version
+                left join layout.switch_external_id switch_ext
+                          on switch_ext.id = switch.id and switch_ext.design_id is not distinct from publication.design_id
                 left join common.switch_structure switch_structure
                           on switch_structure.id = switch_version.switch_structure_id
                 left join common.switch_owner on switch_owner.id = switch_version.owner_id
@@ -1473,6 +1487,7 @@ class PublicationDao(
                 id to
                     SwitchChanges(
                         id,
+                        oid = rs.getNullableChange("oid", rs::getOidOrNull),
                         name = rs.getChange("name") { rs.getString(it)?.let(::SwitchName) },
                         state = rs.getChange("state_category") { rs.getEnumOrNull<LayoutStateCategory>(it) },
                         type = rs.getChange("type") { rs.getString(it)?.let(SwitchType::of) },
@@ -1531,12 +1546,17 @@ class PublicationDao(
               postgis.st_x(old_point_version.location) as old_point_x,
               postgis.st_y(old_point_version.location) as old_point_y,
               postgis.st_astext(point_version.polygon) as polygon,
-              postgis.st_astext(old_point_version.polygon) as old_polygon
+              postgis.st_astext(old_point_version.polygon) as old_polygon,
+              op_ext.external_id as oid,
+              case when point.base_version is not null then op_ext.external_id end as old_oid
             from publication.operational_point point
+              join publication.publication on publication.id = point.publication_id
               left join layout.operational_point_version_view point_version
                       on point_version.id = point.id
                         and point_version.layout_context_id = point.layout_context_id
                         and point_version.version = point.version
+              left join layout.operational_point_external_id op_ext
+                      on op_ext.id = point.id and op_ext.design_id is not distinct from publication.design_id
               left join layout.operational_point_version_view old_point_version
                       on old_point_version.id = point.id
                         and old_point_version.layout_context_id = point.base_layout_context_id
@@ -1555,6 +1575,7 @@ class PublicationDao(
                 id to
                     OperationalPointChanges(
                         id,
+                        oid = rs.getNullableChange("oid", rs::getOidOrNull),
                         name = rs.getChange("name") { field -> rs.getOperationalPointNameOrNull(field) },
                         abbreviation = rs.getNullableChange("abbreviation", rs::getOperationalPointAbbreviationOrNull),
                         uicCode = rs.getChange("uic_code", rs::getUicCodeOrNull),

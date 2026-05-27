@@ -2032,6 +2032,7 @@
             "rinf-id-is-generated": "Arvo on asetettu automaattisesti"
         },
         "prop": {
+            "oid": "OID",
             "location-track": "Sijaintiraidetunnus",
             "location-track-naming-scheme": "Tunnuksen muoto",
             "track-number": "Ratanumero",
