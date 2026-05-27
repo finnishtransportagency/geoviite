@@ -97,6 +97,8 @@ käynnistyksen yhteydessä, joten tavallisesti niitä ei tarvitse ajaa erikseen.
   versionhallinnassa: https://github.com/finnishtransportagency/geoviite/tree/main/infra/src/main/resources/db/migration
 * Dokumentaatio: https://flywaydb.org/documentation/
 
+### Migraatiotiedostojen nimeäminen ja järjestys
+
 SQL-migraatiotiedostojen tulee seurata Flywayn nimeämiskäytäntöjä, niin kuin ne on
 kuvattu [Flywayn dokumentaatiossa](https://flywaydb.org/documentation/concepts/migrations.html#naming)
 
@@ -105,6 +107,8 @@ kuvattu [Flywayn dokumentaatiossa](https://flywaydb.org/documentation/concepts/m
     - Nämä tiedostot eivät saa muuttua! Tiedoston hash tarkastetaan joka käynnistyksellä ja jos joku jo ajetuista
       migraatioista on muuttunut, palvelu ei käynnisty.
     - Koska tiedostot eivät voi muuttua, ne tulee toteuttaa iteratiivisina edellisten muutosten päälle
+    - Kansiorakenteessa versioidut migraatiot on jaettu kahteen kansioon: `init` alkuperäisille Geoviitteen 1-version
+      tilalle ja `prod` siitä eteenpäin tuotantoon tehdyille päivityksille.
 - Toistettavat (repeatable) eli R-migraatiot ajetaan (uusien) V-migraatioiden jälkeen
     - Nämä voivat myös muuttua, jolloin ne ajetaan uudelleen
     - Koska R-migraatioita voidaan muuttaa ja siten ajaa uudelleen, niiden tulee olla idempotentteja, eli niiden tulee
@@ -113,7 +117,79 @@ kuvattu [Flywayn dokumentaatiossa](https://flywaydb.org/documentation/concepts/m
       mutta ei toisin päin
 - Flyway tallentaa migraatioiden tilan (ajetut migraatiot, hash-arvot, jne) omaan skemaansa tietokantaan
 
-### Mitä tapahtuu jos migraatioiden "sääntöjä rikotaan"?
+### Migraatiot ja versiointi
+
+Jos migraatiot käsittelevät dataa versioiduissa tauluissa, on päätettävä vaikuttaako muutos historiaankin. Esimerkiksi
+tietotyypin tai viittausten rakenteen muuttaminen on toki pakko tehdä myös historiaan, jotta historiaa voidaan käyttää
+samoin kuin nykytilaa. Lisäksi viimeisen historian version tulee vastata uusinta päätaulun versiota.
+
+Jos migraatiossa halutaan vain korjata nykytila, on usein OK että muutos tehdään vain päätauluun ja annetaan siitä
+syntyä uusi versio normaalin versioinnin mukaisesti.
+
+Jos muutoksessa korjataan myös versiohistoria, kannattaa suosia seuraavanlaista sekvenssiä migraation toteutuksessa:
+
+1. Disabloidaan päätaulusta triggerit jotta migraation muutokset eivät tuota uusia versioita
+   ```
+      alter table <schema>.<table>
+         disable trigger version_row_trigger,
+         disable trigger version_update_trigger;
+   ```
+2. Tehdään migraation muuotokset versiotauluun (päätauluun ei vielä kosketa)
+3. Kopioidaan päätauluun kunkin rivin uusimman version tila
+4. Enabloidaan triggerit uudelleen
+   ```
+      alter table <schema>.<table>
+         enable trigger version_row_trigger,
+         enable trigger version_update_trigger;
+   ```
+
+### Migraatiot ja julkaistava (paikannupohjan) data
+
+Jos muutoksessa muokataan jotain virallista julkaistua dataa, muutokselle tulee rakentaa kantaan myös julkaisu,
+jotta se päätyy myös Ratkoon. Ratkovienti sekä pull-API:n "rataverkon versio" seuraa vain julkaisuja, eikä virallinen
+data saa koskaan muuttua ilman että muutoksesta on olemassa julkaisu. Julkaisun luonti riippuu muutettavasta datasta,
+mutta se ei ole aina SQL:n puolella yksinkertaista, sillä myös lasketut muutokset (muuttuneet km:t, riippuvien
+käsitteiden uudellennelaskennat) tulee huolehtia julkaisuun kohdalleen ja noiden toteutus on Kotlin-serviceiden
+puolella.
+
+Jos kyseessä on vain pieni määrä dataa jonka voi korjata myös UI:n kautta, on usein helpompaa vain toimittaa
+operaattorille ohjeet datan korjaamiseen UI:n kautta, jolloin migraatiotarve vältetään kokonaan.
+
+Joissain tilanteissa ongelma tilanne voidaan myös hoitaa tekemällä migraation muutos draftina ja ohjeistamalla
+operaattori julkaisemaan se erikseen tavalliseen tapaan. Tämäkin ohittaa laskennallisten muutosten ja julkaisuiden
+ongelman ilman että käyttäjän tarvitsee klikkailla itse muutosta UI:lta.
+
+### Tuotantodata migraatiotiedostoissa
+
+Migraatiotiedostoihin ei ole tarkoitus upottaa tuotantodataa. Periaatteena on että migraatiot tulee voida ajaa myös
+täysin tyhjään kantaan (ja tämän täytyy toimia automaatiotestejäkin varten!), eikä sinne pitäisi ilmestyä tuotantodataa
+automaattisesti. Datan rakenteelliset korjaukset ("korjataan X riveistä joilla Y") toimivat siis luonnollisesti, mutta
+esimerkiksi uuden datasetin tuominen perus Flyway-migraatiossa ei ole suositeltavaa.
+
+Näissä tilanteissa on mahdollista myös käyttää geoviite-env repon erillisiä data-migraatioita. Niiden hankaluus on että
+ne tulee ajaa CGI:n toimesta uuden version asennuksen yhteydessä, mutta toimintoa varten on olemassa valmiit skriptit
+kansiossa [https://github.com/finnishtransportagency/geoviite-env/tree/main/support/db-scripts](https://github.com/finnishtransportagency/geoviite-env/tree/main/support/db-scripts).
+
+### Tietokantanäkymät R-migraatioissa
+
+Geoviitteen näkymät (viewit) rakennetaan pääasiassa R-migraatioina indempotenttisesti, eli niin että mahdollinen vanha
+versio poistetaan (jos sellainen on) ja luodaan sitten uusi. Tämä mahdollistaa näkymien helpon muokkauksen: riittää
+käydä päivittämässä R-migraatiota ja se ajetaan uudelleen automaattisesti. Tästä voi kuitenkin aiheutua tiettyjä
+ongelmia:
+
+- V-migraatiot ei voi riippua R-migraatiossa luodusta näkymästä. Jos V-migraatio tarvitsee näkymää, siitä tulee luoda
+  versio V-migraatioiden puolella (sen voi silti päivittää idempotentisti R-migrassa V-migrojen jälkeen)
+- Joskus V-migraation ajo voi epäonnistua koska se rikkoo jonkun R-puolella luodun näkymän. Tällöin näkymä vain
+  poistetaan V-migraation aluksi ja luodaan R-migraatiossa uudelleen.
+    - Jos näkymän omaan koodiin ei ole mitään muutosta, voidaan R-migraation uusi ajo pakottaa tekemällä tiedostoon
+      jokin triviaali muutos. Tyypillisesti Geoviitteessä on käytetty tähän kommenttiriviä jossa on numero jota vain
+      inkrementoidaan.
+    - Näkymän luontikoodia **EI** kannata vain kopioida V-migraation loppuun, sillä tulos ei olisi enää kaikissa
+      tilanteissa sama: R-migraatiot ajetaan V-migraatioiden jälkeen, mutta ympäristössä jossa R-migraatiot on jo ajettu
+      ja tuodaan uusi V-migraatio, tämä ajetaankin R-migraatioiden jälkeen. Jotta koodi kertoo näkymän nykytilan, tulee
+      varmistaa että R-migraatio on aina ajettu viimeisenä!
+
+### Mitä tapahtuu jos V-migraatiotiedostoa vahingossa muutetaan?
 
 Jos V-migraatiotiedosto muuttuu (hash-arvo ei täsmää), palvelu ei käynnisty. Näin varmistetaan että tuotantoon ei pääse
 vahingossa rikkinäisiä migraatioita, jotka voisivat aiheuttaa datan menetyksen tai muuten rikkoa sovelluksen toimintaa.
