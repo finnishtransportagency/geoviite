@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -36,7 +37,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1268,6 +1268,75 @@ constructor(
         locationTrackService.getInfoboxExtras(MainLayoutContext.draft, targetTrack.id).also { extrasTargetFinished ->
             assertNotNull(extrasTargetFinished)
             assertEquals(PartOfSplit.NONE, extrasTargetFinished!!.partOfSplit)
+        }
+    }
+
+    @Test
+    fun `getInfoboxExtras sets partOfUnfinishedSplit for switches in unfinished splits`() {
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+
+        val point1 = Point(0.0, 0.0)
+        val point2 = Point(10.0, 0.0)
+
+        val switchId =
+            mainOfficialContext.createSwitch(joints = listOf(switchJoint(1, point1), switchJoint(2, point2))).id
+
+        val trackVersion =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometry(edge(listOf(segment(point1, point2)), startInnerSwitch = switchLinkYV(switchId, 1))),
+            )
+
+        // Before any split, switch should not be part of unfinished split
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, trackVersion.id).also { extras ->
+            assertNotNull(extras)
+            val s = extras!!.switches.find { it.switchId == switchId }
+            assertNotNull(s)
+            assertFalse(s!!.partOfUnfinishedSplit)
+        }
+
+        val otherTrackVersion =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+            )
+        val targetTrackVersion =
+            mainDraftContext.save(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+            )
+
+        val splitId =
+            splitDao.saveSplit(
+                otherTrackVersion,
+                listOf(
+                    fi.fta.geoviite.infra.split.SplitTarget(
+                        targetTrackVersion.id,
+                        0..0,
+                        fi.fta.geoviite.infra.split.SplitTargetOperation.CREATE,
+                    )
+                ),
+                listOf(switchId),
+                updatedDuplicates = emptyList(),
+            )
+
+        // Switch should now be a part of an unfinished split
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, trackVersion.id).also { extras ->
+            assertNotNull(extras)
+            val s = extras!!.switches.find { it.switchId == switchId }
+            assertNotNull(s)
+            assertTrue(s!!.partOfUnfinishedSplit)
+        }
+
+        // Mark the split as published, switch should no longer be a part of an unfinished split after that
+        val publicationId = testDBService.createPublication()
+        splitDao.updateSplit(splitId, publicationId = publicationId, sourceTrackVersion = otherTrackVersion)
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, trackVersion.id).also { extras ->
+            assertNotNull(extras)
+            val s = extras!!.switches.find { it.switchId == switchId }
+            assertNotNull(s)
+            assertFalse(s!!.partOfUnfinishedSplit)
         }
     }
 

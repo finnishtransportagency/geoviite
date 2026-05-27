@@ -450,6 +450,18 @@ class SplitService(
             switchLinkingService.getTrackSwitchSuggestions(branch.draft, sourceTrack).let(::verifySwitchSuggestions)
         val relinkedSwitches = switchLinkingService.relinkTrack(branch, request.sourceTrackId).map { it.id }
 
+        val existingSplitsWithSwitches = findUnpublishedSplits(branch, switchIds = relinkedSwitches)
+        if (existingSplitsWithSwitches.isNotEmpty()) {
+            val conflictingSwitchIds = relinkedSwitches.filter { switchId ->
+                existingSplitsWithSwitches.any { split -> split.containsSwitch(switchId) }
+            }
+            throw SplitFailureException(
+                message = "Switches already part of an unpublished split: $conflictingSwitchIds",
+                localizedMessageKey = "switches-in-unpublished-split",
+                localizationParams = localizationParams("switchIds" to conflictingSwitchIds.map { it.intValue }),
+            )
+        }
+
         // Fetch post-re-linking track & alignment
         val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, request.sourceTrackId)
         val targetResults =
