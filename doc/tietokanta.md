@@ -134,7 +134,7 @@ Jos muutoksessa korjataan myös versiohistoria, kannattaa suosia seuraavanlaista
          disable trigger version_row_trigger,
          disable trigger version_update_trigger;
    ```
-2. Tehdään migraation muuotokset versiotauluun (päätauluun ei vielä kosketa)
+2. Tehdään migraation muutokset versiotauluun (päätauluun ei vielä kosketa)
 3. Kopioidaan päätauluun kunkin rivin uusimman version tila
 4. Enabloidaan triggerit uudelleen
    ```
@@ -149,13 +149,13 @@ Jos muutoksessa muokataan jotain virallista julkaistua dataa, muutokselle tulee 
 jotta se päätyy myös Ratkoon. Ratkovienti sekä pull-API:n "rataverkon versio" seuraa vain julkaisuja, eikä virallinen
 data saa koskaan muuttua ilman että muutoksesta on olemassa julkaisu. Julkaisun luonti riippuu muutettavasta datasta,
 mutta se ei ole aina SQL:n puolella yksinkertaista, sillä myös lasketut muutokset (muuttuneet km:t, riippuvien
-käsitteiden uudellennelaskennat) tulee huolehtia julkaisuun kohdalleen ja noiden toteutus on Kotlin-serviceiden
+käsitteiden uudelleenlaskennat) tulee huolehtia julkaisuun kohdalleen ja noiden toteutus on Kotlin-serviceiden
 puolella.
 
 Jos kyseessä on vain pieni määrä dataa jonka voi korjata myös UI:n kautta, on usein helpompaa vain toimittaa
 operaattorille ohjeet datan korjaamiseen UI:n kautta, jolloin migraatiotarve vältetään kokonaan.
 
-Joissain tilanteissa ongelma tilanne voidaan myös hoitaa tekemällä migraation muutos draftina ja ohjeistamalla
+Joissain tilanteissa ongelmatilanne voidaan myös hoitaa tekemällä migraation muutos draftina ja ohjeistamalla
 operaattori julkaisemaan se erikseen tavalliseen tapaan. Tämäkin ohittaa laskennallisten muutosten ja julkaisuiden
 ongelman ilman että käyttäjän tarvitsee klikkailla itse muutosta UI:lta.
 
@@ -168,11 +168,11 @@ esimerkiksi uuden datasetin tuominen perus Flyway-migraatiossa ei ole suositelta
 
 Näissä tilanteissa on mahdollista myös käyttää geoviite-env repon erillisiä data-migraatioita. Niiden hankaluus on että
 ne tulee ajaa CGI:n toimesta uuden version asennuksen yhteydessä, mutta toimintoa varten on olemassa valmiit skriptit
-kansiossa [https://github.com/finnishtransportagency/geoviite-env/tree/main/support/db-scripts](https://github.com/finnishtransportagency/geoviite-env/tree/main/support/db-scripts).
+kansiossa [geoviite-env/support/db-scripts](https://github.com/finnishtransportagency/geoviite-env/tree/main/support/db-scripts).
 
 ### Tietokantanäkymät R-migraatioissa
 
-Geoviitteen näkymät (viewit) rakennetaan pääasiassa R-migraatioina indempotenttisesti, eli niin että mahdollinen vanha
+Geoviitteen näkymät (viewit) rakennetaan pääasiassa R-migraatioina idempotentisti, eli niin että mahdollinen vanha
 versio poistetaan (jos sellainen on) ja luodaan sitten uusi. Tämä mahdollistaa näkymien helpon muokkauksen: riittää
 käydä päivittämässä R-migraatiota ja se ajetaan uudelleen automaattisesti. Tästä voi kuitenkin aiheutua tiettyjä
 ongelmia:
@@ -184,10 +184,12 @@ ongelmia:
     - Jos näkymän omaan koodiin ei ole mitään muutosta, voidaan R-migraation uusi ajo pakottaa tekemällä tiedostoon
       jokin triviaali muutos. Tyypillisesti Geoviitteessä on käytetty tähän kommenttiriviä jossa on numero jota vain
       inkrementoidaan.
-    - Näkymän luontikoodia **EI** kannata vain kopioida V-migraation loppuun, sillä tulos ei olisi enää kaikissa
-      tilanteissa sama: R-migraatiot ajetaan V-migraatioiden jälkeen, mutta ympäristössä jossa R-migraatiot on jo ajettu
-      ja tuodaan uusi V-migraatio, tämä ajetaankin R-migraatioiden jälkeen. Jotta koodi kertoo näkymän nykytilan, tulee
-      varmistaa että R-migraatio on aina ajettu viimeisenä!
+    - Näkymän luontikoodia **EI** kannata vain kopioida V-migraation loppuun, sillä se johtaa eri lopputulokseen eri
+      ympäristöissä: puhtaalla kannalla ajetaan ensin kaikki V-migraatiot ja sitten kaikki R-migraatiot, jolloin näkymä
+      päätyy R-migraation määrittelemään tilaan. Ympäristössä jossa kyseiset R-migraatiot on jo ajettu eikä niissä ole
+      muutoksia, ajetaan ainoastaan uusi V-migraatio — muuttumatonta R-migraatiota ei ajeta uudelleen. Tällöin näkymä
+      jää V-migraation määrittelemään tilaan. Jotta näkymän tila on konsistentti kaikissa ympäristöissä, tulee varmistaa
+      että R-migraation esittämä versio näkymästä jää aina voimaan.
 
 ### Mitä tapahtuu jos V-migraatiotiedostoa vahingossa muutetaan?
 
