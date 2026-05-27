@@ -22,8 +22,8 @@ muunnosmekanismi ei kuitenkaan rajoitu tässä listattuihin järjestelmiin.
 | ETRS-TM35FIN            | Geoviitteen sisäinen tasokoordinaatisto (paikannuspohja, karttaesitys)           |
 | WGS 84                  | Usein käytetty karttaesityksissä sekä eri API:ssa                                |
 | ETRS89                  | Yleiseurooppalainen geodeettinen referenssijärjestelmä                           |
-| Finnish GK19-GK31       | Suomen kaistoihin jaettu tasokoordinaatisto, käytössä uusissa suunnitelmissa     |
-| KKJ0-KKJ5               | Suomen kaistoihin jaettu tasokoordinaatisto, käytössä vanhemmissa suunnitelmissa |
+| GK19 .. GK31            | Suomen kaistoihin jaettu tasokoordinaatisto, käytössä uusissa suunnitelmissa     |
+| KKJ0 .. KKJ5            | Suomen kaistoihin jaettu tasokoordinaatisto, käytössä vanhemmissa suunnitelmissa |
 
 ### Arkkitehtuuri
 
@@ -37,8 +37,8 @@ Muunnokset perustuvat `Transformation`-luokkahierarkiaan:
 ```
 Transformation (sealed class)
 ├── GeoToolsTransformation        – GeoTools-pohjainen muunnos (ei-KKJ-järjestelmät)
-├── KKJToTM35FINTransformation    – KKJ → TM35FIN triangulointiverkolla
-└── TM35FINToKKJTransformation    – TM35FIN → KKJ triangulointiverkolla
+├── KKJToTM35FINTransformation    – KKJ → TM35FIN kolmioverkolla
+└── TM35FINToKKJTransformation    – TM35FIN → KKJ kolmioverkolla
 ```
 
 `CoordinateTransformationService` on Spring-palvelu, joka tarjoaa välimuistissa pidettävät `Transformation`-oliot eri
@@ -48,10 +48,10 @@ koordinaattijärjestelmäparien välille.
 KKJ-muunnokset) sekä suoraan `GeoToolsGeometries.kt`-tiedostossa `GeotoolsTransformation`-olioille. Jälkimmäinen
 tarkoittaa, että välimuisti toimii myös palvelun ohi tehdyissä suorissa kutsuissa (esim. `transformNonKKJCoordinate`).
 
-#### KKJ ↔ TM35FIN — GeoTools + triangulointiverkko
+#### KKJ ↔ TM35FIN — GeoTools + kolmioverkko
 
 KKJ-järjestelmien muuntamiseen TM35FIN:iin (ja takaisin) ei käytetä GeoToolsia, koska sen matemaattinen tarkkuus ei
-riitä KKJ:n muunnokseen (virheet jopa metrien suuruusluokassa). Sen sijaan käytetään erillistä triangulointiverkkoa,
+riitä KKJ:n muunnokseen (virheet jopa metrien suuruusluokassa). Sen sijaan käytetään erillistä kolmioverkkoa,
 joka on tallennettu tietokantaan, tauluihin `common.kkj_etrs_triangulation_network` ja
 `common.kkj_etrs_triangle_corner_point`.
 
@@ -64,11 +64,11 @@ Muunnosalgoritmi:
 
 1. KKJ-koordinaatti muunnetaan ensin KKJ3/YKJ-koordinaatistoon GeoToolsilla (datuminsiirto saman
    ellipsoidin sisällä, jossa GeoTools on tarkka)
-2. YKJ-koordinaatti muunnetaan TM35FIN-koordinaatiksi triangulointiverkolla: etsitään piste sisältävä
-   kolmio R-puusta (`rtree2`) ja lasketaan affinimuunnos kolmion parametreilla
+2. YKJ-koordinaatti muunnetaan TM35FIN-koordinaatiksi kolmioverkolla: etsitään pisteen sisältävä
+   kolmio R-puusta (`rtree2`) ja lasketaan affiinimuunnos kolmion parametreilla
 
-Triangulointiverkko ladataan tietokannasta `KkjTm35finTriangulationDao`-luokassa Spring-välimuistin läpi. Koska nämä
-muunnokset riippuvat tietokantaan tallennetuista triangulointiverkoista, täytyy muunnos hakea aina
+Kolmioverkko ladataan tietokannasta `KkjTm35finTriangulationDao`-luokassa Spring-välimuistin läpi. Koska nämä
+muunnokset riippuvat tietokantaan tallennetusta kolmioverkosta, täytyy muunnos hakea aina
 `CoordinateTransformationService`-palvelun kautta. Jos muunnosta koittaa tehdä puhtailla `GeoToolsGeometries.kt`
 funktioilla kuten `transformNonKKJCoordinate`, muunnos heittää poikkeuksen.
 
@@ -117,9 +117,9 @@ korkeusjärjestelmää, N43, N60 ja N2000. Näistä tuoreinta, eli N2000:aa, kä
 esityksiin ja siihen on toteutettu muunnos N60:sta. N43-korkeusjärjestelmän muunnos N2000:aan ei ole toteutettu, koska
 se on niin vanha että sitä esiintyi suunnitelmissa vain harvoin.
 
-### N60 → N2000 muunnos — triangulointiverkko
+### N60 → N2000 muunnos — kolmioverkko
 
-N60-korkeuksien muuntamiseen N2000:een käytetään triangulointiverkkoa, joka on tallennettu tietokantaan, tauluihin
+N60-korkeuksien muuntamiseen N2000:een käytetään kolmioverkkoa, joka on tallennettu tietokantaan, tauluihin
 `common.n60_n2000_triangulation_network` ja `common.n60_n2000_triangle_corner_point`.
 `HeightTriangleDao.fetchTriangles(boundingPolygon)` hakee ne kussakin muunnostilanteessa kolmiot, jotka leikkaavat
 käsiteltävää aluetta. Itse muunnos tapahtuu kahdessa lineaarisessa interpolointivaiheessa: ensin interpoloidaan
@@ -130,4 +130,4 @@ interpolointipisteestä kolmanteen kulmaan. Saatu erotusarvo lisätään alkuper
 
 - **GeoTools** — CRS-muunnokset: https://geotools.org/
 - **JTS Topology Suite** — geometriatyypit ja spatiaaliset operaatiot: https://locationtech.github.io/jts/
-- **rtree2** — triangulointiverkkojen spatiaalinen indeksointi: https://github.com/davidmoten/rtree2
+- **rtree2** — kolmioverkkojen spatiaalinen indeksointi: https://github.com/davidmoten/rtree2
