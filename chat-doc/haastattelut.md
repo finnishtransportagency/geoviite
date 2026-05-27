@@ -373,3 +373,53 @@ V: Karttanäkymässä käytetään TM35FIN koordinaatistoa.
 **K: Mainitsit aiemmin, että geometriasuunnitelmissa on eroa "tiedostossa tallennetun koordinaatiston" ja "Geoviitteen tietokannassa tallennetun koordinaatiston" välillä. Miten Geoviite käsittelee geometriasuunnitelman sisältämät koordinaatit linkitysvaiheessa — muunnetaanko ne tietokantaan TM35FIN-muodossa, vai säilytetäänkö ne alkuperäisessä koordinaatistossa?**
 
 V: Geometriatiedoston sisältö säilyy Geoviitteessä koskemattomana. Käyttöliittymässä operaattori voi valita geometriasuunnitelmalle koordinaatiston, tämä tieto tallentuu Geoviitteen tietokantaan. Myös geometriasuunnitelman sisältämät koordinaattititiedot (esim. geometriaelementtien tiedot) tallennetaan kantaan operaattorin valitsemassa koordinaatistossa. Kun geometriaelementistä muodostetaan kartalla esitettävää geometriaa, mm. linkitystä varten, koordinaattisijainnit muunnetaan geometriaelementin koordinaatistosta TM35FIN koordinaatistoon. Eli suunniteltu geometria on Geoviitteessä operaattorin valitsemassa koordinaatistossa, joka on useimmiten sama kuin geometriatiedoston sisältämä koordinaatisto, paikannuspohjan koordinaattitiedot (esim. raiteiden geometria, vaihteiden sijainnit jne.) ovat pääasiassa TM35FIN koordinaatistossa.
+
+---
+
+## 2026-05-25 — KS (jatkuu)
+
+**K: Millainen on Geoviitteen API — onko se REST, GraphQL vai jokin muu? Mitä se tarjoaa ja kenelle — onko esim. ulkoisten järjestelmien API eri kuin käyttöliittymän käyttämä?**
+
+V: Geoviitteeseen liittyy oikeastaan kolme API-kokonaisuutta. Yksi rajapinta on Geoviitteen käyttöliittymän käyttämä rajapinta. Se noudattaa pääasiassa REST-konventioita ja tarjoilee dataa nimenomaan käyttöliittymän tarpeisiin. Tiedon käsittelyä on optimoitu käyttöliittymän käyttötarpeiden mukaan. Tämän rajapinnan kautta tapahtuu myös Geoviitteen tietojen päivittäminen. Rajapinnan käyttö vaatii Väyläpilven käyttäjätilin ja tiliin liitetyn Geoviite-roolin. Geoviite-rooleja on erilaisia ja niillä on erilaisia oikeuksia.
+
+Geoviite-kokonaisuus sisältää myös viitekehysmuunnin-rajapinnan (lyhenne VKM), jolla koordinaattisijainteja voi muuttaa rataosoitteiksi ja toisin päin. Tämäkin rajapinta noudattaa jokseenkin REST-mallia. VKM-rajapinta on julkinen ja sitä voidaan käyttää ilman tunnistautumista. Julkisen VKM-rajapinnan kutsutiheyttä on rajattu, mutta rajapinnasta on olemassa myös API-avaimella käytettävä versio, jossa kutsurajoitukset ovat huomattavasti sallivammat. Muiden järjestelmien on luonnollista käyttää API-avaimella suojattua versiota. API-avaimen saa pyydettyä Väylävirastolta. Rajapinta on versioitu Semantic Versioning -konvention mukaan.
+
+Geoviitteen perustietojen lukemiseksi on olemassa erillinen API, josta sisäisesti käytetään nimeä ext-api. Tästä rajapinnasta on luettavissa lähes kaikki virallisen paikannuspohjan sisältämät tiedot. Tiedot on luettavissa rataverkon versiokohtaisesti, eli on mahdollista lukea myös historiatietoa. Useimmista tietotyypeistä on luettavissa myös muutokset versioittain tai versiovälillä. Nämä muutosrajapinnat mahdollistavat tietojen tehokkaamman syknronoinnin toiseen järjestelmään, kun on mahdollista lukea Geoviitteeseen tietyn ajanhetken (tai oikeastaan version) jälkeen tehdy muutokset. Tämä rajapinta on tarkoitettu toisen järjestelmän käytettäväksi, jolloin tunnistautuminen tapahtuu API-avaimella. Koska API-avaimen käyttäminen on hankalaa selaimella kutsuttaessa, rajapintaa on mahdollista kustua myös Väyläviraston käyttäjänä, kunhan käyttäjätiliin on liitetty jokin Geoviite-oikeus. Väyläviraston käyttäjänä käyttäminen on kätevää mm. rajapinnan testaamiseksi. Rajapinta on versioitu Semantic Versioning -konvention mukaan.
+
+---
+
+**K: Mainitsit, että Geoviite-rooleja on erilaisia ja niillä on erilaisia oikeuksia. Mitä rooleja on olemassa ja mitä kukin rooli saa tehdä järjestelmässä?**
+
+V: Geoviitteessä on kirjoitushetkellä neljä eri roolia. Operaattori on Geoviite-operaattorin rooli ja sillä on oikeus kaikkiin mahdollisiin toimintoihin. Vain operaattorin roolilla voi muuttaa Geoviitteen sisältämiä tietoja. Kehitys-, testi- ja paikallisessa ympäristössä Geoviitteen kehitystiimillä on oletuksena operaattorin rooli käytössä, jotta testaaminen olisi helppoa.
+
+Kehitystiimi-roolilla on oikeudet lukea lähes kaikkia Geoviitteen tietoja, paitsi esikatselussa olevia muutoksia. Esikatselun tiedoissa ei ole mitään salaista, joten sekin voisi olla ja olisi hyvä olla kehitystiimin luettavissa, mutta yksinkertaisuuden nimissä sen käsittely on jäänyt toistaiseksi toteuttamatta.
+
+Virastokäyttäjä-roolilla on oikeus katsella kaikkea viralliseen paikannuspohjaan liittyviä tietoja, myös nähdä geometriatietoja, mutta ei ladata geometriasuunnitelmia. Luonnostilaisia tietoja virastokäyttäjälle ei myöskään ole tarpeen näyttää, koska ne ovat muokkauksen alla olevia tietoja, joka voivat sekoittaa käyttäjää.
+
+Konsultti-roolilla on suppeimmat oikeudet. Tämän roolin käyttäjä voi lukea lähes kaikkia virallisen paikannuspohjan tietoja, mutta geometriasuunnitelmia tai tietotuotteita konsultti-roolilla ei näe.
+
+---
+
+**K: Mainitsit ext-apin tarjoavan tietoja "rataverkon versiokohtaisesti" ja muutosrajapinnat versioittain. Miten Geoviitteen versiointi toimii — miten versio syntyy ja mitä se tarkoittaa käytännössä?**
+
+V: Rataverkon versio syntyy, kun viralliseen paikannuspohjaan julkaistaan muutos. Geoviitteen API:sta on mahdollista kysyä käsitteiden (sijaintiraide, vaihde, jne.) tiedot tietyssä versiossa. Muutosrajapinnoista on mahdollista kysyä, kuinka käsitteiden tiedot ovat muuttuneet kahden rataverkon version välillä.
+
+---
+
+**K: Mainitsit VKM-rajapinnan, jolla voi muuntaa koordinaattisijainteja rataosoitteiksi ja takaisin. Miten tämä muunnos toimii teknisesti — onko kyseessä yksinkertainen lähimmän pisteen haku pituusmittauslinjalta, vai jotain monimutkaisempaa?**
+
+V: Muuntaminen tapahtuu geokoodauksella, josta on olemassa erillinen dokumentaatio (https://github.com/finnishtransportagency/geoviite/blob/main/doc/geokoodaus.md), joten sitä ei käsitellä tarkemmin tässä.
+
+---
+
+**K: Mainitsit "tietotuotteet" konsultti-roolin yhteydessä. Mitä tietotuotteet ovat Geoviitteessä — miten ne eroavat perustiedoista, ja kuka niitä käyttää?**
+
+V: Tietotuotteet ovat jalostettuja koosteita/raportteja rataverkon tiedoista. Tällä hetkellä tietotuotteita ovat elementtiluettelo, pystygeometria ja ratakilometrien pituudet. Tietotuotteiden käyttöön vaaditaan tällä hetkellä vähintään virastokäyttäjän rooli, joten suoraan Geoviitteestä niitä pääsee lukemaan vain melko pieni joukko käyttäjiä. Geoviite-operaattori voi toimittaa tietotuotteiden tulosteita (CSV-tiedostot) tietopyyntöjen vastauksena.
+
+Elementtiluettelo listaa sijaintiraiteisiin linkitetyt geometriaelementit tai geometriasuunnitelman raiteiden geometriaelementit. Käyttötapaus tälle tietotuotteelle on esim. sijaintiraiteiden pienisäteisten kaarteiden hakeminen, jota voidaan käyttää hyväksi pitkien kuljetusten mahdollisten reittien määrityksessä.
+
+Pystygeometria listaa sijaintiraiteisiin linkitetyt tai geometriasuunnitelman raiteiden sisältämä taitepisteet ja kaltevuusjaksot. Näitä tietoja tarvitaan esim. jarrupainolaskelmia tai junien seisonta-alueita määritettäessä.
+
+Ratakilometrien pituuksia tarvitaan ainakin tilastointitarpeisiin.
+
+Geoviitteen API tulee korvaamaan osan tietotuotteiden tarpeesta, koska käyttötapauksiin osallistuu usein toinen järjestelmä. Ihmisen on kuitenkin helpompi lukea tietotuotteiden tulosteita.
