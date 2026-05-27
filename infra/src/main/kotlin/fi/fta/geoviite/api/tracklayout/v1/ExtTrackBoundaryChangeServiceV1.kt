@@ -50,7 +50,8 @@ constructor(
             val endMoment = publications.to.publicationTime
             val splits = getSplitData(branch, startMoment, endMoment)
             val moves = getBoundaryMoveData(branch, startMoment, endMoment)
-            val boundaryChanges = (splits + moves).map(::createBoundaryChange)
+            val boundaryChanges =
+                (splits + moves).sortedBy { it.publication.publicationTime }.map(::createBoundaryChange)
             ExtTrackBoundaryChangeResponseV1(
                 layoutVersionFrom = ExtLayoutVersionV1(publications.from.uuid),
                 layoutVersionTo = ExtLayoutVersionV1(publications.to.uuid),
