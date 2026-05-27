@@ -60,7 +60,8 @@ GK-fin -muunnos heittää poikkeuksen. Tarvittaessa KKJ-koordinaatti täytyy sii
 jonka jälkeen edelleen haluttuun järjestelmään. Myös suora muunnos olisi toteutettavissa, mutta sille ei ole käytännössä
 ollut tarvetta.
 
-Muunnosalgoritmi:
+Muunnosalgoritmi on toteutettu
+[MML:n dokumentaation mukaisesti](https://www.maanmittauslaitos.fi/kartat-ja-paikkatieto/koordinaatit-ja-paikannus/koordinaattimuunnokset/kkj-ja-euref-fin):
 
 1. KKJ-koordinaatti muunnetaan ensin KKJ3/YKJ-koordinaatistoon GeoToolsilla (datuminsiirto saman
    ellipsoidin sisällä, jossa GeoTools on tarkka)
