@@ -231,14 +231,15 @@ constructor(
         val switch = mainDraftContext.save(switch())
         val trackNumberIds =
             listOf(mainOfficialContext.createLayoutTrackNumber().id, mainOfficialContext.createLayoutTrackNumber().id)
-        val locationTracks = trackNumberIds.map { trackNumberId ->
-            val edge =
-                edge(
-                    startInnerSwitch = switchLinkYV(switch.id, 1),
-                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
-                )
-            mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
-        }
+        val locationTracks =
+            trackNumberIds.map { trackNumberId ->
+                val edge =
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch.id, 1),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    )
+                mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
+            }
 
         val publicationResult =
             publish(publicationService, locationTracks = locationTracks.map { it.id }, switches = listOf(switch.id))

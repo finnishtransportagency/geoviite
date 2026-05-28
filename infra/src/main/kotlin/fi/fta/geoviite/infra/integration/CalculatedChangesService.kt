@@ -293,6 +293,7 @@ class CalculatedChangesService(
                     kmPosts = getNonOverriddenVersions(branch, kmPosts, kmPostDao),
                     operationalPoints = getNonOverriddenVersions(branch, operationalPoints, operationalPointDao),
                     splits = listOf(),
+                    trackBoundaryMoves = listOf(),
                 )
             getCalculatedChanges(validationVersions).indirectChanges.let {
                 filterIndirectChangesByOidPresence(it, allOids)
@@ -357,6 +358,7 @@ class CalculatedChangesService(
                 kmPosts = completedKmPosts,
                 operationalPoints = completedOperationalPoints,
                 splits = listOf(),
+                trackBoundaryMoves = listOf(),
             )
 
         val directChanges =

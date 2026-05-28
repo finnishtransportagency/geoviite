@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -405,7 +406,11 @@ data class PublicationCandidates(
             operationalPoints.map { candidate -> candidate.id },
         )
 
-    fun getValidationVersions(transition: LayoutContextTransition, splitVersions: List<RowVersion<Split>>) =
+    fun getValidationVersions(
+        transition: LayoutContextTransition,
+        splitVersions: List<RowVersion<Split>>,
+        trackBoundaryMoves: List<RowVersion<TrackBoundaryMove>>,
+    ) =
         ValidationVersions(
             target = transition,
             trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
@@ -415,6 +420,7 @@ data class PublicationCandidates(
             kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
             operationalPoints = operationalPoints.map(OperationalPointPublicationCandidate::getPublicationVersion),
             splits = splitVersions,
+            trackBoundaryMoves = trackBoundaryMoves,
         )
 
     fun filter(request: PublicationRequestIds) =
@@ -450,10 +456,11 @@ data class ValidationVersions(
     val kmPosts: List<LayoutRowVersion<LayoutKmPost>>,
     val operationalPoints: List<LayoutRowVersion<OperationalPoint>>,
     val splits: List<RowVersion<Split>>,
+    val trackBoundaryMoves: List<RowVersion<TrackBoundaryMove>>,
 ) {
     companion object {
         fun emptyWithTarget(target: LayoutContextTransition) =
-            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
+            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
     }
 
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.id == id }
@@ -826,9 +833,8 @@ data class SwitchChanges(
     private fun getTrackNumberJointLocation(
         trackNumberId: IntId<LayoutTrackNumber>,
         jointNumber: JointNumber,
-    ): Change<Point?> = trackConnections.map { tracks ->
-        getTrackNumberJointLocation(tracks, trackNumberId, jointNumber)
-    }
+    ): Change<Point?> =
+        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
 
     private fun getTrackNumberJointLocation(
         tracks: List<SwitchLocationTrack>,

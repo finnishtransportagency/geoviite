@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.ratko.SWITCH_FAKE_OID_CONTEXT
 import fi.fta.geoviite.infra.ratko.TRACK_NUMBER_FAKE_OID_CONTEXT
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -46,12 +47,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -77,6 +78,7 @@ constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
+    private val trackBoundaryMoveService: TrackBoundaryMoveService,
     private val publicationValidationService: PublicationValidationService,
     private val layoutDesignDao: LayoutDesignDao,
 ) {
@@ -294,6 +296,8 @@ constructor(
                     request.locationTracks,
                     request.switches,
                 ),
+            trackBoundaryMoves =
+                trackBoundaryMoveService.fetchPublicationVersions(transition.candidateBranch, request.locationTracks),
         )
     }
 
@@ -497,6 +501,11 @@ constructor(
         )
 
         splitService.publishSplit(versions.splits, locationTracks.map { it.published }, publicationId)
+        trackBoundaryMoveService.publishTrackBoundaryMove(
+            versions.trackBoundaryMoves,
+            locationTracks.map { it.published },
+            publicationId,
+        )
 
         return PublicationResult(
             publicationId = publicationId,

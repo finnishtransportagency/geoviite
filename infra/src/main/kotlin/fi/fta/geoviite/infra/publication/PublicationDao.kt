@@ -103,11 +103,11 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -2598,7 +2598,7 @@ class PublicationDao(
         val operation: SplitTargetOperation,
     )
 
-    data class TrackBoundaryChange(
+    data class SplitTrackBoundaryChange(
         val publicationId: IntId<Publication>,
         val segments: List<TrackBoundaryChangeSegment>,
     ) {
@@ -2608,7 +2608,7 @@ class PublicationDao(
     fun fetchPublishedSplitsBetween(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): List<TrackBoundaryChange> {
+    ): List<SplitTrackBoundaryChange> {
         val sql =
             """
             select
@@ -2663,8 +2663,68 @@ class PublicationDao(
                 publicationId to changeTarget
             }
             .groupBy({ it.first }, { it.second })
-            .map { (publicationId, targets) -> TrackBoundaryChange(publicationId, targets) }
-            .also { logger.daoAccess(FETCH, TrackBoundaryChange::class, it.map { it.publicationId }) }
+            .map { (publicationId, targets) -> SplitTrackBoundaryChange(publicationId, targets) }
+            .also { logger.daoAccess(FETCH, SplitTrackBoundaryChange::class, it.map { it.publicationId }) }
+    }
+
+    data class PublishedTrackBoundaryMove(
+        val publicationId: IntId<Publication>,
+        val shortenedTrackVersion: LayoutRowVersion<LocationTrack>,
+        val edgeRange: IntRange,
+        val lengthenedTrackVersion: LayoutRowVersion<LocationTrack>,
+    ) {
+        val allTrackIds = setOf(shortenedTrackVersion.id, lengthenedTrackVersion.id)
+    }
+
+    fun fetchPublishedBoundaryMovesBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<PublishedTrackBoundaryMove> {
+        val sql =
+            """
+            select
+              tbm.publication_id,
+              tbm.shortened_location_track_id,
+              tbm.shortened_location_track_layout_context_id,
+              tbm.shortened_location_track_version,
+              tbm.source_start_edge_index,
+              tbm.source_end_edge_index,
+              tbm.lengthened_location_track_id,
+              tbm.lengthened_location_track_layout_context_id,
+              tbm.lengthened_location_track_version
+            from publication.track_boundary_move tbm
+              inner join publication.publication on tbm.publication_id = publication.id
+            where publication.design_id is null
+                and publication.publication_time > :start_time
+                and publication.publication_time <= :end_time
+            order by tbm.publication_id
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                PublishedTrackBoundaryMove(
+                    publicationId = rs.getIntId("publication_id"),
+                    shortenedTrackVersion =
+                        rs.getLayoutRowVersion(
+                            "shortened_location_track_id",
+                            "shortened_location_track_layout_context_id",
+                            "shortened_location_track_version",
+                        ),
+                    edgeRange = rs.getInt("source_start_edge_index")..rs.getInt("source_end_edge_index"),
+                    lengthenedTrackVersion =
+                        rs.getLayoutRowVersion(
+                            "lengthened_location_track_id",
+                            "lengthened_location_track_layout_context_id",
+                            "lengthened_location_track_version",
+                        ),
+                )
+            }
+            .also { logger.daoAccess(FETCH, PublishedTrackBoundaryMove::class, it.map { m -> m.publicationId }) }
     }
 
     fun fetchPublishedTrackNumberGeomsBetween(

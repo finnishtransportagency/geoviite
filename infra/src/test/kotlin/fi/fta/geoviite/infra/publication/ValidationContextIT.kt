@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -47,6 +48,7 @@ constructor(
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
     val splitService: SplitService,
+    val trackBoundaryMoveService: TrackBoundaryMoveService,
 ) : DBTestBase() {
 
     @Test
@@ -201,6 +203,7 @@ constructor(
                     switches = switchDao.fetchCandidateVersions(candidateContext, switches),
                     operationalPoints = operationalPointDao.fetchCandidateVersions(candidateContext, operationalPoints),
                     splits = splitService.fetchPublicationVersions(branch, locationTracks, switches),
+                    trackBoundaryMoves = trackBoundaryMoveService.fetchPublicationVersions(branch, locationTracks),
                 ),
         )
     }
