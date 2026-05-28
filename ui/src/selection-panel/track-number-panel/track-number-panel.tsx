@@ -19,7 +19,7 @@ type TrackNumberPanelProps = {
     onSelectColor: (trackNumberId: LayoutTrackNumberId, color: TrackNumberColorKey) => void;
     selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
-    disabled?: boolean;
+    colorSelectorDisabled?: boolean;
 };
 
 const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
@@ -29,7 +29,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     onSelectColor,
     selectedTrackNumbers,
     max = 16,
-    disabled = false,
+    colorSelectorDisabled = false,
 }: TrackNumberPanelProps) => {
     const { t } = useTranslation();
     const [sortedTrackNumbers, setSortedTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -61,7 +61,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                                         />
                                         {trackNumber.number}
                                     </span>
-                                    {!disabled && (
+                                    {!colorSelectorDisabled && (
                                         <ColorSelector
                                             color={
                                                 settings[trackNumber.id]?.color ??
