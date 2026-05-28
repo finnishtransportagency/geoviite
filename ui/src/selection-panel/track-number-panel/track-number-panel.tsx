@@ -42,10 +42,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
 
         setSortedTrackNumbers(visibleTrackNumbers.sort(fieldComparator((tn) => tn.number)));
     }, [trackNumbers, selectedTrackNumbers]);
-    const trackNumberClassNames = createClassName(
-        styles['track-number-panel__track-number'],
-        disabled && styles['track-number-panel__track-number--disabled'],
-    );
+    const trackNumberClassNames = createClassName(styles['track-number-panel__track-number']);
 
     return (
         <div>
@@ -56,12 +53,8 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                         return (
                             <li className={trackNumberClassNames} key={trackNumber.id}>
                                 <div>
-                                    <span
-                                        onMouseUp={() =>
-                                            !disabled && onSelectTrackNumber(trackNumber)
-                                        }>
+                                    <span onMouseUp={() => onSelectTrackNumber(trackNumber)}>
                                         <Radio
-                                            disabled={disabled}
                                             checked={isSelected}
                                             readOnly={true}
                                             name={trackNumber.number}
