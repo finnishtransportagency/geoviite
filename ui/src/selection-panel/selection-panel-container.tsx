@@ -29,7 +29,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
 
     const selectableItemTypes = React.useMemo(() => {
         return getSelectableItemTypes(state.splittingState, state.linkingState);
-    }, [state.linkingState]);
+    }, [state.linkingState, state.splittingState]);
 
     const locationTracks = useLocationTracks(
         state.map.shownItems.locationTracks,

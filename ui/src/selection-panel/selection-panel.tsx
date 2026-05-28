@@ -300,7 +300,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
                         onSelectColor={onTrackNumberColorSelection}
-                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')}
+                        colorSelectorDisabled={
+                            isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')
+                        }
                     />
                 </div>
             </section>
@@ -363,7 +365,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedTrackNumbers={selectedItems.trackNumbers}
                         canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
-                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')}
+                        disabled={
+                            isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')
+                        }
                     />
                 </div>
             </section>
@@ -378,7 +382,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         selectedLocationTracks={selectedItems.locationTracks}
                         canSelectLocationTrack={selectableItemTypes.includes('locationTracks')}
                         onToggleLocationTrackSelection={onToggleLocationTrackSelection}
-                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('locationTracks')}
+                        disabled={
+                            isLinkingOrSplitting && !selectableItemTypes.includes('locationTracks')
+                        }
                     />
                 </div>
             </section>
@@ -436,7 +442,10 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         onToggleOperationalPointSelection={(op) =>
                             onToggleOperationalPointSelection(op.id)
                         }
-                        disabled={isLinkingOrSplitting && !selectableItemTypes.includes('operationalPoints')}
+                        disabled={
+                            isLinkingOrSplitting &&
+                            !selectableItemTypes.includes('operationalPoints')
+                        }
                     />
                 </div>
             </section>

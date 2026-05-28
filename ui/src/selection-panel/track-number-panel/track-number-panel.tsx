@@ -19,7 +19,7 @@ type TrackNumberPanelProps = {
     onSelectColor: (trackNumberId: LayoutTrackNumberId, color: TrackNumberColorKey) => void;
     selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
-    disabled?: boolean;
+    colorSelectorDisabled?: boolean;
 };
 
 const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
@@ -29,7 +29,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     onSelectColor,
     selectedTrackNumbers,
     max = 16,
-    disabled = false,
+    colorSelectorDisabled = false,
 }: TrackNumberPanelProps) => {
     const { t } = useTranslation();
     const [sortedTrackNumbers, setSortedTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -42,10 +42,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
 
         setSortedTrackNumbers(visibleTrackNumbers.sort(fieldComparator((tn) => tn.number)));
     }, [trackNumbers, selectedTrackNumbers]);
-    const trackNumberClassNames = createClassName(
-        styles['track-number-panel__track-number'],
-        disabled && styles['track-number-panel__track-number--disabled'],
-    );
+    const trackNumberClassNames = createClassName(styles['track-number-panel__track-number']);
 
     return (
         <div>
@@ -56,19 +53,15 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                         return (
                             <li className={trackNumberClassNames} key={trackNumber.id}>
                                 <div>
-                                    <span
-                                        onMouseUp={() =>
-                                            !disabled && onSelectTrackNumber(trackNumber)
-                                        }>
+                                    <span onMouseUp={() => onSelectTrackNumber(trackNumber)}>
                                         <Radio
-                                            disabled={disabled}
                                             checked={isSelected}
                                             readOnly={true}
                                             name={trackNumber.number}
                                         />
                                         {trackNumber.number}
                                     </span>
-                                    {!disabled && (
+                                    {!colorSelectorDisabled && (
                                         <ColorSelector
                                             color={
                                                 settings[trackNumber.id]?.color ??
