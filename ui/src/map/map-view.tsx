@@ -25,10 +25,10 @@ import {
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import {
-    MapToolMenuItem,
     MapToolActivateOptions,
     MapToolHandle,
     MapToolId,
+    MapToolMenuItem,
 } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
@@ -43,7 +43,12 @@ import {
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LAYOUT_SRID,
+    LayoutGraphLevel,
+} from 'track-layout/track-layout-model';
+import { SelectedBoundaryMoveJoint } from 'track-layout/track-boundary-move-api';
 import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
@@ -120,6 +125,10 @@ import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-c
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
 import { RouteLocation, RouteLocations } from 'track-layout/track-layout-slice';
 import { createRouteMarkerLayer } from 'map/layers/highlight/route-marker-layer';
+import {
+    createLocationTrackBoundaryMoveLayer,
+    LocationTrackBoundaryMoveLayer,
+} from 'map/layers/location-track-boundary-move-layer';
 
 declare global {
     interface Window {
@@ -138,6 +147,7 @@ export type MapViewProps = {
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onClickLocation: OnClickLocationFunction;
+    onSetTrackBoundaryMoveJoint: (joint: SelectedBoundaryMoveJoint) => void;
     onViewportUpdate: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
     onSetLayoutPoint: (linkPoint: LinkPoint) => void;
@@ -273,6 +283,7 @@ const MapView: React.FC<MapViewProps> = ({
     onHighlightItems,
     onClosePlanDownloadPopup,
     onClickLocation,
+    onSetTrackBoundaryMoveJoint,
     onMapLayerChange,
     onSetOperationalPointPolygon,
     publicationCandidates,
@@ -750,6 +761,17 @@ const MapView: React.FC<MapViewProps> = ({
                             layoutContext,
                             olMap,
                             onSetOperationalPointPolygon,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'location-track-boundary-move-layer':
+                        return createLocationTrackBoundaryMoveLayer(
+                            mapTiles,
+                            existingLayer as LocationTrackBoundaryMoveLayer | undefined,
+                            layoutContext,
+                            changeTimes,
+                            linkingState,
+                            olMap,
+                            onSetTrackBoundaryMoveJoint,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':

@@ -376,6 +376,13 @@ export type LocationTrackInfoboxOperationalPoint = {
     displayAddress?: TrackMeter;
 };
 
+export type LocationTrackSwitchJoint = {
+    switchId: LayoutSwitchId;
+    jointNumber: JointNumber;
+    location: Point;
+    m: number;
+};
+
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 
 export enum TrapPoint {
@@ -411,6 +418,8 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
 }
 
 export type LayoutSwitchId = Brand<string, 'LayoutSwitchId'>;
+
+export type SwitchJointId = { switchId: LayoutSwitchId; jointNumber: JointNumber };
 
 export type SwitchNameParts = {
     prefix: string;

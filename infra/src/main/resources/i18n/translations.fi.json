@@ -68,6 +68,11 @@
             "invalid-gk-srid": "Asetettu koordinaattijärjestelmä (EPSG:{{srid}}) ei ole GK-koordinaattijärjestelmä",
             "invalid-gk-location": "Sijainnin määritys on virheellinen: {{y}} N {{x}} E (EPSG:{{srid}})"
         },
+        "track-boundary-move": {
+            "generic": "Vaihtumiskohdan siirrossa tapahtui virhe",
+            "does-not-move-boundary": "Valittu vaihteen piste ei siirrä raiteiden vaihtumiskohtaa",
+            "tracks-do-not-connect": "Raiteet eivät kohtaa toisiaan, joten vaihtumiskohtaa ei voi siirtää"
+        },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
             "source-track-update-is-not-allowed": "Raide {{name}} on jaettu, eikä sen muokkaaminen ole enää mahdollista",
@@ -846,7 +851,9 @@
             "end-coordinates": "Loppukoordinaatit",
             "show-on-map": "Kohdista kartalla",
             "unpublished": "Julkaisematon",
-            "modify-start-or-end": "Lyhennä alkua ja/tai loppua",
+            "modify-start-or-end": "Siirrä alkua ja/tai loppua",
+            "shorten-track-start-or-end": "Lyhennä raidetta alusta/lopusta",
+            "move-track-boundary": "Siirrä raiteiden vaihtumiskohtaa",
             "no-geometry": "Sijaintiraiteella ei ole geometriaa",
             "ready": "Valmis",
             "location-track-endpoints-updated": "Raiteen päätepisteet päivitetty",
@@ -1013,7 +1020,20 @@
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa",
-            "publication-log-unavailable": "Raidetta ei ole julkaistu nykytilaan"
+            "publication-log-unavailable": "Raidetta ei ole julkaistu nykytilaan",
+            "track-boundary-move": {
+                "title-pre-select": "Vaihtumiskohdan siirto",
+                "title-post-select": "Vaihtumiskohdan muutos",
+                "first-track": "Ensimmäinen raide",
+                "second-track": "Toinen raide",
+                "select-second-track": "Valitse toinen raide",
+                "no-candidates": "Ei ehdokkaita",
+                "candidates-info": "Listassa näytetään vain sellaiset raiteet, jotka päättyvät korkeintaan 1 metrin päähän ensimmäisestä raiteesta, eivätkä ole päällekkäin ensimmäisen raiteen kanssa.",
+                "select-boundary-on-map": "Valitse uusi vaihtumiskohta kartalta.",
+                "lock-selection": "Lukitse valinta",
+                "save-boundary-move": "Tallenna vaihtumiskohta",
+                "boundary-move-saved": "Vaihtumiskohta tallennettu"
+            }
         },
         "operational-point": {
             "basic-info-heading": "Toiminnallisen pisteen perustiedot",

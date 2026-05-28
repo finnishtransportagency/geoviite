@@ -21,6 +21,10 @@ export const selectOrHighlightComboTool: MapToolWithButton = {
                 selectHandle.onLayersChanged?.(newLayers);
                 highlightHandle.onLayersChanged?.(newLayers);
             },
+            onLinkingStateChanged: (newLinkingState) => {
+                selectHandle.onLinkingStateChanged?.(newLinkingState);
+                highlightHandle.onLinkingStateChanged?.(newLinkingState);
+            },
         };
     },
 

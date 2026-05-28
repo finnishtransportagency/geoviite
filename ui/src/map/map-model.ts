@@ -62,7 +62,8 @@ export type MapLayerName =
     | 'debug-geometry-graph-layer'
     | 'signal-asset-layer'
     | 'property-boundary-layer'
-    | 'virtual-hide-signal-asset-layer';
+    | 'virtual-hide-signal-asset-layer'
+    | 'location-track-boundary-move-layer';
 
 export type MapViewportSource = 'Map';
 

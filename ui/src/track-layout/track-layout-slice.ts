@@ -337,6 +337,7 @@ export function getSelectableItemTypes(
         case LinkingType.PlacingOperationalPointArea:
         case LinkingType.LinkingOperationalPointSwitches:
         case LinkingType.LinkingOperationalPointTracks:
+        case LinkingType.TrackBoundaryMove:
             return [];
         case LinkingType.LinkingGeometrySwitch:
             return ['switches'];
@@ -518,6 +519,7 @@ const trackLayoutSlice = createSlice({
                             filterSelectOptionsByItemTypes(onSelectOptions, ['kmPosts']),
                         );
                         break;
+                    case LinkingType.TrackBoundaryMove:
                     case LinkingType.PlacingLayoutSwitch:
                     case LinkingType.LinkingLayoutSwitch:
                     case LinkingType.PlacingOperationalPoint:
