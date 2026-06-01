@@ -160,7 +160,16 @@ const boundaryBarStyle = new Style({
     },
 });
 
-function createMainJointFeaturesForTrack(
+function isSelectableJoint(
+    joint: LocationTrackSwitchJoint,
+    switchesById: Map<LayoutSwitchId, LayoutSwitch>,
+): boolean {
+    const layoutSwitch = switchesById.get(joint.switchId);
+    const switchJoint = layoutSwitch?.joints.find((j) => j.number === joint.jointNumber);
+    return switchJoint?.role === 'MAIN';
+}
+
+function createJointFeaturesForTrack(
     track: BoundaryMoveTrackInfo,
     boundaryJointId: SwitchJointId | undefined,
     moveInterval: MoveInterval | undefined,
@@ -169,9 +178,7 @@ function createMainJointFeaturesForTrack(
     const features: Feature<LineString | OlPoint>[] = [];
 
     for (const joint of track.joints) {
-        const layoutSwitch = switchesById.get(joint.switchId);
-        const switchJoint = layoutSwitch?.joints.find((j) => j.number === joint.jointNumber);
-        if (switchJoint?.role !== 'MAIN') continue;
+        if (!isSelectableJoint(joint, switchesById)) continue;
 
         const color = boundaryMoveJointColor(track.role, joint, boundaryJointId, moveInterval);
         const style = color === 'head' ? headJointStyle : counterpartJointStyle;
@@ -186,7 +193,7 @@ function createMainJointFeaturesForTrack(
     return features;
 }
 
-function createMainJointFeatures(
+function createJointFeatures(
     trackInfos: BoundaryMoveTrackInfos,
     linkingState: ChangingTrackBoundary,
     moveInterval: MoveInterval | undefined,
@@ -197,10 +204,10 @@ function createMainJointFeatures(
         undefined;
 
     return [
-        ...createMainJointFeaturesForTrack(trackInfos.headTrack, boundaryJointId, moveInterval),
+        ...createJointFeaturesForTrack(trackInfos.headTrack, boundaryJointId, moveInterval),
         ...(trackInfos.counterpartTrack === undefined
             ? []
-            : createMainJointFeaturesForTrack(
+            : createJointFeaturesForTrack(
                   trackInfos.counterpartTrack,
                   boundaryJointId,
                   moveInterval,
@@ -280,7 +287,7 @@ function createFeatures(
         ...nonEmptyArray(
             createBoundaryBarFeature(trackInfos, orientation, linkingState.selectedJoint),
         ),
-        ...createMainJointFeatures(trackInfos, linkingState, moveInterval),
+        ...createJointFeatures(trackInfos, linkingState, moveInterval),
     ];
 }
 
@@ -352,7 +359,7 @@ export const createLocationTrackBoundaryMoveLayer = (
                 ? findJointInTrackAt(trackInfos.counterpartTrack, switchesById, hitArea)
                 : undefined;
         const found = onHead ?? onCounterpart;
-        if (found !== undefined) {
+        if (found !== undefined && isSelectableJoint(found, switchesById)) {
             onSelectJoint({
                 role: onHead !== undefined ? 'head' : 'counterpart',
                 joint: { switchId: found.switchId, jointNumber: found.jointNumber },
