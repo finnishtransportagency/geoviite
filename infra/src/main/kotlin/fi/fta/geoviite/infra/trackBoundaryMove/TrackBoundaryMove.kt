@@ -42,7 +42,7 @@ data class TrackBoundaryMoveRequest(
     val boundaryMoveDirection: BoundaryMoveDirection,
 )
 
-data class SwitchJointId(val switchId: IntId<LayoutSwitch>, val joint: JointNumber)
+data class SwitchJointId(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)
 
 data class BoundaryMoveCounterpart(
     val trackId: IntId<LocationTrack>,
