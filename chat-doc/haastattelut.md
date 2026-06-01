@@ -400,6 +400,34 @@ Konsultti-roolilla on suppeimmat oikeudet. Tämän roolin käyttäjä voi lukea 
 
 ---
 
+## 2026-05-27 — KS
+
+**K: Mitä tarkoittaa raiteen pilkkominen Geoviitteessä — milloin se tehdään ja mitä käytännössä tapahtuu, kun raide pilkotaan?**
+
+V: Rataverkolla on ollut olemassa hyvin pitkiä sijaintiraiteita, jotka menevät usean liikennepaikan läpi. Esim. raide "005" menee Kouvolasta Kajaanin ja on melkein 500km pitkä. Näistä pitkistä raiteista puhutaan usein myös nimillä linjaraiteide tai ratanumeron raide. Liikennepaikkojen alueella linjaraiteen kohdalla on hallinnollisista syistä ollut olemassa myös liikkennepaikan raide. Eli liikennepaikan kohdalla samassa kohdassa on ollut kaksi sijaintiraidetta päällekkäin. Päällekkäistä liikennepaikan raidetta sanotaan duplikaattiraiteeksi.
+
+Sijaintiraiteiden päällekkäisyys rataverkolla on aiheuttanut monia ongelmia, koska päällekkäisellä osuudella ratavekko ei ole yksiselitteinen, joten päällekkäisyydestä on haluttu eroon. Liikennepaikkojen kohdalla olevia liikennepaikan raiteita (eli duplikaattiraiteita) tarvitaan edelleen hallinnollisiin tarpeisiin, joten ne on haluttu säilyttää entisellään, joten niitä ei voi poistaa, joten linjaraide pitää poistaa liikennepaikkojen kohdalta, jotta päällekkäisyydestä päästäisiin eroon. Koska sijaintiraiteen geometrian on oltava jatkuva, ei raiteelta voi poistaa pätkää välistä, joten koko linjaraide poistetaan ja liikennepaikkojen väleille luodaan uudet raiteet. Tätä opeeraatiota sanotaan pilkkomiseksi tai splittaamiseksi.
+
+Pilkkomisessa operaattori valitsee vaihteet, joiden kohdalta linjaraide katkaistaan. Lisäksi operaattori määrittää, mitä katkaisussa syntyville raiteen osuuksille tehdään, eli tuleeko osuudesta uusi liikennepaikkojen välinen raide vai asetetaanko osuuden geometria liikennepaikan raiteelle. Kun Geoviite on muokannut raiteet operaattorin määritysten mukaan, Geoviite linkittää linjaraiteeseen liittyneet vaihteet uudestaan, jotta ne kytkeytyvät oikein uusiin tai muuttuneisiin raiteisiin. Geoviitteessä pilkkomiseen liittyviä muutoksia käsitellään kokonaisuutena, ne on mm. julkaistava yhdessä julkaisussa.
+
+Raiteen pilkkomisen sisältävä julkaisu viedään Ratkoon erikoiskäsittelyllä. Tämä johtuu pääasiasssa siitä, että Ratkossa ratakohteet on sidottu sijaintiraiteiden pisteisiin, ja kun pilkkomisessa linjaraide poistuu, Ratkossa sen pisteisiin sidotut ratakohteet halutaan siirtyvän pilkkomisessa syntyville uusille raiteille tai liikennepaikalle jäävälle duplikaattiraiteelle.
+
+Raiteiden pilkkominen on kirjoitushetkellä käynnissä oleva prosessi, joka aloitettiin toukokuun 2026 alussa ja kestää vielä arviolta pari viikkoa. Eli operaattorit pilkkovat raiteita ja pilkotun rataverkon tiedot päivittyvät Ratkoon ja sieltä muihin RAIDE-järjestelmiin. Raiteiden pilkkomista yritettiin RAIDE-järjestelmässä noin vuonna 2021, mutta silloin raiteen ratakohteiden tiedot menivät sekaisin ja niiden korjaaminen vaati suuren manuaalisen työn. Tämän kertaista pilkkomista testattiin laajamittaisesti RAIDE-järjestelmissä syksystä 2025 alkaen, joten nyt pilkkomisen kanssa ollaan luottavaisempia.
+
+---
+
+**K: Mainitsit "duplikaattiraide" — kun pilkkominen on tehty ja linjaraide on poistettu, jääkö liikennepaikan raide (duplikaattiraide) ennalleen omana raiteinaan? Ja miten vaihteet kytkeytyvät sen jälkeen — kytkeytyyvätkö ne liikennepaikalla sekä liikennepaikan raiteeseen että uuteen linjaosuuden raiteeseen?**
+
+V: Liikennepaikan raide jää paikalleen, mutta sen geometria voi vähän muuttua, koska liikennepaikan raiteelle asetetaan geometria linjaraiteelta, operaattorin valitsemien katkaisukohtien väliltä. Pilkkomisen jälkeen liikennepaikan raide ei ole enää duplikaattiraide, koska ei enää ole päällekkäisiä sijaintiraiteita. Pilkkomisessa tapahtuvassa vaihteiden uudelleenlinkityksessä vaihteet kytkeytyvä pilkkomisen jälkeiseen rataverkkoon, eli vaihde linkittyy liikennepaikan raiteeseen, liikennepaikkojen väliseen raiteeseen ja muihin vaihteen kohdalla sijaitseviin rataverkon raiteisiin.
+
+---
+
+**K: Mainitsit, että pilkkomisen sisältävä julkaisu viedään Ratkoon "erikoiskäsittelyllä". Mitä tämä erikoiskäsittely tarkoittaa teknisesti — miten se eroaa tavallisesta Geoviite→Ratko-siirrosta?**
+
+V: Ratko-viennistä on tekninen kuvaus erillisessä dokumentissa: https://github.com/finnishtransportagency/geoviite/blob/main/doc/ratkovienti.md
+
+---
+
 **K: Mainitsit ext-apin tarjoavan tietoja "rataverkon versiokohtaisesti" ja muutosrajapinnat versioittain. Miten Geoviitteen versiointi toimii — miten versio syntyy ja mitä se tarkoittaa käytännössä?**
 
 V: Rataverkon versio syntyy, kun viralliseen paikannuspohjaan julkaistaan muutos. Geoviitteen API:sta on mahdollista kysyä käsitteiden (sijaintiraide, vaihde, jne.) tiedot tietyssä versiossa. Muutosrajapinnoista on mahdollista kysyä, kuinka käsitteiden tiedot ovat muuttuneet kahden rataverkon version välillä.
