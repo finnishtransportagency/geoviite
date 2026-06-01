@@ -51,7 +51,8 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
             onSelectCounterpart={delegates.setTrackBoundaryMoveCounterpart}
             changeTimes={changeTimes}
             onStopTrackBoundaryMove={() => {
-                delegates.stopTrackBoundaryMove();
+                delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
+                delegates.stopLinking();
             }}
             onSaveTrackBoundaryMove={async (request) => {
                 await saveTrackBoundaryMove(layoutContext, request);
@@ -59,7 +60,8 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
                 Snackbar.success(
                     'tool-panel.location-track.track-boundary-move.boundary-move-saved',
                 );
-                delegates.stopTrackBoundaryMove();
+                delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
+                delegates.stopLinking();
             }}
         />
     );

@@ -372,9 +372,6 @@ export const linkingReducers = {
             issues: [],
         };
     },
-    stopTrackBoundaryMove: (state: TrackLayoutState) => {
-        state.linkingState = undefined;
-    },
     startTrackBoundaryMove: (
         state: TrackLayoutState,
         { payload: headTrack }: PayloadAction<LocationTrackId>,
