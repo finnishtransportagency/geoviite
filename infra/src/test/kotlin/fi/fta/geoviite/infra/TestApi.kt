@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.error.ApiErrorResponse
+import jakarta.servlet.DispatcherType
 import kotlin.test.assertTrue
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -18,6 +19,16 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 
     fun doGet(url: String, expectedStatus: HttpStatus): String {
         return doGet(MockMvcRequestBuilders.get(url), expectedStatus)
+    }
+
+    fun doGet(url: String, expectedStatus: HttpStatus, dispatcherType: DispatcherType): String {
+        return doGet(
+            MockMvcRequestBuilders.get(url)
+                .with { request ->
+                    request.apply { this.dispatcherType = dispatcherType }
+                },
+            expectedStatus,
+            )
     }
 
     fun doGet(requestBuilder: RequestBuilder, expectedStatus: HttpStatus): String {
