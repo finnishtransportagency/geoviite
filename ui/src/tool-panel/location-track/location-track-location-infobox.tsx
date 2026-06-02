@@ -56,6 +56,7 @@ import { getSplitPointName } from 'tool-panel/location-track/splitting/location-
 import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
 import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { EnvRestricted } from 'environment/env-restricted';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -404,6 +405,39 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         anySwitchesPartOfOtherSplits ||
         layoutContext.branch !== 'MAIN';
 
+    const modifyStartOrEndButton = (
+        <EnvRestricted
+            restrictTo={'dev'}
+            fallback={
+                <Button
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SMALL}
+                    qa-id="modify-start-or-end"
+                    title={getModifyStartOrEndDisabledReasonTranslated()}
+                    disabled={shorteningDisabled}
+                    onClick={() => {
+                        getEndLinkPoints(
+                            locationTrack.id,
+                            layoutContext,
+                            MapAlignmentType.LocationTrack,
+                            changeTimes.layoutLocationTrack,
+                        ).then(onStartLocationTrackGeometryChange);
+                    }}>
+                    {t('tool-panel.location-track.modify-start-or-end')}
+                </Button>
+            }>
+            <Button
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SMALL}
+                qa-id="modify-start-or-end"
+                title={getModifyStartOrEndDisabledReasonTranslated()}
+                disabled={shorteningDisabled}
+                onClick={() => setModifyMenuOpen(true)}>
+                {t('tool-panel.location-track.modify-start-or-end')}
+            </Button>
+        </EnvRestricted>
+    );
+
     return (
         startAndEndPoints &&
         coordinateSystem && (
@@ -449,17 +483,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         </InfoboxContentSpread>
                                     )}
                                     <InfoboxButtons>
-                                        <div ref={modifyButtonRef}>
-                                            <Button
-                                                variant={ButtonVariant.SECONDARY}
-                                                size={ButtonSize.SMALL}
-                                                qa-id="modify-start-or-end"
-                                                title={getModifyStartOrEndDisabledReasonTranslated()}
-                                                disabled={shorteningDisabled}
-                                                onClick={() => setModifyMenuOpen(true)}>
-                                                {t('tool-panel.location-track.modify-start-or-end')}
-                                            </Button>
-                                        </div>
+                                        <div ref={modifyButtonRef}>{modifyStartOrEndButton}</div>
                                         {modifyMenuOpen && (
                                             <Menu
                                                 anchorElementRef={modifyButtonRef}
