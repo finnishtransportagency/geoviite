@@ -59,7 +59,7 @@ dependencies {
     testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
     testImplementation("org.mozilla:rhino:1.9.1")
     constraints {
-        // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16 has a vulnerable transitive dependency
+        // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17 has a vulnerable transitive dependency
         implementation("org.apache.commons:commons-text:1.15.0")
         implementation("org.apache.commons:commons-lang3:3.20.0")
 
