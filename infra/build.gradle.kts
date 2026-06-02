@@ -56,7 +56,7 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.15.0")
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("com.fasterxml.jackson.core:jackson-core:2.21.3")
-    testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
+    testImplementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
     testImplementation("org.mozilla:rhino:1.9.1")
     constraints {
         // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17 has a vulnerable transitive dependency
@@ -67,7 +67,7 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-core:2.21.3")
 
         // org.mock-server:mockserver-netty:5.15.0 has a vulnerable transitive dependency
-        testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
+        testImplementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
         testImplementation("org.mozilla:rhino:1.9.1")
     }
 
