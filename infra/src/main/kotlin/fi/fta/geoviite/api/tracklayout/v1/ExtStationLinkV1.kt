@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import io.swagger.v3.oas.annotations.media.Schema
 
-@Schema(name = "Liikennepaikkavälin päätepiste")
+@Schema(title = "Liikennepaikkavälin päätepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtStationLinkEndpointV1(
     @Schema(example = "1.2.246.578.3.139.310516")
@@ -18,7 +18,7 @@ data class ExtStationLinkEndpointV1(
     @Schema(type = "string", example = "Helsinki asema") @JsonProperty(NAME) val name: OperationalPointName,
 )
 
-@Schema(name = "Liikennepaikkavälin sijaintiraide")
+@Schema(title = "Liikennepaikkavälin sijaintiraide")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtStationLinkTrackV1(
     @Schema(example = "1.2.246.578.3.10002.192346")
@@ -26,7 +26,7 @@ data class ExtStationLinkTrackV1(
     val locationTrackOid: ExtOidV1<LocationTrack>
 )
 
-@Schema(name = "Liikennepaikkaväli")
+@Schema(title = "Liikennepaikkaväli")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtStationLinkV1(
     @Schema(example = "001") @JsonProperty(TRACK_NUMBER) val trackNumber: TrackNumber,
@@ -39,7 +39,7 @@ data class ExtStationLinkV1(
     @JsonProperty(TRACKS) val tracks: List<ExtStationLinkTrackV1>,
 )
 
-@Schema(name = "Vastaus: Liikennepaikkavälit")
+@Schema(title = "Vastaus: Liikennepaikkavälit")
 data class ExtStationLinkCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val layoutVersion: ExtLayoutVersionV1,
     @JsonProperty(STATION_LINK_COLLECTION) val connectionCollection: List<ExtStationLinkV1>,

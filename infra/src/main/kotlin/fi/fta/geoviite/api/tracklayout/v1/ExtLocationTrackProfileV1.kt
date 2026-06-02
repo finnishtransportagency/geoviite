@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 
-@Schema(name = "Vastaus: Sijaintiraiteen pystygeometria")
+@Schema(title = "Vastaus: Sijaintiraiteen pystygeometria")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtLocationTrackProfileResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val layoutVersion: ExtLayoutVersionV1,
@@ -17,7 +17,7 @@ data class ExtLocationTrackProfileResponseV1(
     @JsonProperty(TRACK_INTERVAL) val trackInterval: ExtProfileAddressRangeV1,
 )
 
-@Schema(name = "Vastaus: Muutettu sijaintiraiteen pystygeometria")
+@Schema(title = "Vastaus: Muutettu sijaintiraiteen pystygeometria")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtLocationTrackModifiedProfileResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val layoutVersionFrom: ExtLayoutVersionV1,
@@ -29,7 +29,7 @@ data class ExtLocationTrackModifiedProfileResponseV1(
     @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtProfileAddressRangeV1>,
 )
 
-@Schema(name = "Pystygeometriaolio")
+@Schema(title = "Pystygeometriaolio")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileAddressRangeV1(
     @JsonProperty(INTERVAL_START) val start: String,
@@ -37,7 +37,7 @@ data class ExtProfileAddressRangeV1(
     @JsonProperty(INTERSECTION_POINTS) val intersectionPoints: List<ExtProfilePviPointV1>,
 )
 
-@Schema(name = "Taitepiste")
+@Schema(title = "Taitepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfilePviPointV1(
     @JsonProperty(CURVED_SECTION_START) val curvedSectionStart: ExtProfileCurvedSectionEndpointV1,
@@ -54,7 +54,7 @@ data class ExtProfilePviPointV1(
     @JsonProperty(REMARKS) val remarks: List<ExtProfileRemarkV1>,
 )
 
-@Schema(name = "Pyöristyksen alku-/loppupiste")
+@Schema(title = "Pyöristyksen alku-/loppupiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileCurvedSectionEndpointV1(
     @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
@@ -63,7 +63,7 @@ data class ExtProfileCurvedSectionEndpointV1(
     @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
 )
 
-@Schema(name = "Taitepiste (leikkauspiste)")
+@Schema(title = "Taitepiste (leikkauspiste)")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileIntersectionPointV1(
     @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
@@ -71,14 +71,14 @@ data class ExtProfileIntersectionPointV1(
     @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1,
 )
 
-@Schema(name = "Kaltevuusjakso")
+@Schema(title = "Kaltevuusjakso")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileLinearSectionV1(
     @JsonProperty(SECTION_LENGTH) val length: BigDecimal?,
     @JsonProperty(LINEAR_PART_LENGTH) val linearPartLength: BigDecimal?,
 )
 
-@Schema(name = "Paaluluku")
+@Schema(title = "Paaluluku")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileStationValuesV1(
     @JsonProperty(INTERVAL_START) val start: BigDecimal?,
@@ -86,7 +86,7 @@ data class ExtProfileStationValuesV1(
     @JsonProperty(INTERVAL_END) val end: BigDecimal?,
 )
 
-@Schema(name = "Huomio")
+@Schema(title = "Huomio")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileRemarkV1(
     @JsonProperty(REMARK_CODE) val code: String,

@@ -115,7 +115,7 @@ enum class FrameConverterLocationTrackTypeV1(@JsonValue val value: String) {
 }
 
 /** General response type for a request that had an error during validation or processing. */
-@Schema(name = "Virhetulos")
+@Schema(title = "Virhetulos")
 data class GeoJsonFeatureErrorResponseV1(override val properties: GeoJsonFeatureErrorResponsePropertiesV1) :
     TrackAddressToCoordinateResponseV1, CoordinateToTrackAddressResponseV1 {
     @get:Schema(description = "Tyhjä geometria")
@@ -127,7 +127,7 @@ data class GeoJsonFeatureErrorResponseV1(override val properties: GeoJsonFeature
     ) : this(properties = GeoJsonFeatureErrorResponsePropertiesV1(identifier = identifier, errors = errorMessages))
 }
 
-@Schema(name = "Virhetuloksen ominaisuustiedot")
+@Schema(title = "Virhetuloksen ominaisuustiedot")
 data class GeoJsonFeatureErrorResponsePropertiesV1(
     @get:Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
     @get:JsonProperty("tunniste")
@@ -151,7 +151,7 @@ sealed class FrameConverterRequestV1
  * @property locationTrackName User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
  */
-@Schema(name = "Pyyntö: Koordinaatista rataosoitteeseen (erämuunnos)")
+@Schema(title = "Pyyntö: Koordinaatista rataosoitteeseen (erämuunnos)")
 data class CoordinateToTrackAddressRequestV1(
     @get:Schema(description = FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER)
     @get:JsonProperty(IDENTIFIER_PARAM)
@@ -240,7 +240,7 @@ data class ValidCoordinateToTrackAddressRequestV1(
  * Coordinate to track meter response is only created for a valid, successfully processed request. For invalid requests
  * containing errors, see [GeoJsonFeatureErrorResponseV1].
  */
-@Schema(name = "Koordinaatista rataosoitteeseen - Muunnostulos")
+@Schema(title = "Koordinaatista rataosoitteeseen - Muunnostulos")
 data class CoordinateToTrackAddressSuccessResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: CoordinateToTrackAddressResponsePropertiesV1,
@@ -251,7 +251,7 @@ data class CoordinateToTrackAddressSuccessResponseV1(
  * @property featureMatchSimple Fields included in the output when [FrameConverterQueryParamsV1.featureBasic] is true
  * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
-@Schema(name = "Koordinaatista rataosoitteeseen - Muunnostuloksen ominaisuustiedot")
+@Schema(title = "Koordinaatista rataosoitteeseen - Muunnostuloksen ominaisuustiedot")
 data class CoordinateToTrackAddressResponsePropertiesV1(
     @get:Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
     @get:JsonProperty(IDENTIFIER_PARAM)
@@ -267,7 +267,7 @@ data class CoordinateToTrackAddressResponsePropertiesV1(
  *   ETRS-TM35FIN (EPSG:3067)
  * @property distanceFromRequestPoint Calculated distance from user-specified coordinate in meters.
  */
-@Schema(name = "Muunnostuloksen perustiedot")
+@Schema(title = "Muunnostuloksen perustiedot")
 data class FeatureMatchBasicV1(
     @get:JsonUnwrapped val coordinate: FrameConverterCoordinateV1,
     @get:Schema(
@@ -279,7 +279,7 @@ data class FeatureMatchBasicV1(
 )
 
 /** Returned within properties when [FrameConverterQueryParamsV1.featureDetails] is true */
-@Schema(name = "Muunnostuloksen lisätiedot")
+@Schema(title = "Muunnostuloksen lisätiedot")
 data class FeatureMatchDetailsV1(
     @get:Schema(
         description = FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER,
@@ -352,7 +352,7 @@ data class FeatureMatchDetailsV1(
  * @property locationTrackOid User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
  */
-@Schema(name = "Pyyntö: Rataosoitteesta koordinaatteihin (erämuunnos)")
+@Schema(title = "Pyyntö: Rataosoitteesta koordinaatteihin (erämuunnos)")
 data class TrackAddressToCoordinateRequestV1(
     @get:Schema(description = FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER)
     @get:JsonProperty(IDENTIFIER_PARAM)
@@ -424,32 +424,32 @@ data class ValidTrackAddressToCoordinateRequestV1(
  * Track meter to coordinate response is only created for a valid, successfully processed request. For invalid requests
  * containing errors, see [GeoJsonFeatureErrorResponseV1].
  */
-@Schema(name = "Rataosoitteesta koordinaattiin - Muunnostulos")
+@Schema(title = "Rataosoitteesta koordinaattiin - Muunnostulos")
 data class TrackAddressToCoordinateSuccessResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: TrackAddressToCoordinateResponsePropertiesV1,
 ) : TrackAddressToCoordinateResponseV1
 
-@Schema(name = "Vastaus: Rataosoitteesta koordinaatteihin")
+@Schema(title = "Vastaus: Rataosoitteesta koordinaatteihin")
 data class TrackAddressToCoordinateCollectionResponseV1(
     override val features: List<TrackAddressToCoordinateResponseV1>
 ) : GeoJsonFeatureCollection
 
-@Schema(name = "Vastaus: Koordinaateista rataosoitteisiin")
+@Schema(title = "Vastaus: Koordinaateista rataosoitteisiin")
 data class CoordinateToTrackAddressCollectionResponseV1(
     override val features: List<CoordinateToTrackAddressResponseV1>
 ) : GeoJsonFeatureCollection
 
 @Schema(
     hidden = true,
-    name = "(Pyynnön vastaus tai virhe: rataosoitteesta koordinaatteihin)",
+    title = "(Pyynnön vastaus tai virhe: rataosoitteesta koordinaatteihin)",
     subTypes = [TrackAddressToCoordinateSuccessResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
 )
 interface TrackAddressToCoordinateResponseV1 : GeoJsonFeature
 
 @Schema(
     hidden = true,
-    name = "(Pyynnön vastaus tai virhe: koordinaateista rataosoitteisiin)",
+    title = "(Pyynnön vastaus tai virhe: koordinaateista rataosoitteisiin)",
     subTypes = [CoordinateToTrackAddressSuccessResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
 )
 interface CoordinateToTrackAddressResponseV1 : GeoJsonFeature
@@ -459,7 +459,7 @@ interface CoordinateToTrackAddressResponseV1 : GeoJsonFeature
  * @property featureMatchBasic Fields included in the output when [FrameConverterQueryParamsV1.featureBasic] is true
  * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
-@Schema(name = "Rataosoitteesta koordinaattiin - Muunnostuloksen ominaisuustiedot")
+@Schema(title = "Rataosoitteesta koordinaattiin - Muunnostuloksen ominaisuustiedot")
 data class TrackAddressToCoordinateResponsePropertiesV1(
     @get:Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
     @get:JsonProperty(IDENTIFIER_PARAM)
