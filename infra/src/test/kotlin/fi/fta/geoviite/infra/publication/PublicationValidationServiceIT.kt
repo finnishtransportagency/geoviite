@@ -20,7 +20,7 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
-import fi.fta.geoviite.infra.split.validateSplitContent
+import fi.fta.geoviite.infra.split.validateAdministrativeChangeContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -1571,13 +1571,28 @@ constructor(
         val trackValidationVersions = splitSetup.trackResponses + splitSetup2.trackResponses
 
         assertContains(
-            validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), false).map { it.second },
-            validationError("validation.layout.split.multiple-splits-not-allowed"),
+            validateAdministrativeChangeContent(
+                    trackValidationVersions,
+                    emptyList(),
+                    listOf(split, split2),
+                    listOf(),
+                    false,
+                )
+                .map { it.second },
+            validationError("validation.layout.administrative-change.multiple-changes-not-allowed"),
         )
         assertTrue(
-            validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), true)
+            validateAdministrativeChangeContent(
+                    trackValidationVersions,
+                    emptyList(),
+                    listOf(split, split2),
+                    listOf(),
+                    true,
+                )
                 .map { it.second }
-                .none { error -> error == validationError("validation.layout.split.multiple-splits-not-allowed") }
+                .none { error ->
+                    error == validationError("validation.layout.administrative-change.multiple-changes-not-allowed")
+                }
         )
     }
 
@@ -1595,7 +1610,8 @@ constructor(
                 .let(splitDao::getOrThrow)
 
         assertContains(
-            validateSplitContent(splitSetup.trackResponses, emptyList(), listOf(split), false).map { it.second },
+            validateAdministrativeChangeContent(splitSetup.trackResponses, emptyList(), listOf(split), listOf(), false)
+                .map { it.second },
             validationError("validation.layout.split.split-missing-switches"),
         )
     }
@@ -1614,7 +1630,9 @@ constructor(
                 .let(splitDao::getOrThrow)
 
         assertContains(
-            validateSplitContent(emptyList(), listOf(switch), listOf(split), false).map { it.second },
+            validateAdministrativeChangeContent(emptyList(), listOf(switch), listOf(split), listOf(), false).map {
+                it.second
+            },
             validationError("validation.layout.split.split-missing-location-tracks"),
         )
     }
@@ -1632,7 +1650,17 @@ constructor(
                 )
                 .let(splitDao::getOrThrow)
 
-        assertEquals(0, validateSplitContent(splitSetup.trackResponses, listOf(switch), listOf(split), false).size)
+        assertEquals(
+            0,
+            validateAdministrativeChangeContent(
+                    splitSetup.trackResponses,
+                    listOf(switch),
+                    listOf(split),
+                    listOf(),
+                    false,
+                )
+                .size,
+        )
     }
 
     @Test

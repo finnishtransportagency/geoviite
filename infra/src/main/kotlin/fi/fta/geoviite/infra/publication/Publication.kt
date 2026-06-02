@@ -471,6 +471,8 @@ data class ValidationVersions(
 
     fun containsSplit(id: IntId<Split>): Boolean = splits.any { it.id == id }
 
+    fun containsTrackBoundaryMove(id: IntId<TrackBoundaryMove>) = trackBoundaryMoves.any { it.id == id }
+
     fun findTrackNumber(id: IntId<LayoutTrackNumber>) = trackNumbers.find { it.id == id }
 
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.id == id }
@@ -494,7 +496,17 @@ data class ValidationVersions(
     fun getSplitIds() = splits.map { v -> v.id }
 }
 
-data class PublicationGroup(val id: IntId<Split>)
+sealed class PublicationGroup {
+    abstract val id: String
+}
+
+data class SplitPublicationGroup(val splitId: IntId<Split>) : PublicationGroup() {
+    override val id = "SPLIT_${splitId}"
+}
+
+data class TrackBoundaryMovePublicationGroup(val trackBoundaryMoveId: IntId<TrackBoundaryMove>) : PublicationGroup() {
+    override val id = "TRACK_BOUNDARY_MOVE_${trackBoundaryMoveId}"
+}
 
 data class PublicationRequestIds(
     val trackNumbers: List<IntId<LayoutTrackNumber>>,
@@ -833,8 +845,9 @@ data class SwitchChanges(
     private fun getTrackNumberJointLocation(
         trackNumberId: IntId<LayoutTrackNumber>,
         jointNumber: JointNumber,
-    ): Change<Point?> =
-        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
+    ): Change<Point?> = trackConnections.map { tracks ->
+        getTrackNumberJointLocation(tracks, trackNumberId, jointNumber)
+    }
 
     private fun getTrackNumberJointLocation(
         tracks: List<SwitchLocationTrack>,
@@ -1026,4 +1039,16 @@ data class PublicationComparison(val from: Publication, val to: Publication) {
     fun areDifferent(): Boolean {
         return from.id.intValue != to.id.intValue
     }
+}
+
+data class AdministrativeChangeLayoutValidationIssues(
+    val trackNumbers: Map<IntId<LayoutTrackNumber>, List<LayoutValidationIssue>>,
+    val referenceLines: Map<IntId<ReferenceLine>, List<LayoutValidationIssue>>,
+    val kmPosts: Map<IntId<LayoutKmPost>, List<LayoutValidationIssue>>,
+    val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
+    val switches: Map<IntId<LayoutSwitch>, List<LayoutValidationIssue>>,
+) {
+    fun allIssues(): List<LayoutValidationIssue> =
+        (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values)
+            .flatten()
 }

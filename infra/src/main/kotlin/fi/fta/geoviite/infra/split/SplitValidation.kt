@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.publication.validationError
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -15,6 +16,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.min
 
+const val VALIDATION_ADMINISTRATIVE_CHANGE = "$VALIDATION.administrative-change"
+const val VALIDATION_BOUNDARY_MOVE = "$VALIDATION.track-boundary-move"
 const val VALIDATION_SPLIT = "$VALIDATION.split"
 
 internal fun validateSourceGeometry(
@@ -38,41 +41,56 @@ internal fun validateSourceGeometry(
     }
 }
 
-internal fun validateSplitContent(
+internal fun validateAdministrativeChangeContent(
     trackVersions: List<LayoutRowVersion<LocationTrack>>,
     switchVersions: List<LayoutRowVersion<LayoutSwitch>>,
     publicationSplits: Collection<Split>,
-    allowMultipleSplits: Boolean,
-): List<Pair<Split, LayoutValidationIssue>> {
-    val multipleSplitsStagedErrors =
-        if (!allowMultipleSplits && publicationSplits.size > 1) {
-            publicationSplits.map { split ->
-                split to LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
+    publicationTrackBoundaryMoves: Collection<TrackBoundaryMove>,
+    allowMultipleAdministrativeChanges: Boolean,
+): List<Pair<AdministrativeChange, LayoutValidationIssue>> {
+    val multipleChangesStagedErrors =
+        if (allowMultipleAdministrativeChanges) listOf()
+        else if ((publicationSplits.size + publicationTrackBoundaryMoves.size) > 1) {
+            (publicationSplits + publicationTrackBoundaryMoves).map { change ->
+                change to LayoutValidationIssue(ERROR, "$VALIDATION_ADMINISTRATIVE_CHANGE.multiple-changes-not-allowed")
             }
         } else {
             emptyList()
         }
 
-    val contentErrors = publicationSplits.flatMap { split ->
-        val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
-        val containsTargets =
-            split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
-        val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
-        listOfNotNull(
-                validate(containsSource && containsTargets, ERROR) {
-                    "$VALIDATION_SPLIT.split-missing-location-tracks"
-                },
-                validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
-            )
-            .map { e -> split to e }
-    }
+    val splitContentErrors =
+        publicationSplits.flatMap { split ->
+            val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
+            val containsTargets =
+                split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
+            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
+            listOfNotNull(
+                    validate(containsSource && containsTargets, ERROR) {
+                        "$VALIDATION_SPLIT.split-missing-location-tracks"
+                    },
+                    validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
+                )
+                .map { e -> split to e }
+        }
 
-    return listOf(multipleSplitsStagedErrors, contentErrors).flatten()
+    val boundaryMoveContentErrors =
+        publicationTrackBoundaryMoves.flatMap { move ->
+            val containsShortened = trackVersions.any { it.id == move.shortenedLocationTrack.id }
+            val containsLengthened = trackVersions.any { it.id == move.lengthenedLocationTrack.id }
+            listOfNotNull(
+                    validate(containsShortened && containsLengthened, ERROR) {
+                        "$VALIDATION_BOUNDARY_MOVE.missing-location-tracks"
+                    }
+                )
+                .map { e -> move to e }
+        }
+
+    return listOf(multipleChangesStagedErrors, splitContentErrors, boundaryMoveContentErrors).flatten()
 }
 
 const val MAX_SPLIT_POINT_OFFSET = 1.0
 
-internal fun validateTargetGeometry(
+fun validateTargetGeometry(
     operation: SplitTargetOperation,
     targetPoints: List<AddressPoint<LocationTrackM>>?,
     sourcePoints: List<AddressPoint<LocationTrackM>>?,

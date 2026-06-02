@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -96,6 +98,7 @@ class ValidationContext(
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
     val splitService: SplitService,
+    val trackBoundaryMoveService: TrackBoundaryMoveService,
     val publicationSet: ValidationVersions,
 ) {
     val target = publicationSet.target
@@ -131,6 +134,9 @@ class ValidationContext(
         NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdGenerated)
 
     private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(target.candidateBranch) }
+    val allUnpublishedTrackBoundaryMoves: List<TrackBoundaryMove> by lazy {
+        trackBoundaryMoveService.findUnpublishedBoundaryMoves(target.candidateBranch)
+    }
 
     fun getTrackNumber(id: IntId<LayoutTrackNumber>): LayoutTrackNumber? =
         getObject(target.baseContext, id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)
@@ -291,6 +297,9 @@ class ValidationContext(
 
     fun getPublicationSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
+
+    fun getPublicationTrackBoundaryMoves(): List<TrackBoundaryMove> =
+        allUnpublishedTrackBoundaryMoves.filter { move -> publicationSet.containsTrackBoundaryMove(move.id) }
 
     fun getUnfinishedSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> split.publicationId != null || publicationSet.containsSplit(split.id) }
