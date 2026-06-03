@@ -54,6 +54,9 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
                 delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
             }}
+            onConfirmCounterpartSelection={() =>
+                delegates.confirmTrackBoundaryMoveCounterpartSelection()
+            }
             onSaveTrackBoundaryMove={async (request) => {
                 await saveTrackBoundaryMove(layoutContext, request);
                 await updateLocationTrackChangeTime();
@@ -74,6 +77,7 @@ type LocationTrackBoundaryMoveInfoboxProps = {
     changeTimes: ChangeTimes;
     onStopTrackBoundaryMove: () => void;
     onSelectCounterpart: (counterpart: BoundaryMoveCounterpart) => void;
+    onConfirmCounterpartSelection: () => void;
     onSaveTrackBoundaryMove: (request: TrackBoundaryMoveRequest) => Promise<void>;
 };
 
@@ -83,6 +87,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
     layoutContext,
     changeTimes,
     onSelectCounterpart,
+    onConfirmCounterpartSelection,
     onStopTrackBoundaryMove,
     onSaveTrackBoundaryMove,
 }) => {
@@ -91,7 +96,6 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
     const [counterpartOptions, setCounterpartOptions] = React.useState<BoundaryMoveCounterpart[]>(
         [],
     );
-    const [pickedTrackId, setPickedTrackId] = React.useState<LocationTrackId>();
     const [saving, setSaving] = React.useState(false);
 
     const [candidates, candidatesLoaderStatus] = useLoaderWithStatus(async () => {
@@ -106,10 +110,10 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
     }, [locationTrack.id, layoutContext, changeTimes.layoutLocationTrack]);
 
     const counterpart = linkingState.counterpart;
-    const counterpartSelected = counterpart !== undefined;
+    const counterpartLocked = linkingState.counterpartLocked;
 
-    const lockSelection = () => {
-        const picked = counterpartOptions.find((o) => o.trackId === pickedTrackId);
+    const selectCounterpart = (selectedTrack: LocationTrackId) => {
+        const picked = counterpartOptions.find((o) => o.trackId === selectedTrack);
         if (picked) {
             onSelectCounterpart(picked);
         }
@@ -139,7 +143,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
     return (
         <Infobox
             title={
-                counterpartSelected
+                counterpartLocked
                     ? t('tool-panel.location-track.track-boundary-move.title-post-select')
                     : t('tool-panel.location-track.track-boundary-move.title-pre-select')
             }
@@ -153,7 +157,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                     />
                 </InfoboxField>
 
-                {counterpartSelected ? (
+                {counterpartLocked ? (
                     <React.Fragment>
                         <InfoboxField
                             label={t('tool-panel.location-track.track-boundary-move.second-track')}>
@@ -199,12 +203,12 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                         />
                         <LocationTrackCandidates
                             candidates={candidates || EMPTY_ARRAY}
-                            selectedId={pickedTrackId}
+                            selectedId={counterpart?.trackId}
                             isLoading={candidatesLoaderStatus === LoaderStatus.Loading}
                             emptyMessage={t(
                                 'tool-panel.location-track.track-boundary-move.no-candidates',
                             )}
-                            onSelect={setPickedTrackId}
+                            onSelect={selectCounterpart}
                         />
 
                         <MessageBox type={MessageBoxType.INFO}>
@@ -217,7 +221,9 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                                 onClick={onStopTrackBoundaryMove}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button disabled={pickedTrackId === undefined} onClick={lockSelection}>
+                            <Button
+                                disabled={counterpart === undefined}
+                                onClick={onConfirmCounterpartSelection}>
                                 {t('tool-panel.location-track.track-boundary-move.lock-selection')}
                             </Button>
                         </InfoboxButtons>

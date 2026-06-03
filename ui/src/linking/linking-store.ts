@@ -382,6 +382,7 @@ export const linkingReducers = {
             state: 'preliminary',
             issues: [],
             counterpart: undefined,
+            counterpartLocked: false,
             selectedJoint: undefined,
         };
     },
@@ -391,6 +392,14 @@ export const linkingReducers = {
     ) => {
         if (state.linkingState?.type === LinkingType.TrackBoundaryMove) {
             state.linkingState.counterpart = counterpart;
+        }
+    },
+    confirmTrackBoundaryMoveCounterpartSelection: (state: TrackLayoutState) => {
+        if (
+            state.linkingState?.type === LinkingType.TrackBoundaryMove &&
+            state.linkingState.counterpart !== undefined
+        ) {
+            state.linkingState.counterpartLocked = true;
         }
     },
     setTrackBoundaryMoveJoint: (
