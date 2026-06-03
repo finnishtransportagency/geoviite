@@ -22,14 +22,14 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.queryNotNull
 import fi.fta.geoviite.infra.util.queryOptional
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
@@ -57,12 +57,17 @@ class GeocodingDao(
     fun getLayoutGeocodingContextCacheKey(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
+        includeDeleted: Boolean = false,
     ): LayoutGeocodingContextCacheKey? =
-        getOptional(trackNumberId, getLayoutGeocodingContextCacheKeysInternal(layoutContext, trackNumberId))
+        getOptional(
+            trackNumberId,
+            getLayoutGeocodingContextCacheKeysInternal(layoutContext, trackNumberId, includeDeleted),
+        )
 
     private fun getLayoutGeocodingContextCacheKeysInternal(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>?,
+        includeDeleted: Boolean = false,
     ): List<LayoutGeocodingContextCacheKey> {
         // language=SQL
         val sql =
@@ -94,7 +99,7 @@ class GeocodingDao(
                   where kmp.track_number_id = tn.id and kmp.state = 'IN_USE'
               ) kmp on (true)
             where (:tn_id::int is null or :tn_id = tn.id)
-              and tn.state != 'DELETED'
+              and (:include_deleted or tn.state != 'DELETED')
             """
                 .trimIndent()
         val params =
@@ -102,6 +107,7 @@ class GeocodingDao(
                 "tn_id" to trackNumberId?.intValue,
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
+                "include_deleted" to includeDeleted,
             )
         return jdbcTemplate.queryNotNull(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
@@ -239,33 +245,39 @@ class GeocodingDao(
         trackNumberId: IntId<LayoutTrackNumber>,
         versions: ValidationVersions,
     ): LayoutGeocodingContextCacheKey? {
-        val base = getLayoutGeocodingContextCacheKey(versions.target.baseContext, trackNumberId)
-        val trackNumberVersion = versions.findTrackNumber(trackNumberId) ?: base?.trackNumberVersion
-        // We have to fetch the actual objects (reference line & km-post) here to check references
-        // However, when this is done, the objects are needed elsewhere as well -> they should
-        // always be in cache
+        // Normally, if a TrackNumber is deleted, it is not considered to have a geocoding context, but we still need
+        // the base-version if the validation versions overrides it with a non-deleted one
+        val base = getLayoutGeocodingContextCacheKey(versions.target.baseContext, trackNumberId, includeDeleted = true)
+
+        // Since we included deleted versions, we now need to verify the existence for the final TrackNumber
+        // as DELETED TrackNumbers don't have geocoding contexts
+        val trackNumberVersion =
+            (versions.findTrackNumber(trackNumberId) ?: base?.trackNumberVersion)?.takeIf { tnVersion ->
+                trackNumberDao.fetch(tnVersion).exists
+            } ?: return null
+
+        // We have to fetch the actual km-posts here to check references
+        // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
         val referenceLineVersion =
             versions.referenceLines.find { v -> referenceLineDao.fetch(v).trackNumberId == trackNumberId }
                 ?: base?.referenceLineVersion
-        return if (trackNumberVersion != null && referenceLineVersion != null) {
-            val validationKmPostsParticipatingInGeocoding =
-                versions.kmPosts
-                    .map { version -> version to kmPostDao.fetch(version) }
-                    .filter { it.second.trackNumberId == trackNumberId }
-            val participatingValidationKmPostIds = validationKmPostsParticipatingInGeocoding.map { it.first.id }.toSet()
-            val otherKmPostsOnTrack =
-                base?.kmPostVersions?.filter { v -> !participatingValidationKmPostIds.contains(v.id) } ?: listOf()
+                ?: return null
 
-            val kmPostVersions =
-                listOf(
-                        validationKmPostsParticipatingInGeocoding
-                            .filter { it.second.state == LayoutState.IN_USE }
-                            .map { it.first },
-                        otherKmPostsOnTrack,
-                    )
-                    .flatten()
-                    .sortedBy { p -> p.id.intValue }
-            LayoutGeocodingContextCacheKey(trackNumberId, trackNumberVersion, referenceLineVersion, kmPostVersions)
-        } else null
+        val validationKmPostsParticipatingInGeocoding =
+            kmPostDao.fetchManyByVersion(versions.kmPosts).filter { it.value.trackNumberId == trackNumberId }
+        val participatingValidationKmPostIds = validationKmPostsParticipatingInGeocoding.map { it.key.id }.toSet()
+        val nonOverriddenBaseKmPosts =
+            base?.kmPostVersions?.filter { v -> !participatingValidationKmPostIds.contains(v.id) } ?: listOf()
+        val kmPostVersions =
+            listOf(
+                    validationKmPostsParticipatingInGeocoding
+                        .filter { it.value.state == LayoutState.IN_USE }
+                        .map { it.key },
+                    nonOverriddenBaseKmPosts,
+                )
+                .flatten()
+                .sortedBy { p -> p.id.intValue }
+
+        return LayoutGeocodingContextCacheKey(trackNumberId, trackNumberVersion, referenceLineVersion, kmPostVersions)
     }
 }

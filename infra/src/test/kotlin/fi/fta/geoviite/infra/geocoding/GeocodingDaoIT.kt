@@ -285,4 +285,31 @@ constructor(
         )
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, dbTimeAfterDelete))
     }
+
+    @Test
+    fun `Validation versions work with DELETED track number being restored`() {
+        // Create a valid initial state with an existing cache key
+        val tnOfficial = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnOfficial.id
+        val rlOfficial = mainOfficialContext.saveReferenceLine(referenceLineAndGeometry(tnId))
+        val initialKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)
+        assertEquals(
+            geocodingContextCacheKey(tnId, tnOfficial, rlOfficial),
+            initialKey,
+        )
+
+        // Delete the track number, resulting in the cache key disappearing
+        mainOfficialContext.mutate(tnId) { it.copy(state = LayoutState.DELETED) }
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions()))
+
+        // Create a draft version that restores the track number to IN_USE state, restoring the cache key
+        val restored = mainDraftContext.mutate(tnId) { it.copy(state = LayoutState.IN_USE) }!!
+        assertEquals(
+            geocodingContextCacheKey(tnId, restored, rlOfficial),
+            geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(trackNumbers = listOf(restored))),
+        )
+
+        // Without draft-override, the result should still be null
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions()))
+    }
 }
