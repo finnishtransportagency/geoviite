@@ -48,7 +48,7 @@ constructor(
 
     @Test
     fun `move along ascending track`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
         // three switches, all laid out to one physically continuous track, with each having just a joint 1 on the left,
         // 2 on the right, and out-of-switch segments in between. lengtheningTrack contains switch 1, shorteningTrack
@@ -130,7 +130,7 @@ constructor(
 
     @Test
     fun `move in descending direction on short track`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
         val switch1 = testDBService.save(switch()).id
 
@@ -181,7 +181,7 @@ constructor(
 
     @Test
     fun `shortened track remains with no geometry`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
         // three switches, all laid out to one physically continuous track, with each having just a joint 1 on the left,
         // 2 on the right, and out-of-switch segments in between. lengtheningTrack contains switch 1, shorteningTrack
@@ -247,7 +247,7 @@ constructor(
 
     @Test
     fun `combine unconnected tracks with combinable geometries`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
         val switch1 = testDBService.save(switch()).id
         // initially topologically disconnected tracks
@@ -283,7 +283,7 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting without a connecting switch`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
         val trackA =
             testDBService.save(
@@ -325,7 +325,7 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting at a switch boundary`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
         val switch1 = testDBService.save(switch()).id
 
         // headTrack ends inside switch1 at joint 2; counterpartTrack starts with an outer (topological) link to it.
@@ -385,7 +385,7 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting within a switch`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
         val switch1 = testDBService.save(switch()).id
 
         val trackA =
@@ -435,7 +435,7 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting at head-to-head switches`() {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
         val switch1 = testDBService.save(switch()).id
         val switch2 = testDBService.save(switch()).id
 
@@ -487,8 +487,8 @@ constructor(
 
     @Test
     fun `counterpart options excludes tracks on a different track number`() {
-        val trackNumberA = testDBService.save(trackNumber(testDBService.getUnusedTrackNumber())).id
-        val trackNumberB = testDBService.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val trackNumberA = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumberB = mainDraftContext.createLayoutTrackNumber().id
 
         val headTrack =
             testDBService.save(
@@ -554,7 +554,7 @@ constructor(
     // Two tracks meeting at switch1 joint 2, laid out as one physically continuous track. The lengthening track holds
     // switch1; the shortening track holds switch2.
     private fun saveConnectedTracks(): ConnectedTracks {
-        val trackNumber = testDBService.save(trackNumber()).id
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
         val switch1 = testDBService.save(switch()).id
         val switch2 = testDBService.save(switch()).id
 
