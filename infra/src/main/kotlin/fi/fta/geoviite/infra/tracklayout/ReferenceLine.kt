@@ -15,7 +15,7 @@ data class ReferenceLine(
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
     @JsonIgnore val geometryVersion: RowVersion<ReferenceLineGeometry>? = null,
-) : PolyLineLayoutAsset<ReferenceLine>(contextData) {
+) : LayoutAsset<ReferenceLine>(contextData) {
 
     init {
         require(dataType == DataType.TEMP || geometryVersion != null) { "ReferenceLine in DB must have a geometry" }

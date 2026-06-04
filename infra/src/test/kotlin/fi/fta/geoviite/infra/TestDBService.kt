@@ -63,7 +63,6 @@ import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
@@ -86,10 +85,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import kotlin.reflect.KClass
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -580,7 +579,6 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
             // Also copy geometry for polyline assets
             is LocationTrack -> save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LocationTrack>))
             is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getGeometryVersionOrThrow()))
-            is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
             else -> save(withNewContext)
         }
             as LayoutRowVersion<T>
@@ -606,7 +604,6 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
             // Also move geometry for polyline assets
             is LocationTrack -> save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LocationTrack>))
             is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getGeometryVersionOrThrow()))
-            is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
             else -> save(withNewContext)
         }
             as LayoutRowVersion<T>

@@ -51,10 +51,6 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
         }
 }
 
-// TODO: GVT-2935 This is likely no longer needed as LocationTrack and ReferenceLine are now different
-sealed class PolyLineLayoutAsset<T : PolyLineLayoutAsset<T>>(contextData: LayoutContextData<T>) :
-    LayoutAsset<T>(contextData) {}
-
 data class LayoutAssetChangeInfo(val created: Instant, val changed: Instant?)
 
 fun <T : LayoutAsset<T>> idMatches(

@@ -272,7 +272,7 @@ data class LocationTrack(
     val operationalPointIds: Set<IntId<OperationalPoint>>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore val switchIds: List<IntId<LayoutSwitch>> = listOf(),
-) : PolyLineLayoutAsset<LocationTrack>(contextData) {
+) : LayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
 
