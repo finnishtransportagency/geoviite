@@ -114,7 +114,8 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     fun startLinking(): E2ELocationTrackLocationInfobox = apply {
         logger.info("Edit start/end point")
 
-        childButton(byQaId("modify-start-or-end")).clickAndWaitToDisappear()
+        childButton(byQaId("modify-start-or-end")).click()
+        clickWhenClickable(byQaId("shorten-track-start-or-end"))
     }
 
     fun startSplitting(): E2ELocationTrackSplittingInfobox {
