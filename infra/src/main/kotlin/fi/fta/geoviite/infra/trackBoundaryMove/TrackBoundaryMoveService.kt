@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.trackBoundaryMove
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
@@ -43,8 +42,7 @@ class TrackBoundaryMoveService(
         shorteningTrackId: IntId<LocationTrack>,
         lengtheningTrackId: IntId<LocationTrack>,
         boundaryMoveDirection: BoundaryMoveDirection,
-        switch: IntId<LayoutSwitch>,
-        switchJoint: JointNumber,
+        upToSwitchJoint: SwitchJointId?,
     ): IntId<TrackBoundaryMove> {
         val context = layoutBranch.draft
         val shorteningTrackVersion = locationTrackDao.fetchVersionOrThrow(context, shorteningTrackId)
@@ -60,8 +58,7 @@ class TrackBoundaryMoveService(
                 shorteningTrackId = shorteningTrackVersion.id,
                 lengtheningTrackId = lengtheningTrackVersion.id,
                 boundaryMoveDirection = boundaryMoveDirection,
-                switch = switch,
-                switchJoint = switchJoint,
+                upToSwitchJoint = upToSwitchJoint,
             )
         locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
         locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
@@ -227,22 +224,31 @@ private fun getTrackBoundaryMoveGeometry(
     shorteningTrackId: IntId<LocationTrack>,
     lengtheningTrackId: IntId<LocationTrack>,
     boundaryMoveDirection: BoundaryMoveDirection,
-    switch: IntId<LayoutSwitch>,
-    switchJoint: JointNumber,
+    upToSwitchJoint: SwitchJointId?,
 ): TrackBoundaryMoveGeometry {
-    val switchNodeIndex = shorteningTrackGeometry.nodes.indexOfFirst { n -> n.containsJoint(switch, switchJoint) }
-    if (switchNodeIndex < 0) {
-        throw TrackBoundaryMoveFailureException(
-            "switch $switch joint $switchJoint is not on the track to shorten $shorteningTrackId",
-            localizedMessageKey = "does-not-move-boundary",
-        )
-    }
+    val nodeIndex =
+        if (upToSwitchJoint == null) {
+            if (boundaryMoveDirection == BoundaryMoveDirection.DESCENDING) shorteningTrackGeometry.edges.size else 0
+        } else {
+            val index =
+                shorteningTrackGeometry.nodes.indexOfFirst { n ->
+                    n.containsJoint(upToSwitchJoint.switchId, upToSwitchJoint.jointNumber)
+                }
+            if (index < 0) {
+                throw TrackBoundaryMoveFailureException(
+                    "switch ${upToSwitchJoint.switchId} joint ${upToSwitchJoint.jointNumber} is not on the track to shorten " +
+                        "$shorteningTrackId",
+                    localizedMessageKey = "does-not-move-boundary",
+                )
+            }
+            index
+        }
     val edgeRangeToMove =
-        if (boundaryMoveDirection == BoundaryMoveDirection.DESCENDING) IntRange(0, switchNodeIndex - 1)
-        else IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
+        if (boundaryMoveDirection == BoundaryMoveDirection.DESCENDING) IntRange(0, nodeIndex - 1)
+        else IntRange(nodeIndex, shorteningTrackGeometry.edges.lastIndex)
     if (edgeRangeToMove.isEmpty()) {
         throw TrackBoundaryMoveFailureException(
-            "switch $switch joint $switchJoint is already the boundary between $shorteningTrackId and " +
+            "switch joint $upToSwitchJoint is already the boundary between $shorteningTrackId and " +
                 "$lengtheningTrackId, so the boundary would not move",
             localizedMessageKey = "does-not-move-boundary",
         )
@@ -261,8 +267,8 @@ private fun getTrackBoundaryMoveGeometry(
         TmpLocationTrackGeometry.of(
             shorteningTrackGeometry.edges.slice(
                 if (boundaryMoveDirection == BoundaryMoveDirection.DESCENDING)
-                    IntRange(switchNodeIndex, shorteningTrackGeometry.edges.lastIndex)
-                else IntRange(0, switchNodeIndex - 1)
+                    IntRange(nodeIndex, shorteningTrackGeometry.edges.lastIndex)
+                else IntRange(0, nodeIndex - 1)
             ),
             shorteningTrackId,
         )

@@ -18,11 +18,17 @@ import { getDefaultHitArea } from 'map/tools/tool-utils';
 import { ChangingTrackBoundary, LinkingState, LinkingType } from 'linking/linking-model';
 import {
     BoundaryOrientation,
-    SelectedBoundaryMoveJoint,
+    SelectedBoundaryMoveTarget,
 } from 'track-layout/track-boundary-move-api';
 import { getSelectedLocationTrackMapAlignmentByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
-import { EMPTY_ARRAY, filterUnique, indexIntoMap, nonEmptyArray } from 'utils/array-utils';
+import {
+    EMPTY_ARRAY,
+    filterNotEmpty,
+    filterUnique,
+    indexIntoMap,
+    nonEmptyArray,
+} from 'utils/array-utils';
 import {
     AlignmentPoint,
     LayoutSwitch,
@@ -32,6 +38,7 @@ import {
     SwitchJointId,
 } from 'track-layout/track-layout-model';
 import {
+    getLocationTrack,
     getLocationTrackStartAndEnd,
     getLocationTrackSwitchJoints,
 } from 'track-layout/layout-location-track-api';
@@ -47,6 +54,8 @@ import {
     findIntervalToMove,
     MoveInterval,
     moveMoveInterval,
+    SelectableTrackEnd,
+    selectableTrackEnd,
 } from 'map/layers/utils/location-track-boundary-move-layer-utils';
 
 const layerName: MapLayerName = 'location-track-boundary-move-layer';
@@ -76,16 +85,23 @@ async function getTrackInfo(
         layoutContext,
         changeTimes.layoutLocationTrack,
     );
-    const [alignments, jointsAndSwitches, startAndEnd] = await Promise.all([
+    const locationTrackPromise = getLocationTrack(
+        id,
+        layoutContext,
+        changeTimes.layoutLocationTrack,
+    );
+    const [alignments, jointsAndSwitches, startAndEnd, locationTrack] = await Promise.all([
         alignmentPromise,
         jointsAndSwitchesPromise,
         startAndEndPromise,
+        locationTrackPromise,
     ]);
     const alignment = alignments[0];
-    return alignment === undefined
+    return alignment === undefined || locationTrack === undefined
         ? undefined
         : {
               role,
+              locationTrack,
               alignment,
               joints: jointsAndSwitches.joints ?? EMPTY_ARRAY,
               switches: jointsAndSwitches.switches,
@@ -198,10 +214,13 @@ function createJointFeatures(
     linkingState: ChangingTrackBoundary,
     moveInterval: MoveInterval | undefined,
 ): Feature<LineString | OlPoint>[] {
+    const selectedTarget = linkingState.selectedTarget;
     const boundaryJointId: SwitchJointId | undefined =
-        linkingState.selectedJoint?.joint ??
-        linkingState.counterpart?.connectingSwitchJoint ??
-        undefined;
+        selectedTarget === undefined
+            ? linkingState.counterpart?.connectingSwitchJoint
+            : selectedTarget.kind === 'joint'
+              ? selectedTarget.joint
+              : undefined;
 
     return [
         ...createJointFeaturesForTrack(trackInfos.headTrack, boundaryJointId, moveInterval),
@@ -215,12 +234,49 @@ function createJointFeatures(
     ];
 }
 
+function createEndFeature(
+    end: SelectableTrackEnd,
+    selectedTarget: SelectedBoundaryMoveTarget | undefined,
+): Feature<LineString | OlPoint> {
+    const isSelected = selectedTarget?.kind === 'end' && selectedTarget.role === end.role;
+    // The selected end becomes the new boundary, drawn in the head colour; otherwise the marker takes the
+    // colour of the track it belongs to.
+    const style = isSelected || end.role === 'head' ? headJointStyle : counterpartJointStyle;
+    const feature = new Feature({ geometry: new OlPoint(pointToCoords(end.location)) });
+    feature.setStyle(style);
+    return feature;
+}
+
+function selectableEnds(
+    trackInfos: BoundaryMoveTrackInfos,
+    orientation: BoundaryOrientation,
+): SelectableTrackEnd[] {
+    return [
+        selectableTrackEnd(trackInfos.headTrack, orientation),
+        trackInfos.counterpartTrack === undefined
+            ? undefined
+            : selectableTrackEnd(trackInfos.counterpartTrack, orientation),
+    ].filter(filterNotEmpty);
+}
+
+function createEndFeatures(
+    trackInfos: BoundaryMoveTrackInfos,
+    orientation: BoundaryOrientation | undefined,
+    selectedTarget: SelectedBoundaryMoveTarget | undefined,
+): Feature<LineString | OlPoint>[] {
+    return orientation === undefined
+        ? []
+        : selectableEnds(trackInfos, orientation).map((end) =>
+              createEndFeature(end, selectedTarget),
+          );
+}
+
 function createBoundaryBarFeature(
     trackInfos: BoundaryMoveTrackInfos,
     orientation: BoundaryOrientation | undefined,
-    selectedJoint: SelectedBoundaryMoveJoint | undefined,
+    selectedTarget: SelectedBoundaryMoveTarget | undefined,
 ): Feature<LineString | OlPoint> | undefined {
-    const bar = computeBoundaryBar(trackInfos, orientation, selectedJoint);
+    const bar = computeBoundaryBar(trackInfos, orientation, selectedTarget);
     if (bar === undefined) {
         return undefined;
     }
@@ -269,9 +325,10 @@ function createFeatures(
     const counterpartPoints = trackInfos.counterpartTrack?.alignment.points ?? [];
 
     const orientation = linkingState.counterpart?.orientation;
+    const selectedTarget = linkingState.selectedTarget;
     const moveInterval =
-        linkingState.selectedJoint !== undefined && orientation !== undefined
-            ? findIntervalToMove(trackInfos, orientation, linkingState.selectedJoint)
+        selectedTarget !== undefined && orientation !== undefined
+            ? findIntervalToMove(trackInfos, orientation, selectedTarget)
             : undefined;
 
     const { renderedHead, renderedCounterpart } =
@@ -284,10 +341,9 @@ function createFeatures(
             alignmentFeature(renderedCounterpart, counterpartTrackStyle),
             alignmentFeature(renderedHead, headTrackStyle),
         ),
-        ...nonEmptyArray(
-            createBoundaryBarFeature(trackInfos, orientation, linkingState.selectedJoint),
-        ),
+        ...nonEmptyArray(createBoundaryBarFeature(trackInfos, orientation, selectedTarget)),
         ...createJointFeatures(trackInfos, linkingState, moveInterval),
+        ...createEndFeatures(trackInfos, orientation, selectedTarget),
     ];
 }
 
@@ -303,7 +359,7 @@ export const createLocationTrackBoundaryMoveLayer = (
     changeTimes: ChangeTimes,
     linkingState: LinkingState | undefined,
     olMap: OlMap,
-    onSelectJoint: (joint: SelectedBoundaryMoveJoint) => void,
+    onSelectTarget: (target: SelectedBoundaryMoveTarget) => void,
     onLoadingData: (loading: boolean) => void,
 ): LocationTrackBoundaryMoveLayer => {
     const { layer, source, isLatest } = createLayer(layerName, existingLayer?.layer);
@@ -362,12 +418,24 @@ export const createLocationTrackBoundaryMoveLayer = (
             onHead === undefined && trackInfos.counterpartTrack !== undefined
                 ? findJointInTrackAt(trackInfos.counterpartTrack, switchesById, hitArea)
                 : undefined;
-        const found = onHead ?? onCounterpart;
-        if (found !== undefined && isSelectableJoint(found, switchesById)) {
-            onSelectJoint({
+        const foundJoint = onHead ?? onCounterpart;
+        if (foundJoint !== undefined && isSelectableJoint(foundJoint, switchesById)) {
+            onSelectTarget({
+                kind: 'joint',
                 role: onHead !== undefined ? 'head' : 'counterpart',
-                joint: { switchId: found.switchId, jointNumber: found.jointNumber },
+                joint: { switchId: foundJoint.switchId, jointNumber: foundJoint.jointNumber },
             });
+            return;
+        }
+        const orientation = linkingState.counterpart?.orientation;
+        const end =
+            orientation === undefined
+                ? undefined
+                : selectableEnds(trackInfos, orientation).find((e) =>
+                      hitArea.containsXY(e.location.x, e.location.y),
+                  );
+        if (end !== undefined) {
+            onSelectTarget({ kind: 'end', role: end.role });
         }
     });
 

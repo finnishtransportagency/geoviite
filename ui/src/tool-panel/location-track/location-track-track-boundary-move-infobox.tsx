@@ -119,12 +119,12 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
         }
     };
 
-    const selectedJoint = linkingState.selectedJoint;
+    const selectedTarget = linkingState.selectedTarget;
     const saveBoundaryMove = () => {
-        if (counterpart === undefined || selectedJoint === undefined) {
+        if (counterpart === undefined || selectedTarget === undefined) {
             return;
         }
-        const headShortens = selectedJoint.role === 'head';
+        const headShortens = selectedTarget.role === 'head';
         const headFirst = counterpart.orientation === 'HEAD_FIRST';
         const boundaryMoveDirection: BoundaryMoveDirection =
             headFirst === headShortens ? 'ASCENDING' : 'DESCENDING';
@@ -132,8 +132,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
         onSaveTrackBoundaryMove({
             shorteningTrackId: headShortens ? locationTrack.id : counterpart.trackId,
             lengtheningTrackId: headShortens ? counterpart.trackId : locationTrack.id,
-            switch: selectedJoint.joint.switchId,
-            switchJoint: selectedJoint.joint.jointNumber,
+            upToSwitchJoint: selectedTarget.kind === 'joint' ? selectedTarget.joint : undefined,
             boundaryMoveDirection,
         }).finally(() => setSaving(false));
     };
@@ -169,7 +168,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                             )}
                         </InfoboxField>
 
-                        {linkingState.selectedJoint === undefined && (
+                        {linkingState.selectedTarget === undefined && (
                             <MessageBox type={MessageBoxType.INFO}>
                                 {t(
                                     'tool-panel.location-track.track-boundary-move.select-boundary-on-map',
@@ -185,7 +184,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                                 {t('button.cancel')}
                             </Button>
                             <Button
-                                disabled={selectedJoint === undefined || saving}
+                                disabled={selectedTarget === undefined || saving}
                                 isProcessing={saving}
                                 onClick={saveBoundaryMove}>
                                 {t(
