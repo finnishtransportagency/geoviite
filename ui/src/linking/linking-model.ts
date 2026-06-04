@@ -231,6 +231,7 @@ export type ChangingTrackBoundary = LinkingBaseType & {
     type: LinkingType.TrackBoundaryMove;
     headTrack: LocationTrackId;
     counterpart: BoundaryMoveCounterpart | undefined;
+    counterpartLocked: boolean;
     selectedJoint: SelectedBoundaryMoveJoint | undefined;
 };
 

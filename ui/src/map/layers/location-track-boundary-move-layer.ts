@@ -349,7 +349,11 @@ export const createLocationTrackBoundaryMoveLayer = (
 
     const clickListenerKey = olMap.on('click', ({ coordinate }) => {
         const trackInfos = loadedTrackInfos;
-        if (trackInfos === undefined) {
+        if (
+            trackInfos === undefined ||
+            linkingState?.type !== LinkingType.TrackBoundaryMove ||
+            !linkingState.counterpartLocked
+        ) {
             return;
         }
         const hitArea = getDefaultHitArea(olMap, coordinate);
