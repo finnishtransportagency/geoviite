@@ -35,7 +35,7 @@ const val FI_SIDE = "sivuraide"
 const val FI_TRAP = "turvaraide"
 const val FI_CHORD = "kujaraide"
 
-@Schema(name = "Sijaintiraiteen tyyppi", type = "string", allowableValues = [FI_MAIN, FI_SIDE, FI_TRAP, FI_CHORD])
+@Schema(title = "Sijaintiraiteen tyyppi", type = "string", allowableValues = [FI_MAIN, FI_SIDE, FI_TRAP, FI_CHORD])
 enum class ExtLocationTrackTypeV1(val value: String) {
     MAIN(FI_MAIN),
     SIDE(FI_SIDE),
@@ -62,7 +62,7 @@ const val FI_NOT_IN_USE = "käytöstä poistettu"
 const val FI_DELETED = "poistettu"
 
 @Schema(
-    name = "Sijaintiraiteen tila",
+    title = "Sijaintiraiteen tila",
     type = "string",
     allowableValues = [FI_BUILT, FI_IN_USE, FI_NOT_IN_USE, FI_DELETED],
 )
@@ -86,7 +86,7 @@ enum class ExtLocationTrackStateV1(val value: String) {
     }
 }
 
-@Schema(name = "Ratanumeron tila", type = "string", allowableValues = [FI_IN_USE, FI_NOT_IN_USE, FI_DELETED])
+@Schema(title = "Ratanumeron tila", type = "string", allowableValues = [FI_IN_USE, FI_NOT_IN_USE, FI_DELETED])
 enum class ExtTrackNumberStateV1(val value: String) {
     IN_USE(FI_IN_USE),
     NOT_IN_USE(FI_NOT_IN_USE),
@@ -108,7 +108,7 @@ enum class ExtTrackNumberStateV1(val value: String) {
 const val FI_EXISTING = "olemassa oleva kohde"
 const val FI_NOT_EXISTING = "poistunut kohde"
 
-@Schema(name = "Vaihteen tilakategoria", type = "string", allowableValues = [FI_EXISTING, FI_NOT_EXISTING])
+@Schema(title = "Vaihteen tilakategoria", type = "string", allowableValues = [FI_EXISTING, FI_NOT_EXISTING])
 enum class ExtSwitchStateV1(val value: String) {
     EXISTING(FI_EXISTING),
     NOT_EXISTING(FI_NOT_EXISTING);
@@ -129,7 +129,7 @@ const val FI_RIGHT = "oikea"
 const val FI_LEFT = "vasen"
 const val FI_NONE = "ei määritelty"
 
-@Schema(name = "Vaihteen kätisyys", type = "string", allowableValues = [FI_RIGHT, FI_LEFT, FI_NONE])
+@Schema(title = "Vaihteen kätisyys", type = "string", allowableValues = [FI_RIGHT, FI_LEFT, FI_NONE])
 enum class ExtSwitchHandV1(val value: String) {
     RIGHT(FI_RIGHT),
     LEFT(FI_LEFT),
@@ -155,7 +155,7 @@ const val FI_UNKNOWN = "ei tiedossa"
 const val FI_RATKO = "Ratko"
 const val FI_GEOVIITE = "Geoviite"
 
-@Schema(name = "Toiminnallisen pisteen lähde", type = "string", allowableValues = [FI_RATKO, FI_GEOVIITE])
+@Schema(title = "Toiminnallisen pisteen lähde", type = "string", allowableValues = [FI_RATKO, FI_GEOVIITE])
 enum class ExtOperationalPointOriginV1(val value: String) {
     RATKO(FI_RATKO),
     GEOVIITE(FI_GEOVIITE);
@@ -172,7 +172,7 @@ enum class ExtOperationalPointOriginV1(val value: String) {
     }
 }
 
-@Schema(name = "Toiminnallisen pisteen tila", type = "string", allowableValues = [FI_IN_USE, FI_DELETED])
+@Schema(title = "Toiminnallisen pisteen tila", type = "string", allowableValues = [FI_IN_USE, FI_DELETED])
 enum class ExtOperationalPointStateV1(val value: String) {
     IN_USE(FI_IN_USE),
     DELETED(FI_DELETED);
@@ -221,7 +221,7 @@ fun toExtOperationalPointRinfType(rinfType: OperationalPointRinfType): ExtOperat
     return ExtOperationalPointRinfTypeV1(code, description)
 }
 
-@Schema(name = "Vaihteen turvavaihdestatus", type = "string", allowableValues = [FI_YES, FI_NO, FI_UNKNOWN])
+@Schema(title = "Vaihteen turvavaihdestatus", type = "string", allowableValues = [FI_YES, FI_NO, FI_UNKNOWN])
 enum class ExtSwitchTrapPointV1(val value: String) {
     YES(FI_YES),
     NO(FI_NO),
@@ -243,7 +243,7 @@ enum class ExtSwitchTrapPointV1(val value: String) {
 const val FI_TRACK_NUMBER_START = "ratanumeron alku"
 const val FI_KM_POST = "tasakilometripiste"
 
-@Schema(name = "Ratakilometrin tyyppi", type = "string", allowableValues = [FI_TRACK_NUMBER_START, FI_KM_POST])
+@Schema(title = "Ratakilometrin tyyppi", type = "string", allowableValues = [FI_TRACK_NUMBER_START, FI_KM_POST])
 enum class ExtTrackKmTypeV1(val value: String) {
     TRACK_NUMBER_START(FI_TRACK_NUMBER_START),
     KM_POST(FI_KM_POST);
@@ -255,7 +255,7 @@ const val FI_CONFIRMED = "vahvistettu"
 const val FI_NOT_CONFIRMED = "ei vahvistettu"
 
 @Schema(
-    name = "Tasakilometripisteen virallisen sijainnin vahvistus",
+    title = "Tasakilometripisteen virallisen sijainnin vahvistus",
     type = "string",
     allowableValues = [FI_CONFIRMED, FI_NOT_CONFIRMED],
 )
@@ -270,7 +270,7 @@ const val FI_GEOMETRY = "geometria"
 const val FI_ADDRESSING = "osoitteisto"
 
 @Schema(
-    name = "Tasakilometripisteen virallisen sijainnin vahvistus",
+    title = "Tasakilometripisteen virallisen sijainnin vahvistus",
     type = "string",
     allowableValues = [FI_GEOMETRY, FI_ADDRESSING],
 )
@@ -283,7 +283,7 @@ enum class ExtGeometryChangeTypeV1(val value: String) {
 
 const val FI_POLYGON = "polygoni"
 
-@Schema(name = "Alueen tyyppi", type = "string", allowableValues = [FI_POLYGON])
+@Schema(title = "Alueen tyyppi", type = "string", allowableValues = [FI_POLYGON])
 enum class ExtAreaTypeV1(val value: String) {
     POLYGON(FI_POLYGON);
 
@@ -293,7 +293,7 @@ enum class ExtAreaTypeV1(val value: String) {
 const val FI_SPLIT = "raiteen_jakaminen"
 const val FI_BOUNDARY_MOVE = "vaihtumiskohdan_siirto"
 
-@Schema(name = "Hallinnollisen muutoksen tyyppi", type = "string", allowableValues = [FI_SPLIT, FI_BOUNDARY_MOVE])
+@Schema(title = "Hallinnollisen muutoksen tyyppi", type = "string", allowableValues = [FI_SPLIT, FI_BOUNDARY_MOVE])
 enum class ExtTrackBoundaryChangeTypeV1(val value: String) {
     SPLIT(FI_SPLIT),
     BOUNDARY_MOVE(FI_BOUNDARY_MOVE);
@@ -307,7 +307,7 @@ const val FI_REPLACES_DUPLICATE_PARTIAL = "korvaa_duplikaatin_geometrian_osittai
 const val FI_TRANSFERRED_TO_OTHER_TRACK = "siirtyy_toiselle_raiteelle"
 
 @Schema(
-    name = "Hallinnollisen muutoksen tyyppi",
+    title = "Hallinnollisen muutoksen tyyppi",
     type = "string",
     allowableValues =
         [FI_CREATE_NEW_TRACK, FI_REPLACES_DUPLICATE, FI_REPLACES_DUPLICATE_PARTIAL, FI_TRANSFERRED_TO_OTHER_TRACK],
@@ -334,7 +334,7 @@ const val FI_N2000 = "N2000"
 const val FI_N60 = "N60"
 const val FI_N43 = "N43"
 
-@Schema(name = "Korkeusjarjestelma", type = "string", allowableValues = [FI_N2000, FI_N60, FI_N43])
+@Schema(title = "Korkeusjarjestelma", type = "string", allowableValues = [FI_N2000, FI_N60, FI_N43])
 enum class ExtVerticalCoordinateSystemV1(val value: String) {
     N2000(FI_N2000),
     N60(FI_N60),
@@ -355,7 +355,7 @@ enum class ExtVerticalCoordinateSystemV1(val value: String) {
 const val FI_TOP_OF_SLEEPER = "Korkeusviiva"
 const val FI_TOP_OF_RAIL = "Kiskon selkä"
 
-@Schema(name = "Korkeusaseman mittaustapa", type = "string", allowableValues = [FI_TOP_OF_SLEEPER, FI_TOP_OF_RAIL])
+@Schema(title = "Korkeusaseman mittaustapa", type = "string", allowableValues = [FI_TOP_OF_SLEEPER, FI_TOP_OF_RAIL])
 enum class ExtElevationMeasurementMethodV1(val value: String) {
     TOP_OF_SLEEPER(FI_TOP_OF_SLEEPER),
     TOP_OF_RAIL(FI_TOP_OF_RAIL);
@@ -371,19 +371,19 @@ enum class ExtElevationMeasurementMethodV1(val value: String) {
     }
 }
 
-@Schema(name = "Koordinaattisijainti")
+@Schema(title = "Koordinaattisijainti")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtCoordinateV1(val x: Double, val y: Double) {
     constructor(coordinate: IPoint) : this(coordinate.x, coordinate.y)
 }
 
-@Schema(name = "Polygoni")
+@Schema(title = "Polygoni")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtPolygonV1(@JsonProperty(POINTS) val points: List<ExtCoordinateV1>) {
     @JsonProperty(TYPE) val type: ExtAreaTypeV1 = ExtAreaTypeV1.POLYGON
 }
 
-@Schema(name = "Tasakilometripisteen virallinen sijainti")
+@Schema(title = "Tasakilometripisteen virallinen sijainti")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtKmPostOfficialLocationV1(
     val x: Double,
@@ -404,7 +404,7 @@ data class ExtKmPostOfficialLocationV1(
     constructor(location: LayoutKmPostGkLocation) : this(location.location, location.confirmed)
 }
 
-@Schema(name = "Osoitepiste")
+@Schema(title = "Osoitepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtAddressPointV1(
     val x: Double,
@@ -412,14 +412,14 @@ data class ExtAddressPointV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty(TRACK_ADDRESS) val trackAddress: String?,
 )
 
-@Schema(name = "Osoiteväli")
+@Schema(title = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
 
-@Schema(name = "Muuttunut osoiteväli")
+@Schema(title = "Muuttunut osoiteväli")
 data class ExtModifiedCenterLineTrackIntervalV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,

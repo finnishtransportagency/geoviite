@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import io.swagger.v3.oas.annotations.media.Schema
 
-@Schema(name = "Vaihteen raidelinkki")
+@Schema(title = "Vaihteen raidelinkki")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtSwitchTrackLinkV1(
     @Schema(example = "1.2.246.578.13.123.456")
@@ -18,21 +18,21 @@ data class ExtSwitchTrackLinkV1(
     @JsonProperty(SWITCH_JOINTS) val joints: List<ExtSwitchTrackJointV1>,
 )
 
-@Schema(name = "Vaihdepiste")
+@Schema(title = "Vaihdepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtSwitchJointV1(
     @Schema(example = "1") @JsonProperty(SWITCH_JOINT_NUMBER) val jointNumber: Int,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtCoordinateV1,
 )
 
-@Schema(name = "Vaihdepiste raiteella")
+@Schema(title = "Vaihdepiste raiteella")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtSwitchTrackJointV1(
     @Schema(example = "1") @JsonProperty(SWITCH_JOINT_NUMBER) val jointNumber: Int,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1,
 )
 
-@Schema(name = "Vaihde")
+@Schema(title = "Vaihde")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtSwitchV1(
     @Schema(example = "1.2.246.578.13.123.456") @JsonProperty(SWITCH_OID) val switchOid: ExtOidV1<LayoutSwitch>,
@@ -47,14 +47,14 @@ data class ExtSwitchV1(
     @JsonProperty(SWITCH_TRACK_LINKS) val trackLinks: List<ExtSwitchTrackLinkV1>,
 )
 
-@Schema(name = "Vastaus: Vaihde")
+@Schema(title = "Vastaus: Vaihde")
 data class ExtSwitchResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val layoutVersion: ExtLayoutVersionV1,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(SWITCH) val switch: ExtSwitchV1,
 )
 
-@Schema(name = "Vastaus: Muutettu vaihde")
+@Schema(title = "Vastaus: Muutettu vaihde")
 data class ExtModifiedSwitchResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val layoutVersionFrom: ExtLayoutVersionV1,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val layoutVersionTo: ExtLayoutVersionV1,
@@ -62,14 +62,14 @@ data class ExtModifiedSwitchResponseV1(
     @JsonProperty(SWITCH) val switch: ExtSwitchV1,
 )
 
-@Schema(name = "Vastaus: Vaihdekokoelma")
+@Schema(title = "Vastaus: Vaihdekokoelma")
 data class ExtSwitchCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val layoutVersion: ExtLayoutVersionV1,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(SWITCH_COLLECTION) val switchCollection: List<ExtSwitchV1>,
 )
 
-@Schema(name = "Vastaus: Muutettu vaihdekokoelma")
+@Schema(title = "Vastaus: Muutettu vaihdekokoelma")
 data class ExtModifiedSwitchCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val layoutVersionFrom: ExtLayoutVersionV1,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val layoutVersionTo: ExtLayoutVersionV1,

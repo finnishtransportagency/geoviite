@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 
-@Schema(name = "Ratanumeron ratakilometrit")
+@Schema(title = "Ratanumeron ratakilometrit")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtTrackNumberKmsV1(
     @Schema(type = "string", example = "001") @JsonProperty(TRACK_NUMBER) val trackNumber: TrackNumber,
@@ -18,7 +18,7 @@ data class ExtTrackNumberKmsV1(
     @JsonProperty(TRACK_KMS) val trackKms: List<ExtTrackKmV1>,
 )
 
-@Schema(name = "Ratakilometri")
+@Schema(title = "Ratakilometri")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtTrackKmV1(
     @JsonProperty(TYPE) val type: ExtTrackKmTypeV1,
@@ -33,14 +33,14 @@ data class ExtTrackKmV1(
     val kmLength = endM - startM
 }
 
-@Schema(name = "Vastaus: Ratanumeron ratakilometrit")
+@Schema(title = "Vastaus: Ratanumeron ratakilometrit")
 data class ExtTrackKmsResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: ExtLayoutVersionV1,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER_KMS) val trackNumberKms: ExtTrackNumberKmsV1,
 )
 
-@Schema(name = "Vastaus: Ratanumerokokoelman ratakilometrit")
+@Schema(title = "Vastaus: Ratanumerokokoelman ratakilometrit")
 data class ExtTrackKmsCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: ExtLayoutVersionV1,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,

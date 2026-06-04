@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.publication.PublicationMessage
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.Instant
 
-@Schema(name = "Rataverkon versio")
+@Schema(title = "Rataverkon versio")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtTrackLayoutVersionV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val layoutVersion: ExtLayoutVersionV1,
@@ -27,7 +27,7 @@ data class ExtTrackLayoutVersionV1(
     )
 }
 
-@Schema(name = "Vastaus: Rataverkon versiokokoelma")
+@Schema(title = "Vastaus: Rataverkon versiokokoelma")
 data class ExtTrackLayoutVersionCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val layoutVersionFrom: ExtLayoutVersionV1,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val layoutVersionTo: ExtLayoutVersionV1,
