@@ -5,19 +5,17 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.math.BoundingBox
 
 data class ReferenceLine(
     val trackNumberId: IntId<LayoutTrackNumber>,
     val startAddress: TrackMeter,
-    val sourceId: IntId<GeometryAlignment>?,
     val boundingBox: BoundingBox? = null,
     val length: LineM<ReferenceLineM> = LineM(0.0),
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
     @JsonIgnore val geometryVersion: RowVersion<ReferenceLineGeometry>? = null,
-) : PolyLineLayoutAsset<ReferenceLine>(contextData) {
+) : LayoutAsset<ReferenceLine>(contextData) {
 
     init {
         require(dataType == DataType.TEMP || geometryVersion != null) { "ReferenceLine in DB must have a geometry" }

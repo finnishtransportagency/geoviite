@@ -15,11 +15,11 @@ import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
@@ -117,14 +117,20 @@ class ReferenceLineDao(
     private fun getReferenceLine(rs: ResultSet): ReferenceLine =
         ReferenceLine(
             geometryVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-            sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             startAddress = rs.getTrackMeter("start_address"),
             boundingBox = rs.getBboxOrNull("bounding_box"),
             length = LineM(rs.getDouble("length")),
             segmentCount = rs.getInt("segment_count"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
         )
 
     @Transactional fun save(item: ReferenceLine): LayoutRowVersion<ReferenceLine> = save(item, NoParams.instance)

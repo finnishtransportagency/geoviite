@@ -358,7 +358,6 @@ fun referenceLine(
     ReferenceLine(
         trackNumberId = trackNumberId,
         startAddress = startAddress.round(3),
-        sourceId = null,
         boundingBox = geometry?.boundingBox,
         segmentCount = geometry?.segments?.size ?: 0,
         length = geometry?.length ?: LineM(0.0),
