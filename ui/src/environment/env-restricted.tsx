@@ -6,6 +6,7 @@ type EnvRestrictedProps = {
     defaultShow?: boolean;
     strict?: boolean;
     children: React.ReactNode;
+    fallback?: React.ReactNode;
 };
 
 //Local is only shown in local environment,
@@ -22,6 +23,7 @@ export const EnvRestricted: React.FC<EnvRestrictedProps> = ({
     children,
     strict = false,
     defaultShow = false,
+    fallback = undefined,
 }: EnvRestrictedProps) => {
     const envName = useEnvironmentInfo()?.environmentName;
 
@@ -31,5 +33,5 @@ export const EnvRestricted: React.FC<EnvRestrictedProps> = ({
             : slackRestrictionRules[restrictTo].some((e) => e === envName)
         : defaultShow;
 
-    return <React.Fragment>{show && children}</React.Fragment>;
+    return <React.Fragment>{show ? children : fallback}</React.Fragment>;
 };

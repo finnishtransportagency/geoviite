@@ -72,13 +72,13 @@ class TrackBoundaryMoveService(
         branch: LayoutBranch,
         locationTracks: List<IntId<LocationTrack>>,
     ): List<RowVersion<TrackBoundaryMove>> =
-        findUnPublishedBoundaryMoves(branch, locationTracks).map { boundaryMove -> boundaryMove.version }
+        findUnpublishedBoundaryMoves(branch, locationTracks).map { boundaryMove -> boundaryMove.version }
 
-    fun findUnPublishedBoundaryMoves(
+    fun findUnpublishedBoundaryMoves(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
     ): List<TrackBoundaryMove> =
-        trackBoundaryMoveDao.getUnPublished().filter { boundaryMove ->
+        trackBoundaryMoveDao.getUnpublished().filter { boundaryMove ->
             locationTrackIds == null || locationTrackIds.any(boundaryMove::containsLocationTrack)
         }
 

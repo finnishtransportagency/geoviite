@@ -105,7 +105,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
 
     fun getOrThrow(id: IntId<TrackBoundaryMove>) = requireNotNull(get(id))
 
-    fun getUnPublished(): List<TrackBoundaryMove> {
+    fun getUnpublished(): List<TrackBoundaryMove> {
         val sql =
             """
             select
