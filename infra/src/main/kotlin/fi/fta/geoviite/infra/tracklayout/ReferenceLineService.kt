@@ -35,7 +35,6 @@ class ReferenceLineService(
             ReferenceLine(
                 trackNumberId = trackNumberId,
                 startAddress = startAddress,
-                sourceId = null,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
             ),
             emptyAlignment(),

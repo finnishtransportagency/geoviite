@@ -5,13 +5,11 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.math.BoundingBox
 
 data class ReferenceLine(
     val trackNumberId: IntId<LayoutTrackNumber>,
     val startAddress: TrackMeter,
-    val sourceId: IntId<GeometryAlignment>?,
     val boundingBox: BoundingBox? = null,
     val length: LineM<ReferenceLineM> = LineM(0.0),
     val segmentCount: Int = 0,

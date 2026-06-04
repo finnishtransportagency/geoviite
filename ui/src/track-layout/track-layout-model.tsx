@@ -138,7 +138,6 @@ export type LayoutReferenceLine = {
     trackNumberId: LayoutTrackNumberId;
     boundingBox?: BoundingBox;
     length: number;
-    sourceId?: GeometryAlignmentId;
     segmentCount: number;
 } & LayoutAssetFields;
 
