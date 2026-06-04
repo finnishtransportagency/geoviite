@@ -81,6 +81,24 @@ class LinkingFailureException(
     }
 }
 
+class TrackBoundaryMoveFailureException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "generic",
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) :
+    ClientException(
+        BAD_REQUEST,
+        "Track boundary move failed: $message",
+        cause,
+        "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+        localizationParams,
+    ) {
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "error.track-boundary-move"
+    }
+}
+
 class SplitFailureException(
     message: String,
     cause: Throwable? = null,

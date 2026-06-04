@@ -574,6 +574,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             t.asset.type === 'OPERATIONAL_POINT' &&
                             t.asset.id === linkingState.operationalPoint,
                     )?.asset;
+                case LinkingType.TrackBoundaryMove:
+                    return tabs.find(
+                        (t) =>
+                            t.asset.type === 'LOCATION_TRACK' &&
+                            t.asset.id === linkingState.headTrack,
+                    )?.asset;
                 default:
                     return exhaustiveMatchingGuard(type);
             }

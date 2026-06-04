@@ -319,6 +319,13 @@ data class LocationTrackInfoboxOperationalPoint(
     val displayAddress: TrackMeter?,
 )
 
+data class LocationTrackSwitchJoint(
+    val switchId: IntId<LayoutSwitch>,
+    val jointNumber: JointNumber,
+    val location: Point,
+    val m: LineM<LocationTrackM>,
+)
+
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,

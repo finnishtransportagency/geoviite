@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
-import { LinkingState } from 'linking/linking-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
 import {
     refreshLocationTrackSelection,
     useTrackNumber,
@@ -32,6 +32,7 @@ import { LocationTrackSwitchLinksInfobox } from 'tool-panel/location-track/locat
 import { LocationTrackOperationalPointLinksInfobox } from 'tool-panel/location-track/location-track-operational-point-links-infobox';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
+import { LocationTrackBoundaryMoveInfoboxContainer } from 'tool-panel/location-track/location-track-track-boundary-move-infobox';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -139,6 +140,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 <LocationTrackSplittingInfoboxContainer
                     visibilities={visibilities}
                     visibilityChange={visibilityChange}
+                    layoutContext={layoutContext}
+                />
+            )}
+            {linkingState?.type === LinkingType.TrackBoundaryMove && (
+                <LocationTrackBoundaryMoveInfoboxContainer
+                    locationTrack={locationTrack}
+                    linkingState={linkingState}
                     layoutContext={layoutContext}
                 />
             )}

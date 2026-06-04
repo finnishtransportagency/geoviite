@@ -33,6 +33,7 @@ const mapLayerOrder: MapLayerName[] = [
     'signal-asset-layer',
     'km-post-layer',
     'switch-layer',
+    'location-track-boundary-move-layer',
     'track-number-addresses-layer',
     'geometry-km-post-layer',
     'geometry-switch-layer',

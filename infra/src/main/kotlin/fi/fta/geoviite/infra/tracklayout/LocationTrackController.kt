@@ -146,6 +146,17 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/switch-joints")
+    fun getLocationTrackSwitchJoints(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): ResponseEntity<List<LocationTrackSwitchJoint>> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return toResponse(locationTrackService.getTrackSwitchJoints(context, id))
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
     fun validateLocationTrack(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,

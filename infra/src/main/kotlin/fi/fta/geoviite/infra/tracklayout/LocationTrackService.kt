@@ -579,6 +579,20 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun getTrackSwitchJoints(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<LocationTrackSwitchJoint>? =
+        getWithGeometry(layoutContext, id)?.let { (_, geometry) ->
+            val links = geometry.trackSwitchLinks
+            links.map { link ->
+                LocationTrackSwitchJoint(
+                    switchId = link.switchId,
+                    jointNumber = link.jointNumber,
+                    location = link.location.toPoint(),
+                    m = link.location.m,
+                )
+            }
+        }
+
+    @Transactional(readOnly = true)
     fun getRelinkableSwitchesCount(layoutContext: LayoutContext, id: IntId<LocationTrack>): Int? =
         get(layoutContext, id)?.let { track -> countRelinkableSwitches(layoutContext.branch, track) }
 

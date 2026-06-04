@@ -27,7 +27,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Polygon, Point } from 'model/geometry';
+import { Point, Polygon } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
@@ -40,6 +40,10 @@ import {
     TrackMeter,
 } from 'common/common-model';
 import { LayoutValidationIssue } from 'publication/publication-model';
+import {
+    BoundaryMoveCounterpart,
+    SelectedBoundaryMoveJoint,
+} from 'track-layout/track-boundary-move-api';
 
 export type LocationTrackSaveRequest = {
     namingScheme?: LocationTrackNamingScheme;
@@ -67,7 +71,8 @@ export type LinkingState =
     | PlacingOperationalPoint
     | PlacingOperationalPointArea
     | LinkingOperationalPointSwitches
-    | LinkingOperationalPointTracks;
+    | LinkingOperationalPointTracks
+    | ChangingTrackBoundary;
 
 export type PreliminaryLinkingGeometry = {
     type: LinkingType.UnknownAlignment;
@@ -222,6 +227,13 @@ export type LinkingOperationalPointTracks = LinkingBaseType & {
     linkedTracks: LocationTrackId[];
 };
 
+export type ChangingTrackBoundary = LinkingBaseType & {
+    type: LinkingType.TrackBoundaryMove;
+    headTrack: LocationTrackId;
+    counterpart: BoundaryMoveCounterpart | undefined;
+    selectedJoint: SelectedBoundaryMoveJoint | undefined;
+};
+
 export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
@@ -255,6 +267,7 @@ export enum LinkingType {
     LinkingOperationalPointSwitches = 'LinkingOperationalPointSwitches',
     LinkingOperationalPointTracks = 'LinkingOperationalPointTracks',
     UnknownAlignment = 'UnknownAlignment',
+    TrackBoundaryMove = 'TrackBoundaryMove',
 }
 
 export type IntervalRequest = {

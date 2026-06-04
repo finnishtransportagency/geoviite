@@ -43,10 +43,7 @@ const SelectionCandidate: React.FC<SelectionCandidateProps> = ({
     }, [isSelected]);
 
     return (
-        <li
-            ref={ref}
-            className={styles['geometry-alignment-infobox__alignment']}
-            onClick={onClick}>
+        <li ref={ref} className={styles['geometry-alignment-infobox__alignment']} onClick={onClick}>
             {children}
         </li>
     );
@@ -79,7 +76,7 @@ const CandidatesList: React.FC<CandidatesListProps> = ({
 type LocationTrackCandidatesProps = {
     candidates: LayoutLocationTrack[];
     selectedId: LocationTrackId | undefined;
-    lockedAlignmentId: LocationTrackId | undefined;
+    lockedAlignmentId?: LocationTrackId;
     isLoading: boolean;
     emptyMessage: React.ReactNode;
     onSelect: (track: LocationTrackId) => void;

@@ -9,6 +9,7 @@ import {
     LocationTrackId,
     LocationTrackInfoboxExtras,
     LocationTrackNameStructure,
+    LocationTrackSwitchJoint,
     OperationalPointId,
 } from 'track-layout/track-layout-model';
 import {
@@ -435,5 +436,14 @@ export async function detachSwitchFromLocationTrack(
     return postNonNull(
         `${layoutUriByBranch('location-tracks', branch)}/${locationTrackId}/detach-switch/${switchId}`,
         +'',
+    );
+}
+
+export async function getLocationTrackSwitchJoints(
+    layoutContext: LayoutContext,
+    id: LocationTrackId,
+) {
+    return getNullable<LocationTrackSwitchJoint[]>(
+        `${layoutUri('location-tracks', layoutContext, id)}/switch-joints`,
     );
 }

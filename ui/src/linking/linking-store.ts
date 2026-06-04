@@ -33,6 +33,10 @@ import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext, LayoutContext, LayoutContextMode } from 'common/common-model';
 import { brand } from 'common/brand';
 import { Polygon } from 'model/geometry';
+import {
+    BoundaryMoveCounterpart,
+    SelectedBoundaryMoveJoint,
+} from 'track-layout/track-boundary-move-api';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -368,6 +372,35 @@ export const linkingReducers = {
             issues: [],
         };
     },
+    startTrackBoundaryMove: (
+        state: TrackLayoutState,
+        { payload: headTrack }: PayloadAction<LocationTrackId>,
+    ) => {
+        state.linkingState = {
+            type: LinkingType.TrackBoundaryMove,
+            headTrack,
+            state: 'preliminary',
+            issues: [],
+            counterpart: undefined,
+            selectedJoint: undefined,
+        };
+    },
+    setTrackBoundaryMoveCounterpart: (
+        state: TrackLayoutState,
+        { payload: counterpart }: PayloadAction<BoundaryMoveCounterpart>,
+    ) => {
+        if (state.linkingState?.type === LinkingType.TrackBoundaryMove) {
+            state.linkingState.counterpart = counterpart;
+        }
+    },
+    setTrackBoundaryMoveJoint: (
+        state: TrackLayoutState,
+        action: { payload: SelectedBoundaryMoveJoint },
+    ) => {
+        if (state.linkingState?.type === LinkingType.TrackBoundaryMove) {
+            state.linkingState.selectedJoint = action.payload;
+        }
+    },
 };
 
 export function setLayoutLinkPointToState(state: TrackLayoutState, linkPoint: LinkPoint) {
@@ -469,6 +502,7 @@ function validateLinkingState(state: LinkingState): LinkingState {
         case LinkingType.PlacingOperationalPointArea:
         case LinkingType.LinkingOperationalPointSwitches:
         case LinkingType.LinkingOperationalPointTracks:
+        case LinkingType.TrackBoundaryMove:
             return state;
         default:
             return exhaustiveMatchingGuard(state);

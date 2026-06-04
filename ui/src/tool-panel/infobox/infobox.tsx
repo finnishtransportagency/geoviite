@@ -16,7 +16,7 @@ export type InfoboxProps = {
     variant?: InfoBoxVariant;
     className?: string;
     contentVisible: boolean;
-    onContentVisibilityChange: () => void;
+    onContentVisibilityChange?: () => void;
     iconDisabled?: boolean;
     iconHidden?: boolean;
     onEdit?: () => void;
@@ -56,9 +56,11 @@ const Infobox: React.FC<InfoboxProps> = ({
                 <span
                     className={styles['infobox__title-accordion']}
                     onClick={onContentVisibilityChange}>
-                    <span className={chevronClasses} onClick={onContentVisibilityChange}>
-                        <Icons.Chevron size={IconSize.SMALL} />
-                    </span>
+                    {onContentVisibilityChange && (
+                        <span className={chevronClasses} onClick={onContentVisibilityChange}>
+                            <Icons.Chevron size={IconSize.SMALL} />
+                        </span>
+                    )}
                     <span className={styles['infobox__title-content']}>{title}</span>
                 </span>
                 {onEdit && !iconHidden && (
