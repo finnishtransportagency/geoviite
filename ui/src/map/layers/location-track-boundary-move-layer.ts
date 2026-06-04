@@ -351,7 +351,7 @@ export const createLocationTrackBoundaryMoveLayer = (
         const trackInfos = loadedTrackInfos;
         if (
             trackInfos === undefined ||
-            linkingState?.type !== 'TrackBoundaryMove' ||
+            linkingState?.type !== LinkingType.TrackBoundaryMove ||
             !linkingState.counterpartLocked
         ) {
             return;
