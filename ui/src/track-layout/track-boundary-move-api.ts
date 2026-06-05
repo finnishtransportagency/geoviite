@@ -1,5 +1,6 @@
 import { LayoutSwitchId, LocationTrackId } from 'track-layout/track-layout-model';
 import { JointNumber, LayoutContext } from 'common/common-model';
+import { Point } from 'model/geometry';
 import { getNonNull, postNonNull } from 'api/api-fetch';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { BoundaryMoveTrackRole } from 'map/layers/utils/location-track-boundary-move-layer-utils';
@@ -18,11 +19,13 @@ export type SelectedBoundaryMoveJoint = {
     kind: 'joint';
     role: BoundaryMoveTrackRole;
     joint: SwitchJointId;
+    location: Point;
 };
 
 export type SelectedBoundaryMoveEnd = {
     kind: 'end';
     role: BoundaryMoveTrackRole;
+    location: Point;
 };
 
 export type SelectedBoundaryMoveTarget = SelectedBoundaryMoveJoint | SelectedBoundaryMoveEnd;

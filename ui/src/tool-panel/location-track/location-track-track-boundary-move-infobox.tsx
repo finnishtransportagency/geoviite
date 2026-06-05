@@ -8,7 +8,9 @@ import { LayoutContext } from 'common/common-model';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getLocationTrack, getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getAddress } from 'common/geocoding-api';
+import { formatTrackMeter } from 'utils/geography-utils';
 import { EMPTY_ARRAY } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import React from 'react';
@@ -44,6 +46,7 @@ type LocationTrackBoundaryMoveInfoboxContainerProps = {
 export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
     LocationTrackBoundaryMoveInfoboxContainerProps
 > = ({ locationTrack, linkingState, layoutContext }) => {
+    const { t } = useTranslation();
     const delegates = createDelegates(TrackLayoutActions);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
@@ -64,8 +67,27 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
             onSaveTrackBoundaryMove={async (request) => {
                 await saveTrackBoundaryMove(layoutContext, request);
                 await updateLocationTrackChangeTime();
+
+                const counterpart = linkingState.counterpart;
+                const selectedTarget = linkingState.selectedTarget;
+                const counterpartTrack =
+                    counterpart === undefined
+                        ? undefined
+                        : await getLocationTrack(counterpart.trackId, layoutContext);
+                const address =
+                    selectedTarget === undefined
+                        ? undefined
+                        : await getAddress(
+                              locationTrack.trackNumberId,
+                              selectedTarget.location,
+                              layoutContext,
+                          );
                 Snackbar.success(
-                    'tool-panel.location-track.track-boundary-move.boundary-move-saved',
+                    t('tool-panel.location-track.track-boundary-move.boundary-move-saved', {
+                        firstTrack: locationTrack.name,
+                        secondTrack: counterpartTrack?.name ?? '',
+                        address: address === undefined ? '' : formatTrackMeter(address),
+                    }),
                 );
                 delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
