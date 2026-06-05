@@ -1,4 +1,8 @@
-import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    LocationTrackId,
+    SwitchJointId,
+} from 'track-layout/track-layout-model';
 import { ChangingTrackBoundary } from 'linking/linking-model';
 import { LayoutContext } from 'common/common-model';
 import { createDelegates } from 'store/store-utils';
@@ -80,6 +84,23 @@ type LocationTrackBoundaryMoveInfoboxProps = {
     onConfirmCounterpartSelection: () => void;
     onSaveTrackBoundaryMove: (request: TrackBoundaryMoveRequest) => Promise<void>;
 };
+
+function switchJointIdEquals(a: SwitchJointId, b: SwitchJointId): boolean {
+    return a.switchId === b.switchId && a.jointNumber === b.jointNumber;
+}
+
+function canSave(linkingState: ChangingTrackBoundary): boolean {
+    const selectedTarget = linkingState.selectedTarget;
+    const counterpart = linkingState.counterpart;
+    return (
+        selectedTarget !== undefined &&
+        counterpart !== undefined &&
+        (selectedTarget.kind === 'joint'
+            ? counterpart.connectingSwitchJoint === undefined ||
+              !switchJointIdEquals(selectedTarget.joint, counterpart.connectingSwitchJoint)
+            : true)
+    );
+}
 
 const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfoboxProps> = ({
     locationTrack,
@@ -184,7 +205,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                                 {t('button.cancel')}
                             </Button>
                             <Button
-                                disabled={selectedTarget === undefined || saving}
+                                disabled={saving || !canSave(linkingState)}
                                 isProcessing={saving}
                                 onClick={saveBoundaryMove}>
                                 {t(
