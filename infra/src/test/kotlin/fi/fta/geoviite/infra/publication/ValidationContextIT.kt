@@ -192,6 +192,7 @@ constructor(
             publicationDao = publicationDao,
             switchLibraryService = switchLibraryService,
             splitService = splitService,
+            trackBoundaryMoveService = trackBoundaryMoveService,
             operationalPointDao = operationalPointDao,
             publicationSet =
                 ValidationVersions(

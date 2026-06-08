@@ -16,15 +16,20 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.publication.AdministrativeChangeLayoutValidationIssues
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validate
+import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType
 import fi.fta.geoviite.infra.tracklayout.EndpointSplitPoint
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -151,32 +156,113 @@ class SplitService(
         splitDao.deleteSplit(splitId)
     }
 
+    private fun validateTrackBoundaryChangeGeometries(
+        transition: LayoutContextTransition,
+        trackVersions: List<LayoutRowVersion<LocationTrack>>,
+        unpublishedTrackBoundaryMoves: List<TrackBoundaryMove>,
+    ): Map<IntId<LocationTrack>, LayoutValidationIssue> {
+        val tracksById = trackVersions.associateBy { it.id }
+        val moveIsOkay = unpublishedTrackBoundaryMoves.associateWith { move ->
+            trackBoundaryMovePreservesGeometry(tracksById, move, transition)
+        }
+        val moveByTrack =
+            unpublishedTrackBoundaryMoves
+                .flatMap { move ->
+                    listOf(move.shortenedLocationTrack.id to move, move.lengthenedLocationTrack.id to move)
+                }
+                .associate { it }
+        return tracksById.keys
+            .mapNotNull { track ->
+                moveByTrack[track]
+                    ?.let { move -> moveIsOkay[move] }
+                    ?.let { okay ->
+                        if (!okay) {
+                            validationError("$VALIDATION_BOUNDARY_MOVE.changed-geometry")
+                        } else null
+                    }
+                    ?.let { track to it }
+            }
+            .associate { it }
+    }
+
+    private fun trackBoundaryMovePreservesGeometry(
+        tracksById: Map<IntId<LocationTrack>, LayoutRowVersion<LocationTrack>>,
+        move: TrackBoundaryMove,
+        transition: LayoutContextTransition,
+    ): Boolean? {
+        val publicationShortenedTrackVersion = tracksById[move.shortenedLocationTrack.id]
+        val publicationLengthenedTrackVersion = tracksById[move.lengthenedLocationTrack.id]
+        val trackNumberId = locationTrackDao.fetch(move.shortenedLocationTrack).trackNumberId
+        val geocodingContext = geocodingService.getGeocodingContext(transition.baseContext, trackNumberId)
+        return if (
+            publicationShortenedTrackVersion == null ||
+                publicationLengthenedTrackVersion == null ||
+                geocodingContext == null
+        )
+            null
+        else {
+            val originalPoints =
+                combinedAddressPoints(
+                    geocodingContext,
+                    alignmentDao.fetch(move.shortenedLocationTrack),
+                    alignmentDao.fetch(move.lengthenedLocationTrack),
+                )
+            val afterMovePoints =
+                combinedAddressPoints(
+                    geocodingContext,
+                    alignmentDao.fetch(publicationShortenedTrackVersion),
+                    alignmentDao.fetch(publicationLengthenedTrackVersion),
+                )
+
+            originalPoints.size == afterMovePoints.size &&
+                originalPoints.zip(afterMovePoints).all { (original, afterMove) ->
+                    original.address.compareTo(afterMove.address) == 0 && original.point.isSameXY(afterMove.point)
+                }
+        }
+    }
+
+    private fun combinedAddressPoints(
+        geocodingContext: GeocodingContext<*>,
+        firstGeometry: LocationTrackGeometry,
+        secondGeometry: LocationTrackGeometry,
+    ): List<AddressPoint<LocationTrackM>> =
+        ((geocodingContext.getAddressPoints(firstGeometry).addresses?.integerPrecisionPoints ?: listOf()) +
+                (geocodingContext.getAddressPoints(secondGeometry).addresses?.integerPrecisionPoints ?: listOf()))
+            .distinctBy { it.address }
+            .sortedBy { it.address }
+
     @Transactional(readOnly = true)
-    fun validateSplit(
+    fun validateAdministrativeChange(
         candidates: ValidationVersions,
         context: ValidationContext,
-        allowMultipleSplits: Boolean,
-    ): SplitLayoutValidationIssues {
-        val splitIssues =
-            validateSplitContent(
+        allowMultipleAdministrativeChanges: Boolean,
+    ): AdministrativeChangeLayoutValidationIssues {
+        val administrativeChangeContentIssues =
+            validateAdministrativeChangeContent(
                 trackVersions = candidates.locationTracks,
                 switchVersions = candidates.switches,
                 publicationSplits = context.getPublicationSplits(),
-                allowMultipleSplits = allowMultipleSplits,
+                publicationTrackBoundaryMoves = context.getPublicationTrackBoundaryMoves(),
+                allowMultipleAdministrativeChanges = allowMultipleAdministrativeChanges,
+            )
+
+        val trackBoundaryChangeGeometryIssues =
+            validateTrackBoundaryChangeGeometries(
+                transition = context.target,
+                trackVersions = candidates.locationTracks,
+                unpublishedTrackBoundaryMoves = context.allUnpublishedTrackBoundaryMoves,
             )
 
         val tnSplitIssues =
             candidates.trackNumbers
-                .associate { version ->
-                    version.id to listOfNotNull(validateSplitReferencesByTrackNumber(version.id, context))
-                }
+                .associate { version -> version.id to validateReferencesByTrackNumber(version.id, context) }
                 .filterValues { it.isNotEmpty() }
 
         val rlSplitIssues =
             candidates.referenceLines
                 .associate { version ->
                     val trackNumberId = referenceLineDao.fetch(version).trackNumberId
-                    version.id to listOfNotNull(validateSplitReferencesByTrackNumber(trackNumberId, context))
+                    version.id to validateReferencesByTrackNumber(trackNumberId, context)
                 }
                 .filterValues { it.isNotEmpty() }
 
@@ -185,32 +271,32 @@ class SplitService(
                 .associate { version ->
                     val trackNumberId = kmPostDao.fetch(version).trackNumberId
                     version.id to
-                        listOfNotNull(
-                            trackNumberId?.let { tnId -> validateSplitReferencesByTrackNumber(tnId, context) }
-                        )
+                        trackNumberId?.let { tnId -> validateReferencesByTrackNumber(tnId, context) }.orEmpty()
                 }
                 .filterValues { it.isNotEmpty() }
 
         val trackSplitIssues =
             candidates.locationTracks
                 .associate { version ->
-                    val ltSplitIssues = validateSplitForLocationTrack(version.id, context)
-                    val contentIssues = splitIssues.mapNotNull { (split, error) ->
+                    val ltSplitIssues = validateAdministrativeChangesForLocationTrack(version.id, context)
+                    val contentIssues = administrativeChangeContentIssues.mapNotNull { (split, error) ->
                         if (split.containsLocationTrack(version.id)) error else null
                     }
-                    version.id to (ltSplitIssues + contentIssues).distinct()
+                    val boundaryMoveGeometryIssues = listOfNotNull(trackBoundaryChangeGeometryIssues[version.id])
+                    version.id to (ltSplitIssues + contentIssues + boundaryMoveGeometryIssues).distinct()
                 }
                 .filterValues { it.isNotEmpty() }
 
         val switchSplitIssues =
             candidates.switches.associate { version ->
                 val switchIssues = validateSplitForSwitch(version.id, context)
-                val contentIssues = splitIssues.mapNotNull { (split, error) -> if (split.containsSwitch(version.id)) error else null }
+                val contentIssues = administrativeChangeContentIssues.mapNotNull { (split, error) ->
+                    if (split.containsSwitch(version.id)) error else null
+                }
                 version.id to (switchIssues + contentIssues).distinct()
-
             }
 
-        return SplitLayoutValidationIssues(
+        return AdministrativeChangeLayoutValidationIssues(
             tnSplitIssues,
             rlSplitIssues,
             kpSplitIssues,
@@ -235,21 +321,23 @@ class SplitService(
         return splitDao.getOrThrow(splitId)
     }
 
-    private fun validateSplitForLocationTrack(
+    private fun validateAdministrativeChangesForLocationTrack(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
     ): List<LayoutValidationIssue> {
         val splits = context.getUnfinishedSplits().filter { split -> split.locationTracks.contains(trackId) }
+        val trackBoundaryMoves =
+            context.allUnpublishedTrackBoundaryMoves.filter { move -> move.containsLocationTrack(trackId) }
         val track = context.getLocationTrack(trackId)
 
-        return if (track == null) validateLocationTrackAbsence(trackId, context, splits)
+        return if (track == null) validateLocationTrackAbsence(trackId, context, splits, trackBoundaryMoves)
         else
             validateSplitForFoundLocationTrack(
                 trackId,
                 context,
                 splits.map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) },
                 track,
-            )
+            ) + validateTrackBoundaryMovesForFoundLocationTrack(trackId, track, trackBoundaryMoves)
     }
 
     private fun validateSplitForSwitch(
@@ -257,28 +345,65 @@ class SplitService(
         context: ValidationContext,
     ): List<LayoutValidationIssue> {
         val switchInMultipleSplits = context.getUnfinishedSplits().count { split -> split.containsSwitch(switchId) } > 1
-        return listOf(validate(!switchInMultipleSplits, ERROR) { "$VALIDATION_SPLIT.switch-in-multiple-split" }).filterNotNull()
+        return listOf(validate(!switchInMultipleSplits, ERROR) { "$VALIDATION_SPLIT.switch-in-multiple-split" })
+            .filterNotNull()
     }
-
 
     private fun validateLocationTrackAbsence(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
         splits: List<Split>,
+        trackBoundaryMoves: List<TrackBoundaryMove>,
     ): List<LayoutValidationIssue> {
         if (!context.locationTrackIsCancelled(trackId)) {
             throw IllegalArgumentException("The track to validate must exist in the validation context: id=$trackId")
         }
-        return splits.flatMap { split ->
-            if (trackId == split.sourceLocationTrackId || split.locationTracks.contains(trackId)) {
-                listOf(
-                    validationError(
-                        "$VALIDATION_SPLIT.track-is-cancelled",
-                        "name" to context.getCandidateLocationTrack(trackId)?.name,
+        return splits.mapNotNull { split ->
+            validateWithParams(
+                trackId != split.sourceLocationTrackId && !split.locationTracks.contains(trackId),
+                ERROR,
+            ) {
+                "$VALIDATION_SPLIT.track-is-cancelled" to
+                    LocalizationParams(
+                        mapOf("name" to (context.getCandidateLocationTrack(trackId)?.name?.toString() ?: ""))
                     )
-                )
-            } else listOf()
-        }
+            }
+        } +
+            trackBoundaryMoves.mapNotNull { move ->
+                validateWithParams(move.locationTracks.none { it.id == trackId }, ERROR) {
+                    "$VALIDATION_BOUNDARY_MOVE.track-is-cancelled" to
+                        LocalizationParams(
+                            mapOf("name" to (context.getCandidateLocationTrack(trackId)?.name?.toString() ?: ""))
+                        )
+                }
+            }
+    }
+
+    private fun validateTrackBoundaryMovesForFoundLocationTrack(
+        trackId: IntId<LocationTrack>,
+        track: LocationTrack,
+        trackBoundaryMoves: List<TrackBoundaryMove>,
+    ): List<LayoutValidationIssue> = trackBoundaryMoves.flatMap { move ->
+        if (move.containsLocationTrack(trackId)) {
+            validateTrackBoundaryMoveForFoundLocationTrack(move, trackId, track)
+        } else listOf()
+    }
+
+    private fun validateTrackBoundaryMoveForFoundLocationTrack(
+        move: TrackBoundaryMove,
+        trackId: IntId<LocationTrack>,
+        track: LocationTrack,
+    ): List<LayoutValidationIssue> {
+        val originalTrackVersion =
+            if (trackId == move.shortenedLocationTrack.id) move.shortenedLocationTrack else move.lengthenedLocationTrack
+        val originalTrack = locationTrackDao.fetch(originalTrackVersion)
+
+        return listOfNotNull(
+            validateWithParams(track.trackNumberId == originalTrack.trackNumberId) {
+                "$VALIDATION_BOUNDARY_MOVE.track-number-updated" to
+                    LocalizationParams(mapOf("track" to track.name.toString()))
+            }
+        )
     }
 
     private fun validateSplitForFoundLocationTrack(
@@ -391,24 +516,44 @@ class SplitService(
         return sourceAddresses to targetAddresses
     }
 
-    private fun validateSplitReferencesByTrackNumber(
+    private fun validateReferencesByTrackNumber(
         trackNumberId: IntId<LayoutTrackNumber>,
         context: ValidationContext,
-    ): LayoutValidationIssue? {
+    ): List<LayoutValidationIssue> {
         val affectedTracks = context.getLocationTracksByTrackNumber(trackNumberId)
         val affectedSplits =
             context.getUnfinishedSplits().filter { split ->
                 split.locationTracks.any { ltId -> affectedTracks.any { a -> a.id == ltId } }
             }
-        return if (affectedSplits.isNotEmpty()) {
-            val sourceTrackNames =
-                affectedSplits
-                    .mapNotNull { split -> context.getLocationTrack(split.sourceLocationTrackId)?.name }
-                    .joinToString(", ")
-            validationError("$VALIDATION_SPLIT.affected-split-in-progress", "sourceName" to sourceTrackNames)
-        } else {
-            null
-        }
+
+        val affectedTracksFromTrackBoundaryMoves =
+            context.allUnpublishedTrackBoundaryMoves.flatMap { move ->
+                move.locationTracks.filter { ltId -> affectedTracks.any { a -> a.id == ltId } }
+            }
+        return listOfNotNull(
+            validateWithParams(affectedSplits.isEmpty(), ERROR) {
+                "$VALIDATION_SPLIT.affected-split-in-progress" to
+                    LocalizationParams(
+                        mapOf(
+                            "sourceName" to
+                                affectedSplits
+                                    .mapNotNull { split -> context.getLocationTrack(split.sourceLocationTrackId)?.name }
+                                    .joinToString(", ")
+                        )
+                    )
+            },
+            validateWithParams(affectedTracksFromTrackBoundaryMoves.isEmpty(), ERROR) {
+                "$VALIDATION_BOUNDARY_MOVE.affected-move-in-progress" to
+                    LocalizationParams(
+                        mapOf(
+                            "tracks" to
+                                affectedTracksFromTrackBoundaryMoves
+                                    .mapNotNull { track -> context.getLocationTrack(track.id)?.name }
+                                    .joinToString(", ")
+                        )
+                    )
+            },
+        )
     }
 
     @Transactional

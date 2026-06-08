@@ -5,7 +5,15 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.error.TrackBoundaryMoveFailureException
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationInDesign
+import fi.fta.geoviite.infra.publication.PublicationInMain
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublicationValidationService
+import fi.fta.geoviite.infra.publication.TrackBoundaryMovePublicationGroup
+import fi.fta.geoviite.infra.publication.publicationRequest
+import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveCounterpart
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDirection
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryOrientation
@@ -21,12 +29,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.offsetGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkRR
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -42,9 +54,12 @@ constructor(
     private val trackBoundaryMoveService: TrackBoundaryMoveService,
     private val locationTrackService: LocationTrackService,
     private val trackBoundaryMoveDao: TrackBoundaryMoveDao,
+    private val publicationService: PublicationService,
+    private val publicationValidationService: PublicationValidationService,
 ) : DBTestBase() {
     @BeforeEach
     fun setup() {
+        testDBService.clearPublicationTables()
         testDBService.clearLayoutTables()
     }
 
@@ -107,7 +122,7 @@ constructor(
                 ),
             )
 
-        val splitId =
+        val trackBoundaryMoveId =
             trackBoundaryMoveService.saveTrackBoundaryMove(
                 LayoutBranch.Companion.main,
                 shorteningTrackId = shorteningTrack.id,
@@ -119,7 +134,7 @@ constructor(
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id).second
-        val savedBoundaryMove = trackBoundaryMoveDao.getOrThrow(splitId)
+        val savedBoundaryMove = trackBoundaryMoveDao.getOrThrow(trackBoundaryMoveId)
         assertEquals(shorteningTrack, savedBoundaryMove.shortenedLocationTrack)
         assertEquals(lengtheningTrack, savedBoundaryMove.lengthenedLocationTrack)
 
@@ -158,7 +173,7 @@ constructor(
                 ),
             )
 
-        val splitId =
+        val trackBoundaryMoveId =
             trackBoundaryMoveService.saveTrackBoundaryMove(
                 LayoutBranch.Companion.main,
                 shorteningTrackId = shorteningTrack.id,
@@ -170,7 +185,7 @@ constructor(
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id).second
-        val savedBoundaryMove = trackBoundaryMoveDao.getOrThrow(splitId)
+        val savedBoundaryMove = trackBoundaryMoveDao.getOrThrow(trackBoundaryMoveId)
         assertEquals(shorteningTrack, savedBoundaryMove.shortenedLocationTrack)
         assertEquals(lengtheningTrack, savedBoundaryMove.lengthenedLocationTrack)
         assertEquals(switchLinkYV(switch1, 1), newLengthenedGeometry.edges.first().startNode.switchIn)
@@ -336,6 +351,170 @@ constructor(
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, shorteningTrack.id).second
         assertSameEdgeContent(shorteningGeometry.edges + lengtheningGeometry.edges, newLengthenedGeometry.edges)
         assertEquals(0, newShortenedGeometry.edges.size)
+    }
+
+    @Test
+    fun `location tracks get grouped per their boundary move`() {
+        val setup = saveConnectedTracks()
+
+        val boundaryMoveId =
+            trackBoundaryMoveService.saveTrackBoundaryMove(
+                LayoutBranch.main,
+                shorteningTrackId = setup.shorteningTrack.id,
+                lengtheningTrackId = setup.lengtheningTrack.id,
+                upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+            )
+
+        val candidates = publicationService.collectPublicationCandidates(PublicationInMain)
+        val expectedGroup = TrackBoundaryMovePublicationGroup(boundaryMoveId)
+
+        val affectedTrackIds = listOf(setup.shorteningTrack.id, setup.lengtheningTrack.id)
+        candidates.locationTracks
+            .filter { candidate -> candidate.id in affectedTrackIds }
+            .also { filtered -> assertEquals(2, filtered.size) }
+            .forEach { candidate -> assertEquals(expectedGroup, candidate.publicationGroup) }
+    }
+
+    @Test
+    fun `successive boundary moves are grouped and stamped with their own publication`() {
+        // Two independent boundary moves, each saved -> verified as a publication group -> published in turn. The
+        // second move only exists after the first has been published, so the candidate groups and the publication ids
+        // stamped onto the boundary moves must stay distinct between the rounds.
+        repeat(2) {
+            val setup = savePublishableConnectedTracks()
+            val boundaryMoveId =
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
+            assertEquals(null, trackBoundaryMoveDao.getOrThrow(boundaryMoveId).publicationId)
+
+            val affectedTrackIds = listOf(setup.shorteningTrack.id, setup.lengtheningTrack.id)
+            val candidates = publicationService.collectPublicationCandidates(PublicationInMain)
+            candidates.locationTracks
+                .filter { candidate -> candidate.id in affectedTrackIds }
+                .also { filtered -> assertEquals(2, filtered.size) }
+                .forEach { candidate ->
+                    assertEquals(TrackBoundaryMovePublicationGroup(boundaryMoveId), candidate.publicationGroup)
+                }
+
+            // Publishing the two affected tracks pulls the boundary move into the publication automatically.
+            val publicationResult =
+                publicationService.publishManualPublication(
+                    LayoutBranch.main,
+                    publicationRequest(locationTracks = affectedTrackIds),
+                )
+            assertEquals(publicationResult.publicationId, trackBoundaryMoveDao.getOrThrow(boundaryMoveId).publicationId)
+        }
+    }
+
+    @Test
+    fun `boundary moves on the same tracks in main and a design branch list and publish independently`() {
+        // The pair of tracks is published in main-official, so it is visible in both the main-draft and the
+        // design-draft context. Each context then gets its own boundary move on top of that shared official base. The
+        // two moves live in separate contexts and must list as candidates and publish without interfering.
+        val setup = savePublishableConnectedTracks()
+        val designBranch = testDBService.createDesignBranch()
+        testDBService.generateOid(setup.lengtheningTrack.id, designBranch)
+        testDBService.generateOid(setup.shorteningTrack.id, designBranch)
+
+        val affectedTrackIds = listOf(setup.shorteningTrack.id, setup.lengtheningTrack.id)
+
+        val mainBoundaryMoveId =
+            trackBoundaryMoveService.saveTrackBoundaryMove(
+                LayoutBranch.main,
+                shorteningTrackId = setup.shorteningTrack.id,
+                lengtheningTrackId = setup.lengtheningTrack.id,
+                upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+            )
+
+        val designBoundaryMoveId =
+            trackBoundaryMoveService.saveTrackBoundaryMove(
+                designBranch,
+                shorteningTrackId = setup.shorteningTrack.id,
+                lengtheningTrackId = setup.lengtheningTrack.id,
+                upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+            )
+
+        // Each context lists only its own boundary move's group on the affected tracks.
+        val mainCandidates = publicationService.collectPublicationCandidates(PublicationInMain)
+        mainCandidates.locationTracks
+            .filter { candidate -> candidate.id in affectedTrackIds }
+            .also { filtered -> assertEquals(2, filtered.size) }
+            .forEach { candidate ->
+                assertEquals(TrackBoundaryMovePublicationGroup(mainBoundaryMoveId), candidate.publicationGroup)
+            }
+
+        val designCandidates = publicationService.collectPublicationCandidates(PublicationInDesign(designBranch))
+        designCandidates.locationTracks
+            .filter { candidate -> candidate.id in affectedTrackIds }
+            .also { filtered -> assertEquals(2, filtered.size) }
+            .forEach { candidate ->
+                assertEquals(TrackBoundaryMovePublicationGroup(designBoundaryMoveId), candidate.publicationGroup)
+            }
+
+        // Publishing in each context pulls in only that context's boundary move and stamps its own publication.
+        val mainPublication =
+            publicationService.publishManualPublication(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = affectedTrackIds),
+            )
+        assertEquals(mainPublication.publicationId, trackBoundaryMoveDao.getOrThrow(mainBoundaryMoveId).publicationId)
+        assertEquals(null, trackBoundaryMoveDao.getOrThrow(designBoundaryMoveId).publicationId)
+
+        val designPublication =
+            publicationService.publishManualPublication(
+                designBranch,
+                publicationRequest(locationTracks = affectedTrackIds),
+            )
+        assertEquals(
+            designPublication.publicationId,
+            trackBoundaryMoveDao.getOrThrow(designBoundaryMoveId).publicationId,
+        )
+    }
+
+    @Test
+    fun `publication validation catches geometry changes made after the boundary move`() {
+        val setup = savePublishableConnectedTracks()
+
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = setup.shorteningTrack.id,
+            lengtheningTrackId = setup.lengtheningTrack.id,
+            upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+            boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+        )
+
+        // The boundary move itself preserves the combined geometry of the two tracks. Tamper with the lengthened
+        // track's geometry afterwards so that the combined geometry no longer matches what it was before the move.
+        val (lengthenedTrack, lengthenedGeometry) =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, setup.lengtheningTrack.id)
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            lengthenedTrack,
+            offsetGeometry(lengthenedGeometry, Point(0.0, 5.0)),
+        )
+
+        val candidates = publicationService.collectPublicationCandidates(PublicationInMain)
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                candidates,
+                publicationRequestIds(locationTracks = listOf(setup.shorteningTrack.id, setup.lengtheningTrack.id)),
+            )
+        val issues = validation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues }
+
+        assertTrue(
+            issues.any {
+                it.localizationKey == LocalizationKey.of("validation.layout.track-boundary-move.changed-geometry")
+            },
+            "Expected a track boundary move changed-geometry error, but got: $issues",
+        )
     }
 
     @Test
@@ -641,6 +820,60 @@ constructor(
 
         val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
         val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
+
+        return ConnectedTracks(
+            lengtheningTrack = lengtheningTrack,
+            lengtheningGeometry = lengtheningGeometry,
+            shorteningTrack = shorteningTrack,
+            shorteningGeometry = shorteningGeometry,
+            connectingSwitch = switch1,
+            shorteningOnlySwitch = switch2,
+        )
+    }
+
+    private fun savePublishableConnectedTracks(): ConnectedTracks {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
+        )
+        val switch1 = mainOfficialContext.createSwitch().id
+        val switch2 = mainOfficialContext.createSwitch().id
+
+        val lengtheningGeometry =
+            trackGeometry(
+                edge(listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1)),
+                edge(
+                    listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch1, 1),
+                    endInnerSwitch = switchLinkYV(switch1, 2),
+                ),
+            )
+
+        val shorteningGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                    startOuterSwitch = switchLinkYV(switch1, 2),
+                    endOuterSwitch = switchLinkYV(switch2, 1),
+                ),
+                edge(
+                    listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch2, 1),
+                    endInnerSwitch = switchLinkYV(switch2, 2),
+                ),
+            )
+
+        val lengtheningTrack = mainDraftContext.save(locationTrack(trackNumber), lengtheningGeometry)
+        val shorteningTrack = mainDraftContext.save(locationTrack(trackNumber), shorteningGeometry)
+
+        mainDraftContext.generateOid(lengtheningTrack.id)
+        mainDraftContext.generateOid(shorteningTrack.id)
+
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            publicationRequest(locationTracks = listOf(lengtheningTrack.id, shorteningTrack.id)),
+        )
 
         return ConnectedTracks(
             lengtheningTrack = lengtheningTrack,

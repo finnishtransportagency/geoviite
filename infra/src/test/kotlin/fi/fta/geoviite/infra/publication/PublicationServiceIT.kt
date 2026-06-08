@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
@@ -20,6 +21,7 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PartialSplitRevertException
+import fi.fta.geoviite.infra.error.PartialTrackBoundaryMoveRevertException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
@@ -29,6 +31,11 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDirection
+import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
@@ -126,11 +133,12 @@ constructor(
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
     val splitService: SplitService,
+    val trackBoundaryMoveService: TrackBoundaryMoveService,
+    val trackBoundaryMoveDao: TrackBoundaryMoveDao,
     val layoutDesignDao: LayoutDesignDao,
     val ratkoTestService: RatkoTestService,
+    val operationalPointService: OperationalPointService,
 ) : DBTestBase() {
-
-    @Autowired private lateinit var operationalPointService: OperationalPointService
 
     @BeforeEach
     fun cleanup() {
@@ -771,6 +779,130 @@ constructor(
         }
 
         assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `track boundary move shortened and lengthened tracks depend on each other`() {
+        val setup = saveTrackBoundaryMoveSetup()
+
+        val bothTracks = listOf(setup.shorteningTrackId, setup.lengtheningTrackId)
+        for (id in bothTracks) {
+            val dependencies =
+                publicationService.getRevertRequestDependencies(
+                    LayoutBranch.main,
+                    publicationRequest(locationTracks = listOf(id)),
+                )
+            for (otherId in bothTracks) {
+                assertContains(dependencies.locationTracks, otherId)
+            }
+        }
+    }
+
+    @Test
+    fun `reverting only the shortened track of a track boundary move throws`() {
+        val setup = saveTrackBoundaryMoveSetup()
+
+        assertThrows<PartialTrackBoundaryMoveRevertException> {
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = listOf(setup.shorteningTrackId)),
+            )
+        }
+
+        assertNotNull(trackBoundaryMoveDao.get(setup.boundaryMoveId))
+    }
+
+    @Test
+    fun `reverting only the lengthened track of a track boundary move throws`() {
+        val setup = saveTrackBoundaryMoveSetup()
+
+        assertThrows<PartialTrackBoundaryMoveRevertException> {
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = listOf(setup.lengtheningTrackId)),
+            )
+        }
+
+        assertNotNull(trackBoundaryMoveDao.get(setup.boundaryMoveId))
+    }
+
+    @Test
+    fun `reverting both tracks of a track boundary move deletes the boundary move`() {
+        val setup = saveTrackBoundaryMoveSetup()
+
+        publicationService.revertPublicationCandidates(
+            LayoutBranch.main,
+            publicationRequest(locationTracks = listOf(setup.shorteningTrackId, setup.lengtheningTrackId)),
+        )
+
+        assertNull(trackBoundaryMoveDao.get(setup.boundaryMoveId))
+    }
+
+    private data class TrackBoundaryMoveSetup(
+        val shorteningTrackId: IntId<LocationTrack>,
+        val lengtheningTrackId: IntId<LocationTrack>,
+        val boundaryMoveId: IntId<TrackBoundaryMove>,
+    )
+
+    // Two tracks meeting at switch1 joint 2, laid out as one physically continuous track. The lengthening track holds
+    // switch1; the shortening track holds switch2. Moving the boundary to switch2 joint 1 shortens one track and
+    // lengthens the other, producing a draft change to both.
+    private fun saveTrackBoundaryMoveSetup(): TrackBoundaryMoveSetup {
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val switch1 = mainDraftContext.createSwitch().id
+        val switch2 = mainDraftContext.createSwitch().id
+
+        val lengtheningTrack =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumber),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))),
+                            endOuterSwitch = switchLinkYV(switch1, 1),
+                        ),
+                        edge(
+                            listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switch1, 1),
+                            endInnerSwitch = switchLinkYV(switch1, 2),
+                        ),
+                    ),
+                )
+                .id
+
+        val shorteningTrack =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumber),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                            startOuterSwitch = switchLinkYV(switch1, 2),
+                            endOuterSwitch = switchLinkYV(switch2, 1),
+                        ),
+                        edge(
+                            listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switch2, 1),
+                            endInnerSwitch = switchLinkYV(switch2, 2),
+                        ),
+                    ),
+                )
+                .id
+
+        val boundaryMoveId =
+            trackBoundaryMoveService.saveTrackBoundaryMove(
+                LayoutBranch.main,
+                shorteningTrackId = shorteningTrack,
+                lengtheningTrackId = lengtheningTrack,
+                upToSwitchJoint = SwitchJointId(switch2, JointNumber(1)),
+                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+            )
+
+        return TrackBoundaryMoveSetup(
+            shorteningTrackId = shorteningTrack,
+            lengtheningTrackId = lengtheningTrack,
+            boundaryMoveId = boundaryMoveId,
+        )
     }
 
     @Test
@@ -1449,7 +1581,7 @@ constructor(
                         filteredCandidates.size,
                     )
                 }
-                .forEach { candidate -> assertEquals(splitId, candidate.publicationGroup?.id) }
+                .forEach { candidate -> assertEquals("SPLIT_$splitId", candidate.publicationGroup?.id) }
 
             val amountOfSwitchesInCurrentTest = 6
             val expectedTotalUnpublishedSwitchAmount = testIndex * amountOfSwitchesInCurrentTest
@@ -1458,7 +1590,7 @@ constructor(
             publicationCandidates.switches
                 .filter { candidate -> candidate.id in testData.switchIds }
                 .also { filteredCandidates -> assertEquals(amountOfSwitchesInCurrentTest, filteredCandidates.size) }
-                .forEach { candidate -> assertEquals(splitId, candidate.publicationGroup?.id) }
+                .forEach { candidate -> assertEquals("SPLIT_$splitId", candidate.publicationGroup?.id) }
         }
     }
 

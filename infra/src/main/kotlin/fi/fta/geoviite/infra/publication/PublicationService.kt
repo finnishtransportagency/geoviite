@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationExcept
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PartialSplitRevertException
+import fi.fta.geoviite.infra.error.PartialTrackBoundaryMoveRevertException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
@@ -192,10 +193,14 @@ constructor(
         val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
         val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
+        val trackBoundaryMoves =
+            trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, locationTrackIds.toList())
+        val trackBoundaryMoveTracks = trackBoundaryMoves.flatMap { s -> s.locationTracks.map { it.id } }.distinct()
+
         return PublicationRequestIds(
             trackNumbers = trackNumbers.map { it.id as IntId },
             referenceLines = referenceLineIds.toList(),
-            locationTracks = (locationTrackIds + revertSplitTracks).distinct(),
+            locationTracks = (locationTrackIds + revertSplitTracks + trackBoundaryMoveTracks).distinct(),
             switches = (switchIds + revertSplitSwitches).distinct(),
             kmPosts = kmPostIds.toList(),
             operationalPoints = operationalPointIds.toList(),
@@ -223,6 +228,20 @@ constructor(
                 )
             }
             splitService.deleteSplit(split.id)
+        }
+
+        trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, toDelete.locationTracks).forEach {
+            trackBoundaryMove ->
+            val shortenedTrackIncluded = toDelete.locationTracks.contains(trackBoundaryMove.shortenedLocationTrack.id)
+            val lengthenedTrackIncluded = toDelete.locationTracks.contains(trackBoundaryMove.lengthenedLocationTrack.id)
+            if (!shortenedTrackIncluded || !lengthenedTrackIncluded) {
+                throw PartialTrackBoundaryMoveRevertException(
+                    message =
+                        "Cannot partially revert track boundary move ${trackBoundaryMove.id}: " +
+                            "both shortened and lengthened track must be included in the revert request"
+                )
+            }
+            trackBoundaryMoveService.delete(trackBoundaryMove.id)
         }
 
         val locationTrackIds = toDelete.locationTracks.toSet()

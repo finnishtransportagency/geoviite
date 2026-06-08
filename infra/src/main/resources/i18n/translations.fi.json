@@ -71,6 +71,7 @@
         "track-boundary-move": {
             "generic": "Vaihtumiskohdan siirrossa tapahtui virhe",
             "does-not-move-boundary": "Valittu vaihteen piste ei siirrä raiteiden vaihtumiskohtaa",
+            "partial-revert": "Raiteen vaihtumiskohdan siirtoa ei voi perua osittain",
             "tracks-do-not-connect": "Raiteet eivät kohtaa toisiaan, joten vaihtumiskohtaa ei voi siirtää"
         },
         "split": {
@@ -1975,6 +1976,16 @@
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
                 "km-posts-wrong-order": "Ratanumeron {{trackNumber}} kilometrit ({{kmNumbers}}) ovat väärässä järjestyksessä",
                 "km-post-too-far-from-reference-line": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee liian kaukana pituusmittauslinjalta"
+            },
+            "track-boundary-move": {
+                "missing-location-tracks": "Julkaisussa ei ole mukana muutoskohdan siirrosta lyhenevää tai pitenevää raidetta",
+                "affected-move-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteilla, joiden vaihtumiskohdan siirtoa ei ole julkaistu: {{tracks}}",
+                "track-is-cancelled": "Raiteen vaihtumiskohdan siirrossa mukana olevaa raidetta {{name}} ei voi perua julkaisusta",
+                "track-number-updated": "Vaihtumiskohdan siirtoon liittyvää raidetta {{track}} ei voi siirtää eri ratanumerolle ennen siirron julkaisua",
+                "changed-geometry": "Raiteen vaihtumiskohdan siirtoon liittyvän raiteen geometria on muuttunut alkuperäisestä"
+            },
+            "administrative-change": {
+                "multiple-changes-not-allowed": "Julkaisussa on mukana useampi hallinnollinen muutos (raiteen jakaminen tai vaihtumiskohtien muutos)"
             },
             "split": {
                 "source-not-deleted": "Raide on jaettu, mutta se ei ole Poistettu-tilassa",

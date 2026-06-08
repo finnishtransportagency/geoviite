@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.PublicationGroup
+import fi.fta.geoviite.infra.publication.SplitPublicationGroup
 import fi.fta.geoviite.infra.ratko.FakeRatko
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.split.SplitService
@@ -138,7 +138,7 @@ constructor(
 
         val previewView = trackLayoutPage.goToPreview().waitForAllTableValidationsToComplete()
 
-        val splitPublicationGroup = PublicationGroup(id = unpublishedSplit.id)
+        val splitPublicationGroup = SplitPublicationGroup(unpublishedSplit.id)
         previewView.changesTable.movePublicationGroup(splitPublicationGroup)
 
         val trackLayoutPageAfterPublishing = previewView.waitForAllTableValidationsToComplete().publish()

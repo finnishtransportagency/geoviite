@@ -34,6 +34,7 @@ import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -277,6 +278,12 @@ class PublicationDao(
                 candidate_location_track.state
               ) as operation,
               postgis.st_astext(candidate_location_track.bounding_box) as bounding_box,
+              (select id as track_boundary_move_id
+               from publication.track_boundary_move tbm
+               where tbm.publication_id is null
+                 and tbm.design_id is not distinct from :candidate_design_id
+                 and (tbm.shortened_location_track_id = candidate_location_track.id
+                      or tbm.lengthened_location_track_id = candidate_location_track.id)),
               splits.split_id
             from layout.location_track candidate_location_track
                 left join splits
@@ -306,7 +313,10 @@ class PublicationDao(
                     operation = rs.getEnum("operation"),
                     boundingBox = rs.getBboxOrNull("bounding_box"),
                     designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
-                    publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
+                    publicationGroup =
+                        rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublicationGroup)
+                            ?: rs.getIntIdOrNull<TrackBoundaryMove>("track_boundary_move_id")
+                                ?.let(::TrackBoundaryMovePublicationGroup),
                     geometryChanges = null,
                 )
             }
@@ -390,7 +400,7 @@ class PublicationDao(
                     trackNumberIds = rs.getIntIdArray("track_numbers"),
                     location = rs.getPointOrNull("point_x", "point_y"),
                     designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
-                    publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
+                    publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublicationGroup),
                 )
             }
         logger.daoAccess(FETCH, SwitchPublicationCandidate::class, candidates.map(SwitchPublicationCandidate::id))

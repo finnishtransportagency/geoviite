@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.trackBoundaryMove
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -10,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getLayoutBranch
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getRowVersion
@@ -26,6 +28,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
 
     @Transactional
     fun save(
+        layoutBranch: LayoutBranch,
         shortenedLocationTrack: LayoutRowVersion<LocationTrack>,
         edgeRange: IntRange,
         lengthenedLocationTrack: LayoutRowVersion<LocationTrack>,
@@ -33,6 +36,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
         val sql =
             """
             insert into publication.track_boundary_move(
+              design_id,
               shortened_location_track_id,
               shortened_location_track_version,
               shortened_location_track_layout_context_id,
@@ -44,6 +48,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
               publication_id
             )
             values (
+              :design_id::int,
               :shortened_location_track_id,
               :shortened_location_track_version,
               :shortened_location_track_layout_context_id,
@@ -61,6 +66,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
         jdbcTemplate.setUser()
         val params =
             mapOf(
+                "design_id" to layoutBranch.designId?.intValue,
                 "shortened_location_track_id" to shortenedLocationTrack.id.intValue,
                 "shortened_location_track_version" to shortenedLocationTrack.version,
                 "shortened_location_track_layout_context_id" to shortenedLocationTrack.context.toSqlString(),
@@ -85,6 +91,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
             select
               id,
               version,
+              design_id,
               shortened_location_track_id,
               shortened_location_track_version,
               shortened_location_track_layout_context_id,
@@ -111,6 +118,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
             select
               id,
               version,
+              design_id,
               shortened_location_track_id,
               shortened_location_track_version,
               shortened_location_track_layout_context_id,
@@ -143,6 +151,16 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
         jdbcTemplate.setUser()
         return getOne(id, jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion("id", "version") })
     }
+
+    @Transactional
+    fun delete(id: IntId<TrackBoundaryMove>) {
+        val sql = "delete from publication.track_boundary_move where id = :id"
+
+        jdbcTemplate.setUser()
+        jdbcTemplate.update(sql, mapOf("id" to id.intValue)).also {
+            logger.daoAccess(AccessType.DELETE, TrackBoundaryMove::class, id)
+        }
+    }
 }
 
 private fun getTrackBoundaryMove(rs: ResultSet) =
@@ -162,4 +180,5 @@ private fun getTrackBoundaryMove(rs: ResultSet) =
                 "lengthened_location_track_version",
             ),
         publicationId = rs.getIntIdOrNull("publication_id"),
+        branch = rs.getLayoutBranch("design_id"),
     )

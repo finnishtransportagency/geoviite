@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
-import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -274,6 +273,7 @@ constructor(
             publicationDao = publicationDao,
             switchLibraryService = switchLibraryService,
             splitService = splitService,
+            trackBoundaryMoveService = trackBoundaryMoveService,
             publicationSet = publicationSet,
         )
 
@@ -296,37 +296,40 @@ constructor(
         val versions = candidates.getValidationVersions(candidates.transition, splitVersions, boundaryMoveVersions)
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
-        val splitIssues = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
+        val administrativeChangeIssues =
+            splitService.validateAdministrativeChange(versions, validationContext, allowMultipleSplits)
 
         return PublicationCandidates(
             transition = candidates.transition,
             trackNumbers =
                 candidates.trackNumbers.map { candidate ->
-                    val trackNumberSplitIssues = splitIssues.trackNumbers[candidate.id] ?: emptyList()
+                    val trackNumberSplitIssues = administrativeChangeIssues.trackNumbers[candidate.id] ?: emptyList()
                     val validationIssues = validateTrackNumber(candidate.id, validationContext) ?: emptyList()
                     candidate.copy(issues = trackNumberSplitIssues + validationIssues)
                 },
             referenceLines =
                 candidates.referenceLines.map { candidate ->
-                    val referenceLineSplitIssues = splitIssues.referenceLines[candidate.id] ?: emptyList()
+                    val referenceLineSplitIssues =
+                        administrativeChangeIssues.referenceLines[candidate.id] ?: emptyList()
                     val validationIssues = validateReferenceLine(candidate.id, validationContext) ?: emptyList()
                     candidate.copy(issues = referenceLineSplitIssues + validationIssues)
                 },
             locationTracks =
                 candidates.locationTracks.map { candidate ->
-                    val locationTrackSplitIssues = splitIssues.locationTracks[candidate.id] ?: emptyList()
+                    val locationTrackSplitIssues =
+                        administrativeChangeIssues.locationTracks[candidate.id] ?: emptyList()
                     val validationIssues = validateLocationTrack(candidate.id, validationContext) ?: emptyList()
                     candidate.copy(issues = validationIssues + locationTrackSplitIssues)
                 },
             switches =
                 candidates.switches.map { candidate ->
-                    val switchSplitIssues = splitIssues.switches[candidate.id] ?: emptyList()
+                    val switchSplitIssues = administrativeChangeIssues.switches[candidate.id] ?: emptyList()
                     val validationIssues = validateSwitch(candidate.id, validationContext) ?: emptyList()
                     candidate.copy(issues = validationIssues + switchSplitIssues)
                 },
             kmPosts =
                 candidates.kmPosts.map { candidate ->
-                    val kmPostSplitIssues = splitIssues.kmPosts[candidate.id] ?: emptyList()
+                    val kmPostSplitIssues = administrativeChangeIssues.kmPosts[candidate.id] ?: emptyList()
                     val validationIssues = validateKmPost(candidate.id, validationContext) ?: emptyList()
                     candidate.copy(issues = validationIssues + kmPostSplitIssues)
                 },
@@ -340,7 +343,9 @@ constructor(
     @Transactional(readOnly = true)
     fun validatePublicationRequest(versions: ValidationVersions) {
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
-        splitService.validateSplit(versions, validationContext, allowMultipleSplits = false).also(::assertNoSplitErrors)
+        splitService
+            .validateAdministrativeChange(versions, validationContext, allowMultipleAdministrativeChanges = false)
+            .also(::assertNoSplitErrors)
 
         versions.trackNumbers.forEach { version ->
             assertNoErrors(version, requireNotNull(validateTrackNumber(version.id, validationContext)))
@@ -376,7 +381,7 @@ constructor(
         }
     }
 
-    private fun assertNoSplitErrors(issues: SplitLayoutValidationIssues) {
+    private fun assertNoSplitErrors(issues: AdministrativeChangeLayoutValidationIssues) {
         val splitErrors = issues.allIssues().filter { error -> error.type == ERROR }
 
         if (splitErrors.isNotEmpty()) {
@@ -489,10 +494,9 @@ constructor(
             val jointConnectionsDifferIssues =
                 validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, linkedTracks)
 
-            val structureIssues =
-                locationIssues.ifEmpty {
-                    validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
-                }
+            val structureIssues = locationIssues.ifEmpty {
+                validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
+            }
 
             val nameIssues = validateSwitchNameParts(switch)
 

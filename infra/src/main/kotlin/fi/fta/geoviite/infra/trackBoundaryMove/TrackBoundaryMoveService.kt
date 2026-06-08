@@ -62,7 +62,12 @@ class TrackBoundaryMoveService(
             )
         locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
         locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
-        return trackBoundaryMoveDao.save(shorteningTrackVersion, geometries.movedEdgeRange, lengtheningTrackVersion)
+        return trackBoundaryMoveDao.save(
+            layoutBranch,
+            shorteningTrackVersion,
+            geometries.movedEdgeRange,
+            lengtheningTrackVersion,
+        )
     }
 
     fun fetchPublicationVersions(
@@ -76,7 +81,8 @@ class TrackBoundaryMoveService(
         locationTrackIds: List<IntId<LocationTrack>>? = null,
     ): List<TrackBoundaryMove> =
         trackBoundaryMoveDao.getUnpublished().filter { boundaryMove ->
-            locationTrackIds == null || locationTrackIds.any(boundaryMove::containsLocationTrack)
+            boundaryMove.branch == branch &&
+                (locationTrackIds == null || locationTrackIds.any(boundaryMove::containsLocationTrack))
         }
 
     @Transactional
@@ -134,6 +140,8 @@ class TrackBoundaryMoveService(
 
         return counterpartFirstOptions + headFirstOptions
     }
+
+    fun delete(id: IntId<TrackBoundaryMove>) = trackBoundaryMoveDao.delete(id)
 }
 
 private fun getHeadFirstOptions(
