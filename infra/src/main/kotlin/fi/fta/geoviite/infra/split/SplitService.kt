@@ -337,7 +337,7 @@ class SplitService(
                 context,
                 splits.map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) },
                 track,
-            ) + validateTrackBoundaryMovesForFoundLocationTrack(trackId, track, context, trackBoundaryMoves)
+            ) + validateTrackBoundaryMovesForFoundLocationTrack(trackId, track, trackBoundaryMoves)
     }
 
     private fun validateSplitForSwitch(
@@ -382,7 +382,6 @@ class SplitService(
     private fun validateTrackBoundaryMovesForFoundLocationTrack(
         trackId: IntId<LocationTrack>,
         track: LocationTrack,
-        context: ValidationContext,
         trackBoundaryMoves: List<TrackBoundaryMove>,
     ): List<LayoutValidationIssue> = trackBoundaryMoves.flatMap { move ->
         if (move.containsLocationTrack(trackId)) {
