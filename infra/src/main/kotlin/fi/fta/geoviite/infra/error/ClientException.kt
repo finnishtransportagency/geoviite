@@ -143,7 +143,7 @@ class PartialTrackBoundaryMoveRevertException(
 ) :
     ClientException(
         BAD_REQUEST,
-        "Split revert failed: $message",
+        "Track boundary move revert failed: $message",
         cause,
         "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
         localizationParams,

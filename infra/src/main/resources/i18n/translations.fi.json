@@ -1980,8 +1980,8 @@
             "track-boundary-move": {
                 "missing-location-tracks": "Julkaisussa ei ole mukana muutoskohdan siirrosta lyhenevää tai pitenevää raidetta",
                 "affected-move-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteilla, joiden vaihtumiskohdan siirtoa ei ole julkaistu: {{tracks}}",
-                "track-is-cancelled": "Raiteen vaihtumiskohdan siirrossa mukanaa olevaa raidetta {{name}} ei voi perua julkaisusta",
-                "track-number-updated": "Vaihtumiskohdan siirtoon liittyvän raidetta {{track}} ei voi siirtää eri ratanumerolle ennen siirron julkaisua",
+                "track-is-cancelled": "Raiteen vaihtumiskohdan siirrossa mukana olevaa raidetta {{name}} ei voi perua julkaisusta",
+                "track-number-updated": "Vaihtumiskohdan siirtoon liittyvää raidetta {{track}} ei voi siirtää eri ratanumerolle ennen siirron julkaisua",
                 "changed-geometry": "Raiteen vaihtumiskohdan siirtoon liittyvän raiteen geometria on muuttunut alkuperäisestä"
             },
             "administrative-change": {
