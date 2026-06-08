@@ -199,12 +199,37 @@ class SwitchTopologicalConnectivityTest {
     fun `track partially through rail crossing is responsible for non-full link on its switch alignment`() {
         val (switch, link) = switchAndLink(switchStructureRR54_4x1_9())
         val track53 = track("track 53", link(5, 3))
-        val tracks = listOf(track("track 152", link(1, 5), link(5, 2)), track53)
+        val track152 = track("track 152", link(1, 5), link(5, 2))
+        val tracks = listOf(track152, track53)
 
-        val issues = validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track53.first)
+        val expectedOnTracks =
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "4-5"),
+                )
+            )
+        val expectedOnSwitch =
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.switch.track-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "4-5"),
+                )
+            )
+
         assertEquals(
-            listOf("validation.layout.location-track.switch-linkage.switch-alignment-not-connected"),
-            issues.map { it.localizationKey.toString() },
+            expectedOnTracks,
+            validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track53.first),
+        )
+        assertEquals(
+            expectedOnTracks,
+            validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track152.first),
+        )
+        assertEquals(
+            expectedOnSwitch,
+            validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, null),
         )
     }
 
