@@ -27,7 +27,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.frontJoint
-import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
+import fi.fta.geoviite.infra.switchLibrary.linkableSwitchAlignments
 import fi.fta.geoviite.infra.tracklayout.EU_RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -722,7 +722,7 @@ fun validateSwitchAlignmentTopology(
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
-    val structureAlignmentsToCheck = switchConnectivity(switchStructure).alignments.filter { !it.isSplittable }
+    val structureAlignmentsToCheck = linkableSwitchAlignments(switchStructure).filter { !it.isSplittable }
     val qualitiesToValidate = structureAlignmentsToCheck.map { alignment ->
         alignmentLinkingQuality(switchId, alignment, locationTracksAndGeometries)
     }

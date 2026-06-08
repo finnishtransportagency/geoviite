@@ -386,8 +386,6 @@ data class LinkableSwitchStructureAlignment(
     val isSplittable: Boolean,
 )
 
-data class SwitchConnectivity(val alignments: List<LinkableSwitchStructureAlignment>)
-
 fun frontJoint(structure: SwitchStructure): JointNumber? =
     when (structure.baseType) {
         SwitchBaseType.YV,
@@ -402,7 +400,7 @@ fun frontJoint(structure: SwitchStructure): JointNumber? =
         SwitchBaseType.SRR -> null
     }
 
-fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
+fun linkableSwitchAlignments(structure: SwitchStructure): List<LinkableSwitchStructureAlignment> =
     when (structure.baseType) {
         SwitchBaseType.YV,
         SwitchBaseType.TYV,
@@ -411,17 +409,14 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
         SwitchBaseType.UKV,
         SwitchBaseType.EV,
         SwitchBaseType.KV ->
-            SwitchConnectivity(
-                alignments =
-                    structure.alignments.map {
-                        LinkableSwitchStructureAlignment(
-                            it.jointNumbers,
-                            setOf(it),
-                            innerJointOfSplitAlignment = null,
-                            isSplittable = false,
-                        )
-                    }
-            )
+            structure.alignments.map {
+                LinkableSwitchStructureAlignment(
+                    it.jointNumbers,
+                    setOf(it),
+                    innerJointOfSplitAlignment = null,
+                    isSplittable = false,
+                )
+            }
 
         SwitchBaseType.KRV,
         SwitchBaseType.RR,
@@ -452,19 +447,16 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
                     ),
                 )
             }
-            SwitchConnectivity(
-                alignments =
-                    linkableFullAlignments +
-                        linkableSplitAlignments
-                            .groupBy { it.joints }
-                            .map { (joints, originalAlignments) ->
-                                LinkableSwitchStructureAlignment(
-                                    joints,
-                                    originalAlignments.flatMap { it.partialAlignmentOf }.toSet(),
-                                    joints[1],
-                                    false,
-                                )
-                            }
-            )
+            linkableFullAlignments +
+                linkableSplitAlignments
+                    .groupBy { it.joints }
+                    .map { (joints, originalAlignments) ->
+                        LinkableSwitchStructureAlignment(
+                            joints,
+                            originalAlignments.flatMap { it.partialAlignmentOf }.toSet(),
+                            joints[1],
+                            false,
+                        )
+                    }
         }
     }
