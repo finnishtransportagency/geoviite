@@ -1032,7 +1032,7 @@
                 "select-boundary-on-map": "Valitse uusi vaihtumiskohta kartalta.",
                 "lock-selection": "Lukitse valinta",
                 "save-boundary-move": "Tallenna vaihtumiskohta",
-                "boundary-move-saved": "Vaihtumiskohta tallennettu"
+                "boundary-move-saved": "Raiteiden {{firstTrack}} ja {{secondTrack}} vaihtumiskohta siirretty osoitteeseen {{address}}"
             }
         },
         "operational-point": {

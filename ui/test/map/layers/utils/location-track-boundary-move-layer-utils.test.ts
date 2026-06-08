@@ -68,11 +68,13 @@ const selectedJoint = (
     kind: 'joint',
     role,
     joint: jointId(sId, jNumber),
+    location: { x: 0, y: 0 },
 });
 
 const selectedEnd = (role: BoundaryMoveTrackRole): SelectedBoundaryMoveEnd => ({
     kind: 'end',
     role,
+    location: { x: 0, y: 0 },
 });
 
 const trackInfo = (opts: {

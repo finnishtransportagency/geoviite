@@ -424,6 +424,7 @@ export const createLocationTrackBoundaryMoveLayer = (
                 kind: 'joint',
                 role: onHead !== undefined ? 'head' : 'counterpart',
                 joint: { switchId: foundJoint.switchId, jointNumber: foundJoint.jointNumber },
+                location: foundJoint.location,
             });
             return;
         }
@@ -435,7 +436,7 @@ export const createLocationTrackBoundaryMoveLayer = (
                       hitArea.containsXY(e.location.x, e.location.y),
                   );
         if (end !== undefined) {
-            onSelectTarget({ kind: 'end', role: end.role });
+            onSelectTarget({ kind: 'end', role: end.role, location: end.location });
         }
     });
 

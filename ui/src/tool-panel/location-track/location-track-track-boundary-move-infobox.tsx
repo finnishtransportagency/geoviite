@@ -1,10 +1,16 @@
-import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    LocationTrackId,
+    SwitchJointId,
+} from 'track-layout/track-layout-model';
 import { ChangingTrackBoundary } from 'linking/linking-model';
 import { LayoutContext } from 'common/common-model';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getLocationTrack, getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getAddress } from 'common/geocoding-api';
+import { formatTrackMeter } from 'utils/geography-utils';
 import { EMPTY_ARRAY } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import React from 'react';
@@ -40,6 +46,7 @@ type LocationTrackBoundaryMoveInfoboxContainerProps = {
 export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
     LocationTrackBoundaryMoveInfoboxContainerProps
 > = ({ locationTrack, linkingState, layoutContext }) => {
+    const { t } = useTranslation();
     const delegates = createDelegates(TrackLayoutActions);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
@@ -60,8 +67,27 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
             onSaveTrackBoundaryMove={async (request) => {
                 await saveTrackBoundaryMove(layoutContext, request);
                 await updateLocationTrackChangeTime();
+
+                const counterpart = linkingState.counterpart;
+                const selectedTarget = linkingState.selectedTarget;
+                const counterpartTrack =
+                    counterpart === undefined
+                        ? undefined
+                        : await getLocationTrack(counterpart.trackId, layoutContext);
+                const address =
+                    selectedTarget === undefined
+                        ? undefined
+                        : await getAddress(
+                              locationTrack.trackNumberId,
+                              selectedTarget.location,
+                              layoutContext,
+                          );
                 Snackbar.success(
-                    'tool-panel.location-track.track-boundary-move.boundary-move-saved',
+                    t('tool-panel.location-track.track-boundary-move.boundary-move-saved', {
+                        firstTrack: locationTrack.name,
+                        secondTrack: counterpartTrack?.name ?? '',
+                        address: address === undefined ? '' : formatTrackMeter(address),
+                    }),
                 );
                 delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
@@ -80,6 +106,23 @@ type LocationTrackBoundaryMoveInfoboxProps = {
     onConfirmCounterpartSelection: () => void;
     onSaveTrackBoundaryMove: (request: TrackBoundaryMoveRequest) => Promise<void>;
 };
+
+function switchJointIdEquals(a: SwitchJointId, b: SwitchJointId): boolean {
+    return a.switchId === b.switchId && a.jointNumber === b.jointNumber;
+}
+
+function canSave(linkingState: ChangingTrackBoundary): boolean {
+    const selectedTarget = linkingState.selectedTarget;
+    const counterpart = linkingState.counterpart;
+    return (
+        selectedTarget !== undefined &&
+        counterpart !== undefined &&
+        (selectedTarget.kind === 'joint'
+            ? counterpart.connectingSwitchJoint === undefined ||
+              !switchJointIdEquals(selectedTarget.joint, counterpart.connectingSwitchJoint)
+            : true)
+    );
+}
 
 const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfoboxProps> = ({
     locationTrack,
@@ -184,7 +227,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                                 {t('button.cancel')}
                             </Button>
                             <Button
-                                disabled={selectedTarget === undefined || saving}
+                                disabled={saving || !canSave(linkingState)}
                                 isProcessing={saving}
                                 onClick={saveBoundaryMove}>
                                 {t(

@@ -1,15 +1,11 @@
-import { LayoutSwitchId, LocationTrackId } from 'track-layout/track-layout-model';
-import { JointNumber, LayoutContext } from 'common/common-model';
+import { LocationTrackId, SwitchJointId } from 'track-layout/track-layout-model';
+import { LayoutContext } from 'common/common-model';
+import { Point } from 'model/geometry';
 import { getNonNull, postNonNull } from 'api/api-fetch';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { BoundaryMoveTrackRole } from 'map/layers/utils/location-track-boundary-move-layer-utils';
 
 export type BoundaryOrientation = 'HEAD_FIRST' | 'COUNTERPART_FIRST';
-
-type SwitchJointId = {
-    switchId: LayoutSwitchId;
-    jointNumber: JointNumber;
-};
 
 // The user picks where the boundary between the two tracks should end up: either at a switch joint
 // somewhere along one of the tracks, or all the way at the far end of one of the tracks (which leaves
@@ -18,11 +14,13 @@ export type SelectedBoundaryMoveJoint = {
     kind: 'joint';
     role: BoundaryMoveTrackRole;
     joint: SwitchJointId;
+    location: Point;
 };
 
 export type SelectedBoundaryMoveEnd = {
     kind: 'end';
     role: BoundaryMoveTrackRole;
+    location: Point;
 };
 
 export type SelectedBoundaryMoveTarget = SelectedBoundaryMoveJoint | SelectedBoundaryMoveEnd;
