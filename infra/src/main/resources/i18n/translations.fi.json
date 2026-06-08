@@ -71,7 +71,7 @@
         "track-boundary-move": {
             "generic": "Vaihtumiskohdan siirrossa tapahtui virhe",
             "does-not-move-boundary": "Valittu vaihteen piste ei siirrä raiteiden vaihtumiskohtaa",
-            "partial-revert": "Raiteen vaihtumiskohdan siirtoa ei voi peruuttaa osittain",
+            "partial-revert": "Raiteen vaihtumiskohdan siirtoa ei voi perua osittain",
             "tracks-do-not-connect": "Raiteet eivät kohtaa toisiaan, joten vaihtumiskohtaa ei voi siirtää"
         },
         "split": {
