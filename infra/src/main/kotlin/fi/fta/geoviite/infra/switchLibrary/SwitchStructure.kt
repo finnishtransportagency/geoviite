@@ -384,7 +384,21 @@ data class LinkableSwitchStructureAlignment(
     val isSplittable: Boolean,
 )
 
-data class SwitchConnectivity(val alignments: List<LinkableSwitchStructureAlignment>, val frontJoint: JointNumber?)
+data class SwitchConnectivity(val alignments: List<LinkableSwitchStructureAlignment>)
+
+fun frontJoint(structure: SwitchStructure): JointNumber? =
+    when (structure.baseType) {
+        SwitchBaseType.YV,
+        SwitchBaseType.TYV,
+        SwitchBaseType.YRV,
+        SwitchBaseType.SKV,
+        SwitchBaseType.UKV,
+        SwitchBaseType.EV,
+        SwitchBaseType.KV -> JointNumber(1)
+        SwitchBaseType.KRV,
+        SwitchBaseType.RR,
+        SwitchBaseType.SRR -> null
+    }
 
 fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
     when (structure.baseType) {
@@ -404,8 +418,7 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
                             innerJointOfSplitAlignment = null,
                             isSplittable = false,
                         )
-                    },
-                frontJoint = JointNumber(1),
+                    }
             )
 
         SwitchBaseType.KRV,
@@ -437,9 +450,6 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
                     ),
                 )
             }
-            SwitchConnectivity(
-                alignments = linkableFullAlignments + linkableSplitAlignments.distinctBy { it.joints },
-                frontJoint = null,
-            )
+            SwitchConnectivity(alignments = linkableFullAlignments + linkableSplitAlignments.distinctBy { it.joints })
         }
     }

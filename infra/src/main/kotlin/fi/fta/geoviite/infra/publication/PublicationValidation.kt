@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.frontJoint
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.EU_RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -647,16 +648,16 @@ private fun validateFrontJointTopology(
     locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val connectivity = switchConnectivity(switchStructure)
+    val frontJoint = frontJoint(switchStructure)
     val frontJointConnections =
-        connectivity.frontJoint?.let { frontJoint ->
+        frontJoint?.let { frontJoint ->
             tracksWithOutsideConnection(switch.id as IntId, frontJoint, locationTracksAndGeometries)
         } ?: emptyList()
 
     val someFrontJointLink = frontJointConnections.isNotEmpty()
     val frontJointLinkInNonDuplicates = frontJointConnections.any { track -> track.duplicateOf == null }
 
-    return validateWithParams(connectivity.frontJoint == null || frontJointLinkInNonDuplicates, WARNING) {
+    return validateWithParams(frontJoint == null || frontJointLinkInNonDuplicates, WARNING) {
         val key =
             "${switchOrTrackLinkageKey(validatingTrack)}.${
             if (someFrontJointLink) "front-joint-only-duplicate-connected"
