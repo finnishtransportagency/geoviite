@@ -2,9 +2,11 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.SwitchTopologicalConnectivityTest.MakeSwitchLinkPair
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.data.KRV54_200_1_9
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -333,6 +335,31 @@ class SwitchTopologicalConnectivityTest {
         assertEquals(
             setOf("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
             issues.map { it.localizationKey.toString() }.toSet(),
+        )
+    }
+
+    @Test
+    fun `multiply linked alignments through a KRV switch 1-5-3 alignment are reported as one problem`() {
+        val switchStructure = SwitchStructure(RowVersion(IntId(123456), 1), KRV54_200_1_9())
+        val (switch, link) = switchAndLink(switchStructure)
+        val oneTrack153 = track("one track 153", link(1, 5), link(5, 3))
+        val twoTrack153 = track("two track 153", link(1, 5), link(5, 3))
+        val track254 = track("track 254", link(2, 5), link(5, 4))
+        val tracks = listOf(oneTrack153, twoTrack153, track254)
+        val expected =
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
+                    mapOf(
+                        "switch" to switch.name.toString(),
+                        "locationTracks" to "1-5-3 (one track 153, two track 153)",
+                    ),
+                )
+            )
+        assertEquals(
+            expected,
+            validateSwitchTopologicalConnectivity(switch, switchStructure, tracks, null),
         )
     }
 

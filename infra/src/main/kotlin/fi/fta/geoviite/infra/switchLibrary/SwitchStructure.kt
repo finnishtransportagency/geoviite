@@ -379,7 +379,9 @@ fun transformSwitchPoint(transformation: SwitchPositionTransformation, point: Po
 
 data class LinkableSwitchStructureAlignment(
     val joints: List<JointNumber>,
-    val originalAlignment: SwitchStructureAlignment,
+    // at least on KRV switches, there are both alignments 1-5-2/4-5-3 as usual but *also* 1-5-3/4-5-2; hence the split
+    // alignments need to know all alignments that they are a part of
+    val partialAlignmentOf: Set<SwitchStructureAlignment>,
     val innerJointOfSplitAlignment: JointNumber?,
     val isSplittable: Boolean,
 )
@@ -414,7 +416,7 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
                     structure.alignments.map {
                         LinkableSwitchStructureAlignment(
                             it.jointNumbers,
-                            it,
+                            setOf(it),
                             innerJointOfSplitAlignment = null,
                             isSplittable = false,
                         )
@@ -428,7 +430,7 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
             val linkableFullAlignments = throughAlignments.map {
                 LinkableSwitchStructureAlignment(
                     it.jointNumbers,
-                    it,
+                    setOf(it),
                     innerJointOfSplitAlignment = null,
                     isSplittable = true,
                 )
@@ -438,18 +440,31 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
                 listOf(
                     LinkableSwitchStructureAlignment(
                         listOf(joints[0], joints[1]),
-                        alignment,
+                        setOf(alignment),
                         innerJointOfSplitAlignment = joints[1],
                         isSplittable = false,
                     ),
                     LinkableSwitchStructureAlignment(
                         listOf(joints[1], joints[2]),
-                        alignment,
+                        setOf(alignment),
                         innerJointOfSplitAlignment = joints[1],
                         isSplittable = false,
                     ),
                 )
             }
-            SwitchConnectivity(alignments = linkableFullAlignments + linkableSplitAlignments.distinctBy { it.joints })
+            SwitchConnectivity(
+                alignments =
+                    linkableFullAlignments +
+                        linkableSplitAlignments
+                            .groupBy { it.joints }
+                            .map { (joints, originalAlignments) ->
+                                LinkableSwitchStructureAlignment(
+                                    joints,
+                                    originalAlignments.flatMap { it.partialAlignmentOf }.toSet(),
+                                    joints[1],
+                                    false,
+                                )
+                            }
+            )
         }
     }
