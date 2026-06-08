@@ -454,7 +454,7 @@ fun linkableSwitchAlignments(structure: SwitchStructure): List<LinkableSwitchStr
                         LinkableSwitchStructureAlignment(
                             joints,
                             originalAlignments.flatMap { it.partialAlignmentOf }.toSet(),
-                            joints[1],
+                            originalAlignments[0].innerJointOfSplitAlignment,
                             false,
                         )
                     }

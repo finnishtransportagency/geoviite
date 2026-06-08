@@ -695,7 +695,7 @@ private fun summarizeSwitchAlignmentLocationTrackLinks(
         links
             .map { it.second.switchAlignment.partialAlignmentOf }
             .reduceOrNull { common, partials -> common intersect partials }
-            ?.firstOrNull()
+            ?.singleOrNull()
 
     return if (commonStructureAlignment != null) {
         "${printAlignment(commonStructureAlignment.jointNumbers)} (${printTracks(links.map { it.first })})"
