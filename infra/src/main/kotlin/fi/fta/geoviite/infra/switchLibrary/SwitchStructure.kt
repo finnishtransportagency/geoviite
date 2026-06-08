@@ -345,12 +345,11 @@ fun calculateSwitchLocationDelta(
     joints: List<ISwitchJoint>,
     switchStructure: SwitchStructure,
 ): SwitchPositionTransformation? {
-    val jointPairs =
-        joints.mapNotNull { joint ->
-            switchStructure.alignmentJoints
-                .find { structureJoint -> joint.number == structureJoint.number }
-                ?.let { match -> joint to match }
-        }
+    val jointPairs = joints.mapNotNull { joint ->
+        switchStructure.alignmentJoints
+            .find { structureJoint -> joint.number == structureJoint.number }
+            ?.let { match -> joint to match }
+    }
 
     if (
         jointPairs.size < 2 ||
@@ -413,33 +412,31 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
         SwitchBaseType.RR,
         SwitchBaseType.SRR -> {
             val throughAlignments = structure.alignments.filter { it.jointNumbers.size == 3 }
-            val linkableFullAlignments =
-                throughAlignments.map {
+            val linkableFullAlignments = throughAlignments.map {
+                LinkableSwitchStructureAlignment(
+                    it.jointNumbers,
+                    it,
+                    innerJointOfSplitAlignment = null,
+                    isSplittable = true,
+                )
+            }
+            val linkableSplitAlignments = throughAlignments.flatMap { alignment ->
+                val joints = alignment.jointNumbers
+                listOf(
                     LinkableSwitchStructureAlignment(
-                        it.jointNumbers,
-                        it,
-                        innerJointOfSplitAlignment = null,
-                        isSplittable = true,
-                    )
-                }
-            val linkableSplitAlignments =
-                throughAlignments.flatMap { alignment ->
-                    val joints = alignment.jointNumbers
-                    listOf(
-                        LinkableSwitchStructureAlignment(
-                            listOf(joints[0], joints[1]),
-                            alignment,
-                            innerJointOfSplitAlignment = joints[1],
-                            isSplittable = false,
-                        ),
-                        LinkableSwitchStructureAlignment(
-                            listOf(joints[1], joints[2]),
-                            alignment,
-                            innerJointOfSplitAlignment = joints[1],
-                            isSplittable = false,
-                        ),
-                    )
-                }
+                        listOf(joints[0], joints[1]),
+                        alignment,
+                        innerJointOfSplitAlignment = joints[1],
+                        isSplittable = false,
+                    ),
+                    LinkableSwitchStructureAlignment(
+                        listOf(joints[1], joints[2]),
+                        alignment,
+                        innerJointOfSplitAlignment = joints[1],
+                        isSplittable = false,
+                    ),
+                )
+            }
             SwitchConnectivity(
                 alignments = linkableFullAlignments + linkableSplitAlignments.distinctBy { it.joints },
                 frontJoint = null,
