@@ -48,7 +48,7 @@ import {
     LAYOUT_SRID,
     LayoutGraphLevel,
 } from 'track-layout/track-layout-model';
-import { SelectedBoundaryMoveJoint } from 'track-layout/track-boundary-move-api';
+import { SelectedBoundaryMoveTarget } from 'track-layout/track-boundary-move-api';
 import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
@@ -147,7 +147,7 @@ export type MapViewProps = {
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onClickLocation: OnClickLocationFunction;
-    onSetTrackBoundaryMoveJoint: (joint: SelectedBoundaryMoveJoint) => void;
+    onSetTrackBoundaryMoveTarget: (target: SelectedBoundaryMoveTarget) => void;
     onViewportUpdate: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
     onSetLayoutPoint: (linkPoint: LinkPoint) => void;
@@ -283,7 +283,7 @@ const MapView: React.FC<MapViewProps> = ({
     onHighlightItems,
     onClosePlanDownloadPopup,
     onClickLocation,
-    onSetTrackBoundaryMoveJoint,
+    onSetTrackBoundaryMoveTarget,
     onMapLayerChange,
     onSetOperationalPointPolygon,
     publicationCandidates,
@@ -771,7 +771,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             linkingState,
                             olMap,
-                            onSetTrackBoundaryMoveJoint,
+                            onSetTrackBoundaryMoveTarget,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':

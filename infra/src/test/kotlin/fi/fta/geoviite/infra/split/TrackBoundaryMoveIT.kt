@@ -12,10 +12,13 @@ import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryOrientation
 import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
+import fi.fta.geoviite.infra.tracklayout.EdgeContentKey
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -23,7 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkRR
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -110,8 +112,7 @@ constructor(
                 LayoutBranch.Companion.main,
                 shorteningTrackId = shorteningTrack.id,
                 lengtheningTrackId = lengtheningTrack.id,
-                switch = switch2,
-                switchJoint = JointNumber(1),
+                upToSwitchJoint = SwitchJointId(switch2, JointNumber(1)),
                 boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
             )
         val newLengthenedGeometry =
@@ -162,8 +163,7 @@ constructor(
                 LayoutBranch.Companion.main,
                 shorteningTrackId = shorteningTrack.id,
                 lengtheningTrackId = lengtheningTrack.id,
-                switch = switch1,
-                switchJoint = JointNumber(1),
+                upToSwitchJoint = SwitchJointId(switch1, JointNumber(1)),
                 boundaryMoveDirection = BoundaryMoveDirection.ASCENDING,
             )
         val newLengthenedGeometry =
@@ -233,8 +233,7 @@ constructor(
             LayoutBranch.Companion.main,
             shorteningTrackId = shorteningTrack.id,
             lengtheningTrackId = lengtheningTrack.id,
-            switch = switch3,
-            switchJoint = JointNumber(1),
+            upToSwitchJoint = SwitchJointId(switch3, JointNumber(1)),
             boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
         )
         val newLengthenedGeometry =
@@ -267,8 +266,7 @@ constructor(
             LayoutBranch.Companion.main,
             shorteningTrackId = shorteningTrack.id,
             lengtheningTrackId = lengtheningTrack.id,
-            switch = switch1,
-            switchJoint = JointNumber(1),
+            upToSwitchJoint = SwitchJointId(switch1, JointNumber(1)),
             boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
         )
         val newLengthenedGeometry =
@@ -278,6 +276,65 @@ constructor(
         assertEquals(1, newLengthenedGeometry.edges.size)
         assertEquals(Point(0.0, 0.0), newLengthenedGeometry.edges[0].start.toPoint())
         assertEquals(Point(20.0, 0.0), newLengthenedGeometry.edges[0].end.toPoint())
+        assertEquals(0, newShortenedGeometry.edges.size)
+    }
+
+    @Test
+    fun `upToSwitchJoint=null with descending move appends shortening geometry`() {
+        val setup = saveConnectedTracks()
+
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = setup.shorteningTrack.id,
+            lengtheningTrackId = setup.lengtheningTrack.id,
+            upToSwitchJoint = null,
+            boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+        )
+        val newLengthenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, setup.lengtheningTrack.id).second
+        val newShortenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, setup.shorteningTrack.id).second
+        assertSameEdgeContent(
+            setup.lengtheningGeometry.edges + setup.shorteningGeometry.edges,
+            newLengthenedGeometry.edges,
+        )
+        assertEquals(0, newShortenedGeometry.edges.size)
+    }
+
+    @Test
+    fun `upToSwitchJoint=null with ascending move prepends shortening geometry`() {
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val switch1 = testDBService.save(switch()).id
+
+        val shorteningGeometry =
+            trackGeometry(
+                edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))), endInnerSwitch = switchLinkYV(switch1, 1)),
+                edge(
+                    listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch1, 1),
+                    endInnerSwitch = switchLinkYV(switch1, 3),
+                ),
+            )
+        val lengtheningGeometry =
+            trackGeometry(
+                edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLinkYV(switch1, 3))
+            )
+
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
+
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = shorteningTrack.id,
+            lengtheningTrackId = lengtheningTrack.id,
+            upToSwitchJoint = null,
+            boundaryMoveDirection = BoundaryMoveDirection.ASCENDING,
+        )
+        val newLengthenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, lengtheningTrack.id).second
+        val newShortenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, shorteningTrack.id).second
+        assertSameEdgeContent(shorteningGeometry.edges + lengtheningGeometry.edges, newLengthenedGeometry.edges)
         assertEquals(0, newShortenedGeometry.edges.size)
     }
 
@@ -517,8 +574,7 @@ constructor(
                 LayoutBranch.main,
                 shorteningTrackId = setup.shorteningTrack.id,
                 lengtheningTrackId = setup.lengtheningTrack.id,
-                switch = unrelatedSwitch,
-                switchJoint = JointNumber(1),
+                upToSwitchJoint = SwitchJointId(unrelatedSwitch, JointNumber(1)),
                 boundaryMoveDirection = BoundaryMoveDirection.ASCENDING,
             )
         }
@@ -534,8 +590,7 @@ constructor(
                 LayoutBranch.main,
                 shorteningTrackId = setup.shorteningTrack.id,
                 lengtheningTrackId = setup.lengtheningTrack.id,
-                switch = setup.connectingSwitch,
-                switchJoint = JointNumber(2),
+                upToSwitchJoint = SwitchJointId(setup.connectingSwitch, JointNumber(2)),
                 boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
             )
         }
@@ -543,7 +598,9 @@ constructor(
 
     private data class ConnectedTracks(
         val lengtheningTrack: LayoutRowVersion<LocationTrack>,
+        val lengtheningGeometry: TmpLocationTrackGeometry,
         val shorteningTrack: LayoutRowVersion<LocationTrack>,
+        val shorteningGeometry: TmpLocationTrackGeometry,
         // The lengthening track ends and the shortening track starts at switch1 joint 2: it is the joint already
         // connecting the two tracks.
         val connectingSwitch: IntId<LayoutSwitch>,
@@ -558,44 +615,46 @@ constructor(
         val switch1 = testDBService.save(switch()).id
         val switch2 = testDBService.save(switch()).id
 
-        val lengtheningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                trackGeometry(
-                    edge(
-                        listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))),
-                        endOuterSwitch = switchLinkYV(switch1, 1),
-                    ),
-                    edge(
-                        listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                        startInnerSwitch = switchLinkYV(switch1, 1),
-                        endInnerSwitch = switchLinkYV(switch1, 2),
-                    ),
+        val lengtheningGeometry =
+            trackGeometry(
+                edge(listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1)),
+                edge(
+                    listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch1, 1),
+                    endInnerSwitch = switchLinkYV(switch1, 2),
                 ),
             )
 
-        val shorteningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                trackGeometry(
-                    edge(
-                        listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
-                        startOuterSwitch = switchLinkYV(switch1, 2),
-                        endOuterSwitch = switchLinkYV(switch2, 1),
-                    ),
-                    edge(
-                        listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
-                        startInnerSwitch = switchLinkYV(switch2, 1),
-                        endInnerSwitch = switchLinkYV(switch2, 2),
-                    ),
+        val shorteningGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                    startOuterSwitch = switchLinkYV(switch1, 2),
+                    endOuterSwitch = switchLinkYV(switch2, 1),
+                ),
+                edge(
+                    listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
+                    startInnerSwitch = switchLinkYV(switch2, 1),
+                    endInnerSwitch = switchLinkYV(switch2, 2),
                 ),
             )
+
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
 
         return ConnectedTracks(
             lengtheningTrack = lengtheningTrack,
+            lengtheningGeometry = lengtheningGeometry,
             shorteningTrack = shorteningTrack,
+            shorteningGeometry = shorteningGeometry,
             connectingSwitch = switch1,
             shorteningOnlySwitch = switch2,
         )
     }
+
+    private fun assertSameEdgeContent(expected: List<LayoutEdge>, actual: List<LayoutEdge>) =
+        assertEquals(
+            TmpLocationTrackGeometry.of(expected, IntId(0)).edges.map(EdgeContentKey::of),
+            TmpLocationTrackGeometry.of(actual, IntId(0)).edges.map(EdgeContentKey::of),
+        )
 }

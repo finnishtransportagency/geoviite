@@ -2,6 +2,7 @@ import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import {
     AlignmentPoint,
     AlignmentStartAndEnd,
+    LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackSwitchJoint,
     SwitchJointId,
@@ -10,13 +11,16 @@ import { Point } from 'model/geometry';
 import { expectDefined } from 'utils/type-utils';
 import {
     BoundaryOrientation,
+    SelectedBoundaryMoveEnd,
     SelectedBoundaryMoveJoint,
+    SelectedBoundaryMoveTarget,
 } from 'track-layout/track-boundary-move-api';
 
 export type BoundaryMoveTrackRole = 'head' | 'counterpart';
 
 export type BoundaryMoveTrackInfo = {
     role: BoundaryMoveTrackRole;
+    locationTrack: LayoutLocationTrack;
     alignment: AlignmentDataHolder;
     joints: LocationTrackSwitchJoint[];
     switches: LayoutSwitch[];
@@ -91,12 +95,68 @@ function findJointOnTracks(
     return joint === undefined ? undefined : { track, joint };
 }
 
+// The far end of a track (the end away from the boundary) is its start when the track comes first along
+// the combined geometry, otherwise its end.
+export function farEndIsStart(
+    role: BoundaryMoveTrackRole,
+    orientation: BoundaryOrientation,
+): boolean {
+    const headFirst = orientation === 'HEAD_FIRST';
+    return (role === 'head') === headFirst;
+}
+
+function trackByRole(
+    trackInfos: BoundaryMoveTrackInfos,
+    role: BoundaryMoveTrackRole,
+): BoundaryMoveTrackInfo | undefined {
+    return role === 'head' ? trackInfos.headTrack : trackInfos.counterpartTrack;
+}
+
+export type SelectableTrackEnd = {
+    role: BoundaryMoveTrackRole;
+    location: Point;
+};
+
+export function selectableTrackEnd(
+    track: BoundaryMoveTrackInfo,
+    orientation: BoundaryOrientation,
+): SelectableTrackEnd | undefined {
+    const isStart = farEndIsStart(track.role, orientation);
+    const switchId = isStart ? track.locationTrack.startSwitchId : track.locationTrack.endSwitchId;
+    // having a start/end switchId doesn't imply that the track ends at a main joint, so this can leave a track end
+    // unselectable (as it's filtered out both here and in isSelectableJoint); but that's fine, because we don't
+    // actually want tracks ending at non-main joints anyway
+    if (switchId !== undefined) {
+        return undefined;
+    }
+    const point = (isStart ? track.startAndEnd?.start : track.startAndEnd?.end)?.point;
+    return point === undefined
+        ? undefined
+        : { role: track.role, location: { x: point.x, y: point.y } };
+}
+
+function endMoveInterval(
+    trackInfos: BoundaryMoveTrackInfos,
+    target: SelectedBoundaryMoveEnd,
+): MoveInterval | undefined {
+    const track = trackByRole(trackInfos, target.role);
+    const trackEndM = track?.startAndEnd?.end?.point?.m;
+    if (track === undefined || trackEndM === undefined) {
+        return undefined;
+    }
+    // The whole track moves over.
+    return { fromTrack: target.role, movingMRangeStart: 0, movingMRangeEnd: trackEndM };
+}
+
 export function findIntervalToMove(
     trackInfos: BoundaryMoveTrackInfos,
     orientation: BoundaryOrientation,
-    selectedJoint: SelectedBoundaryMoveJoint,
+    target: SelectedBoundaryMoveTarget,
 ): MoveInterval | undefined {
-    const found = findJointOnTracks(trackInfos, selectedJoint);
+    if (target.kind === 'end') {
+        return endMoveInterval(trackInfos, target);
+    }
+    const found = findJointOnTracks(trackInfos, target);
     if (found === undefined) {
         return undefined;
     }
@@ -174,16 +234,40 @@ function boundaryBarAtOriginalBoundary(
     };
 }
 
+function boundaryBarAtEnd(
+    trackInfos: BoundaryMoveTrackInfos,
+    orientation: BoundaryOrientation,
+    target: SelectedBoundaryMoveEnd,
+): BoundaryBar | undefined {
+    const track = trackByRole(trackInfos, target.role);
+    if (track === undefined) {
+        return undefined;
+    }
+    const isStart = farEndIsStart(target.role, orientation);
+    const point = (isStart ? track.startAndEnd?.start : track.startAndEnd?.end)?.point;
+    if (point === undefined) {
+        return undefined;
+    }
+    const tangent = unitDirectionAtM(track.alignment.points, point.m);
+    if (tangent === undefined) {
+        return undefined;
+    }
+    return { center: { x: point.x, y: point.y }, direction: perpendicular(tangent) };
+}
+
 export function computeBoundaryBar(
     trackInfos: BoundaryMoveTrackInfos,
     orientation: BoundaryOrientation | undefined,
-    selectedJoint: SelectedBoundaryMoveJoint | undefined,
+    target: SelectedBoundaryMoveTarget | undefined,
 ): BoundaryBar | undefined {
-    if (selectedJoint !== undefined) {
-        return boundaryBarAtJoint(trackInfos, selectedJoint);
+    if (target?.kind === 'joint') {
+        return boundaryBarAtJoint(trackInfos, target);
     }
-    return orientation === undefined
-        ? undefined
+    if (orientation === undefined) {
+        return undefined;
+    }
+    return target?.kind === 'end'
+        ? boundaryBarAtEnd(trackInfos, orientation, target)
         : boundaryBarAtOriginalBoundary(trackInfos, orientation);
 }
 

@@ -374,6 +374,8 @@ private constructor(
     val segments: List<LayoutSegment>,
 ) {
     companion object {
+        fun of(edge: LayoutEdge) = of(edge.startNode, edge.endNode, edge.segments)
+
         fun of(start: NodeConnection, end: NodeConnection, segments: List<LayoutSegment>): EdgeContentKey =
             EdgeContentKey(Objects.hash(nodeConnectionHash(start), nodeConnectionHash(end)), start, end, segments)
 

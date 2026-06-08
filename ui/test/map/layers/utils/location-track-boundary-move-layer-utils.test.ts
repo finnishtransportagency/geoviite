@@ -5,21 +5,27 @@ import {
     BoundaryMoveTrackInfos,
     BoundaryMoveTrackRole,
     computeBoundaryBar,
+    farEndIsStart,
     findIntervalToMove,
     MoveInterval,
     moveMoveInterval,
+    selectableTrackEnd,
     unitDirectionAtM,
 } from 'map/layers/utils/location-track-boundary-move-layer-utils';
 import {
     AlignmentPoint,
     AlignmentStartAndEnd,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackSwitchJoint,
     SwitchJointId,
 } from 'track-layout/track-layout-model';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { JointNumber } from 'common/common-model';
-import { SelectedBoundaryMoveJoint } from 'track-layout/track-boundary-move-api';
+import {
+    SelectedBoundaryMoveEnd,
+    SelectedBoundaryMoveJoint,
+} from 'track-layout/track-boundary-move-api';
 
 const switchId = (id: string) => id as LayoutSwitchId;
 const jointNumber = (n: string) => n as JointNumber;
@@ -59,16 +65,28 @@ const selectedJoint = (
     sId: string,
     jNumber: string,
 ): SelectedBoundaryMoveJoint => ({
+    kind: 'joint',
     role,
     joint: jointId(sId, jNumber),
+});
+
+const selectedEnd = (role: BoundaryMoveTrackRole): SelectedBoundaryMoveEnd => ({
+    kind: 'end',
+    role,
 });
 
 const trackInfo = (opts: {
     points?: AlignmentPoint[];
     joints?: LocationTrackSwitchJoint[];
     startAndEnd?: AlignmentStartAndEnd;
+    startSwitchId?: string;
+    endSwitchId?: string;
 }): BoundaryMoveTrackInfo => ({
     role: 'head',
+    locationTrack: {
+        startSwitchId: opts.startSwitchId === undefined ? undefined : switchId(opts.startSwitchId),
+        endSwitchId: opts.endSwitchId === undefined ? undefined : switchId(opts.endSwitchId),
+    } as LayoutLocationTrack,
     alignment: { points: opts.points ?? [] } as AlignmentDataHolder,
     joints: opts.joints ?? [],
     switches: [],
@@ -164,6 +182,66 @@ describe('findIntervalToMove', () => {
         expect(
             findIntervalToMove(tracks(true, 40), 'HEAD_FIRST', selectedJoint('head', 'sw9', '9')),
         ).toBeUndefined();
+    });
+
+    test('selecting the head end moves the whole head track', () => {
+        expect(findIntervalToMove(tracks(true, 40), 'HEAD_FIRST', selectedEnd('head'))).toEqual({
+            fromTrack: 'head',
+            movingMRangeStart: 0,
+            movingMRangeEnd: 100,
+        });
+    });
+
+    test('selecting the counterpart end moves the whole counterpart track', () => {
+        expect(
+            findIntervalToMove(tracks(false, 40), 'HEAD_FIRST', selectedEnd('counterpart')),
+        ).toEqual({
+            fromTrack: 'counterpart',
+            movingMRangeStart: 0,
+            movingMRangeEnd: 100,
+        });
+    });
+});
+
+describe('farEndIsStart', () => {
+    test('head far end is the start exactly when head comes first', () => {
+        expect(farEndIsStart('head', 'HEAD_FIRST')).toBe(true);
+        expect(farEndIsStart('head', 'COUNTERPART_FIRST')).toBe(false);
+    });
+
+    test('counterpart far end is the start exactly when head comes second', () => {
+        expect(farEndIsStart('counterpart', 'COUNTERPART_FIRST')).toBe(true);
+        expect(farEndIsStart('counterpart', 'HEAD_FIRST')).toBe(false);
+    });
+});
+
+describe('selectableTrackEnd', () => {
+    // Head runs 0..100; head-first, so its far end is the start (0,0).
+    const headEnds = startAndEnd(point(0, 0, 0), point(100, 0, 100));
+
+    test('offers the far end when it is not linked to a switch', () => {
+        expect(selectableTrackEnd(trackInfo({ startAndEnd: headEnds }), 'HEAD_FIRST')).toEqual({
+            role: 'head',
+            location: { x: 0, y: 0 },
+        });
+    });
+
+    test('does not offer a far end that is linked to a switch', () => {
+        expect(
+            selectableTrackEnd(
+                trackInfo({ startAndEnd: headEnds, startSwitchId: 'sw1' }),
+                'HEAD_FIRST',
+            ),
+        ).toBeUndefined();
+    });
+
+    test('a switch on the boundary end (not the far end) does not block selection', () => {
+        expect(
+            selectableTrackEnd(
+                trackInfo({ startAndEnd: headEnds, endSwitchId: 'sw1' }),
+                'HEAD_FIRST',
+            ),
+        ).toEqual({ role: 'head', location: { x: 0, y: 0 } });
     });
 });
 
@@ -300,6 +378,36 @@ describe('computeBoundaryBar', () => {
         test('undefined when the selected joint is not found', () => {
             expect(
                 computeBoundaryBar(tracks, undefined, selectedJoint('head', 'nope', '1')),
+            ).toBeUndefined();
+        });
+    });
+
+    describe('at a selected end', () => {
+        // Head runs along +x from (0,0) to (20,0); head-first, so its far end is the start (0,0).
+        const head = trackInfo({
+            points: [point(0, 0, 0), point(10, 0, 10), point(20, 0, 20)],
+            startAndEnd: startAndEnd(point(0, 0, 0), point(20, 0, 20)),
+        });
+        const counterpart = trackInfo({
+            points: [point(20, 0, 0), point(30, 0, 10)],
+            startAndEnd: startAndEnd(point(20, 0, 0), point(30, 0, 10)),
+        });
+
+        test('is centred on the far end and perpendicular to the track', () => {
+            const bar = computeBoundaryBar(
+                trackInfos(head, counterpart),
+                'HEAD_FIRST',
+                selectedEnd('head'),
+            );
+            expect(bar).toBeDefined();
+            expect(bar!.center).toEqual({ x: 0, y: 0 });
+            closeTo(bar!.direction.x, 0);
+            closeTo(Math.abs(bar!.direction.y), 1);
+        });
+
+        test('undefined without an orientation', () => {
+            expect(
+                computeBoundaryBar(trackInfos(head, counterpart), undefined, selectedEnd('head')),
             ).toBeUndefined();
         });
     });

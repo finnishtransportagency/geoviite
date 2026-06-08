@@ -25,8 +25,7 @@ class TrackBoundaryMoveController(private val trackBoundaryMoveService: TrackBou
             layoutBranch,
             shorteningTrackId = request.shorteningTrackId,
             lengtheningTrackId = request.lengtheningTrackId,
-            switch = request.switch,
-            switchJoint = request.switchJoint,
+            upToSwitchJoint = request.upToSwitchJoint,
             boundaryMoveDirection = request.boundaryMoveDirection,
         )
 

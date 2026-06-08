@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.split.targetRequest
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDirection
+import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -264,8 +265,7 @@ constructor(
                 LayoutBranch.main,
                 shorteningTrackId = shorteningId,
                 lengtheningTrackId = lengtheningId,
-                switch = switch2Id,
-                switchJoint = JointNumber(1),
+                upToSwitchJoint = SwitchJointId(switch2Id, JointNumber(1)),
                 boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
             )
 

@@ -42,7 +42,7 @@ import {
 import { LayoutValidationIssue } from 'publication/publication-model';
 import {
     BoundaryMoveCounterpart,
-    SelectedBoundaryMoveJoint,
+    SelectedBoundaryMoveTarget,
 } from 'track-layout/track-boundary-move-api';
 
 export type LocationTrackSaveRequest = {
@@ -232,7 +232,7 @@ export type ChangingTrackBoundary = LinkingBaseType & {
     headTrack: LocationTrackId;
     counterpart: BoundaryMoveCounterpart | undefined;
     counterpartLocked: boolean;
-    selectedJoint: SelectedBoundaryMoveJoint | undefined;
+    selectedTarget: SelectedBoundaryMoveTarget | undefined;
 };
 
 export type KmPostSimpleFields = {

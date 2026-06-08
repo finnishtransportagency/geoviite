@@ -11,15 +11,26 @@ type SwitchJointId = {
     jointNumber: JointNumber;
 };
 
+// The user picks where the boundary between the two tracks should end up: either at a switch joint
+// somewhere along one of the tracks, or all the way at the far end of one of the tracks (which leaves
+// that track empty).
 export type SelectedBoundaryMoveJoint = {
+    kind: 'joint';
     role: BoundaryMoveTrackRole;
     joint: SwitchJointId;
 };
 
+export type SelectedBoundaryMoveEnd = {
+    kind: 'end';
+    role: BoundaryMoveTrackRole;
+};
+
+export type SelectedBoundaryMoveTarget = SelectedBoundaryMoveJoint | SelectedBoundaryMoveEnd;
+
 export type BoundaryMoveCounterpart = {
     trackId: LocationTrackId;
     orientation: BoundaryOrientation;
-    connectingSwitchJoint: SwitchJointId | null;
+    connectingSwitchJoint: SwitchJointId | undefined;
 };
 
 export type BoundaryMoveDirection = 'ASCENDING' | 'DESCENDING';
@@ -38,8 +49,7 @@ export type TrackBoundaryMoveId = string;
 export type TrackBoundaryMoveRequest = {
     shorteningTrackId: LocationTrackId;
     lengtheningTrackId: LocationTrackId;
-    switch: LayoutSwitchId;
-    switchJoint: JointNumber;
+    upToSwitchJoint: SwitchJointId | undefined;
     boundaryMoveDirection: BoundaryMoveDirection;
 };
 

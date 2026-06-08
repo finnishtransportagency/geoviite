@@ -35,7 +35,7 @@ import { brand } from 'common/brand';
 import { Polygon } from 'model/geometry';
 import {
     BoundaryMoveCounterpart,
-    SelectedBoundaryMoveJoint,
+    SelectedBoundaryMoveTarget,
 } from 'track-layout/track-boundary-move-api';
 
 export const linkingReducers = {
@@ -383,7 +383,7 @@ export const linkingReducers = {
             issues: [],
             counterpart: undefined,
             counterpartLocked: false,
-            selectedJoint: undefined,
+            selectedTarget: undefined,
         };
     },
     setTrackBoundaryMoveCounterpart: (
@@ -402,12 +402,12 @@ export const linkingReducers = {
             state.linkingState.counterpartLocked = true;
         }
     },
-    setTrackBoundaryMoveJoint: (
+    setTrackBoundaryMoveTarget: (
         state: TrackLayoutState,
-        action: { payload: SelectedBoundaryMoveJoint },
+        action: { payload: SelectedBoundaryMoveTarget },
     ) => {
         if (state.linkingState?.type === LinkingType.TrackBoundaryMove) {
-            state.linkingState.selectedJoint = action.payload;
+            state.linkingState.selectedTarget = action.payload;
         }
     },
 };
