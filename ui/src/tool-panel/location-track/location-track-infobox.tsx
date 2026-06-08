@@ -183,8 +183,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 contentVisible={visibilities.switchLinks}
                 onContentVisibilityChange={() => visibilityChange('switchLinks')}
                 locationTrack={locationTrack}
-                validation={validation}
-                validationLoaderStatus={validationLoaderStatus}
                 layoutContext={layoutContext}
                 changeTimes={changeTimes}
                 onSelect={onSelect}

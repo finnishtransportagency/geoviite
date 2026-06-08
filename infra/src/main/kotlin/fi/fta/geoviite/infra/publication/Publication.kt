@@ -593,14 +593,12 @@ data class LayoutValidationIssue(
     val type: LayoutValidationIssueType,
     val localizationKey: LocalizationKey,
     val params: LocalizationParams = LocalizationParams.empty,
-    val inRelationTo: Set<PublicationLogAsset> = setOf(),
 ) {
     constructor(
         type: LayoutValidationIssueType,
         key: String,
         params: Map<String, Any?> = emptyMap(),
-        inRelationTo: Set<PublicationLogAsset> = setOf(),
-    ) : this(type, LocalizationKey.of(key), localizationParams(params), inRelationTo)
+    ) : this(type, LocalizationKey.of(key), localizationParams(params))
 }
 
 interface PublicationCandidate<T : LayoutAsset<T>> {

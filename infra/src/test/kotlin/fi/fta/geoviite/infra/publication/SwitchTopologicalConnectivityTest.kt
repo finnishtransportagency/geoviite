@@ -135,8 +135,6 @@ class SwitchTopologicalConnectivityTest {
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.switch.track-linkage.switch-no-alignments-connected",
                 mapOf("switch" to switch.name.toString()),
-                inRelationTo =
-                    setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(0), type = PublicationLogAssetType.SWITCH)),
             ),
         )
     }
@@ -158,11 +156,6 @@ class SwitchTopologicalConnectivityTest {
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
                     mapOf("switch" to switch.name.toString(), "alignments" to "1-3"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(throughTrack.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             issues,
@@ -196,11 +189,6 @@ class SwitchTopologicalConnectivityTest {
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
                     mapOf("switch" to switch.name.toString(), "alignments" to "4-5, 5-3"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(track152.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             issues,
@@ -256,11 +244,6 @@ class SwitchTopologicalConnectivityTest {
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
                     mapOf("switch" to switch.name.toString(), "alignments" to "5-3"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(track15.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             issues,

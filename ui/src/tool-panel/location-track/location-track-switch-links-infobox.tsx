@@ -8,13 +8,13 @@ import styles from './location-track-switch-links-infobox.scss';
 import { ChangeTimes } from 'common/common-slice';
 import { OnSelectOptions } from 'selection/selection-model';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
-import { LayoutValidationIssue, ValidatedLocationTrack } from 'publication/publication-model';
+import { LayoutValidationIssue, ValidatedSwitch } from 'publication/publication-model';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { getSwitches } from 'track-layout/layout-switch-api';
+import { getSwitches, getSwitchesValidation } from 'track-layout/layout-switch-api';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import { LocationTrackSwitchRow } from './location-track-switch-row';
 import { useTrackLayoutAppSelector } from 'store/hooks';
@@ -25,25 +25,17 @@ type LocationTrackVerticalGeometryInfoboxProps = {
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
     locationTrack: LayoutLocationTrack;
-    validation: ValidatedLocationTrack | undefined;
-    validationLoaderStatus: LoaderStatus;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
     onSelect: (items: OnSelectOptions) => void;
 };
 
-function collectValidationBySwitch(validation: ValidatedLocationTrack | undefined): {
+function collectValidationBySwitch(validatedSwitches: ValidatedSwitch[]): {
     [p: LayoutSwitchId]: LayoutValidationIssue[];
 } {
     const validationBySwitch: { [switchId: LayoutSwitchId]: LayoutValidationIssue[] } = {};
-    (validation?.errors ?? []).forEach((issue) => {
-        (issue.inRelationTo ?? []).forEach((inRelationTo) => {
-            if (inRelationTo.type === 'SWITCH') {
-                const switchId = inRelationTo.id as LayoutSwitchId;
-                validationBySwitch[switchId] ??= [];
-                validationBySwitch[switchId].push(issue);
-            }
-        });
+    validatedSwitches.forEach((validatedSwitch) => {
+        validationBySwitch[validatedSwitch.id] = validatedSwitch.errors;
     });
     return validationBySwitch;
 }
@@ -54,8 +46,6 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
     contentVisible,
     onContentVisibilityChange,
     locationTrack,
-    validation,
-    validationLoaderStatus,
     layoutContext,
     changeTimes,
     onSelect,
@@ -68,25 +58,28 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
     const linkingState = useTrackLayoutAppSelector((s) => s.linkingState);
     const splittingState = useTrackLayoutAppSelector((s) => s.splittingState);
 
+    const loaderDeps = [
+        JSON.stringify(switchIds),
+        locationTrack.id,
+        layoutContext.branch,
+        layoutContext.publicationState,
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
+    ];
+
     const [switchItems, switchItemLoadStatus] = useLoaderWithStatus(
-        () =>
-            getSwitches(
-                switches.map((s) => s.switchId),
-                layoutContext,
-            ),
-        [
-            JSON.stringify(switchIds),
-            locationTrack.id,
-            layoutContext.branch,
-            layoutContext.publicationState,
-            changeTimes.layoutLocationTrack,
-            changeTimes.layoutSwitch,
-            changeTimes.layoutTrackNumber,
-            changeTimes.layoutReferenceLine,
-            changeTimes.layoutKmPost,
-        ],
+        () => getSwitches(switchIds, layoutContext),
+        loaderDeps,
     );
-    const validationBySwitch = collectValidationBySwitch(validation);
+
+    const [validatedSwitches, validationLoaderStatus] = useLoaderWithStatus(
+        () => getSwitchesValidation(layoutContext, switchIds),
+        loaderDeps,
+    );
+    const validationBySwitch = collectValidationBySwitch(validatedSwitches ?? []);
 
     const switchesAll = (switchItems ?? []).map((switchItem) => {
         // have to find() rather than zip the arrays together by index, as switchItems and switches can be out of sync

@@ -1055,7 +1055,6 @@ constructor(
                     "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
                     "switch" to "TV123",
                 ),
-                inRelationTo = setOf(PublicationLogAsset(switchId, PublicationLogAssetType.SWITCH)),
             ),
         )
     }
@@ -1132,7 +1131,6 @@ constructor(
                 LayoutValidationIssueType.WARNING,
                 LocalizationKey.of("validation.layout.switch.track-linkage.front-joint-not-connected"),
                 LocalizationParams(mapOf("switch" to "TV123")),
-                inRelationTo = setOf(PublicationLogAsset(switchId, PublicationLogAssetType.SWITCH)),
             ),
         )
 
@@ -1158,7 +1156,6 @@ constructor(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected",
                 mapOf("switch" to "TV123"),
-                inRelationTo = setOf(PublicationLogAsset(switchId, PublicationLogAssetType.SWITCH)),
             ),
         )
 
@@ -1825,7 +1822,6 @@ constructor(
                         LocalizationKey.of("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
                     type = LayoutValidationIssueType.WARNING,
                     params = LocalizationParams(mapOf("switch" to switchName, "alignments" to "1-3")),
-                    inRelationTo = setOf(PublicationLogAsset(switch, PublicationLogAssetType.SWITCH)),
                 )
             ),
             validateCancellation.validatedAsPublicationUnit.switches[0].issues,
@@ -1839,11 +1835,6 @@ constructor(
                     ),
                 type = LayoutValidationIssueType.WARNING,
                 params = LocalizationParams(mapOf("switch" to switchName, "alignments" to "1-3")),
-                inRelationTo =
-                    setOf(
-                        PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),
-                        PublicationLogAsset(branchingTrack, PublicationLogAssetType.LOCATION_TRACK),
-                    ),
             ),
         )
         assertEquals(
@@ -1855,11 +1846,6 @@ constructor(
                         ),
                     type = LayoutValidationIssueType.WARNING,
                     params = LocalizationParams(mapOf("switch" to switchName, "alignments" to "1-3")),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(throughTrack, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             validateCancellation.validatedAsPublicationUnit.locationTracks.find { it.id == throughTrack }!!.issues,
@@ -2352,21 +2338,11 @@ constructor(
                     LayoutValidationIssueType.WARNING,
                     "$VALIDATION_LOCATION_TRACK.switch-linkage.front-joint-not-connected",
                     mapOf("switch" to "impossiboru switch name"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(locationTrack, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 ),
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
                     "$VALIDATION_LOCATION_TRACK.switch-linkage.switch-no-alignments-connected",
                     mapOf("switch" to "impossiboru switch name"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(locationTrack, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 ),
             ),
             validatedDeleted.validatedAsPublicationUnit.locationTracks[0].issues,
@@ -3132,7 +3108,6 @@ constructor(
                     "duplicateTrackName" to "dup",
                     "jointNumbers" to "1, 5, 2",
                 ),
-                inRelationTo = setOf(PublicationLogAsset(switchId, PublicationLogAssetType.SWITCH)),
             )
 
         assertContains(locationTrackValidations.find { it.id == mainTrack.id }!!.errors, expectedError)
