@@ -26,8 +26,8 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
-import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
+import fi.fta.geoviite.infra.switchLibrary.frontJoint
+import fi.fta.geoviite.infra.switchLibrary.linkableSwitchAlignments
 import fi.fta.geoviite.infra.tracklayout.EU_RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -350,7 +350,6 @@ fun validateSwitchJointConnectionsOnDuplicateTracks(
                         "duplicateTrackName" to duplicateTrack.name,
                         "jointNumbers" to jointsStr,
                     ),
-                    inRelationTo = setOf(PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH)),
                 )
             }
     return validationIssues
@@ -634,12 +633,15 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id as IntId,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+            ),
         )
         .flatten()
-        .let { issues ->
-            relateIssuesTo(issues, switches = listOf(switch.id), locationTracks = listOfNotNull(validatingTrack?.id))
-        }
 }
 
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
@@ -651,16 +653,16 @@ private fun validateFrontJointTopology(
     locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val connectivity = switchConnectivity(switchStructure)
+    val frontJoint = frontJoint(switchStructure)
     val frontJointConnections =
-        connectivity.frontJoint?.let { frontJoint ->
+        frontJoint?.let { frontJoint ->
             tracksWithOutsideConnection(switch.id as IntId, frontJoint, locationTracksAndGeometries)
         } ?: emptyList()
 
     val someFrontJointLink = frontJointConnections.isNotEmpty()
     val frontJointLinkInNonDuplicates = frontJointConnections.any { track -> track.duplicateOf == null }
 
-    return validateWithParams(connectivity.frontJoint == null || frontJointLinkInNonDuplicates, WARNING) {
+    return validateWithParams(frontJoint == null || frontJointLinkInNonDuplicates, WARNING) {
         val key =
             "${switchOrTrackLinkageKey(validatingTrack)}.${
             if (someFrontJointLink) "front-joint-only-duplicate-connected"
@@ -687,16 +689,31 @@ private fun tracksWithOutsideConnection(
 }
 
 private fun summarizeSwitchAlignmentLocationTrackLinks(
-    links: List<Pair<LocationTrack, SwitchStructureAlignment>>
-): String =
-    links
-        .groupBy { it.second }
-        .entries
-        .joinToString(", ") { (originalAlignment, linksOnAlignment) ->
-            val alignmentString = originalAlignment.jointNumbers.joinToString("-") { j -> j.intValue.toString() }
-            val tracksString = linksOnAlignment.map { it.first.name.toString() }.sorted().distinct().joinToString(", ")
-            "$alignmentString ($tracksString)"
-        }
+    links: List<Pair<LocationTrack, SwitchAlignmentLinkingQuality>>
+): String {
+    val commonStructureAlignment =
+        links
+            .map { it.second.switchAlignment.partialAlignmentOf }
+            .reduceOrNull { common, partials -> common intersect partials }
+            ?.singleOrNull()
+
+    return if (commonStructureAlignment != null) {
+        "${printAlignment(commonStructureAlignment.jointNumbers)} (${printTracks(links.map { it.first })})"
+    } else {
+        links
+            .groupBy { it.second.switchAlignment }
+            .entries
+            .joinToString(", ") { (alignment, linksOnAlignment) ->
+                "${printAlignment(alignment.joints)} (${printTracks(linksOnAlignment.map { it.first })})"
+            }
+    }
+}
+
+private fun printAlignment(jointNumbers: List<JointNumber>) =
+    jointNumbers.joinToString("-") { j -> j.intValue.toString() }
+
+private fun printTracks(tracks: List<LocationTrack>) =
+    tracks.map { it.name.toString() }.sorted().distinct().joinToString(", ")
 
 fun validateSwitchAlignmentTopology(
     switchId: IntId<LayoutSwitch>,
@@ -705,7 +722,7 @@ fun validateSwitchAlignmentTopology(
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
-    val structureAlignmentsToCheck = switchConnectivity(switchStructure).alignments.filter { !it.isSplittable }
+    val structureAlignmentsToCheck = linkableSwitchAlignments(switchStructure).filter { !it.isSplittable }
     val qualitiesToValidate = structureAlignmentsToCheck.map { alignment ->
         alignmentLinkingQuality(switchId, alignment, locationTracksAndGeometries)
     }
@@ -717,14 +734,14 @@ fun validateSwitchAlignmentTopology(
     val linkedOnlyToDuplicates =
         qualitiesToValidate
             .filter { it.nonDuplicateTracks.isEmpty() }
-            .flatMap { alignment -> alignment.duplicateTracks.map { dup -> dup to alignment.originalAlignment } }
+            .flatMap { alignment -> alignment.duplicateTracks.map { dup -> dup to alignment } }
     val linkedPartially = qualitiesToValidate.flatMap { alignment ->
-        alignment.partiallyLinked.map { part -> part to alignment.originalAlignment }
+        alignment.partiallyLinked.map { part -> part to alignment }
     }
     val linkedMultiply =
         qualitiesToValidate
             .filter { it.nonDuplicateTracks.size > 1 }
-            .flatMap { alignment -> alignment.nonDuplicateTracks.map { track -> track to alignment.originalAlignment } }
+            .flatMap { alignment -> alignment.nonDuplicateTracks.map { track -> track to alignment } }
 
     return listOfNotNull(
         validateWithParams(
@@ -820,8 +837,6 @@ private data class SwitchAlignmentLinkingQuality(
     val partiallyLinked: List<LocationTrack>,
 ) {
 
-    val originalAlignment = switchAlignment.originalAlignment
-
     fun hasSomethingLinked() = nonDuplicateTracks.isNotEmpty() || duplicateTracks.isNotEmpty()
 }
 
@@ -843,10 +858,12 @@ private fun alignmentLinkingQuality(
 
         val isPartiallyLinkedWithoutOtherLinks = (hasStart || hasEnd) && !trackAlignmentHasOtherLinks
         val isFullyLinkedToSplitAlignment = hasStart && hasEnd
-        val isFullyLinkedToOriginalAlignment =
-            trackSwitchJoints.contains(switchAlignment.originalAlignment.jointNumbers.first()) &&
-                trackSwitchJoints.contains(switchAlignment.originalAlignment.jointNumbers.last())
-        val isFullyLinked = isFullyLinkedToOriginalAlignment || isFullyLinkedToSplitAlignment
+        val isFullyLinkedToAnOriginalAlignment =
+            switchAlignment.partialAlignmentOf.any { originalAlignment ->
+                trackSwitchJoints.contains(originalAlignment.jointNumbers.first()) &&
+                    trackSwitchJoints.contains(originalAlignment.jointNumbers.last())
+            }
+        val isFullyLinked = isFullyLinkedToAnOriginalAlignment || isFullyLinkedToSplitAlignment
 
         if (isPartiallyLinkedWithoutOtherLinks || isFullyLinked) {
             if (isFullyLinked) {
@@ -1176,10 +1193,6 @@ fun validateEdges(
         .distinct()
         .map { partial ->
             validationWarning("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
-                .copy(
-                    inRelationTo =
-                        relateTo(switches = listOf(partial), locationTracks = listOfNotNull(geometry.trackId))
-                )
         }
 
 fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
@@ -1293,30 +1306,8 @@ fun validationError(key: String, params: LocalizationParams): LayoutValidationIs
 fun validationWarning(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(WARNING, key, params.associate { it })
 
-fun validationWarning(
-    key: String,
-    params: LocalizationParams,
-    inRelationTo: Set<PublicationLogAsset> = setOf(),
-): LayoutValidationIssue = LayoutValidationIssue(WARNING, LocalizationKey.of(key), params, inRelationTo)
-
-private fun relateTo(
-    switches: List<DomainId<LayoutSwitch>> = listOf(),
-    locationTracks: List<DomainId<LocationTrack>> = listOf(),
-) =
-    listOf(
-            switches.map { switch -> PublicationLogAsset(switch as IntId, PublicationLogAssetType.SWITCH) },
-            locationTracks.map { lt -> PublicationLogAsset(lt as IntId, PublicationLogAssetType.LOCATION_TRACK) },
-        )
-        .flatten()
-        .toSet()
-
-private fun relateIssuesTo(
-    issues: List<LayoutValidationIssue>,
-    switches: List<DomainId<LayoutSwitch>> = listOf(),
-    locationTracks: List<DomainId<LocationTrack>> = listOf(),
-): List<LayoutValidationIssue> = issues.map { issue ->
-    issue.copy(inRelationTo = relateTo(switches = switches, locationTracks = locationTracks))
-}
+fun validationWarning(key: String, params: LocalizationParams): LayoutValidationIssue =
+    LayoutValidationIssue(WARNING, LocalizationKey.of(key), params)
 
 private fun validateReferenceFromByTrackNumber(
     keyPrefix: String,

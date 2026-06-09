@@ -345,12 +345,11 @@ fun calculateSwitchLocationDelta(
     joints: List<ISwitchJoint>,
     switchStructure: SwitchStructure,
 ): SwitchPositionTransformation? {
-    val jointPairs =
-        joints.mapNotNull { joint ->
-            switchStructure.alignmentJoints
-                .find { structureJoint -> joint.number == structureJoint.number }
-                ?.let { match -> joint to match }
-        }
+    val jointPairs = joints.mapNotNull { joint ->
+        switchStructure.alignmentJoints
+            .find { structureJoint -> joint.number == structureJoint.number }
+            ?.let { match -> joint to match }
+    }
 
     if (
         jointPairs.size < 2 ||
@@ -380,14 +379,28 @@ fun transformSwitchPoint(transformation: SwitchPositionTransformation, point: Po
 
 data class LinkableSwitchStructureAlignment(
     val joints: List<JointNumber>,
-    val originalAlignment: SwitchStructureAlignment,
+    // at least on KRV switches, there are both alignments 1-5-2/4-5-3 as usual but *also* 1-5-3/4-5-2; hence the split
+    // alignments need to know all alignments that they are a part of
+    val partialAlignmentOf: Set<SwitchStructureAlignment>,
     val innerJointOfSplitAlignment: JointNumber?,
     val isSplittable: Boolean,
 )
 
-data class SwitchConnectivity(val alignments: List<LinkableSwitchStructureAlignment>, val frontJoint: JointNumber?)
+fun frontJoint(structure: SwitchStructure): JointNumber? =
+    when (structure.baseType) {
+        SwitchBaseType.YV,
+        SwitchBaseType.TYV,
+        SwitchBaseType.YRV,
+        SwitchBaseType.SKV,
+        SwitchBaseType.UKV,
+        SwitchBaseType.EV,
+        SwitchBaseType.KV -> JointNumber(1)
+        SwitchBaseType.KRV,
+        SwitchBaseType.RR,
+        SwitchBaseType.SRR -> null
+    }
 
-fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
+fun linkableSwitchAlignments(structure: SwitchStructure): List<LinkableSwitchStructureAlignment> =
     when (structure.baseType) {
         SwitchBaseType.YV,
         SwitchBaseType.TYV,
@@ -396,53 +409,54 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
         SwitchBaseType.UKV,
         SwitchBaseType.EV,
         SwitchBaseType.KV ->
-            SwitchConnectivity(
-                alignments =
-                    structure.alignments.map {
-                        LinkableSwitchStructureAlignment(
-                            it.jointNumbers,
-                            it,
-                            innerJointOfSplitAlignment = null,
-                            isSplittable = false,
-                        )
-                    },
-                frontJoint = JointNumber(1),
-            )
+            structure.alignments.map {
+                LinkableSwitchStructureAlignment(
+                    it.jointNumbers,
+                    setOf(it),
+                    innerJointOfSplitAlignment = null,
+                    isSplittable = false,
+                )
+            }
 
         SwitchBaseType.KRV,
         SwitchBaseType.RR,
         SwitchBaseType.SRR -> {
             val throughAlignments = structure.alignments.filter { it.jointNumbers.size == 3 }
-            val linkableFullAlignments =
-                throughAlignments.map {
+            val linkableFullAlignments = throughAlignments.map {
+                LinkableSwitchStructureAlignment(
+                    it.jointNumbers,
+                    setOf(it),
+                    innerJointOfSplitAlignment = null,
+                    isSplittable = true,
+                )
+            }
+            val linkableSplitAlignments = throughAlignments.flatMap { alignment ->
+                val joints = alignment.jointNumbers
+                listOf(
                     LinkableSwitchStructureAlignment(
-                        it.jointNumbers,
-                        it,
-                        innerJointOfSplitAlignment = null,
-                        isSplittable = true,
-                    )
-                }
-            val linkableSplitAlignments =
-                throughAlignments.flatMap { alignment ->
-                    val joints = alignment.jointNumbers
-                    listOf(
+                        listOf(joints[0], joints[1]),
+                        setOf(alignment),
+                        innerJointOfSplitAlignment = joints[1],
+                        isSplittable = false,
+                    ),
+                    LinkableSwitchStructureAlignment(
+                        listOf(joints[1], joints[2]),
+                        setOf(alignment),
+                        innerJointOfSplitAlignment = joints[1],
+                        isSplittable = false,
+                    ),
+                )
+            }
+            linkableFullAlignments +
+                linkableSplitAlignments
+                    .groupBy { it.joints }
+                    .map { (joints, originalAlignments) ->
                         LinkableSwitchStructureAlignment(
-                            listOf(joints[0], joints[1]),
-                            alignment,
-                            innerJointOfSplitAlignment = joints[1],
-                            isSplittable = false,
-                        ),
-                        LinkableSwitchStructureAlignment(
-                            listOf(joints[1], joints[2]),
-                            alignment,
-                            innerJointOfSplitAlignment = joints[1],
-                            isSplittable = false,
-                        ),
-                    )
-                }
-            SwitchConnectivity(
-                alignments = linkableFullAlignments + linkableSplitAlignments.distinctBy { it.joints },
-                frontJoint = null,
-            )
+                            joints,
+                            originalAlignments.flatMap { it.partialAlignmentOf }.toSet(),
+                            originalAlignments[0].innerJointOfSplitAlignment,
+                            false,
+                        )
+                    }
         }
     }

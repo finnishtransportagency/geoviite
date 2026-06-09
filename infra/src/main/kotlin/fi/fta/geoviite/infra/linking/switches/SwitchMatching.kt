@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
+import fi.fta.geoviite.infra.switchLibrary.linkableSwitchAlignments
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
@@ -159,7 +159,7 @@ private fun completeIncompleteJointSequences(
     jointsOnEdge: Map<EdgeId, List<JointOnEdge>>,
     clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
 ): Map<EdgeId, List<List<JointOnEdge>>> {
-    val structureAlignments = switchConnectivity(fittedSwitch.switchStructure).alignments
+    val structureAlignments = linkableSwitchAlignments(fittedSwitch.switchStructure)
 
     return mapNonNullValues(jointsOnEdge) { (edgeId, jointsFromSwitchFit) ->
         fun isValidInnerJointLinkSequence(
@@ -167,10 +167,9 @@ private fun completeIncompleteJointSequences(
             joints: List<JointOnEdge>,
         ) = validateJointSequence(fittedSwitch.switchStructure, structureAlignment, joints, edgeId, clearedTracks)
 
-        val validStructureAlignmentsForSequence =
-            structureAlignments.filter { structureAlignment ->
-                isValidInnerJointLinkSequence(structureAlignment, jointsFromSwitchFit)
-            }
+        val validStructureAlignmentsForSequence = structureAlignments.filter { structureAlignment ->
+            isValidInnerJointLinkSequence(structureAlignment, jointsFromSwitchFit)
+        }
         listOfNotNull(
                 validStructureAlignmentsForSequence.map { validStructureAlignment ->
                     tossExtraJoints(validStructureAlignment, jointsFromSwitchFit)
@@ -210,7 +209,9 @@ private fun validateJointSequence(
 }
 
 private fun tossExtraJoints(structureAlignment: LinkableSwitchStructureAlignment, joints: List<JointOnEdge>) =
-    joints.filter { joint -> structureAlignment.joints.any { it == joint.jointNumber } }
+    joints.filter { joint ->
+        structureAlignment.joints.any { it == joint.jointNumber }
+    }
 
 private fun jointSequenceFitsPossibleSplitAlignment(
     alignmentToLink: LinkableSwitchStructureAlignment,
@@ -309,8 +310,9 @@ private fun candidateJointLocationIsValid(jointCandidate: JointOnEdge, fittedSwi
 
 private fun suggestDelinking(
     clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>
-): Map<IntId<LocationTrack>, SwitchLinkingTrackLinks> =
-    clearedTracks.mapValues { (_, track) -> SwitchLinkingTrackLinks(track.first.getVersionOrThrow().version, null) }
+): Map<IntId<LocationTrack>, SwitchLinkingTrackLinks> = clearedTracks.mapValues { (_, track) ->
+    SwitchLinkingTrackLinks(track.first.getVersionOrThrow().version, null)
+}
 
 private fun suggestLinking(
     validatedJoints: Map<EdgeId, List<JointOnEdge>>,

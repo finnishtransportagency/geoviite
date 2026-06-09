@@ -1267,8 +1267,6 @@ class PublicationValidationTest {
                 validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(1)),
-                    inRelationTo =
-                        setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(1), type = PublicationLogAssetType.SWITCH)),
                 )
             ),
             validateEdges(
@@ -1287,14 +1285,10 @@ class PublicationValidationTest {
                 validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(1)),
-                    inRelationTo =
-                        setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(1), type = PublicationLogAssetType.SWITCH)),
                 ),
                 validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(2)),
-                    inRelationTo =
-                        setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(2), type = PublicationLogAssetType.SWITCH)),
                 ),
             ),
             validateEdges(

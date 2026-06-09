@@ -2,9 +2,11 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.SwitchTopologicalConnectivityTest.MakeSwitchLinkPair
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.data.KRV54_200_1_9
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -135,8 +137,6 @@ class SwitchTopologicalConnectivityTest {
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.switch.track-linkage.switch-no-alignments-connected",
                 mapOf("switch" to switch.name.toString()),
-                inRelationTo =
-                    setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(0), type = PublicationLogAssetType.SWITCH)),
             ),
         )
     }
@@ -158,11 +158,6 @@ class SwitchTopologicalConnectivityTest {
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
                     mapOf("switch" to switch.name.toString(), "alignments" to "1-3"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(throughTrack.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             issues,
@@ -196,11 +191,6 @@ class SwitchTopologicalConnectivityTest {
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
                     mapOf("switch" to switch.name.toString(), "alignments" to "4-5, 5-3"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(track152.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             issues,
@@ -211,12 +201,37 @@ class SwitchTopologicalConnectivityTest {
     fun `track partially through rail crossing is responsible for non-full link on its switch alignment`() {
         val (switch, link) = switchAndLink(switchStructureRR54_4x1_9())
         val track53 = track("track 53", link(5, 3))
-        val tracks = listOf(track("track 152", link(1, 5), link(5, 2)), track53)
+        val track152 = track("track 152", link(1, 5), link(5, 2))
+        val tracks = listOf(track152, track53)
 
-        val issues = validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track53.first)
+        val expectedOnTracks =
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "4-5"),
+                )
+            )
+        val expectedOnSwitch =
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.switch.track-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "4-5"),
+                )
+            )
+
         assertEquals(
-            listOf("validation.layout.location-track.switch-linkage.switch-alignment-not-connected"),
-            issues.map { it.localizationKey.toString() },
+            expectedOnTracks,
+            validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track53.first),
+        )
+        assertEquals(
+            expectedOnTracks,
+            validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track152.first),
+        )
+        assertEquals(
+            expectedOnSwitch,
+            validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, null),
         )
     }
 
@@ -256,11 +271,6 @@ class SwitchTopologicalConnectivityTest {
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
                     mapOf("switch" to switch.name.toString(), "alignments" to "5-3"),
-                    inRelationTo =
-                        setOf(
-                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
-                            PublicationLogAsset(track15.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
-                        ),
                 )
             ),
             issues,
@@ -325,6 +335,31 @@ class SwitchTopologicalConnectivityTest {
         assertEquals(
             setOf("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
             issues.map { it.localizationKey.toString() }.toSet(),
+        )
+    }
+
+    @Test
+    fun `multiply linked alignments through a KRV switch 1-5-3 alignment are reported as one problem`() {
+        val switchStructure = SwitchStructure(RowVersion(IntId(123456), 1), KRV54_200_1_9())
+        val (switch, link) = switchAndLink(switchStructure)
+        val oneTrack153 = track("one track 153", link(1, 5), link(5, 3))
+        val twoTrack153 = track("two track 153", link(1, 5), link(5, 3))
+        val track254 = track("track 254", link(2, 5), link(5, 4))
+        val tracks = listOf(oneTrack153, twoTrack153, track254)
+        val expected =
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
+                    mapOf(
+                        "switch" to switch.name.toString(),
+                        "locationTracks" to "1-5-3 (one track 153, two track 153)",
+                    ),
+                )
+            )
+        assertEquals(
+            expected,
+            validateSwitchTopologicalConnectivity(switch, switchStructure, tracks, null),
         )
     }
 
