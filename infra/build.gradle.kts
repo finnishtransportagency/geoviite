@@ -127,8 +127,8 @@ dependencies {
     testImplementation("org.seleniumhq.selenium:selenium-java")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
-    testImplementation("io.projectreactor:reactor-test:3.8.5")
-    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42")
+    testImplementation("io.projectreactor:reactor-test:3.8.6")
+    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.43")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
 }
 
