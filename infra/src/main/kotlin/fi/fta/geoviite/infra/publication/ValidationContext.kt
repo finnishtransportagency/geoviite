@@ -33,8 +33,6 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.UicCode
@@ -86,7 +84,6 @@ typealias ReferenceCache<To, From> = NullableCache<IntId<To>, List<IntId<From>>>
  */
 class ValidationContext(
     val trackNumberDao: LayoutTrackNumberDao,
-    val referenceLineDao: ReferenceLineDao,
     val kmPostDao: LayoutKmPostDao,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
@@ -101,7 +98,6 @@ class ValidationContext(
     val target = publicationSet.target
 
     private val trackNumberVersionCache = RowVersionCache<LayoutTrackNumber>()
-    private val referenceLineVersionCache = RowVersionCache<ReferenceLine>()
     private val kmPostVersionCache = RowVersionCache<LayoutKmPost>()
     private val locationTrackVersionCache = RowVersionCache<LocationTrack>()
     private val switchVersionCache = RowVersionCache<LayoutSwitch>()
@@ -138,12 +134,11 @@ class ValidationContext(
     fun getTrackNumbersByNumber(number: TrackNumber): List<LayoutTrackNumber> =
         trackNumberNumberCache.get(number).mapNotNull(::getTrackNumber)
 
-    fun getReferenceLine(id: IntId<ReferenceLine>): ReferenceLine? =
-        getObject(target.baseContext, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
-
-    fun getReferenceLineWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, ReferenceLineGeometry>? =
-        getObject(target.baseContext, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
-            ?.let { rl -> rl to alignmentDao.fetch(rl.getGeometryVersionOrThrow()) }
+    fun getTrackNumberWithGeometry(id: IntId<LayoutTrackNumber>): Pair<LayoutTrackNumber, ReferenceLineGeometry>? =
+        getObject(target.baseContext, id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)?.let {
+            tn ->
+            tn to alignmentDao.fetch(tn.getVersionOrThrow())
+        }
 
     fun getKmPost(id: IntId<LayoutKmPost>): LayoutKmPost? =
         getObject(target.baseContext, id, publicationSet.kmPosts, kmPostDao, kmPostVersionCache)
@@ -201,18 +196,6 @@ class ValidationContext(
     fun getOperationalPointsByRinfId(rinfId: RinfId): List<OperationalPoint> =
         operationalPointRinfIdOverrideCache.get(rinfId).mapNotNull(::getOperationalPoint) +
             operationalPointRinfIdGeneratedCache.get(rinfId).mapNotNull(::getOperationalPoint)
-
-    fun getReferenceLineByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? =
-        getReferenceLineIdByTrackNumber(trackNumberId)?.let(::getReferenceLine)
-
-    fun getReferenceLineIdByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): IntId<ReferenceLine>? =
-        // the track number candidate might be a cancellation, in which case getTrackNumber hides it; but we still need
-        // to check referential integrity. Thankfully a track number's referenceLineId is itself immutable, so this
-        // can't give a wrong one.
-        (getTrackNumber(trackNumberId) ?: getCandidateTrackNumber(trackNumberId))?.referenceLineId
-
-    fun getTrackNumberIdByReferenceLine(referenceLineId: IntId<ReferenceLine>): IntId<LayoutTrackNumber>? =
-        (getReferenceLine(referenceLineId) ?: getCandidateReferenceLine(referenceLineId))?.trackNumberId
 
     fun getKmPostsByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): List<LayoutKmPost> =
         trackNumberKmPosts
@@ -289,11 +272,13 @@ class ValidationContext(
             .let { groupConnectionsByJointNumber(it) }
     }
 
-    fun getPublicationSplits(): List<Split> =
-        allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
+    fun getPublicationSplits(): List<Split> = allUnfinishedSplits.filter { split ->
+        publicationSet.containsSplit(split.id)
+    }
 
-    fun getUnfinishedSplits(): List<Split> =
-        allUnfinishedSplits.filter { split -> split.publicationId != null || publicationSet.containsSplit(split.id) }
+    fun getUnfinishedSplits(): List<Split> = allUnfinishedSplits.filter { split ->
+        split.publicationId != null || publicationSet.containsSplit(split.id)
+    }
 
     fun isLocationTrackSourceOfAnyFinishedSplit(id: IntId<LocationTrack>): Boolean =
         splitService.isLocationTrackSourceOfAnyFinishedSplit(target.candidateBranch, id)
@@ -317,9 +302,6 @@ class ValidationContext(
     fun trackNumberIsCancelled(id: IntId<LayoutTrackNumber>) =
         objectIsCancelled(id, publicationSet.trackNumbers, trackNumberDao)
 
-    fun referenceLineIsCancelled(id: IntId<ReferenceLine>) =
-        objectIsCancelled(id, publicationSet.referenceLines, referenceLineDao)
-
     fun locationTrackIsCancelled(id: IntId<LocationTrack>) =
         objectIsCancelled(id, publicationSet.locationTracks, locationTrackDao)
 
@@ -331,7 +313,7 @@ class ValidationContext(
         objectIsCancelled(id, publicationSet.operationalPoints, operationalPointDao)
 
     fun preloadByPublicationSet() {
-        preloadAssociatedTrackNumberAndReferenceLineVersions(publicationSet)
+        preloadAssociatedTrackNumberVersions(publicationSet)
 
         val trackNumberIds = publicationSet.getTrackNumberIds()
         preloadTrackNumbersByNumber(trackNumberIds)
@@ -376,9 +358,6 @@ class ValidationContext(
     fun preloadTrackNumberVersions(ids: List<IntId<LayoutTrackNumber>>) =
         preloadBaseVersions(target.baseContext, ids, trackNumberDao, trackNumberVersionCache)
 
-    fun preloadReferenceLineVersions(ids: List<IntId<ReferenceLine>>) =
-        preloadBaseVersions(target.baseContext, ids, referenceLineDao, referenceLineVersionCache)
-
     fun preloadKmPostVersions(ids: List<IntId<LayoutKmPost>>) =
         preloadBaseVersions(target.baseContext, ids, kmPostDao, kmPostVersionCache)
 
@@ -400,29 +379,18 @@ class ValidationContext(
     fun preloadSwitchesByOperationalPoints(opIds: List<IntId<OperationalPoint>>) =
         operationalPointSwitches.preload(opIds, ::fetchSwitchesByOperationalPoints)
 
-    fun preloadAssociatedTrackNumberAndReferenceLineVersions(versions: ValidationVersions) =
-        preloadAssociatedTrackNumberAndReferenceLineVersions(
+    fun preloadAssociatedTrackNumberVersions(versions: ValidationVersions) =
+        preloadAssociatedTrackNumberVersions(
             trackNumberIds = versions.trackNumbers.map { v -> v.id },
-            referenceLineIds = versions.referenceLines.map { v -> v.id },
             kmPostIds = versions.kmPosts.map { v -> v.id },
             trackIds = versions.locationTracks.map { v -> v.id },
         )
 
-    fun preloadAssociatedTrackNumberAndReferenceLineVersions(
+    fun preloadAssociatedTrackNumberVersions(
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
-        referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         kmPostIds: List<IntId<LayoutKmPost>> = emptyList(),
         trackIds: List<IntId<LocationTrack>> = emptyList(),
-    ): Unit =
-        preloadTrackNumberAndReferenceLineVersions(
-            collectAssociatedTrackNumberIds(trackNumberIds, referenceLineIds, kmPostIds, trackIds)
-        )
-
-    fun preloadTrackNumberAndReferenceLineVersions(ids: List<IntId<LayoutTrackNumber>>) =
-        preloadTrackNumberVersions(ids).also {
-            val referenceLineIds = ids.mapNotNull(::getTrackNumber).mapNotNull(LayoutTrackNumber::referenceLineId)
-            preloadReferenceLineVersions(referenceLineIds)
-        }
+    ): Unit = preloadTrackNumberVersions(collectAssociatedTrackNumberIds(trackNumberIds, kmPostIds, trackIds))
 
     fun preloadSwitchTrackLinks(switchIds: List<IntId<LayoutSwitch>>): Unit =
         preloadLocationTracksByReferents(switchIds = switchIds)
@@ -582,13 +550,6 @@ class ValidationContext(
         trackNumberDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
     }
 
-    fun getCandidateReferenceLine(id: IntId<ReferenceLine>) =
-        allCandidateReferenceLines[id]?.let(referenceLineDao::fetch)
-
-    private val allCandidateReferenceLines: Map<IntId<ReferenceLine>, LayoutRowVersion<ReferenceLine>> by lazy {
-        referenceLineDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
-    }
-
     fun getCandidateSwitch(id: IntId<LayoutSwitch>) = allCandidateSwitches[id]?.let(switchDao::fetch)
 
     private val allCandidateSwitches: Map<IntId<LayoutSwitch>, LayoutRowVersion<LayoutSwitch>> by lazy {
@@ -671,13 +632,11 @@ class ValidationContext(
 
     fun collectAssociatedTrackNumberIds(
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
-        referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         kmPostIds: List<IntId<LayoutKmPost>> = emptyList(),
         trackIds: List<IntId<LocationTrack>> = emptyList(),
     ): List<IntId<LayoutTrackNumber>> =
         listOf(
                 trackNumberIds,
-                referenceLineIds.mapNotNull { id -> getReferenceLine(id)?.trackNumberId },
                 kmPostIds.mapNotNull { id -> getKmPost(id)?.trackNumberId },
                 trackIds.mapNotNull { id -> getLocationTrack(id)?.trackNumberId },
             )
@@ -694,24 +653,6 @@ class ValidationContext(
             ::trackNumberIsCancelled,
             LayoutTrackNumber::number,
             LayoutTrackNumber::exists,
-            id,
-        )
-
-    fun getReferenceLineLivenessType(id: IntId<ReferenceLine>): AssetLivenessType =
-        getAssetLivenessType(
-            ::getReferenceLine,
-            ::referenceLineIsCancelled,
-            { rl -> getTrackNumber(rl.trackNumberId)?.exists ?: false },
-            id,
-        )
-
-    fun getReferenceLineLiveness(id: IntId<ReferenceLine>): AssetLiveness<ReferenceLine> =
-        getAssetLiveness(
-            ::getReferenceLine,
-            ::getCandidateReferenceLine,
-            ::referenceLineIsCancelled,
-            { rl -> (getTrackNumber(rl.trackNumberId) ?: getCandidateTrackNumber(rl.trackNumberId))?.number ?: "" },
-            { rl -> getTrackNumber(rl.trackNumberId)?.exists ?: false },
             id,
         )
 
@@ -756,30 +697,27 @@ class ValidationContext(
 
     private fun <K> cacheLocationTrackBaseVersionsAndMapToIds(
         map: Map<K, List<LayoutRowVersion<LocationTrack>>>
-    ): Map<K, List<IntId<LocationTrack>>> =
-        map.mapValues { (_, versions) ->
-            val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
-            cacheBaseVersions(officialVersions, locationTrackVersionCache)
-            versions.map { v -> v.id }
-        }
+    ): Map<K, List<IntId<LocationTrack>>> = map.mapValues { (_, versions) ->
+        val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
+        cacheBaseVersions(officialVersions, locationTrackVersionCache)
+        versions.map { v -> v.id }
+    }
 
     private fun <K> cacheSwitchBaseVersionsAndMapToIds(
         map: Map<K, List<LayoutRowVersion<LayoutSwitch>>>
-    ): Map<K, List<IntId<LayoutSwitch>>> =
-        map.mapValues { (_, versions) ->
-            val officialVersions = versions.filterNot { v -> publicationSet.containsSwitch(v.id) }
-            cacheBaseVersions(officialVersions, switchVersionCache)
-            versions.map { v -> v.id }
-        }
+    ): Map<K, List<IntId<LayoutSwitch>>> = map.mapValues { (_, versions) ->
+        val officialVersions = versions.filterNot { v -> publicationSet.containsSwitch(v.id) }
+        cacheBaseVersions(officialVersions, switchVersionCache)
+        versions.map { v -> v.id }
+    }
 
     private fun <K> cacheKmPostBaseVersionsAndMapToIds(
         map: Map<K, List<LayoutRowVersion<LayoutKmPost>>>
-    ): Map<K, List<IntId<LayoutKmPost>>> =
-        map.mapValues { (_, versions) ->
-            val officialVersions = versions.filterNot { v -> publicationSet.containsKmPost(v.id) }
-            cacheBaseVersions(officialVersions, kmPostVersionCache)
-            versions.map { v -> v.id }
-        }
+    ): Map<K, List<IntId<LayoutKmPost>>> = map.mapValues { (_, versions) ->
+        val officialVersions = versions.filterNot { v -> publicationSet.containsKmPost(v.id) }
+        cacheBaseVersions(officialVersions, kmPostVersionCache)
+        versions.map { v -> v.id }
+    }
 }
 
 private fun <T : LayoutAsset<T>> objectIsCancelled(
@@ -822,11 +760,10 @@ private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     dao: ILayoutAssetDao<T, *>,
 ): Map<Field, List<IntId<T>>> {
     return fields.associateWith { field ->
-        val draftMatches =
-            publicationVersions.mapNotNull { v ->
-                val draftObject = dao.fetch(v)
-                if (getField(draftObject) == field) draftObject.id as IntId else null
-            }
+        val draftMatches = publicationVersions.mapNotNull { v ->
+            val draftObject = dao.fetch(v)
+            if (getField(draftObject) == field) draftObject.id as IntId else null
+        }
         val officialMatches =
             matchingOfficialVersions[field]
                 ?.filterNot { ov -> publicationVersions.any { pv -> pv.id == ov.id } }

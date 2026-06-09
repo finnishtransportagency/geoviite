@@ -18,13 +18,11 @@ class LayoutDesignService(
     private val dao: LayoutDesignDao,
     private val publicationService: PublicationService,
     private val trackNumberService: LayoutTrackNumberService,
-    private val referenceLineService: ReferenceLineService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,
     private val operationalPointService: OperationalPointService,
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
@@ -69,7 +67,6 @@ class LayoutDesignService(
         kmPostDao.deleteDrafts(branch)
         switchDao.deleteDrafts(branch)
         locationTrackDao.deleteDrafts(branch)
-        referenceLineDao.deleteDrafts(branch)
         trackNumberDao.deleteDrafts(branch)
     }
 
@@ -79,12 +76,6 @@ class LayoutDesignService(
             trackNumberService.list(branch.official, true).mapNotNull { trackNumber ->
                 if (trackNumber.layoutContext.branch == branch || trackNumberExtIds.containsKey(trackNumber.id)) {
                     trackNumberService.cancel(branch, trackNumber.id as IntId)
-                } else null
-            }
-        val referenceLines =
-            referenceLineService.list(branch.official, true).mapNotNull { referenceLine ->
-                if (referenceLine.layoutContext.branch == branch) {
-                    referenceLineService.cancel(branch, referenceLine.id as IntId)
                 } else null
             }
         val locationTrackExtIds = locationTrackDao.fetchExternalIds(branch)
@@ -119,7 +110,6 @@ class LayoutDesignService(
                 PublicationInDesign(branch),
                 trackNumbers,
                 locationTracks,
-                referenceLines,
                 switches,
                 kmPosts,
                 operationalPoints,

@@ -18,7 +18,7 @@ const val KM_POST_SEARCH_TERM_MIN_LENGTH = 4
 @GeoviiteService
 class LayoutKmPostService(
     dao: LayoutKmPostDao,
-    private val referenceLineService: ReferenceLineService,
+    private val trackNumberService: LayoutTrackNumberService,
     private val geometryDao: GeometryDao,
 ) : LayoutAssetService<LayoutKmPost, NoParams, LayoutKmPostDao>(dao) {
 
@@ -100,8 +100,7 @@ class LayoutKmPostService(
 
     fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<LayoutKmPost>): Double? {
         return dao.get(layoutContext, id)?.getAsIntegral()?.let { kmPost ->
-            referenceLineService.getByTrackNumberWithGeometry(layoutContext, kmPost.trackNumberId)?.let { (_, geometry)
-                ->
+            trackNumberService.getWithGeometry(layoutContext, kmPost.trackNumberId)?.let { (_, geometry) ->
                 val kmPostM = geometry.getClosestPointM(kmPost.location)?.first
                 val kmEndM = getKmEndM(layoutContext, kmPost.trackNumberId, kmPost.kmNumber, geometry)
                 if (kmPostM == null || kmEndM == null) null else (kmEndM - kmPostM).distance

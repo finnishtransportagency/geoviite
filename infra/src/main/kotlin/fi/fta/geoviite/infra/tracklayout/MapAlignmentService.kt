@@ -4,11 +4,12 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
+import fi.fta.geoviite.infra.map.LocationTrackHeader
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.map.MapAlignmentType.LOCATION_TRACK
 import fi.fta.geoviite.infra.map.MapAlignmentType.REFERENCE_LINE
+import fi.fta.geoviite.infra.map.ReferenceLineHeader
 import fi.fta.geoviite.infra.map.getSegmentBorderMValues
 import fi.fta.geoviite.infra.map.toAlignmentHeader
 import fi.fta.geoviite.infra.map.toAlignmentPolyLine
@@ -38,7 +39,6 @@ data class MapAlignmentEndPoints<M : AlignmentM<M>>(
 class MapAlignmentService(
     private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
-    private val referenceLineService: ReferenceLineService,
     private val alignmentDao: LayoutAlignmentDao,
 ) {
     @Transactional(readOnly = true)
@@ -92,7 +92,7 @@ class MapAlignmentService(
             else getReferenceLineMissingLinkings(layoutContext, bbox)
         val locationTracks =
             if (type == AlignmentFetchType.REFERENCE_LINES)
-                listOf<MapAlignmentHighlight<ReferenceLine, ReferenceLineM>>()
+                listOf<MapAlignmentHighlight<LayoutTrackNumber, ReferenceLineM>>()
             else getLocationTrackMissingLinkings(layoutContext, bbox)
         return referenceLines + locationTracks
     }
@@ -113,32 +113,20 @@ class MapAlignmentService(
             }
     }
 
-    @Transactional(readOnly = true)
     fun getReferenceLineHeaders(
         layoutContext: LayoutContext,
-        referenceLineIds: List<IntId<ReferenceLine>>,
-    ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
-        val referenceLines = referenceLineService.getManyWithGeometries(layoutContext, referenceLineIds)
-        val trackNumbers =
-            trackNumberService
-                .getMany(layoutContext, referenceLines.map { (rl, _) -> rl.trackNumberId })
-                .associateBy(LayoutTrackNumber::id)
-        return referenceLines.map { (line, alignment) ->
-            val trackNumber =
-                requireNotNull(trackNumbers[line.trackNumberId]) {
-                    "ReferenceLine in DB must have a TrackNumber: line=${line.id} trackNumberId=${line.trackNumberId}"
-                }
-            toAlignmentHeader(trackNumber, line, alignment)
-        }
+        referenceLineIds: List<IntId<LayoutTrackNumber>>,
+    ): List<ReferenceLineHeader> {
+        val trackNumbers = trackNumberService.getManyWithGeometries(layoutContext, referenceLineIds)
+        return trackNumbers.map { (trackNumber, geometry) -> toAlignmentHeader(trackNumber, geometry) }
     }
 
     fun getLocationTrackHeaders(
         layoutContext: LayoutContext,
         locationTrackIds: List<IntId<LocationTrack>>,
-    ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
-        return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, geometry) ->
-            toAlignmentHeader(track, geometry)
-        }
+    ): List<LocationTrackHeader> {
+        val tracks = locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds)
+        return tracks.map { (track, geometry) -> toAlignmentHeader(track, geometry) }
     }
 
     fun getLocationTrackSegmentMValues(
@@ -151,9 +139,9 @@ class MapAlignmentService(
 
     fun getReferenceLineSegmentMValues(
         layoutContext: LayoutContext,
-        id: IntId<ReferenceLine>,
+        id: IntId<LayoutTrackNumber>,
     ): List<LineM<ReferenceLineM>> {
-        val (_, alignment) = referenceLineService.getWithGeometryOrThrow(layoutContext, id)
+        val (_, alignment) = trackNumberService.getWithGeometryOrThrow(layoutContext, id)
         return getSegmentBorderMValues(alignment)
     }
 
@@ -167,9 +155,9 @@ class MapAlignmentService(
 
     fun getReferenceLineEnds(
         layoutContext: LayoutContext,
-        id: IntId<ReferenceLine>,
+        id: IntId<LayoutTrackNumber>,
     ): MapAlignmentEndPoints<ReferenceLineM> {
-        val (_, alignment) = referenceLineService.getWithGeometryOrThrow(layoutContext, id)
+        val (_, alignment) = trackNumberService.getWithGeometryOrThrow(layoutContext, id)
         return getEndPoints(alignment)
     }
 
@@ -179,33 +167,30 @@ class MapAlignmentService(
         resolution: Int,
         includeSegmentEndPoints: Boolean,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
-    ): List<AlignmentPolyLine<LocationTrack, LocationTrackM>> =
-        locationTrackService
-            .listWithGeometries(
+    ): List<AlignmentPolyLine<LocationTrack, LocationTrackM>> {
+        val tracks =
+            locationTrackService.listWithGeometries(
                 layoutContext,
                 includeDeleted = false,
                 boundingBox = bbox,
                 locationTrackIds = locationTrackIds,
             )
-            .map { (track, geometry) ->
-                toAlignmentPolyLine(track.id, LOCATION_TRACK, geometry, resolution, bbox, includeSegmentEndPoints)
-            }
+        return tracks.map { (track, geometry) ->
+            toAlignmentPolyLine(track.id, LOCATION_TRACK, geometry, resolution, bbox, includeSegmentEndPoints)
+        }
+    }
 
     private fun getReferenceLinePolyLines(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         resolution: Int,
         includeSegmentEndPoints: Boolean,
-    ): List<AlignmentPolyLine<ReferenceLine, ReferenceLineM>> {
-        val trackNumbers = trackNumberService.mapById(layoutContext)
-        return referenceLineService
-            .listWithGeometries(layoutContext, includeDeleted = false, boundingBox = bbox)
-            .mapNotNull { (line, alignment) ->
-                val trackNumber = trackNumbers[line.trackNumberId]
-                if (trackNumber != null)
-                    toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox, includeSegmentEndPoints)
-                else null
-            }
+    ): List<AlignmentPolyLine<LayoutTrackNumber, ReferenceLineM>> {
+        val trackNumbers =
+            trackNumberService.listWithGeometries(layoutContext, includeDeleted = false, boundingBox = bbox)
+        return trackNumbers.map { (tn, geometry) ->
+            toAlignmentPolyLine(tn.id, REFERENCE_LINE, geometry, resolution, bbox, includeSegmentEndPoints)
+        }
     }
 
     private fun getLocationTrackMissingLinkings(
@@ -220,8 +205,8 @@ class MapAlignmentService(
     private fun getReferenceLineMissingLinkings(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
-    ): List<MapAlignmentHighlight<ReferenceLine, ReferenceLineM>> {
-        return referenceLineService
+    ): List<MapAlignmentHighlight<LayoutTrackNumber, ReferenceLineM>> {
+        return trackNumberService
             .listWithGeometries(layoutContext, boundingBox = bbox, includeDeleted = false)
             .mapNotNull { (line, alignment) -> getMissingLinkings(line.id, REFERENCE_LINE, alignment) }
     }

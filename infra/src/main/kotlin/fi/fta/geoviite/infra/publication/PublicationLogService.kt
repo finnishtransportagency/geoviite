@@ -42,8 +42,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -52,12 +50,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -74,7 +72,6 @@ constructor(
     private val splitService: SplitService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
-    private val referenceLineDao: ReferenceLineDao,
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
     private val operationalPointDao: OperationalPointDao,
@@ -93,7 +90,6 @@ constructor(
                 statuses.sortedByDescending { it.endTime }.firstOrNull()
             }
 
-        val publishedReferenceLines = publicationDao.fetchPublishedReferenceLines(ids)
         val publishedKmPosts = publicationDao.fetchPublishedKmPosts(ids)
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(ids)
         val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(ids)
@@ -103,7 +99,6 @@ constructor(
 
         return ids.associateWith { id ->
             val publication = publications.getValue(id)
-            val referenceLines = publishedReferenceLines[id] ?: listOf()
             val kmPosts = publishedKmPosts[id] ?: listOf()
             val (directTrackNumbers, indirectTrackNumbers) =
                 publishedTrackNumbers[id] ?: PublishedItemListing(listOf(), listOf())
@@ -125,7 +120,6 @@ constructor(
                     cause = publication.cause,
                 ),
                 trackNumbers = directTrackNumbers,
-                referenceLines = referenceLines,
                 locationTracks = directLocationTracks,
                 switches = directSwitches,
                 kmPosts = kmPosts,
@@ -743,51 +737,52 @@ constructor(
         )
     }
 
-    fun diffReferenceLine(
-        translation: Translation,
-        changes: ReferenceLineChanges,
-        changedKmNumbers: Set<KmNumber>,
-    ): List<PublicationChange<*>> {
-        return listOfNotNull(
-            compareLength(
-                changes.length.old,
-                changes.length.new,
-                DISTANCE_CHANGE_THRESHOLD,
-                ::roundTo1Decimal,
-                PropKey("length"),
-                getLengthChangedRemarkOrNull(translation, changes.length.old, changes.length.new),
-            ),
-            compareChange(
-                { !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
-                changes.startPoint.old,
-                changes.startPoint.new,
-                ::formatLocation,
-                PropKey("start-location"),
-                getPointMovedRemarkOrNull(translation, changes.startPoint.old, changes.startPoint.new),
-            ),
-            compareChange(
-                { !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
-                changes.endPoint.old,
-                changes.endPoint.new,
-                ::formatLocation,
-                PropKey("end-location"),
-                getPointMovedRemarkOrNull(translation, changes.endPoint.old, changes.endPoint.new),
-            ),
-            if (changedKmNumbers.isNotEmpty()) {
-                PublicationChange(
-                    PropKey("geometry"),
-                    ChangeValue(null, null),
-                    publicationChangeRemark(
-                        translation,
-                        if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
-                        formatChangedKmNumbers(changedKmNumbers.toList()),
-                    ),
-                )
-            } else {
-                null
-            },
-        )
-    }
+    // TODO: GVT-3637 This needs to be a part of the tracknumber diff
+    //    fun diffReferenceLine(
+    //        translation: Translation,
+    //        changes: ReferenceLineChanges,
+    //        changedKmNumbers: Set<KmNumber>,
+    //    ): List<PublicationChange<*>> {
+    //        return listOfNotNull(
+    //            compareLength(
+    //                changes.length.old,
+    //                changes.length.new,
+    //                DISTANCE_CHANGE_THRESHOLD,
+    //                ::roundTo1Decimal,
+    //                PropKey("length"),
+    //                getLengthChangedRemarkOrNull(translation, changes.length.old, changes.length.new),
+    //            ),
+    //            compareChange(
+    //                { !pointsAreSame(changes.startPoint.old, changes.startPoint.new) },
+    //                changes.startPoint.old,
+    //                changes.startPoint.new,
+    //                ::formatLocation,
+    //                PropKey("start-location"),
+    //                getPointMovedRemarkOrNull(translation, changes.startPoint.old, changes.startPoint.new),
+    //            ),
+    //            compareChange(
+    //                { !pointsAreSame(changes.endPoint.old, changes.endPoint.new) },
+    //                changes.endPoint.old,
+    //                changes.endPoint.new,
+    //                ::formatLocation,
+    //                PropKey("end-location"),
+    //                getPointMovedRemarkOrNull(translation, changes.endPoint.old, changes.endPoint.new),
+    //            ),
+    //            if (changedKmNumbers.isNotEmpty()) {
+    //                PublicationChange(
+    //                    PropKey("geometry"),
+    //                    ChangeValue(null, null),
+    //                    publicationChangeRemark(
+    //                        translation,
+    //                        if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",
+    //                        formatChangedKmNumbers(changedKmNumbers.toList()),
+    //                    ),
+    //                )
+    //            } else {
+    //                null
+    //            },
+    //        )
+    //    }
 
     fun diffKmPost(
         translation: Translation,
@@ -883,7 +878,12 @@ constructor(
                 ::formatLocation,
                 PropKey("location"),
                 remark =
-                    getPointMovedRemarkOrNull(translation, changes.location.old, changes.location.new, "moved-x-meters"),
+                    getPointMovedRemarkOrNull(
+                        translation,
+                        changes.location.old,
+                        changes.location.new,
+                        "moved-x-meters",
+                    ),
             ),
             compareChangeValues(changes.state, { it }, PropKey("state"), enumLocalizationKey = "OperationalPointState"),
         )
@@ -1067,12 +1067,7 @@ constructor(
         type: PublishableObjectType,
     ) =
         if (publicationLogAsset == null) false
-        else if (
-            publicationLogAsset.type == PublicationLogAssetType.TRACK_NUMBER &&
-                type == PublishableObjectType.REFERENCE_LINE
-        ) {
-            publication.referenceLines.none { rl -> publicationLogAsset.isTrackNumber(rl.trackNumberId) }
-        } else
+        else
             publicationLogAsset.type.publishableObjectType != type ||
                 when (publicationLogAsset.type) {
                     PublicationLogAssetType.TRACK_NUMBER ->
@@ -1108,9 +1103,6 @@ constructor(
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.KM_POST)) mapOf()
             else publicationDao.fetchPublicationKmPostChanges(publication.id)
 
-        val publicationReferenceLineChanges =
-            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.REFERENCE_LINE)) mapOf()
-            else publicationDao.fetchPublicationReferenceLineChanges(publication.id)
         val publicationSwitchChanges =
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.SWITCH)) mapOf()
             else publicationDao.fetchPublicationSwitchChanges(publication.id)
@@ -1122,10 +1114,6 @@ constructor(
         val trackNumbersToDiff =
             publication.trackNumbers.filter { tn ->
                 publicationLogAsset == null || publicationLogAsset.isTrackNumber(tn.id)
-            }
-        val referenceLinesToDiff =
-            publication.referenceLines.filter { rl ->
-                publicationLogAsset == null || publicationLogAsset.isTrackNumber(rl.trackNumberId)
             }
         val kmPostsToDiff =
             publication.kmPosts.filter { kp -> publicationLogAsset == null || publicationLogAsset.isKmPost(kp.id) }
@@ -1150,8 +1138,6 @@ constructor(
         return PublicationDiff(
             publicationTrackNumberChanges,
             trackNumbersToDiff,
-            publicationReferenceLineChanges,
-            referenceLinesToDiff,
             publicationLocationTrackChanges,
             directLocationTracksToDiff,
             indirectLocationTracksToDiff,
@@ -1169,9 +1155,6 @@ constructor(
         PublicationInvolvedAssets(
             trackNumberDao.fetchManyByVersionWithoutCaching(
                 diffs.flatMap { diff -> diff.trackNumbersToDiff.map { it.version } }.distinct()
-            ),
-            referenceLineDao.fetchManyByVersionWithoutCaching(
-                diffs.flatMap { diff -> diff.referenceLinesToDiff.map { it.version } }.distinct()
             ),
             locationTrackDao.fetchManyByVersionWithoutCaching(
                 diffs
@@ -1236,30 +1219,33 @@ constructor(
                 )
             }
 
-        val referenceLines =
-            publicationDiff.referenceLinesToDiff.map { rl ->
-                val tn =
-                    trackNumberNamesCache
-                        .findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }
-                        ?.number
-
-                mapToPublicationTableItem(
-                    name = translation.t("publication-table.reference-line", localizationParams("trackNumber" to tn)),
-                    asset = PublishedAssetReferenceLine(assets.referenceLines.getValue(rl.version)),
-                    trackNumbers = setOfNotNull(tn),
-                    changedKmNumbers = rl.changedKmNumbers,
-                    operation = rl.operation,
-                    publication = publication,
-                    propChanges =
-                        diffReferenceLine(
-                            translation,
-                            publicationDiff.referenceLineChanges.getOrElse(rl.id) {
-                                error("Reference line changes not found: id=${rl.id} version=${rl.version}")
-                            },
-                            rl.changedKmNumbers,
-                        ),
-                )
-            }
+        // TODO: GVT-3637 cleanup
+        //        val referenceLines =
+        //            publicationDiff.referenceLinesToDiff.map { rl ->
+        //                val tn =
+        //                    trackNumberNamesCache
+        //                        .findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime
+        // }
+        //                        ?.number
+        //
+        //                mapToPublicationTableItem(
+        //                    name = translation.t("publication-table.reference-line", localizationParams("trackNumber"
+        // to tn)),
+        //                    asset = PublishedAssetReferenceLine(assets.referenceLines.getValue(rl.version)),
+        //                    trackNumbers = setOfNotNull(tn),
+        //                    changedKmNumbers = rl.changedKmNumbers,
+        //                    operation = rl.operation,
+        //                    publication = publication,
+        //                    propChanges =
+        //                        diffReferenceLine(
+        //                            translation,
+        //                            publicationDiff.referenceLineChanges.getOrElse(rl.id) {
+        //                                error("Reference line changes not found: id=${rl.id} version=${rl.version}")
+        //                            },
+        //                            rl.changedKmNumbers,
+        //                        ),
+        //                )
+        //            }
 
         val locationTracks =
             publicationDiff.directLocationTracksToDiff.map { lt ->
@@ -1438,7 +1424,6 @@ constructor(
 
         return listOf(
                 trackNumbers,
-                referenceLines,
                 locationTracks,
                 switches,
                 kmPosts,
@@ -1515,8 +1500,6 @@ private fun <Referrer : LayoutAsset<Referrer>, Referent : LayoutAsset<Referent>>
 private data class PublicationDiff(
     val trackNumberChanges: Map<IntId<LayoutTrackNumber>, TrackNumberChanges>,
     val trackNumbersToDiff: List<PublishedTrackNumber>,
-    val referenceLineChanges: Map<IntId<ReferenceLine>, ReferenceLineChanges>,
-    val referenceLinesToDiff: List<PublishedReferenceLine>,
     val locationTrackChanges: Map<IntId<LocationTrack>, LocationTrackChanges>,
     val directLocationTracksToDiff: List<PublishedLocationTrack>,
     val indirectLocationTracksToDiff: List<PublishedLocationTrack>,
@@ -1531,7 +1514,6 @@ private data class PublicationDiff(
 
 data class PublicationInvolvedAssets(
     val trackNumbers: Map<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber>,
-    val referenceLines: Map<LayoutRowVersion<ReferenceLine>, ReferenceLine>,
     val locationTracks: Map<LayoutRowVersion<LocationTrack>, LocationTrack>,
     val switches: Map<LayoutRowVersion<LayoutSwitch>, LayoutSwitch>,
     val kmPosts: Map<LayoutRowVersion<LayoutKmPost>, LayoutKmPost>,

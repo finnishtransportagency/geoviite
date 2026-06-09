@@ -5,10 +5,12 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
@@ -16,25 +18,26 @@ import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
-import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
 @Component
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    val alignmentDao: LayoutAlignmentDao,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutTrackNumber, NoParams>(
+    LayoutAssetDao<LayoutTrackNumber, ReferenceLineGeometry>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
         cacheEnabled,
@@ -47,7 +50,7 @@ class LayoutTrackNumberDao(
     ),
     IExternallyIdentifiedLayoutAssetDao<LayoutTrackNumber> {
 
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = NoParams.instance
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = alignmentDao.fetch(rowVersion)
 
     override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LayoutTrackNumber>> {
         val sql =
@@ -181,16 +184,29 @@ class LayoutTrackNumberDao(
             // TODO: GVT-2935 This should be non-null but we have tests that produce broken data
             // To fix this, we could use a similar model as LocationTrack+LocationTrackGeometry
             // There, they are save always as one, all the way from DAO.save
-            referenceLineId = rs.getIntIdOrNull("reference_line_id"),
+            //            referenceLineId = rs.getIntIdOrNull("reference_line_id"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
+
+            // TODO: GVT-3637 values after migration
+            startAddress = TrackMeter.ZERO,
+            boundingBox = null,
+            length = LineM(0.0),
+            segmentCount = 0,
         )
 
-    @Transactional
-    fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, NoParams.instance)
+    //    @Transactional
+    //    fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, NoParams.instance)
 
     @Transactional
-    override fun save(item: LayoutTrackNumber, params: NoParams): LayoutRowVersion<LayoutTrackNumber> {
+    override fun save(item: LayoutTrackNumber, params: ReferenceLineGeometry): LayoutRowVersion<LayoutTrackNumber> {
         val id = item.id as? IntId ?: createId()
 
         // language=sql
@@ -292,6 +308,81 @@ class LayoutTrackNumberDao(
     fun insertExternalId(id: IntId<LayoutTrackNumber>, branch: LayoutBranch, oid: Oid<LayoutTrackNumber>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    @Transactional(readOnly = true)
+    fun fetchVersionsNear(
+        layoutContext: LayoutContext,
+        bbox: BoundingBox,
+        includeDeleted: Boolean = false,
+    ): List<LayoutRowVersion<LayoutTrackNumber>> {
+        // TODO: GVT-3637 fix after migration
+        val sql =
+            """
+            select reference_line.id, reference_line.design_id, reference_line.draft, reference_line.version
+              from layout.reference_line_in_layout_context(
+                      :publication_state::layout.publication_state, :design_id) reference_line
+                join layout.track_number_in_layout_context(
+                      :publication_state::layout.publication_state, :design_id) track_number
+                         on reference_line.track_number_id = track_number.id
+                join layout.alignment
+                     on reference_line.alignment_id = alignment.id and reference_line.alignment_version = alignment.version
+              where (:include_deleted or track_number.state != 'DELETED')
+                and postgis.st_intersects(
+                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  alignment.bounding_box
+                )
+                and exists(
+                  select *
+                    from layout.segment_version
+                      join layout.segment_geometry on geometry_id = segment_geometry.id
+                    where segment_version.alignment_id = reference_line.alignment_id
+                      and segment_version.alignment_version = reference_line.alignment_version
+                      and postgis.st_intersects(
+                        postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                        segment_geometry.bounding_box
+                      )
+                );
+            """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "x_min" to bbox.min.x,
+                "y_min" to bbox.min.y,
+                "x_max" to bbox.max.x,
+                "y_max" to bbox.max.y,
+                "layout_srid" to LAYOUT_SRID.code,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+                "include_deleted" to includeDeleted,
+            )
+
+        // GVT-3181 This query is poorly optimized when JDBC tries to prepare a plan for it.
+        // Force a custom plan to avoid the issue. Note: this must be in the same transaction as the query.
+        jdbcTemplate.setForceCustomPlan()
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
+    }
+
+    fun fetchVersionsNonLinked(context: LayoutContext): List<LayoutRowVersion<LayoutTrackNumber>> {
+        // TODO: GVT-3637 fix after migration
+        val sql =
+            """
+            select rl.id, rl.design_id, rl.draft, rl.version
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                              :design_id) tn on rl.track_number_id = tn.id
+              left join layout.alignment on rl.alignment_id = alignment.id
+            where tn.state != 'DELETED'
+              and alignment.segment_count = 0
+            """
+                .trimIndent()
+        val params = mapOf("publication_state" to context.state.name, "design_id" to context.branch.designId?.intValue)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 }
 

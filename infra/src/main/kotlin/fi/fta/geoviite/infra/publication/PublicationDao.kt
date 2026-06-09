@@ -53,8 +53,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.getBboxOrNull
@@ -62,7 +60,6 @@ import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getChange
 import fi.fta.geoviite.infra.util.getChangeGeometryPoint
 import fi.fta.geoviite.infra.util.getChangePoint
-import fi.fta.geoviite.infra.util.getChangeRowVersion
 import fi.fta.geoviite.infra.util.getDoubleOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
@@ -103,17 +100,16 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
 class PublicationDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
 ) : DaoBase(jdbcTemplateParam) {
 
@@ -148,11 +144,14 @@ class PublicationDao(
                     operation = rs.getEnum("operation"),
                     userName = UserName.of(rs.getString("change_user")),
                     designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
-                    boundingBox =
-                        referenceLineDao
-                            .fetchVersionByTrackNumberId(transition.baseContext, rs.getIntId("id"))
-                            ?.let(referenceLineDao::fetch)
-                            ?.boundingBox,
+                    // TODO: GVT-3637 fix after data migration
+                    boundingBox = TODO(),
+                    geometryChanges = null,
+                    //                        referenceLineDao
+                    //                            .fetchVersionByTrackNumberId(transition.baseContext,
+                    // rs.getIntId("id"))
+                    //                            ?.let(referenceLineDao::fetch)
+                    //                            ?.boundingBox,
                 )
             }
         logger.daoAccess(
@@ -163,79 +162,79 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchReferenceLinePublicationCandidates(
-        transition: LayoutContextTransition
-    ): List<ReferenceLinePublicationCandidate> {
-        val sql =
-            """
-            select
-              candidate_reference_line.id,
-              candidate_reference_line.design_id,
-              candidate_reference_line.draft,
-              candidate_reference_line.version,
-              candidate_reference_line.track_number_id,
-              candidate_reference_line.change_time,
-              candidate_reference_line.change_user,
-              candidate_track_number.number as name,
-              candidate_reference_line.design_asset_state,
-              layout.infer_operation_from_state_transition(
-                (select state
-                 from layout.track_number_in_layout_context('OFFICIAL', null)
-                 where id = track_number_id),
-                candidate_track_number.state
-              ) as operation,
-              postgis.st_astext(alignment_version.bounding_box) as bounding_box
-            from layout.reference_line candidate_reference_line
-              left join lateral
-                (
-                select *
-                from (
-                  select * from layout.track_number same_context_tn
-                  where same_context_tn.draft = (:candidate_state = 'DRAFT')
-                    and same_context_tn.design_id is not distinct from :candidate_design_id
-                    and same_context_tn.id = candidate_reference_line.track_number_id
-                  union all
-                  select *
-                  from layout.track_number_in_layout_context(:candidate_state::layout.publication_state,
-                                                             :candidate_design_id)) visible_tn
-                  where visible_tn.id = candidate_reference_line.track_number_id
-                limit 1
-                ) candidate_track_number on (true)
-              left join layout.alignment_version alignment_version
-                on candidate_reference_line.alignment_id = alignment_version.id
-                  and candidate_reference_line.alignment_version = alignment_version.version
-            where candidate_reference_line.draft = (:candidate_state = 'DRAFT')
-              and candidate_reference_line.design_id is not distinct from :candidate_design_id
-              and not (candidate_reference_line.design_id is not null and not candidate_reference_line.draft
-                         and (candidate_reference_line.design_asset_state = 'CANCELLED' or exists (
-                           select * from layout.reference_line drafted_cancellation
-                           where drafted_cancellation.draft
-                             and drafted_cancellation.design_id = candidate_reference_line.design_id
-                             and drafted_cancellation.id = candidate_reference_line.id
-                             and drafted_cancellation.design_asset_state = 'CANCELLED')))
-            """
-                .trimIndent()
-        val candidates =
-            jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
-                ReferenceLinePublicationCandidate(
-                    rowVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                    name = rs.getTrackNumber("name"),
-                    trackNumberId = rs.getIntId("track_number_id"),
-                    draftChangeTime = rs.getInstant("change_time"),
-                    userName = UserName.of(rs.getString("change_user")),
-                    operation = rs.getEnum<Operation>("operation"),
-                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
-                    boundingBox = rs.getBboxOrNull("bounding_box"),
-                    geometryChanges = null,
-                )
-            }
-        logger.daoAccess(
-            FETCH,
-            ReferenceLinePublicationCandidate::class,
-            candidates.map(ReferenceLinePublicationCandidate::id),
-        )
-        return candidates
-    }
+    //    fun fetchReferenceLinePublicationCandidates(
+    //        transition: LayoutContextTransition
+    //    ): List<ReferenceLinePublicationCandidate> {
+    //        val sql =
+    //            """
+    //            select
+    //              candidate_reference_line.id,
+    //              candidate_reference_line.design_id,
+    //              candidate_reference_line.draft,
+    //              candidate_reference_line.version,
+    //              candidate_reference_line.track_number_id,
+    //              candidate_reference_line.change_time,
+    //              candidate_reference_line.change_user,
+    //              candidate_track_number.number as name,
+    //              candidate_reference_line.design_asset_state,
+    //              layout.infer_operation_from_state_transition(
+    //                (select state
+    //                 from layout.track_number_in_layout_context('OFFICIAL', null)
+    //                 where id = track_number_id),
+    //                candidate_track_number.state
+    //              ) as operation,
+    //              postgis.st_astext(alignment_version.bounding_box) as bounding_box
+    //            from layout.reference_line candidate_reference_line
+    //              left join lateral
+    //                (
+    //                select *
+    //                from (
+    //                  select * from layout.track_number same_context_tn
+    //                  where same_context_tn.draft = (:candidate_state = 'DRAFT')
+    //                    and same_context_tn.design_id is not distinct from :candidate_design_id
+    //                    and same_context_tn.id = candidate_reference_line.track_number_id
+    //                  union all
+    //                  select *
+    //                  from layout.track_number_in_layout_context(:candidate_state::layout.publication_state,
+    //                                                             :candidate_design_id)) visible_tn
+    //                  where visible_tn.id = candidate_reference_line.track_number_id
+    //                limit 1
+    //                ) candidate_track_number on (true)
+    //              left join layout.alignment_version alignment_version
+    //                on candidate_reference_line.alignment_id = alignment_version.id
+    //                  and candidate_reference_line.alignment_version = alignment_version.version
+    //            where candidate_reference_line.draft = (:candidate_state = 'DRAFT')
+    //              and candidate_reference_line.design_id is not distinct from :candidate_design_id
+    //              and not (candidate_reference_line.design_id is not null and not candidate_reference_line.draft
+    //                         and (candidate_reference_line.design_asset_state = 'CANCELLED' or exists (
+    //                           select * from layout.reference_line drafted_cancellation
+    //                           where drafted_cancellation.draft
+    //                             and drafted_cancellation.design_id = candidate_reference_line.design_id
+    //                             and drafted_cancellation.id = candidate_reference_line.id
+    //                             and drafted_cancellation.design_asset_state = 'CANCELLED')))
+    //            """
+    //                .trimIndent()
+    //        val candidates =
+    //            jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
+    //                ReferenceLinePublicationCandidate(
+    //                    rowVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+    //                    name = rs.getTrackNumber("name"),
+    //                    trackNumberId = rs.getIntId("track_number_id"),
+    //                    draftChangeTime = rs.getInstant("change_time"),
+    //                    userName = UserName.of(rs.getString("change_user")),
+    //                    operation = rs.getEnum<Operation>("operation"),
+    //                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
+    //                    boundingBox = rs.getBboxOrNull("bounding_box"),
+    //                    geometryChanges = null,
+    //                )
+    //            }
+    //        logger.daoAccess(
+    //            FETCH,
+    //            ReferenceLinePublicationCandidate::class,
+    //            candidates.map(ReferenceLinePublicationCandidate::id),
+    //        )
+    //        return candidates
+    //    }
 
     fun fetchLocationTrackPublicationCandidates(
         transition: LayoutContextTransition
@@ -619,12 +618,6 @@ class PublicationDao(
 
         saveKmPostChanges(publicationId, changes.directChanges.kmPostChanges, publishedVersions.kmPosts)
 
-        saveReferenceLineChanges(
-            publicationId,
-            changes.directChanges.referenceLineChanges,
-            publishedVersions.referenceLines,
-        )
-
         saveLocationTrackChanges(
             publicationId,
             changes.directChanges.locationTrackChanges,
@@ -878,7 +871,10 @@ class PublicationDao(
                         state = rs.getChange("state") { rs.getEnumOrNull<LayoutState>(it) },
                         // TODO: these should not be nullable, but current test data contains broken tracknumbers
                         startAddress = rs.getNullableChange("start_address", rs::getTrackMeterOrNull),
+                        // TODO: GVT-3637 fix fetch after data migration
+                        startPoint = TODO(),
                         endPoint = rs.getNullableChangePoint("end_x", "end_y"),
+                        length = TODO(),
                     )
             }
             .toMap()
@@ -1191,82 +1187,83 @@ class PublicationDao(
             .also { logger.daoAccess(FETCH, KmPostChanges::class, publicationId) }
     }
 
-    fun fetchPublicationReferenceLineChanges(
-        publicationId: IntId<Publication>
-    ): Map<IntId<ReferenceLine>, ReferenceLineChanges> {
-        val sql =
-            """
-            select
-              rlv.id as rl_id,
-              rlv.track_number_id as track_number_id,
-              old_rlv.track_number_id as old_track_number_id,
-              av.length,
-              old_av.length as old_length,
-              rlv.alignment_id,
-              old_rlv.alignment_id as old_alignment_id,
-              rlv.alignment_version,
-              old_rlv.alignment_version as old_alignment_version,
-              postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
-              postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
-              postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
-              postgis.st_y(postgis.st_endpoint(old_sg_last.geometry)) as old_end_y,
-              postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
-              postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
-              postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
-              from publication.reference_line publication_rl
-                left join layout.reference_line_version rlv
-                          on publication_rl.id = rlv.id
-                            and publication_rl.layout_context_id = rlv.layout_context_id
-                            and publication_rl.version = rlv.version
-                left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
-                left join layout.segment_version sv_first
-                          on av.id = sv_first.alignment_id
-                            and av.version = sv_first.alignment_version
-                            and sv_first.segment_index = 0
-                left join layout.segment_geometry sg_first on sv_first.geometry_id = sg_first.id
-                left join layout.segment_version sv_last
-                          on av.id = sv_last.alignment_id
-                            and av.version = sv_last.alignment_version
-                            and sv_last.segment_index = av.segment_count - 1
-                left join layout.segment_geometry sg_last on sv_last.geometry_id = sg_last.id
-                left join layout.reference_line_version old_rlv
-                          on publication_rl.id = old_rlv.id
-                            and publication_rl.base_layout_context_id = old_rlv.layout_context_id
-                            and publication_rl.base_version = old_rlv.version
-                left join layout.alignment_version old_av
-                          on old_rlv.alignment_id = old_av.id
-                            and old_rlv.alignment_version = old_av.version
-                left join layout.segment_version old_sv_first
-                          on old_av.id = old_sv_first.alignment_id
-                            and old_av.version = old_sv_first.alignment_version
-                            and old_sv_first.segment_index = 0
-                left join layout.segment_geometry old_sg_first on old_sv_first.geometry_id = old_sg_first.id
-                left join layout.segment_version old_sv_last
-                          on old_av.id = old_sv_last.alignment_id
-                            and old_av.version = old_sv_last.alignment_version
-                            and old_sv_last.segment_index = old_av.segment_count - 1
-                left join layout.segment_geometry old_sg_last on old_sv_last.geometry_id = old_sg_last.id
-            where publication_id = :publication_id
-            """
-                .trimIndent()
-
-        return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                val id = rs.getIntId<ReferenceLine>("rl_id")
-                id to
-                    ReferenceLineChanges(
-                        id,
-                        trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
-                        length = rs.getChange("length", rs::getDoubleOrNull),
-                        startPoint = rs.getNullableChangePoint("start_x", "start_y"),
-                        endPoint = rs.getNullableChangePoint("end_x", "end_y"),
-                        alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
-                    )
-            }
-            .toMap()
-            .also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
-    }
+    //    fun fetchPublicationReferenceLineChanges(
+    //        publicationId: IntId<Publication>
+    //    ): Map<IntId<ReferenceLine>, ReferenceLineChanges> {
+    //        val sql =
+    //            """
+    //            select
+    //              rlv.id as rl_id,
+    //              rlv.track_number_id as track_number_id,
+    //              old_rlv.track_number_id as old_track_number_id,
+    //              av.length,
+    //              old_av.length as old_length,
+    //              rlv.alignment_id,
+    //              old_rlv.alignment_id as old_alignment_id,
+    //              rlv.alignment_version,
+    //              old_rlv.alignment_version as old_alignment_version,
+    //              postgis.st_x(postgis.st_startpoint(old_sg_first.geometry)) as old_start_x,
+    //              postgis.st_y(postgis.st_startpoint(old_sg_first.geometry)) as old_start_y,
+    //              postgis.st_x(postgis.st_endpoint(old_sg_last.geometry)) as old_end_x,
+    //              postgis.st_y(postgis.st_endpoint(old_sg_last.geometry)) as old_end_y,
+    //              postgis.st_x(postgis.st_startpoint(sg_first.geometry)) as start_x,
+    //              postgis.st_y(postgis.st_startpoint(sg_first.geometry)) as start_y,
+    //              postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
+    //              postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
+    //              from publication.reference_line publication_rl
+    //                left join layout.reference_line_version rlv
+    //                          on publication_rl.id = rlv.id
+    //                            and publication_rl.layout_context_id = rlv.layout_context_id
+    //                            and publication_rl.version = rlv.version
+    //                left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version =
+    // av.version
+    //                left join layout.segment_version sv_first
+    //                          on av.id = sv_first.alignment_id
+    //                            and av.version = sv_first.alignment_version
+    //                            and sv_first.segment_index = 0
+    //                left join layout.segment_geometry sg_first on sv_first.geometry_id = sg_first.id
+    //                left join layout.segment_version sv_last
+    //                          on av.id = sv_last.alignment_id
+    //                            and av.version = sv_last.alignment_version
+    //                            and sv_last.segment_index = av.segment_count - 1
+    //                left join layout.segment_geometry sg_last on sv_last.geometry_id = sg_last.id
+    //                left join layout.reference_line_version old_rlv
+    //                          on publication_rl.id = old_rlv.id
+    //                            and publication_rl.base_layout_context_id = old_rlv.layout_context_id
+    //                            and publication_rl.base_version = old_rlv.version
+    //                left join layout.alignment_version old_av
+    //                          on old_rlv.alignment_id = old_av.id
+    //                            and old_rlv.alignment_version = old_av.version
+    //                left join layout.segment_version old_sv_first
+    //                          on old_av.id = old_sv_first.alignment_id
+    //                            and old_av.version = old_sv_first.alignment_version
+    //                            and old_sv_first.segment_index = 0
+    //                left join layout.segment_geometry old_sg_first on old_sv_first.geometry_id = old_sg_first.id
+    //                left join layout.segment_version old_sv_last
+    //                          on old_av.id = old_sv_last.alignment_id
+    //                            and old_av.version = old_sv_last.alignment_version
+    //                            and old_sv_last.segment_index = old_av.segment_count - 1
+    //                left join layout.segment_geometry old_sg_last on old_sv_last.geometry_id = old_sg_last.id
+    //            where publication_id = :publication_id
+    //            """
+    //                .trimIndent()
+    //
+    //        return jdbcTemplate
+    //            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+    //                val id = rs.getIntId<ReferenceLine>("rl_id")
+    //                id to
+    //                    ReferenceLineChanges(
+    //                        id,
+    //                        trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
+    //                        length = rs.getChange("length", rs::getDoubleOrNull),
+    //                        startPoint = rs.getNullableChangePoint("start_x", "start_y"),
+    //                        endPoint = rs.getNullableChangePoint("end_x", "end_y"),
+    //                        alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
+    //                    )
+    //            }
+    //            .toMap()
+    //            .also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
+    //    }
 
     private enum class ChangeSide {
         OLD,
@@ -1826,46 +1823,46 @@ class PublicationDao(
         )
     }
 
-    private fun saveReferenceLineChanges(
-        publicationId: IntId<Publication>,
-        referenceLineIds: Collection<IntId<ReferenceLine>>,
-        publishedVersions: List<Change<LayoutRowVersion<ReferenceLine>>>,
-    ) {
-        jdbcTemplate.batchUpdate(
-            """
-            insert into publication.reference_line (
-              publication_id,
-              id,
-              layout_context_id,
-              version,
-              base_layout_context_id,
-              base_version
-            )
-            values (
-              :publication_id,
-              :id,
-              :layout_context_id,
-              :version,
-              :base_layout_context_id,
-              :base_version
-            )
-            """
-                .trimIndent(),
-            referenceLineIds
-                .map { id ->
-                    val versionChange = requireNotNull(publishedVersions.find { it.new.id == id })
-                    mapOf(
-                        "publication_id" to publicationId.intValue,
-                        "id" to id.intValue,
-                        "layout_context_id" to versionChange.new.context.toSqlString(),
-                        "version" to versionChange.new.version,
-                        "base_layout_context_id" to versionChange.old?.context?.toSqlString(),
-                        "base_version" to versionChange.old?.version,
-                    )
-                }
-                .toTypedArray(),
-        )
-    }
+    //    private fun saveReferenceLineChanges(
+    //        publicationId: IntId<Publication>,
+    //        referenceLineIds: Collection<IntId<ReferenceLine>>,
+    //        publishedVersions: List<Change<LayoutRowVersion<ReferenceLine>>>,
+    //    ) {
+    //        jdbcTemplate.batchUpdate(
+    //            """
+    //            insert into publication.reference_line (
+    //              publication_id,
+    //              id,
+    //              layout_context_id,
+    //              version,
+    //              base_layout_context_id,
+    //              base_version
+    //            )
+    //            values (
+    //              :publication_id,
+    //              :id,
+    //              :layout_context_id,
+    //              :version,
+    //              :base_layout_context_id,
+    //              :base_version
+    //            )
+    //            """
+    //                .trimIndent(),
+    //            referenceLineIds
+    //                .map { id ->
+    //                    val versionChange = requireNotNull(publishedVersions.find { it.new.id == id })
+    //                    mapOf(
+    //                        "publication_id" to publicationId.intValue,
+    //                        "id" to id.intValue,
+    //                        "layout_context_id" to versionChange.new.context.toSqlString(),
+    //                        "version" to versionChange.new.version,
+    //                        "base_layout_context_id" to versionChange.old?.context?.toSqlString(),
+    //                        "base_version" to versionChange.old?.version,
+    //                    )
+    //                }
+    //                .toTypedArray(),
+    //        )
+    //    }
 
     private fun saveLocationTrackChanges(
         publicationId: IntId<Publication>,
@@ -2175,7 +2172,8 @@ class PublicationDao(
                         name = AlignmentName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers =
+                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->
@@ -2184,58 +2182,61 @@ class PublicationDao(
             }
     }
 
-    fun fetchPublishedReferenceLines(
-        publicationIds: Set<IntId<Publication>>
-    ): Map<IntId<Publication>, List<PublishedReferenceLine>> {
-        val sql =
-            """
-            select
-              prl.publication_id,
-              prl.base_layout_context_id,
-              prl.base_version,
-              rl.id,
-              rl.design_id,
-              rl.draft,
-              rl.version,
-              rl.track_number_id,
-              layout.infer_operation_from_state_transition(
-                  tn_old.state,
-                  tn.state
-                ) as operation,
-              (select coalesce(array_agg(ptnk.km_number), '{}')
-               from publication.track_number_km ptnk
-               where ptnk.track_number_id = rl.track_number_id and ptnk.publication_id = ptn.publication_id) as changed_km
-              from publication.reference_line prl
-                inner join layout.reference_line_version rl using (id, layout_context_id, version)
-                left join publication.publication p
-                          on p.id = prl.publication_id
-                left join publication.track_number ptn
-                          on ptn.id = rl.track_number_id and ptn.publication_id = prl.publication_id
-                left join layout.track_number_change_view tn
-                          on tn.id = ptn.id and tn.layout_context_id = ptn.layout_context_id and tn.version = ptn.version
-                left join layout.track_number_version tn_old
-                          on tn_old.id = ptn.id
-                            and tn_old.layout_context_id = ptn.base_layout_context_id
-                            and tn_old.version = ptn.base_version
-              where prl.publication_id = any(array[:publication_ids]::int[])
-            """
-                .trimIndent()
-        return jdbcTemplate
-            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
-                rs.getIntId<Publication>("publication_id") to
-                    PublishedReferenceLine(
-                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                        baseVersion = rs.getLayoutRowVersionOrNull("id", "base_layout_context_id", "base_version"),
-                        trackNumberId = rs.getIntId("track_number_id"),
-                        operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
-                        changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet(),
-                    )
-            }
-            .also { referenceLines ->
-                logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.second.version })
-            }
-            .groupBy({ it.first }, { it.second })
-    }
+    //    fun fetchPublishedReferenceLines(
+    //        publicationIds: Set<IntId<Publication>>
+    //    ): Map<IntId<Publication>, List<PublishedReferenceLine>> {
+    //        val sql =
+    //            """
+    //            select
+    //              prl.publication_id,
+    //              prl.base_layout_context_id,
+    //              prl.base_version,
+    //              rl.id,
+    //              rl.design_id,
+    //              rl.draft,
+    //              rl.version,
+    //              rl.track_number_id,
+    //              layout.infer_operation_from_state_transition(
+    //                  tn_old.state,
+    //                  tn.state
+    //                ) as operation,
+    //              (select coalesce(array_agg(ptnk.km_number), '{}')
+    //               from publication.track_number_km ptnk
+    //               where ptnk.track_number_id = rl.track_number_id and ptnk.publication_id = ptn.publication_id) as
+    // changed_km
+    //              from publication.reference_line prl
+    //                inner join layout.reference_line_version rl using (id, layout_context_id, version)
+    //                left join publication.publication p
+    //                          on p.id = prl.publication_id
+    //                left join publication.track_number ptn
+    //                          on ptn.id = rl.track_number_id and ptn.publication_id = prl.publication_id
+    //                left join layout.track_number_change_view tn
+    //                          on tn.id = ptn.id and tn.layout_context_id = ptn.layout_context_id and tn.version =
+    // ptn.version
+    //                left join layout.track_number_version tn_old
+    //                          on tn_old.id = ptn.id
+    //                            and tn_old.layout_context_id = ptn.base_layout_context_id
+    //                            and tn_old.version = ptn.base_version
+    //              where prl.publication_id = any(array[:publication_ids]::int[])
+    //            """
+    //                .trimIndent()
+    //        return jdbcTemplate
+    //            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+    //                rs.getIntId<Publication>("publication_id") to
+    //                    PublishedReferenceLine(
+    //                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+    //                        baseVersion = rs.getLayoutRowVersionOrNull("id", "base_layout_context_id",
+    // "base_version"),
+    //                        trackNumberId = rs.getIntId("track_number_id"),
+    //                        operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
+    //                        changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet(),
+    //                    )
+    //            }
+    //            .also { referenceLines ->
+    //                logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.second.version })
+    //            }
+    //            .groupBy({ it.first }, { it.second })
+    //    }
 
     fun fetchPublishedKmPosts(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, List<PublishedKmPost>> {
         val sql =

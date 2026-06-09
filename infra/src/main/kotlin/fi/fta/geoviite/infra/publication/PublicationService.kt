@@ -43,16 +43,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -65,8 +62,6 @@ constructor(
     private val kmPostDao: LayoutKmPostDao,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
-    private val referenceLineService: ReferenceLineService,
-    private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchDao: LayoutSwitchDao,
     private val trackNumberDao: LayoutTrackNumberDao,
@@ -95,14 +90,13 @@ constructor(
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
         return PublicationCandidates(
             transition = transition,
-            trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(transition),
+            trackNumbers =
+                publicationDao.fetchTrackNumberPublicationCandidates(transition).map { tn ->
+                    tn.copy(geometryChanges = fetchChangedReferenceLineGeometryRanges(tn.id, transition))
+                },
             locationTracks =
                 publicationDao.fetchLocationTrackPublicationCandidates(transition).map { ltc ->
                     ltc.copy(geometryChanges = fetchChangedLocationTrackGeometryRanges(ltc.id, transition))
-                },
-            referenceLines =
-                publicationDao.fetchReferenceLinePublicationCandidates(transition).map { rlc ->
-                    rlc.copy(geometryChanges = fetchChangedReferenceLineGeometryRanges(rlc.id, transition))
                 },
             switches = publicationDao.fetchSwitchPublicationCandidates(transition),
             kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
@@ -123,11 +117,11 @@ constructor(
     }
 
     fun fetchChangedReferenceLineGeometryRanges(
-        id: IntId<ReferenceLine>,
+        id: IntId<LayoutTrackNumber>,
         transition: LayoutContextTransition,
     ): GeometryChangeRanges<ReferenceLineM> {
-        val lineWithAlignment1 = referenceLineService.getWithGeometry(transition.candidateContext, id)
-        val lineWithAlignment2 = referenceLineService.getWithGeometry(transition.baseContext, id)
+        val lineWithAlignment1 = trackNumberService.getWithGeometry(transition.candidateContext, id)
+        val lineWithAlignment2 = trackNumberService.getWithGeometry(transition.baseContext, id)
         return getChangedGeometryRanges(
             lineWithAlignment1?.second?.segmentsWithM ?: emptyList(),
             lineWithAlignment2?.second?.segmentsWithM ?: emptyList(),
@@ -142,16 +136,8 @@ constructor(
     fun getRevertRequestDependencies(branch: LayoutBranch, requestIds: PublicationRequestIds): PublicationRequestIds {
         val trackNumbers =
             trackNumberDao.fetchCandidateVersions(branch.draft).let(trackNumberDao::fetchMany).filter { tn ->
-                requestIds.trackNumbers.contains(tn.id) || requestIds.referenceLines.contains(tn.referenceLineId)
+                requestIds.trackNumbers.contains(tn.id)
             }
-
-        val referenceLineIds =
-            referenceLineDao
-                .fetchMany(referenceLineDao.fetchCandidateVersions(branch.draft))
-                .filter { rl ->
-                    requestIds.trackNumbers.contains(rl.trackNumberId) || requestIds.referenceLines.contains(rl.id)
-                }
-                .map { it.id as IntId }
 
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
@@ -194,7 +180,6 @@ constructor(
 
         return PublicationRequestIds(
             trackNumbers = trackNumbers.map { it.id as IntId },
-            referenceLines = referenceLineIds.toList(),
             locationTracks = (locationTrackIds + revertSplitTracks).distinct(),
             switches = (switchIds + revertSplitSwitches).distinct(),
             kmPosts = kmPostIds.toList(),
@@ -227,7 +212,6 @@ constructor(
 
         val locationTrackIds = toDelete.locationTracks.toSet()
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(branch, id) }.size
-        val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(branch, id) }.size
         alignmentDao.deleteOrphanedRerefenceLineGeometries()
         val switchCount =
             toDelete.switches
@@ -245,7 +229,6 @@ constructor(
             publicationId = null,
             trackNumbers = trackNumberCount,
             locationTracks = locationTrackCount,
-            referenceLines = referenceLineCount,
             switches = switchCount,
             kmPosts = kmPostCount,
             operationalPoints = operationalPointCount,
@@ -282,8 +265,6 @@ constructor(
         return ValidationVersions(
             target = transition,
             trackNumbers = trackNumberDao.fetchCandidateVersions(transition.candidateContext, request.trackNumbers),
-            referenceLines =
-                referenceLineDao.fetchCandidateVersions(transition.candidateContext, request.referenceLines),
             kmPosts = kmPostDao.fetchCandidateVersions(transition.candidateContext, request.kmPosts),
             locationTracks =
                 locationTrackDao.fetchCandidateVersions(transition.candidateContext, request.locationTracks),
@@ -411,7 +392,6 @@ constructor(
                     calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
                         inheritorBranch,
                         versions.trackNumbers,
-                        versions.referenceLines,
                         versions.locationTracks,
                         versions.switches,
                         versions.kmPosts,
@@ -436,7 +416,6 @@ constructor(
                 .distinct()
         return PublicationRequestIds(
             trackNumbers = indirectChanges.trackNumberChanges.map { it.trackNumberId },
-            referenceLines = listOf(),
             locationTracks = indirectChanges.locationTrackChanges.map { it.locationTrackId },
             switches =
                 (indirectChanges.switchChanges.map { it.switchId } + switchChangesBySameKmLocationTrackChange)
@@ -451,7 +430,6 @@ constructor(
         try {
             transactionTemplate.execute {
                 request.trackNumbers.forEach { id -> trackNumberService.mergeToMainBranch(fromBranch, id) }
-                request.referenceLines.forEach { id -> referenceLineService.mergeToMainBranch(fromBranch, id) }
                 request.locationTracks.forEach { id -> locationTrackService.mergeToMainBranch(fromBranch, id) }
                 request.switches.forEach { id -> switchService.mergeToMainBranch(fromBranch, id) }
                 request.kmPosts.forEach { id -> kmPostService.mergeToMainBranch(fromBranch, id) }
@@ -464,7 +442,6 @@ constructor(
         return PublicationResultSummary(
             publicationId = null,
             trackNumbers = request.trackNumbers.size,
-            referenceLines = request.referenceLines.size,
             locationTracks = request.locationTracks.size,
             switches = request.switches.size,
             kmPosts = request.kmPosts.size,
@@ -482,7 +459,6 @@ constructor(
         val trackNumbers = versions.trackNumbers.map { v -> trackNumberService.publish(branch, v) }
         val kmPosts = versions.kmPosts.map { v -> kmPostService.publish(branch, v) }
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
-        val referenceLines = versions.referenceLines.map { v -> referenceLineService.publish(branch, v) }
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
         val operationalPoints = versions.operationalPoints.map { v -> operationalPointService.publish(branch, v) }
 
@@ -492,7 +468,6 @@ constructor(
             calculatedChanges,
             PublishedVersions(
                 trackNumbers.map { it.versionChange },
-                referenceLines.map { it.versionChange },
                 locationTracks.map { it.versionChange },
                 switches.map { it.versionChange },
                 kmPosts.map { it.versionChange },
@@ -510,7 +485,6 @@ constructor(
         return PublicationResult(
             publicationId = publicationId,
             trackNumbers = trackNumbers,
-            referenceLines = referenceLines,
             locationTracks = locationTracks,
             switches = switches,
             kmPosts = kmPosts,

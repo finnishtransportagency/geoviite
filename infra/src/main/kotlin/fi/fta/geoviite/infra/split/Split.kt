@@ -21,7 +21,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameFreeTextPart
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
 import java.time.Instant
 
@@ -85,13 +84,15 @@ data class Split(
     @JsonIgnore
     val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
 
-    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
-        targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
+    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean = targetLocationTracks.any { tlt ->
+        tlt.locationTrackId == trackId
+    }
 
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
 
-    fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
-        targetLocationTracks.find { track -> track.locationTrackId == trackId }
+    fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? = targetLocationTracks.find { track ->
+        track.locationTrackId == trackId
+    }
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }
@@ -121,14 +122,12 @@ data class SplitTarget(
 
 data class SplitLayoutValidationIssues(
     val trackNumbers: Map<IntId<LayoutTrackNumber>, List<LayoutValidationIssue>>,
-    val referenceLines: Map<IntId<ReferenceLine>, List<LayoutValidationIssue>>,
     val kmPosts: Map<IntId<LayoutKmPost>, List<LayoutValidationIssue>>,
     val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
     val switches: Map<IntId<LayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
     fun allIssues(): List<LayoutValidationIssue> =
-        (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values)
-            .flatten()
+        (trackNumbers.values + kmPosts.values + locationTracks.values + switches.values).flatten()
 }
 
 data class SplitRequestTargetDuplicate(val id: IntId<LocationTrack>, val operation: SplitTargetDuplicateOperation)

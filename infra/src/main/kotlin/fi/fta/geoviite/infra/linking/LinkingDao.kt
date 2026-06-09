@@ -116,6 +116,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                         id = rs.getIndexedId("alignment_id", "element_index"),
                         isLinked = rs.getBoolean("is_linked"),
                         linkedLocationTrackIds = rs.getIntIdArray("location_track_ids"),
+                        // TODO: GVT-3637 fix after data migration -- should be track number ids now
                         linkedReferenceLineIds = rs.getIntIdArray("reference_line_ids"),
                     )
                 Triple(planId, alignmentId, geometryElementLinkStatus)

@@ -4,8 +4,6 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -19,7 +17,6 @@ class AlignmentMetadataService(
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao,
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineDao: ReferenceLineDao,
 ) {
 
     @Transactional(readOnly = true)
@@ -30,54 +27,29 @@ class AlignmentMetadataService(
     ): List<AlignmentPlanSection<LocationTrackM>> {
         return locationTrackDao.get(layoutContext, locationTrackId)?.let { locationTrack ->
             geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId)?.let { geocodingContext ->
-                getGeometryMetadataSections(
-                    locationTrack.getVersionOrThrow(),
-                    locationTrackDao.fetchExternalId(layoutContext.branch, locationTrackId)?.oid,
-                    boundingBox,
-                    geocodingContext,
-                )
+                val version = locationTrack.getVersionOrThrow()
+                val oid = locationTrackDao.fetchExternalId(layoutContext.branch, locationTrackId)?.oid
+                val sections = alignmentDao.fetchLocationTrackSegmentMetadata(version, oid, boundingBox)
+                val geometry = alignmentDao.fetch(version)
+                toPlanSections(sections, geometry, geocodingContext)
             }
         } ?: listOf()
     }
 
     @Transactional(readOnly = true)
-    fun getReferenceLineMetadataSections(
+    fun getTrackNumberMetadataSections(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection<ReferenceLineM>> {
-        return referenceLineDao.getByTrackNumber(layoutContext, trackNumberId)?.let { referenceLine ->
+        return trackNumberDao.get(layoutContext, trackNumberId)?.let { trackNumber ->
             geocodingService.getGeocodingContext(layoutContext, trackNumberId)?.let { geocodingContext ->
-                getGeometryMetadataSections(
-                    referenceLine.getGeometryVersionOrThrow(),
-                    trackNumberDao.fetchExternalId(layoutContext.branch, trackNumberId)?.oid,
-                    boundingBox,
-                    geocodingContext,
-                )
+                val version = trackNumber.getVersionOrThrow()
+                val oid = trackNumberDao.fetchExternalId(layoutContext.branch, trackNumberId)?.oid
+                val sections = alignmentDao.fetchTrackNumberSegmentMetadata(version, oid, boundingBox)
+                toPlanSections(sections, alignmentDao.fetch(version), geocodingContext)
             }
         } ?: listOf()
-    }
-
-    private fun getGeometryMetadataSections(
-        geometryVersion: RowVersion<ReferenceLineGeometry>,
-        externalId: Oid<*>?,
-        boundingBox: BoundingBox?,
-        context: GeocodingContext<ReferenceLineM>,
-    ): List<AlignmentPlanSection<ReferenceLineM>> {
-        val sections = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(geometryVersion, externalId, boundingBox)
-        val geometry = alignmentDao.fetch(geometryVersion)
-        return toPlanSections(sections, geometry, context)
-    }
-
-    private fun getGeometryMetadataSections(
-        trackVersion: LayoutRowVersion<LocationTrack>,
-        externalId: Oid<*>?,
-        boundingBox: BoundingBox?,
-        context: GeocodingContext<ReferenceLineM>,
-    ): List<AlignmentPlanSection<LocationTrackM>> {
-        val sections = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, externalId, boundingBox)
-        val geometry = alignmentDao.fetch(trackVersion)
-        return toPlanSections(sections, geometry, context)
     }
 }
 

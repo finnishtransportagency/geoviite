@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -24,7 +23,6 @@ class LazyMap<K, V>(private val compute: (K) -> V) {
 class ChangeContext(
     private val geocodingService: GeocodingService,
     val trackNumbers: TypedChangeContext<LayoutTrackNumber>,
-    val referenceLines: TypedChangeContext<ReferenceLine>,
     val kmPosts: TypedChangeContext<LayoutKmPost>,
     val locationTracks: TypedChangeContext<LocationTrack>,
     val switches: TypedChangeContext<LayoutSwitch>,

@@ -65,8 +65,6 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfTypeWithCode
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.UicCode
@@ -121,10 +119,6 @@ sealed class PublishedAsset {
 
 data class PublishedAssetTrackNumber(val asset: LayoutTrackNumber) : PublishedAsset() {
     override val type = PublishableObjectType.TRACK_NUMBER
-}
-
-data class PublishedAssetReferenceLine(val asset: ReferenceLine) : PublishedAsset() {
-    override val type = PublishableObjectType.REFERENCE_LINE
 }
 
 data class PublishedAssetLocationTrack(val asset: LocationTrack) : PublishedAsset() {
@@ -245,17 +239,6 @@ data class PublishedTrackNumber(
         get() = version.id
 }
 
-data class PublishedReferenceLine(
-    override val version: LayoutRowVersion<ReferenceLine>,
-    override val baseVersion: LayoutRowVersion<ReferenceLine>?,
-    val trackNumberId: IntId<LayoutTrackNumber>,
-    val operation: Operation,
-    val changedKmNumbers: Set<KmNumber>,
-) : PublishedVersionedAsset<ReferenceLine> {
-    val id: IntId<ReferenceLine>
-        get() = version.id
-}
-
 data class PublishedLocationTrack(
     override val version: LayoutRowVersion<LocationTrack>,
     override val baseVersion: LayoutRowVersion<LocationTrack>?,
@@ -313,7 +296,6 @@ data class PublishedIndirectChanges(
 data class PublicationDetails(
     val publication: Publication,
     val trackNumbers: List<PublishedTrackNumber>,
-    val referenceLines: List<PublishedReferenceLine>,
     val locationTracks: List<PublishedLocationTrack>,
     val switches: List<PublishedSwitch>,
     val kmPosts: List<PublishedKmPost>,
@@ -331,7 +313,6 @@ data class PublicationDetails(
 enum class PublishableObjectType {
     TRACK_NUMBER,
     LOCATION_TRACK,
-    REFERENCE_LINE,
     SWITCH,
     KM_POST,
     OPERATIONAL_POINT,
@@ -391,7 +372,6 @@ data class PublicationCandidates(
     val transition: LayoutContextTransition,
     val trackNumbers: List<TrackNumberPublicationCandidate>,
     val locationTracks: List<LocationTrackPublicationCandidate>,
-    val referenceLines: List<ReferenceLinePublicationCandidate>,
     val switches: List<SwitchPublicationCandidate>,
     val kmPosts: List<KmPostPublicationCandidate>,
     val operationalPoints: List<OperationalPointPublicationCandidate>,
@@ -400,7 +380,6 @@ data class PublicationCandidates(
         PublicationRequestIds(
             trackNumbers.map { candidate -> candidate.id },
             locationTracks.map { candidate -> candidate.id },
-            referenceLines.map { candidate -> candidate.id },
             switches.map { candidate -> candidate.id },
             kmPosts.map { candidate -> candidate.id },
             operationalPoints.map { candidate -> candidate.id },
@@ -414,7 +393,6 @@ data class PublicationCandidates(
         ValidationVersions(
             target = transition,
             trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
-            referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
             locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
             switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
             kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
@@ -426,7 +404,6 @@ data class PublicationCandidates(
     fun filter(request: PublicationRequestIds) =
         copy(
             trackNumbers = trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
-            referenceLines = referenceLines.filter { candidate -> request.referenceLines.contains(candidate.id) },
             locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
             switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
             kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
@@ -438,7 +415,6 @@ data class PublicationCandidates(
         logFormat(
             "trackNumbers" to toLog(trackNumbers),
             "locationTracks" to toLog(locationTracks),
-            "referenceLines" to toLog(referenceLines),
             "switches" to toLog(switches),
             "kmPosts" to toLog(kmPosts),
         )
@@ -451,7 +427,6 @@ data class ValidationVersions(
     val target: LayoutContextTransition,
     val trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>>,
     val locationTracks: List<LayoutRowVersion<LocationTrack>>,
-    val referenceLines: List<LayoutRowVersion<ReferenceLine>>,
     val switches: List<LayoutRowVersion<LayoutSwitch>>,
     val kmPosts: List<LayoutRowVersion<LayoutKmPost>>,
     val operationalPoints: List<LayoutRowVersion<OperationalPoint>>,
@@ -460,7 +435,7 @@ data class ValidationVersions(
 ) {
     companion object {
         fun emptyWithTarget(target: LayoutContextTransition) =
-            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
+            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
     }
 
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.id == id }
@@ -481,8 +456,6 @@ data class ValidationVersions(
 
     fun getTrackNumberIds() = trackNumbers.map { v -> v.id }
 
-    fun getReferenceLineIds() = referenceLines.map { v -> v.id }
-
     fun getLocationTrackIds() = locationTracks.map { v -> v.id }
 
     fun getSwitchIds() = switches.map { v -> v.id }
@@ -499,21 +472,18 @@ data class PublicationGroup(val id: IntId<Split>)
 data class PublicationRequestIds(
     val trackNumbers: List<IntId<LayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
-    val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<LayoutSwitch>>,
     val kmPosts: List<IntId<LayoutKmPost>>,
     val operationalPoints: List<IntId<OperationalPoint>>,
 ) {
     companion object {
-        fun empty(): PublicationRequestIds =
-            PublicationRequestIds(listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
+        fun empty(): PublicationRequestIds = PublicationRequestIds(listOf(), listOf(), listOf(), listOf(), listOf())
     }
 
     operator fun minus(other: PublicationRequestIds) =
         PublicationRequestIds(
             trackNumbers - other.trackNumbers.toSet(),
             locationTracks - other.locationTracks.toSet(),
-            referenceLines - other.referenceLines.toSet(),
             switches - other.switches.toSet(),
             kmPosts - other.kmPosts.toSet(),
             operationalPoints - other.operationalPoints.toSet(),
@@ -523,7 +493,6 @@ data class PublicationRequestIds(
         PublicationRequestIds(
             (trackNumbers.toSet() + other.trackNumbers).toList(),
             (locationTracks.toSet() + other.locationTracks).toList(),
-            (referenceLines.toSet() + other.referenceLines).toList(),
             (switches.toSet() + other.switches).toList(),
             (kmPosts.toSet() + other.kmPosts).toList(),
             (operationalPoints.toSet() + other.operationalPoints).toList(),
@@ -532,7 +501,6 @@ data class PublicationRequestIds(
     fun isEmpty() =
         trackNumbers.isEmpty() &&
             locationTracks.isEmpty() &&
-            referenceLines.isEmpty() &&
             switches.isEmpty() &&
             kmPosts.isEmpty() &&
             operationalPoints.isEmpty()
@@ -543,7 +511,6 @@ data class PublicationRequest(val content: PublicationRequestIds, val message: P
 data class PublicationResult(
     val publicationId: IntId<Publication>,
     val trackNumbers: List<PublicationResultVersions<LayoutTrackNumber>>,
-    val referenceLines: List<PublicationResultVersions<ReferenceLine>>,
     val locationTracks: List<PublicationResultVersions<LocationTrack>>,
     val switches: List<PublicationResultVersions<LayoutSwitch>>,
     val kmPosts: List<PublicationResultVersions<LayoutKmPost>>,
@@ -553,7 +520,6 @@ data class PublicationResult(
         PublicationResultSummary(
             publicationId,
             trackNumbers = trackNumbers.size,
-            referenceLines = referenceLines.size,
             locationTracks = locationTracks.size,
             switches = switches.size,
             kmPosts = kmPosts.size,
@@ -565,7 +531,6 @@ data class PublicationResultSummary(
     val publicationId: IntId<Publication>?,
     val trackNumbers: Int,
     val locationTracks: Int,
-    val referenceLines: Int,
     val switches: Int,
     val kmPosts: Int,
     val operationalPoints: Int,
@@ -620,24 +585,9 @@ data class TrackNumberPublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
+    val geometryChanges: GeometryChangeRanges<ReferenceLineM>?,
 ) : PublicationCandidate<LayoutTrackNumber> {
     override val type = PublishableObjectType.TRACK_NUMBER
-}
-
-data class ReferenceLinePublicationCandidate(
-    override val rowVersion: LayoutRowVersion<ReferenceLine>,
-    val name: TrackNumber,
-    val trackNumberId: IntId<LayoutTrackNumber>,
-    override val draftChangeTime: Instant,
-    override val userName: UserName,
-    override val issues: List<LayoutValidationIssue> = listOf(),
-    override val operation: Operation?,
-    override val publicationGroup: PublicationGroup? = null,
-    override val designAssetState: DesignAssetState?,
-    val boundingBox: BoundingBox?,
-    val geometryChanges: GeometryChangeRanges<ReferenceLineM>?,
-) : PublicationCandidate<ReferenceLine> {
-    override val type = PublishableObjectType.REFERENCE_LINE
 }
 
 data class LocationTrackPublicationCandidate(
@@ -833,8 +783,9 @@ data class SwitchChanges(
     private fun getTrackNumberJointLocation(
         trackNumberId: IntId<LayoutTrackNumber>,
         jointNumber: JointNumber,
-    ): Change<Point?> =
-        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
+    ): Change<Point?> = trackConnections.map { tracks ->
+        getTrackNumberJointLocation(tracks, trackNumberId, jointNumber)
+    }
 
     private fun getTrackNumberJointLocation(
         tracks: List<SwitchLocationTrack>,
@@ -849,23 +800,16 @@ data class SwitchChanges(
             ?.location
 }
 
-data class ReferenceLineChanges(
-    val id: IntId<ReferenceLine>,
-    val trackNumberId: Change<IntId<LayoutTrackNumber>>,
-    val length: Change<Double>,
-    val startPoint: Change<Point?>,
-    val endPoint: Change<Point?>,
-    val alignmentVersion: Change<RowVersion<ReferenceLineGeometry>>,
-)
-
 data class TrackNumberChanges(
     val id: IntId<LayoutTrackNumber>,
     val oid: Change<Oid<LayoutTrackNumber>?>,
     val trackNumber: Change<TrackNumber>,
     val description: Change<TrackNumberDescription>,
     val state: Change<LayoutState>,
+    val length: Change<Double>,
     // TODO: These should not be nullable, but current test data contains broken track numbers
     val startAddress: Change<TrackMeter?>,
+    val startPoint: Change<Point?>,
     val endPoint: Change<Point?>,
 )
 
@@ -977,7 +921,6 @@ enum class ValidationTargetType {
 
 data class PublishedVersions(
     val trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>>,
-    val referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>>,
     val locationTracks: List<Change<LayoutRowVersion<LocationTrack>>>,
     val switches: List<Change<LayoutRowVersion<LayoutSwitch>>>,
     val kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>>,
@@ -985,7 +928,6 @@ data class PublishedVersions(
 ) {
     init {
         trackNumbers.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
-        referenceLines.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
         locationTracks.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
         switches.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
         operationalPoints.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
