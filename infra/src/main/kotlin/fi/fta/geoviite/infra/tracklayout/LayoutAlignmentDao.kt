@@ -710,7 +710,7 @@ class LayoutAlignmentDao(
                              and ltve.location_track_version = lt.version
                 join target_edge using (edge_id)
               where lt.state != 'DELETED'
-              order by lt.id
+              order by target_edge.ix, lt.id, target_edge.node_id
             """
                 .trimIndent()
 
