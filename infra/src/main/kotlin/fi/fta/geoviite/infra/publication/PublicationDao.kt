@@ -2173,6 +2173,7 @@ class PublicationDao(
                 where pltk.location_track_id = plt.id and pltk.publication_id = plt.publication_id
               ) pltk on (true)
             where plt.publication_id = any(array[:publication_ids]::int[])
+            order by publication_id, id
             """
                 .trimIndent()
 
@@ -2228,6 +2229,7 @@ class PublicationDao(
                             and tn_old.layout_context_id = ptn.base_layout_context_id
                             and tn_old.version = ptn.base_version
               where prl.publication_id = any(array[:publication_ids]::int[])
+            order by publication_id, id
             """
                 .trimIndent()
         return jdbcTemplate
@@ -2265,6 +2267,7 @@ class PublicationDao(
               inner join layout.km_post_version kmp using (id, layout_context_id, version)
               inner join layout.km_post_change_view kpc using (id, layout_context_id, version)
             where publication_id = any(array[:publication_ids]::int[])
+            order by publication_id, id
             """
                 .trimIndent()
 
@@ -2311,6 +2314,7 @@ class PublicationDao(
               inner join layout.switch_version sv using (id, layout_context_id, version)
               inner join layout.switch_change_view sc using (id, layout_context_id, version)
             where ps.publication_id = any(array[:publication_ids]::int[])
+            order by publication_id, id
             """
                 .trimIndent()
 
@@ -2360,6 +2364,7 @@ class PublicationDao(
               track_number_external_id
             from publication.switch_joint
             where publication_id = any(array[:publication_ids]::int[])
+            order by publication_id, id, joint_number
             """
                 .trimIndent()
 
@@ -2410,6 +2415,7 @@ class PublicationDao(
               join publication.publication
                 on ptn.publication_id = publication.id
             where ptn.publication_id = any(array[:publication_ids]::int[])
+            order by publication_id, id
             """
                 .trimIndent()
 
