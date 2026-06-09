@@ -13,15 +13,15 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "34.4"
-val kotlinVersion = "2.3.21"
+val kotlinVersion = "2.4.0"
 
 plugins {
     id("org.springframework.boot") version "3.5.14"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
-    kotlin("jvm") version "2.3.21"
-    kotlin("plugin.spring") version "2.3.21"
+    kotlin("jvm") version "2.4.0"
+    kotlin("plugin.spring") version "2.4.0"
     id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
