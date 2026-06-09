@@ -337,12 +337,13 @@ export function getSelectableItemTypes(
         case LinkingType.PlacingOperationalPointArea:
         case LinkingType.LinkingOperationalPointSwitches:
         case LinkingType.LinkingOperationalPointTracks:
-        case LinkingType.TrackBoundaryMove:
             return [];
         case LinkingType.LinkingGeometrySwitch:
             return ['switches'];
         case LinkingType.LinkingKmPost:
             return ['kmPosts'];
+        case LinkingType.TrackBoundaryMove:
+            return linkingState.counterpartLocked ? [] : ['locationTracks'];
         case undefined:
             return allSelectableItemTypes;
         default:
@@ -372,7 +373,26 @@ function filterItemSelectOptionsByState(
     options: OnSelectOptions,
 ): OnSelectOptions {
     const selectableItemTypes = getSelectableItemTypes(state.splittingState, state.linkingState);
-    return filterSelectOptionsByItemTypes(options, selectableItemTypes);
+    return filterSelectOptionsByItemTypes(
+        filterSelectOptionsByLinkingState(state.linkingState, options),
+        selectableItemTypes,
+    );
+}
+
+function filterSelectOptionsByLinkingState(
+    linkingState: LinkingState | undefined,
+    options: OnSelectOptions,
+): OnSelectOptions {
+    if (linkingState?.type !== LinkingType.TrackBoundaryMove) {
+        return options;
+    }
+    const counterpartTrackIds = new Set(
+        linkingState.counterpartOptions.map((option) => option.trackId),
+    );
+    return {
+        ...options,
+        locationTracks: options.locationTracks?.filter((track) => counterpartTrackIds.has(track)),
+    };
 }
 
 const trackLayoutSlice = createSlice({
@@ -520,6 +540,10 @@ const trackLayoutSlice = createSlice({
                         );
                         break;
                     case LinkingType.TrackBoundaryMove:
+                        state.linkingState.counterpart = state.linkingState.counterpartOptions.find(
+                            (option) => option.trackId === onSelectOptions.locationTracks?.[0],
+                        );
+                        break;
                     case LinkingType.PlacingLayoutSwitch:
                     case LinkingType.LinkingLayoutSwitch:
                     case LinkingType.PlacingOperationalPoint:

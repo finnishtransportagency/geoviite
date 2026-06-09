@@ -230,6 +230,7 @@ export type LinkingOperationalPointTracks = LinkingBaseType & {
 export type ChangingTrackBoundary = LinkingBaseType & {
     type: LinkingType.TrackBoundaryMove;
     headTrack: LocationTrackId;
+    counterpartOptions: BoundaryMoveCounterpart[];
     counterpart: BoundaryMoveCounterpart | undefined;
     counterpartLocked: boolean;
     selectedTarget: SelectedBoundaryMoveTarget | undefined;

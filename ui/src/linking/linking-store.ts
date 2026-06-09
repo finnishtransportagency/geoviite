@@ -381,10 +381,19 @@ export const linkingReducers = {
             headTrack,
             state: 'preliminary',
             issues: [],
+            counterpartOptions: [],
             counterpart: undefined,
             counterpartLocked: false,
             selectedTarget: undefined,
         };
+    },
+    setTrackBoundaryMoveCounterpartOptions: (
+        state: TrackLayoutState,
+        { payload: counterpartOptions }: PayloadAction<BoundaryMoveCounterpart[]>,
+    ) => {
+        if (state.linkingState?.type === LinkingType.TrackBoundaryMove) {
+            state.linkingState.counterpartOptions = counterpartOptions;
+        }
     },
     setTrackBoundaryMoveCounterpart: (
         state: TrackLayoutState,
