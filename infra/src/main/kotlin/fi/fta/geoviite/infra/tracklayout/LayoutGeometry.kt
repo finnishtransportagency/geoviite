@@ -58,8 +58,6 @@ enum class GeometrySource {
     GENERATED,
 }
 
-fun emptyAlignment() = ReferenceLineGeometry(segments = listOf())
-
 data class SegmentGeometryAndMetadata<M : AlignmentM<M>>(
     val planId: IntId<GeometryPlan>?,
     val fileName: FileName?,
@@ -162,22 +160,21 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
     fun getClosestPointM(
         target: IPoint,
         startSegmentIndex: Int? = findClosestSegmentIndex(target),
-    ): Pair<LineM<M>, IntersectType>? =
-        startSegmentIndex?.let { segmentIndex ->
-            val segment = segments[segmentIndex]
-            val segmentM = segmentMValues[segmentIndex]
-            if (segment.source == GENERATED) {
-                val proportion = closestPointProportionOnGeneratedSegment(segmentIndex, target)
-                val interpolatedInternalM = proportion * segment.length
-                if (interpolatedInternalM < -POINT_SEEK_TOLERANCE) segmentM.min to BEFORE
-                else if (interpolatedInternalM > segment.length + POINT_SEEK_TOLERANCE) segmentM.max to AFTER
-                else if (interpolatedInternalM < 0.0) segmentM.min to WITHIN
-                else if (interpolatedInternalM > segment.length) segmentM.max to WITHIN
-                else LineM<SegmentM>(interpolatedInternalM).segmentToAlignmentM(segmentM.min) to WITHIN
-            } else {
-                segment.getClosestPointM(segmentM.min, target)
-            }
+    ): Pair<LineM<M>, IntersectType>? = startSegmentIndex?.let { segmentIndex ->
+        val segment = segments[segmentIndex]
+        val segmentM = segmentMValues[segmentIndex]
+        if (segment.source == GENERATED) {
+            val proportion = closestPointProportionOnGeneratedSegment(segmentIndex, target)
+            val interpolatedInternalM = proportion * segment.length
+            if (interpolatedInternalM < -POINT_SEEK_TOLERANCE) segmentM.min to BEFORE
+            else if (interpolatedInternalM > segment.length + POINT_SEEK_TOLERANCE) segmentM.max to AFTER
+            else if (interpolatedInternalM < 0.0) segmentM.min to WITHIN
+            else if (interpolatedInternalM > segment.length) segmentM.max to WITHIN
+            else LineM<SegmentM>(interpolatedInternalM).segmentToAlignmentM(segmentM.min) to WITHIN
+        } else {
+            segment.getClosestPointM(segmentM.min, target)
         }
+    }
 
     fun takeFirst(count: Int): List<AlignmentPoint<M>> = allAlignmentPoints.take(count).toList()
 
@@ -282,8 +279,9 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
     override fun toLog(): String = logFormat("segments" to segments.size, "length" to round(length, 3))
 }
 
-private fun segmentRTreeLine(segment: ISegment): Line =
-    segment.let { s -> Geometries.line(s.segmentStart.x, s.segmentStart.y, s.segmentEnd.x, s.segmentEnd.y) }
+private fun segmentRTreeLine(segment: ISegment): Line = segment.let { s ->
+    Geometries.line(s.segmentStart.x, s.segmentStart.y, s.segmentEnd.x, s.segmentEnd.y)
+}
 
 data class SegmentSpatialIndex(private val rtree: RTree<Int, Geometry>, private val maxSeekDistance: Double = 1000.0) {
     constructor(

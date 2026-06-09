@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
@@ -67,17 +66,18 @@ data class GeometryAlignmentHeader(
 }
 
 data class ReferenceLineHeader(
-    override val id: IntId<ReferenceLine>,
-    val version: LayoutRowVersion<ReferenceLine>,
-    override val trackNumberId: IntId<LayoutTrackNumber>,
+    val version: LayoutRowVersion<LayoutTrackNumber>,
     override val name: AlignmentName,
     override val state: LayoutState,
     override val length: LineM<ReferenceLineM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
-) : AlignmentHeader<ReferenceLine, LayoutState>() {
+) : AlignmentHeader<LayoutTrackNumber, LayoutState>() {
     override val alignmentSource = MapAlignmentSource.LAYOUT
     override val alignmentType = MapAlignmentType.REFERENCE_LINE
+    // TODO: GVT-3637 cleanup redundancies -- fields expected by UI
+    override val id: IntId<LayoutTrackNumber> = version.id
+    override val trackNumberId: IntId<LayoutTrackNumber> = version.id
 }
 
 data class LocationTrackHeader(
@@ -104,22 +104,23 @@ data class AlignmentPolyLine<T, M : AlignmentM<M>>(
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
 
-fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLine, geometry: ReferenceLineGeometry?) =
+fun toAlignmentHeader(
+    trackNumber: LayoutTrackNumber,
+    geometry: ReferenceLineGeometry?,
+) =
     ReferenceLineHeader(
-        id = referenceLine.id.also { require(it is IntId) } as IntId,
-        version = requireNotNull(referenceLine.version),
-        trackNumberId = referenceLine.trackNumberId,
+        version = trackNumber.getVersionOrThrow(),
         name = AlignmentName(trackNumber.number.toString()),
         state = trackNumber.state,
         length = geometry?.length ?: LineM(0.0),
-        segmentCount = referenceLine.segmentCount,
+        segmentCount = trackNumber.segmentCount,
         boundingBox = geometry?.boundingBox,
     )
 
 fun toAlignmentHeader(locationTrack: LocationTrack, geometry: DbLocationTrackGeometry) =
     LocationTrackHeader(
         id = locationTrack.id.also { require(it is IntId) } as IntId,
-        version = requireNotNull(locationTrack.version),
+        version = locationTrack.getVersionOrThrow(),
         trackNumberId = locationTrack.trackNumberId,
         duplicateOf = locationTrack.duplicateOf,
         name = locationTrack.name,

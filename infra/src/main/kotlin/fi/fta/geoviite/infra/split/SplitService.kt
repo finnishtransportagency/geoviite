@@ -48,7 +48,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SplitPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchSplitPoint
@@ -60,9 +59,9 @@ import fi.fta.geoviite.infra.tracklayout.collectSplitPoints
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 
@@ -70,7 +69,6 @@ const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 class SplitService(
     private val splitDao: SplitDao,
     private val kmPostDao: LayoutKmPostDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao,
     private val locationTrackService: LocationTrackService,
@@ -258,14 +256,6 @@ class SplitService(
                 .associate { version -> version.id to validateReferencesByTrackNumber(version.id, context) }
                 .filterValues { it.isNotEmpty() }
 
-        val rlSplitIssues =
-            candidates.referenceLines
-                .associate { version ->
-                    val trackNumberId = referenceLineDao.fetch(version).trackNumberId
-                    version.id to validateReferencesByTrackNumber(trackNumberId, context)
-                }
-                .filterValues { it.isNotEmpty() }
-
         val kpSplitIssues =
             candidates.kmPosts
                 .associate { version ->
@@ -298,7 +288,6 @@ class SplitService(
 
         return AdministrativeChangeLayoutValidationIssues(
             tnSplitIssues,
-            rlSplitIssues,
             kpSplitIssues,
             trackSplitIssues,
             switchSplitIssues,
@@ -345,8 +334,7 @@ class SplitService(
         context: ValidationContext,
     ): List<LayoutValidationIssue> {
         val switchInMultipleSplits = context.getUnfinishedSplits().count { split -> split.containsSwitch(switchId) } > 1
-        return listOf(validate(!switchInMultipleSplits, ERROR) { "$VALIDATION_SPLIT.switch-in-multiple-split" })
-            .filterNotNull()
+        return listOfNotNull(validate(!switchInMultipleSplits, ERROR) { "$VALIDATION_SPLIT.switch-in-multiple-split" })
     }
 
     private fun validateLocationTrackAbsence(

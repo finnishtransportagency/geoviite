@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 
 data class GeometryPlanLinkStatus(
     val id: IntId<GeometryPlan>,
@@ -26,7 +26,8 @@ data class GeometryElementLinkStatus(
     val id: IndexedId<GeometryElement>,
     val isLinked: Boolean,
     val linkedLocationTrackIds: List<IntId<LocationTrack>>,
-    val linkedReferenceLineIds: List<IntId<ReferenceLine>>,
+    // TODO: GVT-3637 clean up naming
+    val linkedReferenceLineIds: List<IntId<LayoutTrackNumber>>,
 )
 
 data class GeometrySwitchLinkStatus(val id: IntId<GeometrySwitch>, val isLinked: Boolean)

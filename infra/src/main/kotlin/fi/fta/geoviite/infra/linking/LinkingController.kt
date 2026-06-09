@@ -28,8 +28,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
@@ -54,8 +54,8 @@ constructor(
     @PostMapping("/{$LAYOUT_BRANCH}/reference-lines/geometry")
     fun saveReferenceLineLinking(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestBody linkingParameters: LinkingParameters<ReferenceLine>,
-    ): IntId<ReferenceLine> {
+        @RequestBody linkingParameters: LinkingParameters<LayoutTrackNumber>,
+    ): IntId<LayoutTrackNumber> {
         return linkingService.saveReferenceLineLinking(branch, linkingParameters)
     }
 
@@ -72,8 +72,8 @@ constructor(
     @PostMapping("/{$LAYOUT_BRANCH}/reference-lines/empty-geometry")
     fun saveEmptyReferenceLineLinking(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestBody linkingParameters: EmptyAlignmentLinkingParameters<ReferenceLine>,
-    ): IntId<ReferenceLine> {
+        @RequestBody linkingParameters: EmptyAlignmentLinkingParameters<LayoutTrackNumber>,
+    ): IntId<LayoutTrackNumber> {
         return linkingService.saveReferenceLineLinking(branch, linkingParameters)
     }
 
@@ -100,9 +100,9 @@ constructor(
     @PutMapping("/{$LAYOUT_BRANCH}/reference-lines/{id}/geometry")
     fun shortenReferenceLineGeometry(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") id: IntId<ReferenceLine>,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
         @RequestBody mRange: Range<Double>,
-    ): IntId<ReferenceLine> {
+    ): IntId<LayoutTrackNumber> {
         return linkingService.shortenReferenceLineGeometry(branch, id, mRange)
     }
 

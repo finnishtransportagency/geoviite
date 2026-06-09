@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.DataType
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
@@ -13,11 +11,30 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.round
 import kotlin.math.abs
 
-data class ReferenceLineGeometry(
+data class DbReferenceLineGeometry(
     override val segments: List<LayoutSegment>,
-    val id: DomainId<ReferenceLineGeometry> = StringId(),
-    val dataType: DataType = DataType.TEMP,
-) : IAlignment<ReferenceLineM> {
+    @get:JsonIgnore val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+) : ReferenceLineGeometry() {
+    override val trackNumberId: IntId<LayoutTrackNumber>
+        get() = trackNumberVersion.id
+}
+
+data class TmpReferenceLineGeometry(
+    override val segments: List<LayoutSegment>,
+    override val trackNumberId: IntId<LayoutTrackNumber>?,
+) : ReferenceLineGeometry() {
+
+    companion object {
+        val empty = TmpReferenceLineGeometry(emptyList(), null)
+    }
+}
+
+sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
+    // TODO: GVT-3637 cleanup
+    val id = trackNumberId
+    abstract val trackNumberId: IntId<LayoutTrackNumber>?
+    abstract override val segments: List<LayoutSegment>
+
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.map { s -> s.boundingBox }) }
     override val segmentMValues: List<Range<LineM<ReferenceLineM>>> = calculateSegmentMValues(segments)
     @get:JsonIgnore
@@ -53,7 +70,7 @@ data class ReferenceLineGeometry(
         }
     }
 
-    fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
+    fun withSegments(newSegments: List<LayoutSegment>) = TmpReferenceLineGeometry(segments = newSegments, trackNumberId)
 
     override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }

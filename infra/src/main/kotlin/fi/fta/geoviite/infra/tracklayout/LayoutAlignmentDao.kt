@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -52,14 +51,14 @@ import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import java.math.BigDecimal
-import java.sql.ResultSet
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.sql.ResultSet
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -87,7 +86,7 @@ class LayoutAlignmentDao(
     private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> =
         Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
-    private val referenceLineGeometryCache: Cache<RowVersion<ReferenceLineGeometry>, ReferenceLineGeometry> =
+    private val referenceLineGeometryCache: Cache<LayoutRowVersion<LayoutTrackNumber>, DbReferenceLineGeometry> =
         Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> =
@@ -290,23 +289,22 @@ class LayoutAlignmentDao(
                 val endNodeId = rs.getIntId<LayoutNode>("end_node_id")
                 val endNodePort = rs.getEnum<NodePortType>("end_node_port")
 
-                val segments =
-                    segmentIndices.map { i ->
-                        val geometryAlignmentId = geometryAlignmentIds[i]
-                        val geometryElementIndex = geometryElementIndices[i]
-                        val sourceId: IndexedId<GeometryElement>? =
-                            if (geometryAlignmentId != null) {
-                                IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
-                            } else {
-                                null
-                            }
-                        SegmentData(
-                            sourceId = sourceId,
-                            sourceStartM = sourceStartMValues[i],
-                            source = sources[i],
-                            geometryId = geometryIds[i],
-                        )
-                    }
+                val segments = segmentIndices.map { i ->
+                    val geometryAlignmentId = geometryAlignmentIds[i]
+                    val geometryElementIndex = geometryElementIndices[i]
+                    val sourceId: IndexedId<GeometryElement>? =
+                        if (geometryAlignmentId != null) {
+                            IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
+                        } else {
+                            null
+                        }
+                    SegmentData(
+                        sourceId = sourceId,
+                        sourceStartM = sourceStartMValues[i],
+                        source = sources[i],
+                        geometryId = geometryIds[i],
+                    )
+                }
                 EdgeData(edgeId, startNodeId to startNodePort, endNodeId to endNodePort, segments)
             }
         val nodes = getNodes(edges.flatMap { d -> listOf(d.startNode.first, d.endNode.first) }.toSet())
@@ -319,14 +317,12 @@ class LayoutAlignmentDao(
         savedNodes: Map<NodeContentKey, IntId<LayoutNode>>,
         savedGeometries: Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>>,
     ): List<IntId<LayoutEdge>> {
-        val startNodeIds =
-            edges.map { edge ->
-                (edge.startNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.startNode.node.contentKey])
-            }
-        val endNodeIds =
-            edges.map { edge ->
-                (edge.endNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.endNode.node.contentKey])
-            }
+        val startNodeIds = edges.map { edge ->
+            (edge.startNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.startNode.node.contentKey])
+        }
+        val endNodeIds = edges.map { edge ->
+            (edge.endNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.endNode.node.contentKey])
+        }
         val sql =
             """
             select * from layout.get_or_insert_edges(
@@ -506,20 +502,20 @@ class LayoutAlignmentDao(
         return geoms.size
     }
 
-    fun fetch(version: RowVersion<ReferenceLineGeometry>): ReferenceLineGeometry =
+    fun fetch(version: LayoutRowVersion<LayoutTrackNumber>): DbReferenceLineGeometry =
         if (cacheEnabled) referenceLineGeometryCache.get(version, ::fetchInternal) else fetchInternal(version)
 
     @Transactional(readOnly = true)
     fun fetchMany(
-        versions: List<RowVersion<ReferenceLineGeometry>>
-    ): Map<RowVersion<ReferenceLineGeometry>, ReferenceLineGeometry> = versions.associateWith(this::fetch)
+        versions: List<LayoutRowVersion<LayoutTrackNumber>>
+    ): Map<LayoutRowVersion<LayoutTrackNumber>, DbReferenceLineGeometry> = versions.associateWith(this::fetch)
 
     @Transactional(readOnly = true)
     fun getMany(
         versions: List<LayoutRowVersion<LocationTrack>>
     ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> = versions.associateWith(this::fetch)
 
-    private fun fetchInternal(version: RowVersion<ReferenceLineGeometry>): ReferenceLineGeometry {
+    private fun fetchInternal(version: LayoutRowVersion<LayoutTrackNumber>): DbReferenceLineGeometry {
         val sql =
             """
             select id, version
@@ -530,20 +526,23 @@ class LayoutAlignmentDao(
             """
                 .trimIndent()
         val params = mapOf("id" to version.id.intValue, "version" to version.version)
-        return getOne(
-                version.id,
-                jdbcTemplate.query(sql, params) { rs, _ ->
-                    ReferenceLineGeometry(
-                        dataType = DataType.STORED,
-                        id = rs.getIntId("id"),
-                        segments = fetchSegments(version),
-                    )
-                },
-            )
-            .also { alignment -> logger.daoAccess(AccessType.FETCH, ReferenceLineGeometry::class, alignment.id) }
+        // TODO: GVT-3637 fix after data migration
+        TODO()
+        //        return getOne(
+        //                version.id,
+        //                jdbcTemplate.query(sql, params) { rs, _ ->
+        //                    ReferenceLineGeometry(
+        //                        dataType = DataType.STORED,
+        //                        id = rs.getIntId("id"),
+        //                        segments = fetchSegments(version),
+        //                    )
+        //                },
+        //            )
+        //            .also { alignment -> logger.daoAccess(AccessType.FETCH, ReferenceLineGeometry::class,
+        // alignment.id) }
     }
 
-    fun preloadAlignmentCache(): Int {
+    fun preloadReferenceLineGeometries(): Int {
         val sql =
             """
             select
@@ -568,27 +567,28 @@ class LayoutAlignmentDao(
             jdbcTemplate.query(sql) { rs, _ ->
                 val geometryData = GeometryData(version = rs.getRowVersion("id", "version"))
                 val segmentId = rs.getIndexedIdOrNull<LayoutSegment>("id", "segment_index")
-                val segment =
-                    segmentId?.let { sId ->
-                        SegmentData(
-                            sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                            sourceStartM = rs.getBigDecimalOrNull("source_start"),
-                            source = rs.getEnum("source"),
-                            geometryId = rs.getIntId("geometry_id"),
-                        )
-                    }
+                val segment = segmentId?.let { sId ->
+                    SegmentData(
+                        sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                        sourceStartM = rs.getBigDecimalOrNull("source_start"),
+                        source = rs.getEnum("source"),
+                        geometryId = rs.getIntId("geometry_id"),
+                    )
+                }
                 geometryData to segment
             }
         val groupedByGeometry = geometryAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
         val geometries = fetchSegmentGeometries(geometryAndSegment.mapNotNull { (_, s) -> s?.geometryId }.distinct())
-        groupedByGeometry.parallelStream().forEach { (geometryData, segmentDatas) ->
-            referenceLineGeometryCache.get(geometryData.version) { _ ->
-                ReferenceLineGeometry(
-                    id = geometryData.version.id,
-                    segments = createSegments(segmentDatas.filterNotNull(), geometries),
-                )
-            }
-        }
+        // TODO: GVT-3637 after data migration, implement like it's done for location tracks
+        TODO()
+        //        groupedByGeometry.parallelStream().forEach { (geometryData, segmentDatas) ->
+        //            referenceLineGeometryCache.get(geometryData.version) { _ ->
+        //                ReferenceLineGeometry(
+        //                    id = geometryData.version.id,
+        //                    segments = createSegments(segmentDatas.filterNotNull(), geometries),
+        //                )
+        //            }
+        //        }
         return groupedByGeometry.size
     }
 
@@ -794,9 +794,9 @@ class LayoutAlignmentDao(
         return createSegments(segmentData, geometries)
     }
 
-    fun fetchSegmentGeometriesAndPlanMetadata(
+    fun fetchLocationTrackSegmentMetadata(
         trackVersion: LayoutRowVersion<LocationTrack>,
-        metadataExternalId: Oid<*>?,
+        metadataExternalId: Oid<LocationTrack>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata<LocationTrackM>> {
         val sql =
@@ -958,11 +958,12 @@ class LayoutAlignmentDao(
         return result
     }
 
-    fun fetchSegmentGeometriesAndPlanMetadata(
-        alignmentVersion: RowVersion<ReferenceLineGeometry>,
-        metadataExternalId: Oid<*>?,
+    fun fetchTrackNumberSegmentMetadata(
+        trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+        metadataExternalId: Oid<LayoutTrackNumber>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata<ReferenceLineM>> {
+        // TODO: GVT-3637 fix after data migration
         // language=SQL
         val sql =
             """
@@ -1091,8 +1092,9 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params =
             mapOf(
-                "alignment_id" to alignmentVersion.id.intValue,
-                "alignment_version" to alignmentVersion.version,
+                // TODO: GVT-3637 fix after data migration
+                //                "alignment_id" to alignmentVersion.id.intValue,
+                //                "alignment_version" to alignmentVersion.version,
                 "external_id" to metadataExternalId,
                 "use_bounding_box" to (boundingBox != null),
                 "x_min" to boundingBox?.min?.x,
@@ -1113,10 +1115,10 @@ class LayoutAlignmentDao(
                     startPoint = rs.getPoint3DMOrNull("start_x", "start_y", "start_m"),
                     endPoint = rs.getPoint3DMOrNull("end_x", "end_y", "end_m"),
                     isLinked = rs.getBoolean("is_linked"),
-                    id = StringId("${alignmentVersion.id.intValue}_${fromSegment}_${toSegment}"),
+                    id = StringId("${trackNumberVersion.id.intValue}_${fromSegment}_${toSegment}"),
                 )
             }
-        logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, alignmentVersion)
+        logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, trackNumberVersion)
         return result
     }
 

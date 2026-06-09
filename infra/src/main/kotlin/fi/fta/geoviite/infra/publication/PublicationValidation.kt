@@ -44,7 +44,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SE_RINF_ID_OVERRIDE_REGEX
@@ -53,7 +52,6 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
-import kotlin.toString
 
 const val VALIDATION = "validation.layout"
 const val VALIDATION_TRACK_NUMBER = "$VALIDATION.track-number"
@@ -70,37 +68,19 @@ const val MAX_LAYOUT_METER_LENGTH = 2.0
 
 fun validateReferencesToTrackNumber(
     trackNumberLivenessType: AssetLivenessType,
-    referenceLine: ReferenceLine?,
     kmPosts: List<LayoutKmPost>,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
-    // Reference lines don't have their own existing/deleted state, so the only problematic case is the track
-    // number's creation being cancelled while a reference line still exists for it.
-    listOfNotNull(
-        validate(referenceLine == null || trackNumberLivenessType != AssetLivenessType.CREATION_CANCELLED) {
-            "$VALIDATION_TRACK_NUMBER.reference-from-reference-line.cancelled"
-        }
+    validateReferenceFromByLocationTrack(
+        "$VALIDATION_TRACK_NUMBER.reference-from-location-track",
+        trackNumberLivenessType,
+        locationTracks,
     ) +
-        validateReferenceFromByLocationTrack(
-            "$VALIDATION_TRACK_NUMBER.reference-from-location-track",
-            trackNumberLivenessType,
-            locationTracks,
-        ) +
         validateReferenceFromByKmPost(
             "$VALIDATION_TRACK_NUMBER.reference-from-km-post",
             trackNumberLivenessType,
             kmPosts,
         )
-
-fun validateReferencesFromTrackNumber(
-    trackNumber: LayoutTrackNumber,
-    referenceLineLiveness: AssetLiveness<ReferenceLine>,
-): List<LayoutValidationIssue> =
-    validateReferenceToLiveness(
-        "$VALIDATION_TRACK_NUMBER.reference-to-reference-line",
-        referenceLineLiveness,
-        trackNumber.exists,
-    )
 
 fun validateReferencesToSwitch(
     switchLivenessType: AssetLivenessType,
