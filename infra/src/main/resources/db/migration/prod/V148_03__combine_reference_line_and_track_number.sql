@@ -824,3 +824,9 @@ alter table publication.track_number_km
 alter table layout.track_number
   enable trigger version_update_trigger,
   enable trigger version_row_trigger;
+
+-- TODO: Migrate layout.initial_segment_metadata to layout.initial_track_number_segment_metadata
+-- The new table should have (track_number_id, segment_index, metadata_id) instead of (alignment_id, segment_index, metadata_id).
+-- Populate it by mapping the old alignment_id to the corresponding track_number_id via the reference_line_version
+-- backup data (deprecated.reference_line_version.alignment_id → deprecated.reference_line_version.track_number_id).
+-- Then drop layout.initial_segment_metadata.

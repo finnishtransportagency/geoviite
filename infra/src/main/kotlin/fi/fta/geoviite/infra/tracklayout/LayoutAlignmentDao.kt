@@ -936,25 +936,24 @@ class LayoutAlignmentDao(
                   concat(metadata.plan_file_name, '.xml') as plan_file_name,
                   metadata.plan_alignment_name,
                   plan.plan_id
-
                 from layout.initial_import_metadata metadata
-                  inner join layout.initial_segment_metadata segment_metadata on
-                    metadata.id = segment_metadata.metadata_id
-                  inner join layout.track_number_version_segment segment on
-                    segment.track_number_id = :track_number_id
-                    and segment.track_layout_context_id = :track_layout_context_id
+                  inner join layout.initial_track_number_segment_metadata segment_metadata
+                    on metadata.id = segment_metadata.metadata_id
+                    and segment_metadata.track_number_id = :track_number_id
+                  inner join layout.track_number_version_segment segment
+                    on segment.track_number_id = segment_metadata.track_number_id
+                    and segment.track_layout_context_id = 'main_official'
                     and segment.track_number_version = 1
                     and segment.segment_index = segment_metadata.segment_index
                     and segment.source = 'IMPORTED'
-                  inner join layout.track_number_version_segment current_segment on
-                    current_segment.geometry_id = segment.geometry_id
+                  inner join layout.track_number_version_segment current_segment
+                    on current_segment.geometry_id = segment.geometry_id
                     and current_segment.track_number_id = :track_number_id
                     and current_segment.track_layout_context_id = :track_layout_context_id
                     and current_segment.track_number_version = :track_number_version
                     and current_segment.geometry_alignment_id is null
                   left join layout.segment_geometry on segment.geometry_id = segment_geometry.id
                   left join orig_metadata_plan plan on plan.file_name = concat(metadata.plan_file_name, '.xml')
-
                 where metadata.alignment_external_id = :external_id
               ),
               segments as (
@@ -979,8 +978,7 @@ class LayoutAlignmentDao(
                 from layout.track_number_version_segment segment
                   left join geometry.alignment geom_alignment on segment.geometry_alignment_id = geom_alignment.id
                   left join geometry.plan_file on plan_file.plan_id = geom_alignment.plan_id
-                  left join orig_metadata on
-                    orig_metadata.current_segment_index = segment.segment_index
+                  left join orig_metadata on orig_metadata.current_segment_index = segment.segment_index
                 where segment.track_number_id = :track_number_id
                   and segment.track_layout_context_id = :track_layout_context_id
                   and segment.track_number_version = :track_number_version
