@@ -497,21 +497,167 @@ select
            and av.version = rlv.alignment_version;
 
 -- ============================================================================
--- Drop FK constraints and triggers for the duration of the migration
+-- Build the new publication.track_number mappings for the combined assets
 -- ============================================================================
 
-alter table publication.track_number
-  drop constraint publication_track_number_track_number_version_fk,
-  drop constraint publication_base_track_number_version_fkey;
+-- Build the mapping from (publication_id, track_number_id) → new combined version + base
+-- For each publication, we need both the TN and RL context/version to look up the combined version.
+-- publication.track_number always has the TN side. The RL side comes from publication.reference_line
+-- when it exists, otherwise we fall back to the official RL version active at publication_time.
+
+drop table if exists publication_track_number_migration;
+create temporary table publication_track_number_migration as
+with
+  -- All (publication_id, track_number_id, reference_line_id) pairs: from publication.track_number & reference_line
+  all_publication_tn_pairs as (
+    select ptn.publication_id, p.publication_time, ptn.id as track_number_id, rlv.id as reference_line_id
+      from publication.track_number ptn
+        left join publication.publication p on ptn.publication_id = p.id
+        left join layout.reference_line_version rlv
+                  on ptn.id = rlv.track_number_id
+                    and rlv.change_time <= p.publication_time
+                    and (rlv.expiry_time is null or rlv.expiry_time > p.publication_time)
+    union
+    select prl.publication_id, p.publication_time, rlv.track_number_id, rlv.id as reference_line_id
+      from publication.reference_line prl
+        left join publication.publication p on prl.publication_id = p.id
+        join layout.reference_line_version rlv
+             on rlv.id = prl.id
+               and rlv.layout_context_id = prl.layout_context_id
+               and rlv.version = prl.version
+  ),
+  -- Resolve TN and RL versions for each pair
+  publication_change_pair as (
+    select
+      pair.publication_id,
+      pair.track_number_id,
+      pair.reference_line_id,
+      coalesce(ptn.start_changed, false) as start_changed,
+      coalesce(ptn.end_changed, false) as end_changed,
+      -- TN version: from publication.track_number if it exists, otherwise temporal lookup
+      coalesce(ptn.layout_context_id, tnv_fallback.layout_context_id) as tn_layout_context_id,
+      coalesce(ptn.version, tnv_fallback.version) as tn_version,
+      -- RL version: from publication.reference_line if it exists, otherwise temporal lookup
+      coalesce(prl.layout_context_id, rlv_fallback.layout_context_id) as rl_layout_context_id,
+      coalesce(prl.version, rlv_fallback.version) as rl_version,
+      -- Direct change: either TN was directly changed OR RL was in the publication
+      coalesce(ptn.direct_change, false) or (prl.id is not null) as direct_change
+      from all_publication_tn_pairs pair
+        -- Published TN version (may not exist if only RL changed)
+        left join publication.track_number ptn
+                  on ptn.publication_id = pair.publication_id and ptn.id = pair.track_number_id
+        -- Published RL version (may not exist if only TN changed)
+        left join publication.reference_line prl
+                  on prl.publication_id = pair.publication_id and prl.id = pair.reference_line_id
+        -- Fallback: official TN version active at publication_time (when TN not in publication)
+        left join layout.track_number_version tnv_fallback
+                  on ptn.id is null
+                    and tnv_fallback.id = pair.track_number_id
+                    and not tnv_fallback.draft
+                    and tnv_fallback.change_time <= pair.publication_time
+                    and (tnv_fallback.expiry_time is null or tnv_fallback.expiry_time > pair.publication_time)
+        -- Fallback: official RL version active at publication_time (when RL not in publication)
+        left join layout.reference_line_version rlv_fallback
+                  on prl.id is null
+                    and rlv_fallback.track_number_id = pair.track_number_id
+                    and not rlv_fallback.draft
+                    and rlv_fallback.change_time <= pair.publication_time
+                    and (rlv_fallback.expiry_time is null or rlv_fallback.expiry_time > pair.publication_time)
+  )
+select
+  pair.publication_id,
+  pair.track_number_id,
+  pair.direct_change,
+  pair.start_changed,
+  pair.end_changed,
+  -- New combined version (the published version)
+  cv.layout_context_id as new_layout_context_id,
+  cv.version as new_version,
+  -- Base version logic:
+  --   not direct change → same as published version
+  --   new asset (first official version) → NULL
+  --   direct change → previous version (version - 1)
+  case
+    when pair.direct_change and cv.version = 1 then null
+    else cv.layout_context_id
+  end as new_base_layout_context_id,
+  case
+    when not pair.direct_change then cv.version
+    when pair.direct_change and cv.version = 1 then null
+    else cv.version - 1
+  end as new_base_version
+  from publication_change_pair pair
+    join combined_tn_rl_versions cv
+         on cv.id = pair.track_number_id
+           and not cv.draft
+           and cv.tn_layout_context_id = pair.tn_layout_context_id
+           and cv.tn_version = pair.tn_version
+           and cv.rl_layout_context_id = pair.rl_layout_context_id
+           and cv.rl_version = pair.rl_version;
+
+-- Add constraints to the mapping table to ensure data integrity
+alter table publication_track_number_migration
+  alter column publication_id set not null,
+  alter column direct_change set not null,
+  alter column track_number_id set not null,
+  alter column new_layout_context_id set not null,
+  alter column new_version set not null;
+
+-- Validate: every original publication.track_number row must have a mapping
+do
+$$
+  begin
+    if exists(
+      select 1
+        from publication.track_number ptn
+        where not exists(
+          select 1
+            from publication_track_number_migration m
+            where m.publication_id = ptn.publication_id and m.track_number_id = ptn.id
+        )
+    ) then
+      raise exception 'Migration error: Some publication.track_number rows have no mapping to new combined versions.';
+    end if;
+  end
+$$;
+
+-- Validate: every original publication.reference_line row must have a mapping
+do
+$$
+  begin
+    if exists(
+      select 1
+        from publication.reference_line prl
+          join layout.reference_line_version rlv
+               on rlv.id = prl.id and rlv.layout_context_id = prl.layout_context_id and rlv.version = prl.version
+        where not exists(
+          select 1
+            from publication_track_number_migration m
+            where m.publication_id = prl.publication_id and m.track_number_id = rlv.track_number_id
+        )
+    ) then
+      raise exception 'Migration error: Some publication.reference_line rows have no mapping to new combined versions.';
+    end if;
+  end
+$$;
+
+-- ============================================================================
+-- Disable triggers for the duration of the migration
+-- ============================================================================
 
 alter table layout.track_number
   disable trigger version_update_trigger,
   disable trigger version_row_trigger;
 
 -- ============================================================================
--- Drop current data, so it won't interfere with new constraints
+-- Drop old data, so it won't interfere with new constraints
 -- ============================================================================
 
+drop table publication.reference_line;
+drop table layout.reference_line_version;
+drop table layout.reference_line;
+drop table layout.reference_line_id;
+truncate publication.track_number;
 truncate layout.track_number_version;
 truncate layout.track_number;
 
@@ -636,19 +782,32 @@ select
          on sv.alignment_id = nv.alignment_id
            and sv.alignment_version = nv.alignment_version;
 
+-- Insert new publication table references
+insert into publication.track_number
+  (publication_id,
+   id, version, layout_context_id,
+   direct_change,
+   base_version, base_layout_context_id,
+   start_changed, end_changed)
+select
+  publication_id,
+  track_number_id,
+  new_version,
+  new_layout_context_id,
+  direct_change,
+  new_base_version,
+  new_base_layout_context_id,
+  start_changed,
+  end_changed
+  from publication_track_number_migration;
+
 -- ============================================================================
--- Drop old alignment/segment tables
+-- Drop old reference_line & alignment & segment tables
 -- ============================================================================
+
 drop table layout.segment_version;
-drop table layout.alignment;
 drop table layout.alignment_version;
-
--- TODO: Update tables that reference this data
--- 1. migrate publication track numbers to reference the correct versions
--- 2. migrate publication reference lines: refer track number instead of reference line (& with the correct versions)
--- 3. other refs that need to be fixed?
--- 4. recreate ref constraints
-
+drop table layout.alignment;
 
 -- ============================================================================
 -- Re-enable versioning triggers and constraints
@@ -656,13 +815,3 @@ drop table layout.alignment_version;
 alter table layout.track_number
   enable trigger version_update_trigger,
   enable trigger version_row_trigger;
-
--- TODO: re-add FK constraints for publication.track_number
-
--- TODO: Clean this up -- it intentionally breaks the transaction to flyway won't mark this one done yet
-do
-$$
-  begin
-    raise exception 'Migration not yet complete';
-  end
-$$;
