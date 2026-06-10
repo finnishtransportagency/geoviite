@@ -478,6 +478,8 @@ select
   tnv.state,
   tnv.design_asset_state,
   rlv.start_address,
+  av.id as alignment_id,
+  av.version as alignment_version,
   av.bounding_box,
   av.segment_count,
   av.length
@@ -611,8 +613,28 @@ select
     and v.deleted = false
     and v.expiry_time is not null;
 
--- TODO: Populate track_number_version_segment from segment_version via the alignment_id+version reference in reference_line_version
-
+-- Populate track_number_version_segment from segment_version via reference_line_version's alignment reference
+insert into layout.track_number_version_segment
+  (track_number_id, track_layout_context_id, track_number_version,
+   segment_index,
+   start_m, source_start_m, source,
+   geometry_alignment_id, geometry_element_index,
+   geometry_id)
+select
+  nv.id,
+  nv.layout_context_id,
+  nv.version,
+  sv.segment_index,
+  sv.start,
+  sv.source_start,
+  sv.source,
+  sv.geometry_alignment_id,
+  sv.geometry_element_index,
+  sv.geometry_id
+  from new_track_number_versions nv
+    join layout.segment_version sv
+         on sv.alignment_id = nv.alignment_id
+           and sv.alignment_version = nv.alignment_version;
 
 -- ============================================================================
 -- Drop old alignment/segment tables
