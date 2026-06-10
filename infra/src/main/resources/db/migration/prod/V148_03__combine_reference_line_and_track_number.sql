@@ -165,9 +165,11 @@ with
       tnv_d.version as tnv_d_version,
       tnv_o.version as tnv_o_version,
       tnv_d.deleted as tnv_d_deleted,
+      tnv_d.change_time as tnv_d_change_time,
       rlv_d.version as rlv_d_version,
       rlv_o.version as rlv_o_version,
-      rlv_d.deleted as rlv_d_deleted
+      rlv_d.deleted as rlv_d_deleted,
+      rlv_d.change_time as rlv_d_change_time
       from intervals
         left join layout.track_number_version tnv_d
                   on tnv_d.id = intervals.track_number_id
@@ -215,20 +217,33 @@ with
     -- At least one part must be in live draft state for the combo-draft to exist
       where (tnv_d_deleted = false or rlv_d_deleted = false)
   ),
-  -- TODO: this isn't strictly always correct if, for example:
-  -- 1. create drafts of both: officials overridden from both parts
-  -- 2. delete both drafts: there is now a deleted draft-version of each, officials in effect
-  -- 3. Create draft of only one part: now the official is in effect for the other
-  -- 4. Delete the draft part also: now there are deleted versions of both, but the latest one was never paired with
-  --    the other deleted part -> the combined deleted shows incorrect info
-  -- This could be fixed by picking the deleted row data from the previous non-deleted, rather than the deleted-rows
-  --    themselves. Not clear if these cases even exist, and the significance of the exact deleted data is low.
+  -- If both draft sides were deleted independently, the combined deleted row uses the data from
+  -- whichever side was deleted most recently (same logic as the last active live_draft used):
+  -- equal change_times = deleted together → use both deleted rows as-is
+  -- different change_times = the earlier-deleted side was already gone when the combo was last
+  --   active, so the combo was already falling back to official for that side → keep that
   deleted_draft as (
     select *,
-      (case when tnv_d_version is not null then 'main_draft' else 'main_official' end) as tn_layout_context_id,
-      coalesce(tnv_d_version, tnv_o_version) as tn_version,
-      (case when rlv_d_version is not null then 'main_draft' else 'main_official' end) as rl_layout_context_id,
-      coalesce(rlv_d_version, rlv_o_version) as rl_version,
+      (case
+         when tnv_d_version is not null and (rlv_d_version is null or tnv_d_change_time >= rlv_d_change_time)
+           then 'main_draft'
+         else 'main_official'
+       end) as tn_layout_context_id,
+      (case
+         when tnv_d_version is not null and (rlv_d_version is null or tnv_d_change_time >= rlv_d_change_time)
+           then tnv_d_version
+         else tnv_o_version
+       end) as tn_version,
+      (case
+         when rlv_d_version is not null and (tnv_d_version is null or rlv_d_change_time >= tnv_d_change_time)
+           then 'main_draft'
+         else 'main_official'
+       end) as rl_layout_context_id,
+      (case
+         when rlv_d_version is not null and (tnv_d_version is null or rlv_d_change_time >= tnv_d_change_time)
+           then rlv_d_version
+         else rlv_o_version
+       end) as rl_version,
       true as draft,
       true as deleted
       from interval_versions v
@@ -400,8 +415,35 @@ $$
   end
 $$;
 
--- TODO: Create the combined version table rows into a temp table from the current tables by joining from the combined versions
--- TODO: Create required mappings from old -> new versions for fixing references
+-- Verify deleted flag correctness: a draft combined row should be deleted if and only if
+-- neither a live (non-deleted) TN draft nor a live RL draft exists at its start_time.
+do
+$$
+  begin
+    if exists(
+      select 1
+        from combined_tn_rl_versions cv
+          left join layout.track_number_version tnv
+                    on tnv.id = cv.id
+                      and tnv.draft
+                      and tnv.deleted = false
+                      and tnv.change_time <= cv.start_time
+                      and (tnv.expiry_time is null or tnv.expiry_time > cv.start_time)
+          left join layout.reference_line_version rlv
+                    on rlv.id = cv.rl_id
+                      and rlv.draft
+                      and rlv.deleted = false
+                      and rlv.change_time <= cv.start_time
+                      and (rlv.expiry_time is null or rlv.expiry_time > cv.start_time)
+        where cv.draft
+          and cv.deleted != (tnv.id is null and rlv.id is null)
+    ) then
+      raise exception 'Merge error: combined draft row deleted flag does not match live draft version existence.';
+    end if;
+  end
+$$;
+
+
 
 -- TODO: backup old data (current version tables) into the deprecated -schema
 
