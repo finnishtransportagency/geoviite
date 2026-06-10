@@ -451,23 +451,175 @@ $$
   end
 $$;
 
+-- ============================================================================
+-- Build the new track_number_version rows in a temp table while source data is still available
+-- ============================================================================
+
+drop table if exists new_track_number_versions;
+create temporary table new_track_number_versions as
+select
+  cv.id,
+  cv.layout_context_id,
+  cv.version,
+  cv.start_time as change_time,
+  cv.end_time as expiry_time,
+  cv.draft,
+  cv.deleted,
+  -- Use change_user from whichever side created this combined version's start boundary
+  case
+    when rlv.change_time = cv.start_time and tnv.change_time != cv.start_time
+      then rlv.change_user
+    else tnv.change_user
+  end as change_user,
+  tnv.design_id,
+  tnv.origin_design_id,
+  tnv.number,
+  tnv.description,
+  tnv.state,
+  tnv.design_asset_state,
+  rlv.start_address,
+  av.bounding_box,
+  av.segment_count,
+  av.length
+  from combined_tn_rl_versions cv
+    join layout.track_number_version tnv
+         on tnv.id = cv.id
+           and tnv.layout_context_id = cv.tn_layout_context_id
+           and tnv.version = cv.tn_version
+    join layout.reference_line_version rlv
+         on rlv.id = cv.rl_id
+           and rlv.layout_context_id = cv.rl_layout_context_id
+           and rlv.version = cv.rl_version
+    join layout.alignment_version av
+         on av.id = rlv.alignment_id
+           and av.version = rlv.alignment_version;
+
+-- ============================================================================
+-- Drop FK constraints and triggers for the duration of the migration
+-- ============================================================================
+
+alter table publication.track_number
+  drop constraint publication_track_number_track_number_version_fk,
+  drop constraint publication_base_track_number_version_fkey;
+
+alter table layout.track_number
+  disable trigger version_update_trigger,
+  disable trigger version_row_trigger;
+
+-- ============================================================================
+-- Drop current data, so it won't interfere with new constraints
+-- ============================================================================
+
+truncate layout.track_number_version;
+truncate layout.track_number;
+
+-- ============================================================================
+-- Adjust the schema for the new single-asset form
+-- ============================================================================
+
+alter table layout.track_number
+  add column start_address varchar(20)                     not null,
+  add column bounding_box  postgis.geometry(polygon, 3067) null,
+  add column segment_count int                             not null,
+  add column length        decimal(13, 6)                  not null;
+alter table layout.track_number_version
+  add column start_address varchar(20)                     not null,
+  add column bounding_box  postgis.geometry(polygon, 3067) null,
+  add column segment_count int                             not null,
+  add column length        decimal(13, 6)                  not null;
+create table layout.track_number_version_segment
+(
+  track_number_id         int                    not null,
+  track_layout_context_id varchar                not null,
+  track_number_version    int                    not null,
+  segment_index           int                    not null,
+  start_m                 decimal(13, 6)         not null,
+  geometry_alignment_id   int                    null,
+  geometry_element_index  int                    null,
+  source_start_m          decimal(13, 6)         not null,
+  source                  layout.geometry_source not null,
+  geometry_id             int                    not null,
+  primary key (track_number_id, track_layout_context_id, track_number_version, segment_index),
+  foreign key (track_number_id, track_layout_context_id, track_number_version) references layout.track_number_version (id, layout_context_id, version),
+  foreign key (geometry_alignment_id) references geometry.alignment (id),
+  foreign key (geometry_alignment_id, geometry_element_index) references geometry.element (alignment_id, element_index),
+  foreign key (geometry_id) references layout.segment_geometry (id)
+);
+
+-- ============================================================================
+-- Populate the new model data
+-- ============================================================================
+
+-- Create new version rows
+insert into layout.track_number_version
+  (id, layout_context_id, version,
+   change_time, expiry_time, change_user,
+   design_id, origin_design_id,
+   draft, deleted,
+   number, description, state, design_asset_state,
+   start_address,
+   bounding_box, segment_count, length)
+select
+  id,
+  layout_context_id,
+  version,
+  change_time,
+  expiry_time,
+  change_user,
+  design_id,
+  origin_design_id,
+  draft,
+  deleted,
+  number,
+  description,
+  state,
+  design_asset_state,
+  start_address,
+  bounding_box,
+  segment_count,
+  length
+  from new_track_number_versions;
+
+-- Create the main table row from the latest active version
+insert into layout.track_number
+  (id, layout_context_id, version,
+   change_time, change_user,
+   design_id, origin_design_id,
+   draft,
+   number, description, state, design_asset_state,
+   start_address, bounding_box, segment_count, length)
+select
+  id,
+  layout_context_id,
+  version,
+  change_time,
+  change_user,
+  design_id,
+  origin_design_id,
+  draft,
+  number,
+  description,
+  state,
+  design_asset_state,
+  start_address,
+  bounding_box,
+  segment_count,
+  length
+  from new_track_number_versions v
+  where version = v.version
+    and layout_context_id = v.layout_context_id
+    and v.deleted = false
+    and v.expiry_time is not null;
+
+-- TODO: Populate track_number_version_segment from segment_version via the alignment_id+version reference in reference_line_version
 
 
--- TODO: backup old data (current version tables) into the deprecated -schema
-
--- TODO: Drop reference constraints from other tables that use these
-
--- TODO: Disable versioning triggers
-
--- TODO: Update schema
--- 1. Drop all data from the track_number & version tables
--- 2. Add required columns to the table (can be non-null, as there is no data now)
-
--- TODO: Migrate data
--- 1. Write versions from the temp table to track_number_version
--- 2. Write the latest version for each id+context_id into track_number
-
--- TODO: Enable versioning triggers
+-- ============================================================================
+-- Drop old alignment/segment tables
+-- ============================================================================
+drop table layout.segment_version;
+drop table layout.alignment;
+drop table layout.alignment_version;
 
 -- TODO: Update tables that reference this data
 -- 1. migrate publication track numbers to reference the correct versions
@@ -475,12 +627,15 @@ $$;
 -- 3. other refs that need to be fixed?
 -- 4. recreate ref constraints
 
--- TODO: Migrate alignment model as well
--- 1. Create a new track_number_version_segment table
--- 2. Populate data by joining track_number_version -> alignment -> segment
--- 3. From alignment id+version columns from track_number_version
--- 3. Backup old alignment + segment tables under deprecated schema
--- 4. Drop old alignment & segment tables
+
+-- ============================================================================
+-- Re-enable versioning triggers and constraints
+-- ============================================================================
+alter table layout.track_number
+  enable trigger version_update_trigger,
+  enable trigger version_row_trigger;
+
+-- TODO: re-add FK constraints for publication.track_number
 
 -- TODO: Clean this up -- it intentionally breaks the transaction to flyway won't mark this one done yet
 do
