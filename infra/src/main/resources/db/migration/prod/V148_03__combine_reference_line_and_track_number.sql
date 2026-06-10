@@ -331,7 +331,8 @@ $$;
 -- Verify coverage: for each source version, the combined rows referencing it must exactly cover its time range.
 -- This is the inverse of the generation logic (version → time coverage vs. time → version) and catches
 -- dropped versions, wrong boundaries, or versions attributed to the wrong time span.
-do $$
+do
+$$
   begin
     if exists(
       with tn_coverage as (
@@ -339,25 +340,27 @@ do $$
           tnv.id,
           tnv.layout_context_id,
           tnv.version,
-          tnv.change_time        as expected_from,
-          tnv.expiry_time        as expected_to,
-          min(cv.start_time)     as covered_from,
+          tnv.change_time as expected_from,
+          tnv.expiry_time as expected_to,
+          min(cv.start_time) as covered_from,
           case
             when count(*) filter (where cv.end_time is null) > 0 then null
             else max(cv.end_time)
-          end                    as covered_to
+          end as covered_to
           from layout.track_number_version tnv
             left join combined_tn_rl_versions cv
                       on cv.id = tnv.id
-                        and cv.draft = (tnv.layout_context_id = 'main_draft')
+                        and cv.draft = tnv.draft
                         and cv.tn_layout_context_id = tnv.layout_context_id
                         and cv.tn_version = tnv.version
-          where tnv.design_id is null
+                        and cv.deleted = false
+          where tnv.deleted = false
           group by tnv.id, tnv.layout_context_id, tnv.version, tnv.change_time, tnv.expiry_time
       )
-      select 1 from tn_coverage
-      where covered_from is distinct from expected_from
-         or covered_to is distinct from expected_to
+      select 1
+        from tn_coverage
+        where covered_from is distinct from expected_from
+           or covered_to is distinct from expected_to
     ) then
       raise exception 'Merge error: combined versions do not cover original track_number version time ranges faithfully.';
     end if;
@@ -365,28 +368,32 @@ do $$
     if exists(
       with rl_coverage as (
         select
+          rlv.id,
           rlv.track_number_id,
           rlv.layout_context_id,
           rlv.version,
-          rlv.change_time        as expected_from,
-          rlv.expiry_time        as expected_to,
-          min(cv.start_time)     as covered_from,
+          rlv.change_time as expected_from,
+          rlv.expiry_time as expected_to,
+          min(cv.start_time) as covered_from,
           case
             when count(*) filter (where cv.end_time is null) > 0 then null
             else max(cv.end_time)
-          end                    as covered_to
+          end as covered_to
           from layout.reference_line_version rlv
             left join combined_tn_rl_versions cv
                       on cv.id = rlv.track_number_id
-                        and cv.draft = (rlv.layout_context_id = 'main_draft')
+                        and cv.draft = rlv.draft
+                        and cv.rl_id = rlv.id
                         and cv.rl_layout_context_id = rlv.layout_context_id
                         and cv.rl_version = rlv.version
-          where rlv.design_id is null
-          group by rlv.track_number_id, rlv.layout_context_id, rlv.version, rlv.change_time, rlv.expiry_time
+                        and cv.deleted = false
+          where rlv.deleted = false
+          group by rlv.id, rlv.track_number_id, rlv.layout_context_id, rlv.version, rlv.change_time, rlv.expiry_time
       )
-      select 1 from rl_coverage
-      where covered_from is distinct from expected_from
-         or covered_to is distinct from expected_to
+      select *
+        from rl_coverage
+        where covered_from is distinct from expected_from
+           or covered_to is distinct from expected_to
     ) then
       raise exception 'Merge error: combined versions do not cover original reference_line version time ranges faithfully.';
     end if;
@@ -424,3 +431,11 @@ $$;
 -- 3. From alignment id+version columns from track_number_version
 -- 3. Backup old alignment + segment tables under deprecated schema
 -- 4. Drop old alignment & segment tables
+
+-- TODO: Clean this up -- it intentionally breaks the transaction to flyway won't mark this one done yet
+do
+$$
+  begin
+    raise exception 'Migration not yet complete';
+  end
+$$;

@@ -37,11 +37,6 @@ set change_time = rlv.change_time
     and rl.version = rlv.version
     and rl.change_time > rlv.change_time;
 
--- Re-enable triggers
-alter table layout.reference_line
-  enable trigger version_update_trigger,
-  enable trigger version_row_trigger;
-
 -- Verify all official versions now have matching timestamps
 do
 $$
@@ -63,3 +58,41 @@ $$
     end if;
   end
 $$;
+
+-- Fix orphaned reference_line_version rows caused by V43 bug (fixed in V49). Some broken reference_lines were
+-- created, pointing to a non-existing track_number. They were then removed, but the versions still hang around.
+-- They don't carry any meaningful data, so just drop them so they don't mess with the coming version merges.
+delete
+  from layout.reference_line_version rlv
+  where not exists (
+    select 1
+      from layout.track_number_version tnv
+      where tnv.id = rlv.track_number_id
+  )
+    and rlv.layout_context_id = 'main_draft'
+    and rlv.change_user = 'INIT';
+
+-- Verify no orphaned rows remain
+do
+$$
+  begin
+    if exists(
+      select 1
+        from layout.reference_line_version rlv
+        where not exists (
+          select 1
+            from layout.track_number_version tnv
+            where tnv.id = rlv.track_number_id
+        )
+    ) then
+      raise exception
+        'Orphaned reference_line_version cleanup incomplete: rows still exist where '
+          'track_number_id is absent from track_number_version.';
+    end if;
+  end
+$$;
+
+-- Re-enable triggers
+alter table layout.reference_line
+  enable trigger version_update_trigger,
+  enable trigger version_row_trigger;
