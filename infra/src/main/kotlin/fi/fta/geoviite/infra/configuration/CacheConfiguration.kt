@@ -28,7 +28,6 @@ const val CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK = "kkj-tm35fin-triangles"
 const val CACHE_GEOCODING_CONTEXTS = "geocoding-contexts"
 const val CACHE_PLAN_GEOCODING_CONTEXTS = "plan-geocoding-contexts"
 
-const val CACHE_RATKO_HEALTH_STATUS = "ratko-health-status"
 
 val planCacheDuration: Duration = Duration.ofMinutes(60)
 val layoutCacheDuration: Duration = Duration.ofMinutes(60)
@@ -40,8 +39,6 @@ class CacheConfiguration
 @Autowired
 constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
-    private val healthCheckLifetime: Duration = Duration.ofSeconds(10)
 
     @Bean
     fun cacheManager(): CacheManager {
@@ -62,8 +59,6 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))
             manager.registerCustomCache(CACHE_PLAN_GEOCODING_CONTEXTS, cache(50, planCacheDuration))
 
-            manager.registerCustomCache(CACHE_RATKO_HEALTH_STATUS, ephemeralCache(1, healthCheckLifetime))
-
             manager
         } else {
             NoOpCacheManager()
@@ -73,6 +68,3 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
 
 private fun <Key : Any, Value> cache(maxSize: Int, duration: Duration): Cache<Key, Value> =
     Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterAccess(duration).recordStats().build()
-
-private fun <Key : Any, Value> ephemeralCache(maxSize: Int, lifetime: Duration): Cache<Key, Value> =
-    Caffeine.newBuilder().maximumSize(maxSize.toLong()).expireAfterWrite(lifetime).recordStats().build()
