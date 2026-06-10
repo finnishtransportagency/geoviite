@@ -6,9 +6,11 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.split.AdministrativeChange
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 
 enum class BoundaryOrientation {
     HEAD_FIRST,
@@ -48,8 +50,40 @@ data class TrackBoundaryMoveRequest(
 
 data class SwitchJointId(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)
 
+enum class BoundaryMoveDisabledReason {
+    PART_OF_SPLIT,
+    PART_OF_BOUNDARY_MOVE,
+    TRACK_DRAFT_EXISTS,
+    NO_GEOMETRY,
+    SWITCHES_PART_OF_SPLIT,
+}
+
+fun boundaryMoveDisabledReasons(
+    track: LocationTrack,
+    geometry: LocationTrackGeometry,
+    unfinishedSplits: List<Split>,
+    unpublishedBoundaryMoves: List<TrackBoundaryMove>,
+): List<BoundaryMoveDisabledReason> {
+    val trackId = track.id as IntId
+    val unpublishedSplits = unfinishedSplits.filter { split -> split.publicationId == null }
+    return listOfNotNull(
+        BoundaryMoveDisabledReason.PART_OF_SPLIT.takeIf {
+            unfinishedSplits.any { split -> split.containsLocationTrack(trackId) }
+        },
+        BoundaryMoveDisabledReason.PART_OF_BOUNDARY_MOVE.takeIf {
+            unpublishedBoundaryMoves.any { move -> move.containsLocationTrack(trackId) }
+        },
+        BoundaryMoveDisabledReason.TRACK_DRAFT_EXISTS.takeIf { track.isDraft },
+        BoundaryMoveDisabledReason.NO_GEOMETRY.takeIf { geometry.isEmpty },
+        BoundaryMoveDisabledReason.SWITCHES_PART_OF_SPLIT.takeIf {
+            geometry.switchIds.any { switchId -> unpublishedSplits.any { split -> split.containsSwitch(switchId) } }
+        },
+    )
+}
+
 data class BoundaryMoveCounterpart(
     val trackId: IntId<LocationTrack>,
     val orientation: BoundaryOrientation,
     val connectingSwitchJoint: SwitchJointId?,
+    val disabledReasons: List<BoundaryMoveDisabledReason> = emptyList(),
 )

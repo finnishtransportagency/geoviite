@@ -239,15 +239,14 @@ constructor(
         val switch = mainDraftContext.save(switch())
         val trackNumberIds =
             listOf(mainOfficialContext.createLayoutTrackNumber().id, mainOfficialContext.createLayoutTrackNumber().id)
-        val locationTracks =
-            trackNumberIds.map { trackNumberId ->
-                val edge =
-                    edge(
-                        startInnerSwitch = switchLinkYV(switch.id, 1),
-                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
-                    )
-                mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
-            }
+        val locationTracks = trackNumberIds.map { trackNumberId ->
+            val edge =
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id, 1),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                )
+            mainDraftContext.save(locationTrack(trackNumberId), trackGeometry(edge))
+        }
 
         val publicationResult =
             publish(publicationService, locationTracks = locationTracks.map { it.id }, switches = listOf(switch.id))
@@ -844,9 +843,9 @@ constructor(
         val boundaryMoveId: IntId<TrackBoundaryMove>,
     )
 
-    // Two tracks meeting at switch1 joint 2, laid out as one physically continuous track. The lengthening track holds
-    // switch1; the shortening track holds switch2. Moving the boundary to switch2 joint 1 shortens one track and
-    // lengthens the other, producing a draft change to both.
+    /*
+    Publishes a shortening and lengthening track, then saves a track boundary move over them
+     */
     private fun saveTrackBoundaryMoveSetup(): TrackBoundaryMoveSetup {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
         val switch1 = mainDraftContext.createSwitch().id
@@ -888,6 +887,8 @@ constructor(
                     ),
                 )
                 .id
+
+        testDBService.publish(locationTracks = listOf(lengtheningTrack, shorteningTrack))
 
         val boundaryMoveId =
             trackBoundaryMoveService.saveTrackBoundaryMove(

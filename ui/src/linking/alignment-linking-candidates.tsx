@@ -19,19 +19,24 @@ import {
 } from 'track-layout/track-layout-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from 'tool-panel/geometry-alignment/geometry-alignment-infobox.scss';
+import { createClassName } from 'vayla-design-lib/utils';
 
 type SelectionCandidateProps = {
     isSelected: boolean;
+    // if non-undefined, the candidate is disabled and the reason shown as tooltip
+    disabledReason?: string;
     onClick: () => void;
     children: React.ReactNode;
 };
 
 const SelectionCandidate: React.FC<SelectionCandidateProps> = ({
     isSelected,
+    disabledReason,
     onClick,
     children,
 }) => {
     const ref = React.useRef<HTMLLIElement>(null);
+    const disabled = disabledReason !== undefined;
 
     React.useEffect(() => {
         if (isSelected) {
@@ -43,7 +48,14 @@ const SelectionCandidate: React.FC<SelectionCandidateProps> = ({
     }, [isSelected]);
 
     return (
-        <li ref={ref} className={styles['geometry-alignment-infobox__alignment']} onClick={onClick}>
+        <li
+            ref={ref}
+            className={createClassName(
+                styles['geometry-alignment-infobox__alignment'],
+                disabled && styles['geometry-alignment-infobox__alignment--disabled'],
+            )}
+            title={disabledReason}
+            onClick={() => !disabled && onClick()}>
             {children}
         </li>
     );
@@ -79,6 +91,8 @@ type LocationTrackCandidatesProps = {
     lockedAlignmentId?: LocationTrackId;
     isLoading: boolean;
     emptyMessage: React.ReactNode;
+    // A returned reason disables selecting the candidate and is shown as its tooltip
+    getDisabledReason?: (track: LayoutLocationTrack) => string | undefined;
     onSelect: (track: LocationTrackId) => void;
 };
 
@@ -88,6 +102,7 @@ export const LocationTrackCandidates: React.FC<LocationTrackCandidatesProps> = (
     lockedAlignmentId,
     isLoading,
     emptyMessage,
+    getDisabledReason,
     onSelect,
 }) => (
     <CandidatesList
@@ -96,17 +111,21 @@ export const LocationTrackCandidates: React.FC<LocationTrackCandidatesProps> = (
         emptyMessage={emptyMessage}>
         {candidates.map((track) => {
             const isSelected = track.id === selectedId;
+            const disabledReason = getDisabledReason?.(track);
             return (
                 <SelectionCandidate
                     key={track.id}
                     isSelected={isSelected}
+                    disabledReason={disabledReason}
                     onClick={() => onSelect(track.id)}>
                     <LocationTrackBadge
                         locationTrack={track}
                         status={
                             isSelected
                                 ? LocationTrackBadgeStatus.SELECTED
-                                : LocationTrackBadgeStatus.DEFAULT
+                                : disabledReason !== undefined
+                                  ? LocationTrackBadgeStatus.DISABLED
+                                  : LocationTrackBadgeStatus.DEFAULT
                         }
                     />
                     {lockedAlignmentId === track.id && (

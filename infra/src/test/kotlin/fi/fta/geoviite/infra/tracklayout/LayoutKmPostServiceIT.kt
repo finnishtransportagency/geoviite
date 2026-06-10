@@ -191,10 +191,9 @@ constructor(
 
         // drop(1) because the track number km lengths include the section before the first km post
         val expected = trackNumberService.getKmLengths(MainLayoutContext.draft, trackNumberId)!!.drop(1)
-        val actual =
-            kmPostSaveResults.mapNotNull { kmPost ->
-                kmPostService.getKmPostInfoboxExtras(MainLayoutContext.draft, kmPost).kmLength
-            }
+        val actual = kmPostSaveResults.mapNotNull { kmPost ->
+            kmPostService.getKmPostInfoboxExtras(MainLayoutContext.draft, kmPost).kmLength
+        }
         assertEquals(expected.size, actual.size)
         expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
     }

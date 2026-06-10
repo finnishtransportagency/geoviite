@@ -387,7 +387,9 @@ function filterSelectOptionsByLinkingState(
         return options;
     }
     const counterpartTrackIds = new Set(
-        linkingState.counterpartOptions.map((option) => option.trackId),
+        linkingState.counterpartOptions
+            .filter((option) => option.disabledReasons.length === 0)
+            .map((option) => option.trackId),
     );
     return {
         ...options,
@@ -544,6 +546,7 @@ const trackLayoutSlice = createSlice({
                             state.linkingState.counterpart =
                                 state.linkingState.counterpartOptions.find(
                                     (option) =>
+                                        option.disabledReasons.length === 0 &&
                                         option.trackId === onSelectOptions.locationTracks?.[0],
                                 );
                         }

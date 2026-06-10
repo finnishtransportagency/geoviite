@@ -72,7 +72,13 @@
             "generic": "Vaihtumiskohdan siirrossa tapahtui virhe",
             "does-not-move-boundary": "Valittu vaihteen piste ei siirrä raiteiden vaihtumiskohtaa",
             "partial-revert": "Raiteen vaihtumiskohdan siirtoa ei voi perua osittain",
-            "tracks-do-not-connect": "Raiteet eivät kohtaa toisiaan, joten vaihtumiskohtaa ei voi siirtää"
+            "tracks-do-not-connect": "Raiteet eivät kohtaa toisiaan, joten vaihtumiskohtaa ei voi siirtää",
+            "branch-not-main": "Vaihtumiskohtaa voi siirtää vain luonnostilassa",
+            "track-draft-exists": "Raiteella {{name}} on julkaisemattomia muutoksia, joten vaihtumiskohtaa ei voi siirtää",
+            "no-geometry": "Raiteella {{name}} ei ole geometriaa, joten vaihtumiskohtaa ei voi siirtää",
+            "track-part-of-split": "Raide {{name}} on mukana keskeneräisessä raiteen jakamisessa, joten vaihtumiskohtaa ei voi siirtää",
+            "track-part-of-boundary-move": "Raide {{name}} on mukana julkaisemattomassa vaihtumiskohdan siirrossa, joten vaihtumiskohtaa ei voi siirtää",
+            "switches-part-of-split": "Raiteen {{name}} vaihteita on mukana julkaisemattomissa raiteen jakamisissa, joten vaihtumiskohtaa ei voi siirtää"
         },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
@@ -84,7 +90,8 @@
             "geocoding-failed": "Jakamista ei voitu suorittaa, koska jaettavan raiteen {{trackName}} geokoodaus epäonnistui",
             "new-duplicate-reference-assignment-failed": "Jakamista ei voitu suorittaa, koska käyttämättömälle duplikaattiraiteelle {{duplicate}} ei löydetty päällekkäisyyttä jakamisen seurauksena syntyvistä raiteista",
             "partial-revert": "Raiteen jakamista ei voi peruuttaa osittain",
-            "switches-in-unpublished-split": "Jaettavan raiteen vaihteita on osana muita julkaisemattomia raiteen jakamiskokonaisuuksia"
+            "switches-in-unpublished-split": "Jaettavan raiteen vaihteita on osana muita julkaisemattomia raiteen jakamiskokonaisuuksia",
+            "source-track-in-unpublished-boundary-move": "Jakamista ei voitu suorittaa, koska jaettava raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa"
         },
         "publication": {
             "generic": "Julkaisu epäonnistui",
@@ -1000,7 +1007,8 @@
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä",
                     "branch-not-main": "Raiteita voi jakaa vain luonnostilassa",
-                    "switches-part-of-other-splits": "Osa raiteen vaihteista on mukana raiteen jakamiskokonaisuuksissa joita ei ole vielä julkaistu."
+                    "switches-part-of-other-splits": "Osa raiteen vaihteista on mukana raiteen jakamiskokonaisuuksissa joita ei ole vielä julkaistu.",
+                    "track-part-of-boundary-move": "Raiteen jakamista ei voi suorittaa, koska raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa."
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
@@ -1033,7 +1041,14 @@
                 "select-boundary-on-map": "Valitse uusi vaihtumiskohta kartalta.",
                 "lock-selection": "Lukitse valinta",
                 "save-boundary-move": "Tallenna vaihtumiskohta",
-                "boundary-move-saved": "Raiteiden {{firstTrack}} ja {{secondTrack}} vaihtumiskohta siirretty osoitteeseen {{address}}"
+                "boundary-move-saved": "Raiteiden {{firstTrack}} ja {{secondTrack}} vaihtumiskohta siirretty osoitteeseen {{address}}",
+                "validation": {
+                    "branch-not-main": "Vaihtumiskohtaa voi siirtää vain luonnostilassa",
+                    "track-draft-exists": "Muokatun sijaintiraiteen vaihtumiskohtaa ei voi siirtää. Julkaise tai kumoa muutokset.",
+                    "part-of-split": "Raide on mukana keskeneräisessä raiteen jakamisessa",
+                    "part-of-boundary-move": "Raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa",
+                    "switches-part-of-split": "Raiteen vaihteita on mukana julkaisemattomissa raiteen jakamisissa"
+                }
             }
         },
         "operational-point": {
