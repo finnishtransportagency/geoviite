@@ -43,14 +43,12 @@ import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getNullableBigDecimalArray
 import fi.fta.geoviite.infra.util.getNullableIntArray
-import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.getPoint3DMOrNull
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
-import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -593,78 +591,53 @@ class LayoutAlignmentDao(
     }
 
     @Transactional
-    fun insert(geometry: ReferenceLineGeometry): RowVersion<ReferenceLineGeometry> {
+    fun saveReferenceLineGeometry(
+        trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+        geometry: ReferenceLineGeometry,
+    ) {
+        val newGeometryIds =
+            insertSegmentGeometries(
+                geometry.segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
+            )
+
+        // language=SQL
         val sql =
             """
-            insert into layout.alignment(
-                bounding_box,
-                segment_count,
-                length
+            insert into layout.track_number_version_segment(
+                track_number_id,
+                track_layout_context_id,
+                track_number_version,
+                segment_index,
+                start_m,
+                geometry_alignment_id,
+                geometry_element_index,
+                source_start_m,
+                source,
+                geometry_id
             )
-            values (
-                postgis.st_polygonfromtext(:polygon_string, 3067),
-                :segment_count,
-                :length
-            )
-            returning id, version
+            values(?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?)
             """
                 .trimIndent()
-        val params =
-            mapOf(
-                "polygon_string" to geometry.boundingBox?.let { bbox -> bbox.polygonFromCorners.toWkt() },
-                "segment_count" to geometry.segments.size,
-                "length" to geometry.length.distance,
-            )
-        jdbcTemplate.setUser()
-        val id: RowVersion<ReferenceLineGeometry> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to generate ID for new Track Layout Alignment")
-        upsertSegments(id, geometry.segmentsWithM)
-        logger.daoAccess(AccessType.INSERT, ReferenceLineGeometry::class, id)
-        return id
-    }
 
-    @Transactional
-    fun update(geometry: ReferenceLineGeometry): RowVersion<ReferenceLineGeometry> {
-        val alignmentId =
-            if (geometry.id is IntId) geometry.id
-            else throw IllegalArgumentException("Cannot update an alignment that isn't in DB already")
-        val sql =
-            """
-            update layout.alignment
-            set
-                bounding_box = postgis.st_polygonfromtext(:polygon_string, 3067),
-                segment_count = :segment_count,
-                length = :length
-            where id = :id
-            returning id, version
-            """
-                .trimIndent()
-        val params =
-            mapOf(
-                "id" to alignmentId.intValue,
-                "polygon_string" to geometry.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
-                "segment_count" to geometry.segments.size,
-                "length" to geometry.length.distance,
-            )
-        jdbcTemplate.setUser()
-        val result: RowVersion<ReferenceLineGeometry> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
-        logger.daoAccess(AccessType.UPDATE, ReferenceLineGeometry::class, result.id)
-        upsertSegments(result, geometry.segmentsWithM)
-        return result
-    }
-
-    @Transactional
-    fun delete(id: IntId<ReferenceLineGeometry>): IntId<ReferenceLineGeometry> {
-        val sql = "delete from layout.alignment where id = :id returning id"
-        val params = mapOf("id" to id.intValue)
-        jdbcTemplate.setUser()
-        val deletedRowId =
-            getOne(id, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<ReferenceLineGeometry>("id") })
-        logger.daoAccess(AccessType.DELETE, ReferenceLineGeometry::class, deletedRowId)
-        return deletedRowId
+        jdbcTemplate.batchUpdateIndexed(sql, geometry.segmentsWithM) { ps, (index, segmentAndM) ->
+            val (s, m) = segmentAndM
+            ps.setInt(1, trackNumberVersion.id.intValue)
+            ps.setString(2, trackNumberVersion.context.toSqlString())
+            ps.setInt(3, trackNumberVersion.version)
+            ps.setInt(4, index)
+            ps.setBigDecimal(5, roundTo6Decimals(m.min.distance))
+            ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
+            ps.setNullableInt(7) { if (s.sourceId is IndexedId) s.sourceId.index else null }
+            ps.setNullableBigDecimal(8, s.sourceStartM)
+            ps.setString(9, s.source.name)
+            val geometryId =
+                s.geometry.id as? IntId
+                    ?: requireNotNull(newGeometryIds[s.geometry.id]) {
+                        "SegmentGeometry not stored: id=${s.geometry.id}"
+                    }
+            ps.setInt(10, geometryId.intValue)
+        }
+        logger.daoAccess(AccessType.INSERT, ReferenceLineGeometry::class, trackNumberVersion)
     }
 
     fun getNodeConnectionsNearPoints(
@@ -745,23 +718,6 @@ class LayoutAlignmentDao(
         target: MultiPoint,
         distance: Double,
     ): List<NodeTrackConnections> = getNodeConnectionsNearPoints(context, listOf(target), distance).first()
-
-    @Transactional
-    fun deleteOrphanedRerefenceLineGeometries(): List<IntId<ReferenceLineGeometry>> {
-        val sql =
-            """
-            delete
-            from layout.alignment alignment
-            where not exists(select 1 from layout.reference_line where reference_line.alignment_id = alignment.id)
-            returning alignment.id
-            """
-                .trimIndent()
-        jdbcTemplate.setUser()
-        val deletedGeometries =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getIntId<ReferenceLineGeometry>("id") }
-        logger.daoAccess(AccessType.DELETE, ReferenceLineGeometry::class, deletedGeometries)
-        return deletedGeometries
-    }
 
     private fun fetchSegments(version: RowVersion<ReferenceLineGeometry>): List<LayoutSegment> {
         val sql =
@@ -1224,55 +1180,6 @@ class LayoutAlignmentDao(
                 mRange = mRange.map(::LineM),
                 hasProfile = rs.getBoolean("has_profile_info"),
             )
-        }
-    }
-
-    private fun upsertSegments(
-        alignmentId: RowVersion<ReferenceLineGeometry>,
-        segments: List<Pair<LayoutSegment, Range<out LineM<*>>>>,
-    ) {
-        if (segments.isNotEmpty()) {
-            val newGeometryIds =
-                insertSegmentGeometries(
-                    segments.mapNotNull { (s, _) -> if (s.geometry.id is StringId) s.geometry else null }
-                )
-            // language=SQL
-            val sqlIndexed =
-                """
-                insert into layout.segment_version(
-                  alignment_id,
-                  alignment_version,
-                  segment_index,
-                  start,
-                  geometry_alignment_id,
-                  geometry_element_index,
-                  source_start,
-                  source,
-                  geometry_id
-                )
-                values(?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?)
-                """
-                    .trimIndent()
-            // This uses indexed parameters (rather than named ones),
-            // since named parameter template's batch-method is considerably slower
-            jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, segmentAndM) ->
-                val (s, m) = segmentAndM
-                ps.setInt(1, alignmentId.id.intValue)
-                ps.setInt(2, alignmentId.version)
-                ps.setInt(3, index)
-                ps.setDouble(4, m.min.distance)
-                ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
-                ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.index else null }
-                ps.setNullableBigDecimal(7, s.sourceStartM)
-                ps.setString(8, s.source.name)
-                val geometryId =
-                    if (s.geometry.id is IntId) s.geometry.id
-                    else
-                        requireNotNull(newGeometryIds[s.geometry.id]) {
-                            "SegmentGeometry not stored: id=${s.geometry.id}"
-                        }
-                ps.setInt(9, geometryId.intValue)
-            }
         }
     }
 

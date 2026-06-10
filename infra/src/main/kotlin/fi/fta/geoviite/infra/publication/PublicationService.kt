@@ -212,7 +212,6 @@ constructor(
 
         val locationTrackIds = toDelete.locationTracks.toSet()
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(branch, id) }.size
-        alignmentDao.deleteOrphanedRerefenceLineGeometries()
         val switchCount =
             toDelete.switches
                 .map { id -> switchService.deleteDraft(branch, id, noUpdateLocationTracks = locationTrackIds) }
