@@ -308,13 +308,17 @@ constructor(
     }
 
     @Transactional
-    fun relinkTrack(branch: LayoutBranch, trackId: IntId<LocationTrack>): List<TrackSwitchRelinkingResult> {
+    fun  relinkTrack(
+        branch: LayoutBranch,
+        trackId: IntId<LocationTrack>,
+        restrictToSwitches: Set<IntId<LayoutSwitch>>? = null,
+    ): List<TrackSwitchRelinkingResult> {
         val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
 
         val originalSwitches =
-            collectAllSwitchesOnTrackAndNearby(branch, track, geometry).let { nearbySwitchIds ->
-                nearbySwitchIds.zip(switchService.getMany(branch.draft, nearbySwitchIds))
-            }
+            collectAllSwitchesOnTrackAndNearby(branch, track, geometry)
+                .filter { switchId -> restrictToSwitches == null || restrictToSwitches.contains(switchId) }
+                .let { nearbySwitchIds -> nearbySwitchIds.zip(switchService.getMany(branch.draft, nearbySwitchIds)) }
 
         val originallyLinkedLocationTracksByIndex =
             collectOriginallyLinkedLocationTracks(branch, originalSwitches.map { (switchId) -> switchId })

@@ -204,7 +204,8 @@ constructor(
                     switches = switchDao.fetchCandidateVersions(candidateContext, switches),
                     operationalPoints = operationalPointDao.fetchCandidateVersions(candidateContext, operationalPoints),
                     splits = splitService.fetchPublicationVersions(branch, locationTracks, switches),
-                    trackBoundaryMoves = trackBoundaryMoveService.fetchPublicationVersions(branch, locationTracks),
+                    trackBoundaryMoves =
+                        trackBoundaryMoveService.fetchPublicationVersions(branch, locationTracks, switches),
                 ),
         )
     }

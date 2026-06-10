@@ -77,10 +77,12 @@ internal fun validateAdministrativeChangeContent(
         publicationTrackBoundaryMoves.flatMap { move ->
             val containsShortened = trackVersions.any { it.id == move.shortenedLocationTrack.id }
             val containsLengthened = trackVersions.any { it.id == move.lengthenedLocationTrack.id }
+            val containsSwitches = move.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
             listOfNotNull(
                     validate(containsShortened && containsLengthened, ERROR) {
                         "$VALIDATION_BOUNDARY_MOVE.missing-location-tracks"
-                    }
+                    },
+                    validate(containsSwitches, ERROR) { "$VALIDATION_BOUNDARY_MOVE.missing-switches" },
                 )
                 .map { e -> move to e }
         }
