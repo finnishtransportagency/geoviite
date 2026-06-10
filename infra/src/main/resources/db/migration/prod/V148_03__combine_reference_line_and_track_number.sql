@@ -69,9 +69,13 @@ $$
   end
 $$;
 
+-- ============================================================================
+-- Build the combined version history in temp tables
+-- ============================================================================
+
+-- Collect all time boundaries from both tables
 drop table if exists all_time_points;
 create temporary table all_time_points as
-  -- Collect all time boundaries from both tables
 select distinct tn.id as track_number_id, time_point
   from layout.track_number_version tn
     cross join lateral (
@@ -90,7 +94,6 @@ select distinct rl.track_number_id, time_point
     ) as t(time_point)
   where rl.design_id is null and time_point is not null;
 
--- V148_01 fixes historical timestamp mismatches, so this validation should now pass
 -- At each time-point, there must be exactly 1 track_number_version & reference_line_version per draft state
 do
 $$
@@ -154,10 +157,11 @@ $$
   end
 $$;
 
+-- Collect the version combinations that should be active on each interval
 drop table if exists combined_tn_rl_versions;
 create table combined_tn_rl_versions as
 with
-  -- All interval version combinations
+  -- All interval version combinations (everything that's active in the interval)
   interval_versions as (
     select
       intervals.*,
@@ -194,6 +198,7 @@ with
       where coalesce(tnv_d.id, tnv_o.id) is not null
         and coalesce(rlv_d.id, rlv_o.id) is not null
   ),
+  -- Main official is simply the combination of official rows
   official as (
     select *,
       'main_official' as tn_layout_context_id,
@@ -205,6 +210,7 @@ with
       from interval_versions
       where tnv_o_version is not null and rlv_o_version is not null
   ),
+  -- Live draft version ignores deleted draft-rows and falls back to official when only one part is drafted
   live_draft as (
     select *,
       (case when tnv_d_deleted = false then 'main_draft' else 'main_official' end) as tn_layout_context_id,
@@ -217,11 +223,10 @@ with
     -- At least one part must be in live draft state for the combo-draft to exist
       where (tnv_d_deleted = false or rlv_d_deleted = false)
   ),
-  -- If both draft sides were deleted independently, the combined deleted row uses the data from
-  -- whichever side was deleted most recently (same logic as the last active live_draft used):
-  -- equal change_times = deleted together → use both deleted rows as-is
-  -- different change_times = the earlier-deleted side was already gone when the combo was last
-  --   active, so the combo was already falling back to official for that side → keep that
+  -- Deleted combination rows exist when either both parts are deleted draft or one part's draft is
+  -- never even created. Note, that the content should come from the last non-deleted state of the
+  -- combination, so if they are deleted at separete times, the older deleted-row was already gone
+  -- when the combo was last active, falling back to official for that side → keep that instead.
   deleted_draft as (
     select *,
       (case
@@ -262,6 +267,9 @@ with
     select *
       from official
   ),
+  -- Consecutive intervals with identical data can be created by the above and need to be merged
+  -- (nothing changed -> no new version). We can just group by the pair versions, as the version
+  --  numbers are guaranteed to be increasing (the same combo cannot re-appear later).
   deduped_intervals as (
     select
       track_number_id as tn_id,
