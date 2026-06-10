@@ -7,6 +7,8 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.TrackBoundaryMoveFailureException
 import fi.fta.geoviite.infra.linking.TrackEnd
+import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
@@ -35,6 +37,7 @@ class TrackBoundaryMoveService(
     private val locationTrackDao: LocationTrackDao,
     private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
+    private val switchLinkingService: SwitchLinkingService,
 ) {
     fun get(id: IntId<TrackBoundaryMove>): TrackBoundaryMove? {
         return trackBoundaryMoveDao.get(id)
@@ -87,27 +90,74 @@ class TrackBoundaryMoveService(
             )
         locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
         locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
+        val relinkedSwitches =
+            relinkMovedSwitches(
+                layoutBranch,
+                lengtheningTrackVersion.id,
+                shorteningTrackGeometry,
+                geometries.movedEdgeRange,
+            )
         return trackBoundaryMoveDao.save(
             layoutBranch,
             shorteningTrackVersion,
             geometries.movedEdgeRange,
             lengtheningTrackVersion,
+            relinkedSwitches,
         )
+    }
+
+    private fun relinkMovedSwitches(
+        layoutBranch: LayoutBranch,
+        lengtheningTrackId: IntId<LocationTrack>,
+        shorteningTrackGeometry: LocationTrackGeometry,
+        movedEdgeRange: IntRange,
+    ): List<IntId<LayoutSwitch>> {
+        val movedInnerSwitches =
+            shorteningTrackGeometry.edges
+                .slice(movedEdgeRange)
+                .flatMap { edge -> listOfNotNull(edge.startNode.switchIn?.id, edge.endNode.switchIn?.id) }
+                .toSet()
+        if (movedInnerSwitches.isEmpty()) return emptyList()
+        val relinkingResults = switchLinkingService.relinkTrack(layoutBranch, lengtheningTrackId, movedInnerSwitches)
+        val failedSwitches =
+            relinkingResults
+                .filter { result -> result.outcome != TrackSwitchRelinkingResultType.RELINKED }
+                .map { result -> result.id }
+        if (failedSwitches.isNotEmpty()) {
+            throw TrackBoundaryMoveFailureException(
+                "switches could not be relinked after moving the track boundary: switches=$failedSwitches",
+                localizedMessageKey = "switch-linking-failed",
+            )
+        }
+        return relinkingResults.map { result -> result.id }
     }
 
     fun fetchPublicationVersions(
         branch: LayoutBranch,
         locationTracks: List<IntId<LocationTrack>>,
+        switches: List<IntId<LayoutSwitch>>,
     ): List<RowVersion<TrackBoundaryMove>> =
-        findUnpublishedBoundaryMoves(branch, locationTracks).map { boundaryMove -> boundaryMove.version }
+        findUnpublishedBoundaryMoves(branch, locationTracks, switches).map { boundaryMove -> boundaryMove.version }
 
+    /**
+     * Fetches all boundary moves that are not published. Can be filtered by location tracks or relinked switches. If
+     * both filters are defined, the result is combined by OR (match by either).
+     */
     fun findUnpublishedBoundaryMoves(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
+        switchIds: List<IntId<LayoutSwitch>>? = null,
     ): List<TrackBoundaryMove> =
         trackBoundaryMoveDao.getUnpublished().filter { boundaryMove ->
+            val containsTrack = locationTrackIds?.any(boundaryMove::containsLocationTrack)
+            val containsSwitch = switchIds?.any(boundaryMove::containsSwitch)
             boundaryMove.branch == branch &&
-                (locationTrackIds == null || locationTrackIds.any(boundaryMove::containsLocationTrack))
+                when {
+                    containsTrack != null && containsSwitch != null -> containsTrack || containsSwitch
+                    containsTrack != null -> containsTrack
+                    containsSwitch != null -> containsSwitch
+                    else -> true
+                }
         }
 
     @Transactional

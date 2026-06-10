@@ -28,6 +28,7 @@ data class TrackBoundaryMove(
     val shortenedLocationTrack: LayoutRowVersion<LocationTrack>,
     val edgeRange: IntRange,
     val lengthenedLocationTrack: LayoutRowVersion<LocationTrack>,
+    val relinkedSwitches: List<IntId<LayoutSwitch>>,
     val publicationId: IntId<Publication>?,
 ) : AdministrativeChange {
     val id = version.id
@@ -35,7 +36,7 @@ data class TrackBoundaryMove(
     override fun containsLocationTrack(id: IntId<LocationTrack>) =
         shortenedLocationTrack.id == id || lengthenedLocationTrack.id == id
 
-    override fun containsSwitch(id: IntId<LayoutSwitch>) = false
+    override fun containsSwitch(id: IntId<LayoutSwitch>) = relinkedSwitches.contains(id)
 
     val locationTracks
         get() = listOf(shortenedLocationTrack, lengthenedLocationTrack)

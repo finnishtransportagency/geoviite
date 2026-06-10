@@ -180,13 +180,14 @@ constructor(
         val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
         val trackBoundaryMoves =
-            trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, locationTrackIds.toList())
+            trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, locationTrackIds.toList(), requestIds.switches)
         val trackBoundaryMoveTracks = trackBoundaryMoves.flatMap { s -> s.locationTracks.map { it.id } }.distinct()
+        val trackBoundaryMoveSwitches = trackBoundaryMoves.flatMap { move -> move.relinkedSwitches }.distinct()
 
         return PublicationRequestIds(
             trackNumbers = trackNumbers.map { it.id as IntId },
             locationTracks = (locationTrackIds + revertSplitTracks + trackBoundaryMoveTracks).distinct(),
-            switches = (switchIds + revertSplitSwitches).distinct(),
+            switches = (switchIds + revertSplitSwitches + trackBoundaryMoveSwitches).distinct(),
             kmPosts = kmPostIds.toList(),
             operationalPoints = operationalPointIds.toList(),
         )
@@ -215,19 +216,22 @@ constructor(
             splitService.deleteSplit(split.id)
         }
 
-        trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, toDelete.locationTracks).forEach {
-            trackBoundaryMove ->
-            val shortenedTrackIncluded = toDelete.locationTracks.contains(trackBoundaryMove.shortenedLocationTrack.id)
-            val lengthenedTrackIncluded = toDelete.locationTracks.contains(trackBoundaryMove.lengthenedLocationTrack.id)
-            if (!shortenedTrackIncluded || !lengthenedTrackIncluded) {
-                throw PartialTrackBoundaryMoveRevertException(
-                    message =
-                        "Cannot partially revert track boundary move ${trackBoundaryMove.id}: " +
-                            "both shortened and lengthened track must be included in the revert request"
-                )
+        trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, toDelete.locationTracks, toDelete.switches)
+            .forEach { trackBoundaryMove ->
+                val shortenedTrackIncluded =
+                    toDelete.locationTracks.contains(trackBoundaryMove.shortenedLocationTrack.id)
+                val lengthenedTrackIncluded =
+                    toDelete.locationTracks.contains(trackBoundaryMove.lengthenedLocationTrack.id)
+                val allSwitchesIncluded = toDeleteSwitches.containsAll(trackBoundaryMove.relinkedSwitches)
+                if (!shortenedTrackIncluded || !lengthenedTrackIncluded || !allSwitchesIncluded) {
+                    throw PartialTrackBoundaryMoveRevertException(
+                        message =
+                            "Cannot partially revert track boundary move ${trackBoundaryMove.id}: " +
+                                "both moved tracks and all relinked switches must be included in the revert request"
+                    )
+                }
+                trackBoundaryMoveService.delete(trackBoundaryMove.id)
             }
-            trackBoundaryMoveService.delete(trackBoundaryMove.id)
-        }
 
         val locationTrackIds = toDelete.locationTracks.toSet()
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(branch, id) }.size
@@ -296,7 +300,11 @@ constructor(
                     request.switches,
                 ),
             trackBoundaryMoves =
-                trackBoundaryMoveService.fetchPublicationVersions(transition.candidateBranch, request.locationTracks),
+                trackBoundaryMoveService.fetchPublicationVersions(
+                    transition.candidateBranch,
+                    request.locationTracks,
+                    request.switches,
+                ),
         )
     }
 
