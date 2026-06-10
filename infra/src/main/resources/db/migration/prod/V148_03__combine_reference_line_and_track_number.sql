@@ -642,24 +642,29 @@ $$
 $$;
 
 -- ============================================================================
--- Disable triggers for the duration of the migration
+-- Disable triggers / remove constraints for the duration of the migration
 -- ============================================================================
 
 alter table layout.track_number
   disable trigger version_update_trigger,
   disable trigger version_row_trigger;
 
+alter table publication.track_number_km
+  drop constraint publication_track_number_km_publication_track_number;
+
 -- ============================================================================
 -- Drop old data, so it won't interfere with new constraints
 -- ============================================================================
 
+drop function if exists layout.reference_line_at;
+drop function if exists layout.reference_line_in_layout_context;
+drop function if exists layout.reference_line_is_in_layout_context;
+drop function if exists layout.alignment_at;
 drop table publication.reference_line;
 drop table layout.reference_line_version;
 drop table layout.reference_line;
 drop table layout.reference_line_id;
-truncate publication.track_number;
-truncate layout.track_number_version;
-truncate layout.track_number;
+truncate publication.track_number, layout.track_number_version, layout.track_number;
 
 -- ============================================================================
 -- Adjust the schema for the new single-asset form
@@ -684,7 +689,7 @@ create table layout.track_number_version_segment
   start_m                 decimal(13, 6)         not null,
   geometry_alignment_id   int                    null,
   geometry_element_index  int                    null,
-  source_start_m          decimal(13, 6)         not null,
+  source_start_m          decimal(13, 6)         null,
   source                  layout.geometry_source not null,
   geometry_id             int                    not null,
   primary key (track_number_id, track_layout_context_id, track_number_version, segment_index),
@@ -757,7 +762,7 @@ select
   where version = v.version
     and layout_context_id = v.layout_context_id
     and v.deleted = false
-    and v.expiry_time is not null;
+    and v.expiry_time is null;
 
 -- Populate track_number_version_segment from segment_version via reference_line_version's alignment reference
 insert into layout.track_number_version_segment
@@ -812,6 +817,10 @@ drop table layout.alignment;
 -- ============================================================================
 -- Re-enable versioning triggers and constraints
 -- ============================================================================
+alter table publication.track_number_km
+  add constraint publication_track_number_km_publication_track_number
+    foreign key (publication_id, track_number_id) references publication.track_number (publication_id, id);
+
 alter table layout.track_number
   enable trigger version_update_trigger,
   enable trigger version_row_trigger;
