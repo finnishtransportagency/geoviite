@@ -104,6 +104,10 @@ geoviite:
         enabled: true
         cron: "0 30 3 * * *"
 
+      health-check:
+        enabled: true
+        cron: "0/30 * * * * *"
+
   ratko-fake-oid-generator:
     enabled: "${RATKO_FAKE_OID_GENERATOR_ENABLED:false}"
 
