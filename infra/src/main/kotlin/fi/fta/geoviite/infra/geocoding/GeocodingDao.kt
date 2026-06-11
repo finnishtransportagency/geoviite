@@ -73,18 +73,11 @@ class GeocodingDao(
               tn.design_id as tn_design_id,
               tn.draft as tn_draft,
               tn.version as tn_version,
-              rl.id as rl_id,
-              rl.design_id as rl_design_id,
-              rl.draft as rl_draft,
-              rl.version as rl_version,
               kmp_ids,
               kmp_design_ids,
               kmp_drafts,
               kmp_versions
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-              left join
-                layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                  rl on rl.track_number_id = tn.id
               left join lateral (
                 select
                   coalesce(array_agg(kmp.id order by id), '{}') as kmp_ids,
@@ -136,23 +129,6 @@ class GeocodingDao(
                         order by is_design
                         limit 1
                       ),
-                      rl_versions as (
-                        select distinct on (id, is_design)
-                          id, design_id, version, deleted, case when design_id is not null then 0 else 1 end as is_design
-                        from layout.reference_line_version
-                        where track_number_id = :tn_id
-                          and draft = false
-                          and (design_id is null or design_id = :design_id)
-                          and change_time <= :moment
-                        order by id, is_design, version desc
-                      ),
-                      rl as (
-                        select id, design_id, version
-                        from rl_versions
-                        where deleted = false
-                        order by is_design
-                        limit 1
-                      ),
                       kmp_versions as (
                         select distinct on (id, is_design)
                           id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
@@ -174,16 +150,11 @@ class GeocodingDao(
                       tn.design_id as tn_design_id,
                       false as tn_draft,
                       tn.version as tn_version,
-                      rl.id as rl_id,
-                      rl.design_id as rl_design_id,
-                      false as rl_draft,
-                      rl.version as rl_version,
                       kmp_ids,
                       kmp_design_ids,
                       kmp_drafts,
                       kmp_versions
                     from tn
-                      left join rl on true
                       left join lateral (
                         select
                           coalesce(
