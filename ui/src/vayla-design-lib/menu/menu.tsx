@@ -16,6 +16,7 @@ export type MenuSelectOption = {
     onSelect: () => void;
     closingBehaviour: MenuClosingBehaviour;
     icon: IconComponent | undefined;
+    title: string | undefined;
 } & OptionBase;
 
 export type MenuDividerOption = {
@@ -33,6 +34,7 @@ export const menuOption = (
     disabled: boolean = false,
     closingBehaviour: MenuClosingBehaviour = 'CLOSE_AFTER_SELECT',
     icon: IconComponent | undefined = undefined,
+    title: string | undefined = undefined,
 ): MenuSelectOption => ({
     type: 'SELECT',
     onSelect,
@@ -41,6 +43,7 @@ export const menuOption = (
     closingBehaviour,
     qaId,
     icon,
+    title,
 });
 
 export const menuDivider = (): MenuDividerOption => ({
@@ -87,7 +90,7 @@ export const Menu = function ({
                             <li
                                 key={`${index}`}
                                 qa-id={item.qaId}
-                                title={`${item.name}`}
+                                title={item.title ?? `${item.name}`}
                                 className={createClassName(
                                     styles['menu__item'],
                                     item.disabled && styles['menu__item--disabled'],

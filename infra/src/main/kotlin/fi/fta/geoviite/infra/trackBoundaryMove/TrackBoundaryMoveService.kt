@@ -7,9 +7,12 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.TrackBoundaryMoveFailureException
 import fi.fta.geoviite.infra.linking.TrackEnd
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -31,6 +34,7 @@ class TrackBoundaryMoveService(
     private val trackBoundaryMoveDao: TrackBoundaryMoveDao,
     private val locationTrackDao: LocationTrackDao,
     private val locationTrackService: LocationTrackService,
+    private val splitDao: SplitDao,
 ) {
     fun get(id: IntId<TrackBoundaryMove>): TrackBoundaryMove? {
         return trackBoundaryMoveDao.get(id)
@@ -44,12 +48,33 @@ class TrackBoundaryMoveService(
         boundaryMoveDirection: BoundaryMoveDirection,
         upToSwitchJoint: SwitchJointId?,
     ): IntId<TrackBoundaryMove> {
+        if (layoutBranch != LayoutBranch.main) {
+            throw TrackBoundaryMoveFailureException(
+                "track boundary moves are only allowed in the main branch: branch=$layoutBranch",
+                localizedMessageKey = "branch-not-main",
+            )
+        }
         val context = layoutBranch.draft
         val shorteningTrackVersion = locationTrackDao.fetchVersionOrThrow(context, shorteningTrackId)
         val lengtheningTrackVersion = locationTrackDao.fetchVersionOrThrow(context, lengtheningTrackId)
 
         val (shorteningTrack, shorteningTrackGeometry) = locationTrackService.getWithGeometry(shorteningTrackVersion)
         val (lengtheningTrack, lengtheningTrackGeometry) = locationTrackService.getWithGeometry(lengtheningTrackVersion)
+
+        val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutBranch)
+        val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutBranch)
+        validateTrackForBoundaryMove(
+            shorteningTrack,
+            shorteningTrackGeometry,
+            unfinishedSplits,
+            unpublishedBoundaryMoves,
+        )
+        validateTrackForBoundaryMove(
+            lengtheningTrack,
+            lengtheningTrackGeometry,
+            unfinishedSplits,
+            unpublishedBoundaryMoves,
+        )
 
         val geometries =
             getTrackBoundaryMoveGeometry(
@@ -116,6 +141,12 @@ class TrackBoundaryMoveService(
 
         if (headStartPoint == null || headEndPoint == null) return emptyList()
 
+        val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutContext.branch)
+        val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutContext.branch)
+        val getDisabledReasons = { track: LocationTrack, geometry: DbLocationTrackGeometry ->
+            boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves)
+        }
+
         val counterpartFirstOptions =
             locationTrackService
                 .listWithGeometries(
@@ -124,7 +155,14 @@ class TrackBoundaryMoveService(
                     boundingBox = boundingBoxAroundPoint(headStartPoint, ENDPOINT_MATCH_DISTANCE),
                 )
                 .let { candidates ->
-                    getCounterpartFirstOptions(candidates, headTrack, headStartPoint, headGeometry, headSwitchIds)
+                    getCounterpartFirstOptions(
+                        candidates,
+                        headTrack,
+                        headStartPoint,
+                        headGeometry,
+                        headSwitchIds,
+                        getDisabledReasons,
+                    )
                 }
 
         val headFirstOptions =
@@ -135,7 +173,14 @@ class TrackBoundaryMoveService(
                     boundingBox = boundingBoxAroundPoint(headEndPoint, ENDPOINT_MATCH_DISTANCE),
                 )
                 .let { candidates ->
-                    getHeadFirstOptions(candidates, headTrack, headEndPoint, headGeometry, headSwitchIds)
+                    getHeadFirstOptions(
+                        candidates,
+                        headTrack,
+                        headEndPoint,
+                        headGeometry,
+                        headSwitchIds,
+                        getDisabledReasons,
+                    )
                 }
 
         return counterpartFirstOptions + headFirstOptions
@@ -144,12 +189,37 @@ class TrackBoundaryMoveService(
     fun delete(id: IntId<TrackBoundaryMove>) = trackBoundaryMoveDao.delete(id)
 }
 
+private fun validateTrackForBoundaryMove(
+    track: LocationTrack,
+    geometry: LocationTrackGeometry,
+    unfinishedSplits: List<Split>,
+    unpublishedBoundaryMoves: List<TrackBoundaryMove>,
+) {
+    val reason =
+        boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves).firstOrNull()
+            ?: return
+    val messageKey =
+        when (reason) {
+            BoundaryMoveDisabledReason.PART_OF_SPLIT -> "track-part-of-split"
+            BoundaryMoveDisabledReason.PART_OF_BOUNDARY_MOVE -> "track-part-of-boundary-move"
+            BoundaryMoveDisabledReason.TRACK_DRAFT_EXISTS -> "track-draft-exists"
+            BoundaryMoveDisabledReason.NO_GEOMETRY -> "no-geometry"
+            BoundaryMoveDisabledReason.SWITCHES_PART_OF_SPLIT -> "switches-part-of-split"
+        }
+    throw TrackBoundaryMoveFailureException(
+        "track cannot take part in a boundary move: id=${track.id}, reason=$reason",
+        localizedMessageKey = messageKey,
+        localizationParams = localizationParams("name" to track.name),
+    )
+}
+
 private fun getHeadFirstOptions(
     candidates: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
     headTrack: LocationTrack,
     headEndPoint: AlignmentPoint<LocationTrackM>,
     headGeometry: DbLocationTrackGeometry,
     headSwitchIds: Set<IntId<LayoutSwitch>>,
+    getDisabledReasons: (LocationTrack, DbLocationTrackGeometry) -> List<BoundaryMoveDisabledReason>,
 ): List<BoundaryMoveCounterpart> =
     candidates
         .filter { (track, _) -> track.id != headTrack.id && track.exists }
@@ -167,6 +237,7 @@ private fun getHeadFirstOptions(
                     candidateGeometry.switchIds.toSet(),
                     candidate.id as IntId,
                     BoundaryOrientation.HEAD_FIRST,
+                    getDisabledReasons(candidate, candidateGeometry),
                 )
         }
 
@@ -176,6 +247,7 @@ private fun getCounterpartFirstOptions(
     headStartPoint: AlignmentPoint<LocationTrackM>,
     headGeometry: DbLocationTrackGeometry,
     headSwitchIds: Set<IntId<LayoutSwitch>>,
+    getDisabledReasons: (LocationTrack, DbLocationTrackGeometry) -> List<BoundaryMoveDisabledReason>,
 ): List<BoundaryMoveCounterpart> =
     candidates
         .filter { (track, _) -> track.id != headTrack.id && track.exists }
@@ -193,6 +265,7 @@ private fun getCounterpartFirstOptions(
                     candidateGeometry.switchIds.toSet(),
                     candidate.id as IntId,
                     BoundaryOrientation.COUNTERPART_FIRST,
+                    getDisabledReasons(candidate, candidateGeometry),
                 )
         }
 
@@ -205,6 +278,7 @@ private fun getCounterpartOption(
     candidateSwitchIds: Set<IntId<LayoutSwitch>>,
     candidateId: IntId<LocationTrack>,
     orientation: BoundaryOrientation,
+    disabledReasons: List<BoundaryMoveDisabledReason>,
 ): BoundaryMoveCounterpart? {
     val outsideMatchDistance = lineLength(headPoint, candidatePoint) > ENDPOINT_MATCH_DISTANCE
     val linkingSwitches = (candidateNode.switches.map { it.id } + headNode.switches.map { it.id }).toSet()
@@ -217,6 +291,7 @@ private fun getCounterpartOption(
             trackId = candidateId,
             orientation = orientation,
             connectingSwitchJoint = linkingSwitchJoint,
+            disabledReasons = disabledReasons,
         )
 }
 

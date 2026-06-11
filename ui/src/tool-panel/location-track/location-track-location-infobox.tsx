@@ -53,6 +53,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { getSplitPointName } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
+import { translatedBoundaryMoveDisabledReasons } from 'tool-panel/location-track/location-track-track-boundary-move-infobox';
 import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
 import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
@@ -183,6 +184,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const anySwitchesPartOfOtherSplits = extraInfo?.switches?.some(
         (sw) => sw.partOfUnfinishedSplit,
     );
+    const partOfUnpublishedBoundaryMove =
+        extraInfo?.boundaryMoveDisabledReasons?.includes('PART_OF_BOUNDARY_MOVE');
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
@@ -197,6 +200,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
         if (isPartOfUnfinishedSplit(extraInfo?.partOfSplit)) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        }
+
+        if (partOfUnpublishedBoundaryMove) {
+            return t('tool-panel.location-track.splitting.validation.track-part-of-boundary-move');
         }
 
         if (locationTrack.state !== 'IN_USE') {
@@ -251,7 +258,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [startingSplitting, setStartingSplitting] = React.useState<boolean>(false);
-    const [modifyMenuOpen, setModifyMenuOpen] = React.useState<boolean>(false);
+    const [modifyTrackBoundariesMenuOpen, setModifyTrackBoundariesMenuOpen] =
+        React.useState<boolean>(false);
     const modifyButtonRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -400,10 +408,31 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         duplicatesOnOtherTrackNumbers ||
         duplicatesOnOtherLocationTracks ||
         isPartOfUnfinishedSplit(extraInfo?.partOfSplit) ||
+        partOfUnpublishedBoundaryMove ||
         startingSplitting ||
         !startAndEndAddressDefined ||
         anySwitchesPartOfOtherSplits ||
         layoutContext.branch !== 'MAIN';
+
+    const trackBoundaryMoveDisabled =
+        !isDraft ||
+        layoutContext.branch !== 'MAIN' ||
+        !!splittingState ||
+        !extraInfo ||
+        extraInfo.boundaryMoveDisabledReasons.length > 0;
+
+    const getTrackBoundaryMoveDisabledReasonsTranslated = () => {
+        if (!isDraft) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+        if (layoutContext.branch !== 'MAIN') {
+            return t('tool-panel.location-track.track-boundary-move.validation.branch-not-main');
+        }
+        return translatedBoundaryMoveDisabledReasons(
+            extraInfo?.boundaryMoveDisabledReasons ?? [],
+            t,
+        );
+    };
 
     const modifyStartOrEndButton = (
         <EnvRestricted
@@ -430,12 +459,51 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SMALL}
                 qa-id="modify-start-or-end"
-                title={getModifyStartOrEndDisabledReasonTranslated()}
-                disabled={shorteningDisabled}
-                onClick={() => setModifyMenuOpen(true)}>
+                title={
+                    shorteningDisabled && trackBoundaryMoveDisabled
+                        ? getModifyStartOrEndDisabledReasonTranslated()
+                        : undefined
+                }
+                disabled={shorteningDisabled && trackBoundaryMoveDisabled}
+                onClick={() => setModifyTrackBoundariesMenuOpen(true)}>
                 {t('tool-panel.location-track.modify-start-or-end')}
             </Button>
         </EnvRestricted>
+    );
+
+    const modifyTrackBoundariesMenu = () => (
+        <Menu
+            anchorElementRef={modifyButtonRef}
+            onClickOutside={() => setModifyTrackBoundariesMenuOpen(false)}
+            onClose={() => setModifyTrackBoundariesMenuOpen(false)}
+            items={[
+                menuOption(
+                    () => {
+                        getEndLinkPoints(
+                            locationTrack.id,
+                            layoutContext,
+                            MapAlignmentType.LocationTrack,
+                            changeTimes.layoutLocationTrack,
+                        ).then(onStartLocationTrackGeometryChange);
+                    },
+                    t('tool-panel.location-track.shorten-track-start-or-end'),
+                    'shorten-track-start-or-end',
+                    shorteningDisabled,
+                    'CLOSE_AFTER_SELECT',
+                    undefined,
+                    getModifyStartOrEndDisabledReasonTranslated(),
+                ),
+                menuOption(
+                    () => onStartTrackBoundaryMove(locationTrack.id),
+                    t('tool-panel.location-track.move-track-boundary'),
+                    'move-track-boundary',
+                    trackBoundaryMoveDisabled,
+                    'CLOSE_AFTER_SELECT',
+                    undefined,
+                    getTrackBoundaryMoveDisabledReasonsTranslated(),
+                ),
+            ]}
+        />
     );
 
     return (
@@ -484,41 +552,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                     )}
                                     <InfoboxButtons>
                                         <div ref={modifyButtonRef}>{modifyStartOrEndButton}</div>
-                                        {modifyMenuOpen && (
-                                            <Menu
-                                                anchorElementRef={modifyButtonRef}
-                                                onClickOutside={() => setModifyMenuOpen(false)}
-                                                onClose={() => setModifyMenuOpen(false)}
-                                                items={[
-                                                    menuOption(
-                                                        () => {
-                                                            getEndLinkPoints(
-                                                                locationTrack.id,
-                                                                layoutContext,
-                                                                MapAlignmentType.LocationTrack,
-                                                                changeTimes.layoutLocationTrack,
-                                                            ).then(
-                                                                onStartLocationTrackGeometryChange,
-                                                            );
-                                                        },
-                                                        t(
-                                                            'tool-panel.location-track.shorten-track-start-or-end',
-                                                        ),
-                                                        'shorten-track-start-or-end',
-                                                    ),
-                                                    menuOption(
-                                                        () =>
-                                                            onStartTrackBoundaryMove(
-                                                                locationTrack.id,
-                                                            ),
-                                                        t(
-                                                            'tool-panel.location-track.move-track-boundary',
-                                                        ),
-                                                        'move-track-boundary',
-                                                    ),
-                                                ]}
-                                            />
-                                        )}
+                                        {modifyTrackBoundariesMenuOpen &&
+                                            modifyTrackBoundariesMenu()}
                                     </InfoboxButtons>
                                 </PrivilegeRequired>
                             )}

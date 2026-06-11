@@ -61,6 +61,11 @@
         & > *:not(:last-child) {
             margin-right: 12px;
         }
+
+        &--disabled {
+            cursor: default;
+            color: vayla-design.$color-black-lighter;
+        }
     }
 
     &__connection-points {

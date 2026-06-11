@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDisabledReason
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.StringSanitizer
 
@@ -300,6 +301,7 @@ data class LocationTrackInfoboxExtras(
     val duplicateOf: LocationTrackDuplicate?,
     val duplicates: List<LocationTrackDuplicate>,
     val partOfSplit: PartOfSplit,
+    val boundaryMoveDisabledReasons: List<BoundaryMoveDisabledReason>,
     val startSplitPoint: SplitPoint?,
     val endSplitPoint: SplitPoint?,
     val switches: List<LocationTrackInfoboxSwitch>,

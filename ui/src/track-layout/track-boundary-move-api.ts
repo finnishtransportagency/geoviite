@@ -1,4 +1,8 @@
-import { LocationTrackId, SwitchJointId } from 'track-layout/track-layout-model';
+import {
+    BoundaryMoveDisabledReason,
+    LocationTrackId,
+    SwitchJointId,
+} from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { Point } from 'model/geometry';
 import { getNonNull, postNonNull } from 'api/api-fetch';
@@ -29,6 +33,7 @@ export type BoundaryMoveCounterpart = {
     trackId: LocationTrackId;
     orientation: BoundaryOrientation;
     connectingSwitchJoint: SwitchJointId | undefined;
+    disabledReasons: BoundaryMoveDisabledReason[];
 };
 
 export type BoundaryMoveDirection = 'ASCENDING' | 'DESCENDING';
