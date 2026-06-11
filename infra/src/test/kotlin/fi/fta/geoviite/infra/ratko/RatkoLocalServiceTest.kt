@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 
 class RatkoLocalServiceTest {
 
@@ -58,9 +59,26 @@ class RatkoLocalServiceTest {
     @Test
     fun `refreshOnlineStatus sets OFFLINE when client throws`() {
         val client = mock(RatkoClient::class.java)
-        org.mockito.Mockito.`when`(client.getRatkoOnlineStatus()).thenThrow(RuntimeException("unexpected"))
+        `when`(client.getRatkoOnlineStatus()).thenThrow(RuntimeException("unexpected"))
 
         val service = serviceWithClient(client)
+        service.refreshOnlineStatus()
+
+        assertEquals(
+            RatkoClient.RatkoStatus(RatkoConnectionStatus.OFFLINE, null),
+            service.getRatkoOnlineStatus(),
+        )
+    }
+
+    @Test
+    fun `refreshOnlineStatus sets OFFLINE when client throws even if previously ONLINE`() {
+        val client = mock(RatkoClient::class.java)
+        `when`(client.getRatkoOnlineStatus())
+            .thenReturn(RatkoClient.RatkoStatus(RatkoConnectionStatus.ONLINE, 200))
+            .thenThrow(RuntimeException("unexpected"))
+
+        val service = serviceWithClient(client)
+        service.refreshOnlineStatus()
         service.refreshOnlineStatus()
 
         assertEquals(
