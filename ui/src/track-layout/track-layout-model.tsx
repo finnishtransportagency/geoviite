@@ -357,7 +357,8 @@ export type BoundaryMoveDisabledReason =
     | 'PART_OF_BOUNDARY_MOVE'
     | 'TRACK_DRAFT_EXISTS'
     | 'NO_GEOMETRY'
-    | 'SWITCHES_PART_OF_SPLIT';
+    | 'SWITCHES_PART_OF_SPLIT'
+    | 'ON_DIFFERENT_TRACK_NUMBER';
 
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
