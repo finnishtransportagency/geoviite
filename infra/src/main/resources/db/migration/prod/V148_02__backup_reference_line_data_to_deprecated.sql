@@ -120,3 +120,16 @@ select
   where exists(
     select 1 from deprecated.alignment_version av where av.id = s.alignment_id and av.version = s.alignment_version
   );
+
+-- Backup initial_segment_metadata
+create table deprecated.initial_segment_metadata
+(
+  alignment_id  int not null,
+  segment_index int not null,
+  metadata_id   int not null,
+  primary key (alignment_id, segment_index)
+);
+
+insert into deprecated.initial_segment_metadata (alignment_id, segment_index, metadata_id)
+select alignment_id, segment_index, metadata_id
+  from layout.initial_segment_metadata;

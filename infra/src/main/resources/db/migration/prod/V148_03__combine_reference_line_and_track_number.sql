@@ -670,6 +670,7 @@ truncate publication.track_number, layout.track_number_version, layout.track_num
 -- Adjust the schema for the new single-asset form
 -- ============================================================================
 
+-- Alter the actual track_number tables
 alter table layout.track_number
   add column start_address varchar(20)                     not null,
   add column bounding_box  postgis.geometry(polygon, 3067) null,
@@ -680,6 +681,8 @@ alter table layout.track_number_version
   add column bounding_box  postgis.geometry(polygon, 3067) null,
   add column segment_count int                             not null,
   add column length        decimal(13, 6)                  not null;
+
+-- Add new segment table that relies on track number version instead of a separate alignment
 create table layout.track_number_version_segment
 (
   track_number_id         int                    not null,
@@ -698,6 +701,21 @@ create table layout.track_number_version_segment
   foreign key (geometry_alignment_id, geometry_element_index) references geometry.element (alignment_id, element_index),
   foreign key (geometry_id) references layout.segment_geometry (id)
 );
+comment on table layout.track_number_version_segment
+  is 'Versioned 1-to-many linking of segments composing a tracknumber reference line';
+
+-- Create the new initial metadata table keyed by track_number_id instead of alignment_id
+create table layout.initial_track_number_segment_metadata
+(
+  track_number_id int not null references layout.track_number_id (id),
+  segment_index   int not null,
+  metadata_id     int not null references layout.initial_import_metadata (id),
+
+  primary key (track_number_id, segment_index)
+);
+comment on table layout.initial_track_number_segment_metadata
+  is 'Initial import metadata links for track number segments';
+
 
 -- ============================================================================
 -- Populate the new model data
@@ -806,10 +824,19 @@ select
   end_changed
   from publication_track_number_migration;
 
+-- Migrate layout.initial_segment_metadata to layout.initial_track_number_segment_metadata
+insert into layout.initial_track_number_segment_metadata
+  (track_number_id, segment_index, metadata_id)
+select distinct rlv.track_number_id, ism.segment_index, ism.metadata_id
+  from layout.initial_segment_metadata ism
+    join deprecated.reference_line_version rlv
+         on rlv.alignment_id = ism.alignment_id;
+
 -- ============================================================================
 -- Drop old reference_line & alignment & segment tables
 -- ============================================================================
 
+drop table layout.initial_segment_metadata;
 drop table layout.segment_version;
 drop table layout.alignment_version;
 drop table layout.alignment;
@@ -824,9 +851,3 @@ alter table publication.track_number_km
 alter table layout.track_number
   enable trigger version_update_trigger,
   enable trigger version_row_trigger;
-
--- TODO: Migrate layout.initial_segment_metadata to layout.initial_track_number_segment_metadata
--- The new table should have (track_number_id, segment_index, metadata_id) instead of (alignment_id, segment_index, metadata_id).
--- Populate it by mapping the old alignment_id to the corresponding track_number_id via the reference_line_version
--- backup data (deprecated.reference_line_version.alignment_id → deprecated.reference_line_version.track_number_id).
--- Then drop layout.initial_segment_metadata.
