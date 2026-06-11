@@ -908,7 +908,7 @@ constructor(
     }
 
     @Test
-    fun `counterpart options excludes tracks on a different track number`() {
+    fun `counterpart options flag tracks on a different track number`() {
         val trackNumberA = mainDraftContext.createLayoutTrackNumber().id
         val trackNumberB = mainDraftContext.createLayoutTrackNumber().id
 
@@ -917,13 +917,21 @@ constructor(
                 locationTrack(trackNumberA),
                 trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))),
             )
-        testDBService.save(
-            locationTrack(trackNumberB),
-            trackGeometry(edge(listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))))),
-        )
+        val otherTrackNumberTrack =
+            testDBService.save(
+                locationTrack(trackNumberB),
+                trackGeometry(edge(listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))))),
+            )
 
         assertEquals(
-            emptyList<BoundaryMoveCounterpart>(),
+            listOf(
+                BoundaryMoveCounterpart(
+                    trackId = otherTrackNumberTrack.id,
+                    orientation = BoundaryOrientation.HEAD_FIRST,
+                    connectingSwitchJoint = null,
+                    disabledReasons = listOf(BoundaryMoveCounterpartDisabledReason.ON_DIFFERENT_TRACK_NUMBER),
+                )
+            ),
             trackBoundaryMoveService.getBoundaryMoveCounterpartOptions(LayoutBranch.main.draft, headTrack.id),
         )
     }

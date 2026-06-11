@@ -57,6 +57,7 @@ enum class BoundaryMoveDisabledReason {
     TRACK_DRAFT_EXISTS,
     NO_GEOMETRY,
     SWITCHES_PART_OF_SPLIT,
+    ON_DIFFERENT_TRACK_NUMBER,
 }
 
 fun boundaryMoveDisabledReasons(
