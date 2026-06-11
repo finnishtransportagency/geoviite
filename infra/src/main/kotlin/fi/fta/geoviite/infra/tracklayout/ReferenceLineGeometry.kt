@@ -17,12 +17,16 @@ data class DbReferenceLineGeometry(
 ) : ReferenceLineGeometry() {
     override val trackNumberId: IntId<LayoutTrackNumber>
         get() = trackNumberVersion.id
+
+    init { validateSegments() }
 }
 
 data class TmpReferenceLineGeometry(
     override val segments: List<LayoutSegment>,
     override val trackNumberId: IntId<LayoutTrackNumber>?,
 ) : ReferenceLineGeometry() {
+
+    init { validateSegments() }
 
     companion object {
         val empty = TmpReferenceLineGeometry(emptyList(), null)
@@ -31,12 +35,12 @@ data class TmpReferenceLineGeometry(
 
 sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
     // TODO: GVT-3637 cleanup
-    val id = trackNumberId
+    val id get() = trackNumberId
     abstract val trackNumberId: IntId<LayoutTrackNumber>?
     abstract override val segments: List<LayoutSegment>
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.map { s -> s.boundingBox }) }
-    override val segmentMValues: List<Range<LineM<ReferenceLineM>>> = calculateSegmentMValues(segments)
+    override val segmentMValues: List<Range<LineM<ReferenceLineM>>> by lazy { calculateSegmentMValues(segments) }
     @get:JsonIgnore
     override val segmentsWithM: List<Pair<LayoutSegment, Range<LineM<ReferenceLineM>>>>
         get() = segments.zip(segmentMValues)
@@ -45,7 +49,7 @@ sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
 
     override fun approximateClosestSegmentIndex(target: IPoint): Int? = spatialIndex.findClosest(target)
 
-    init {
+    protected fun validateSegments() {
         segments.forEachIndexed { index, segment ->
             val m = segmentMValues[index]
             require(abs(segment.length - (m.max.distance - m.min.distance)) < LAYOUT_M_DELTA)

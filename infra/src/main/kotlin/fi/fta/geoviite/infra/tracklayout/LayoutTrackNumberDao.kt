@@ -121,7 +121,7 @@ class LayoutTrackNumberDao(
               tn.state,
               tn.origin_design_id,
               tn.start_address,
-              tn.bounding_box,
+              postgis.st_astext(tn.bounding_box) as bounding_box,
               tn.segment_count,
               tn.length
             from layout.track_number_version tn
@@ -161,7 +161,7 @@ class LayoutTrackNumberDao(
               tn.design_asset_state,
               tn.origin_design_id,
               tn.start_address,
-              tn.bounding_box,
+              postgis.st_astext(tn.bounding_box) as bounding_box,
               tn.segment_count,
               tn.length
             from layout.track_number tn
