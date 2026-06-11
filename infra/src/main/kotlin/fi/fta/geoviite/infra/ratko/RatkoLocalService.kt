@@ -30,6 +30,8 @@ constructor(
     private val logger = LoggerFactory.getLogger(this::class.java)
     private val latestStatus = AtomicReference(RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null))
 
+    // Broad catch is intentional: keeps the scheduler alive regardless of what escapes getRatkoOnlineStatus()
+    @Suppress("TooGenericExceptionCaught")
     fun refreshOnlineStatus() {
         val status =
             try {
