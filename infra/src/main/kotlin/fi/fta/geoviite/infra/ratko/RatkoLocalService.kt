@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import java.util.concurrent.atomic.AtomicReference
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -26,10 +27,18 @@ constructor(
     private val operationalPointDao: OperationalPointDao,
 ) {
 
+    private val logger = LoggerFactory.getLogger(this::class.java)
     private val latestStatus = AtomicReference(RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null))
 
     fun refreshOnlineStatus() {
-        latestStatus.set(ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null))
+        val status =
+            try {
+                ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null)
+            } catch (e: Exception) {
+                logger.warn("Unexpected exception during Ratko health check", e)
+                RatkoStatus(RatkoConnectionStatus.OFFLINE, null)
+            }
+        latestStatus.set(status)
     }
 
     fun getRatkoOnlineStatus(): RatkoStatus = latestStatus.get()
