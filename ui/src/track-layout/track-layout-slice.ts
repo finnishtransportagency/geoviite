@@ -540,9 +540,13 @@ const trackLayoutSlice = createSlice({
                         );
                         break;
                     case LinkingType.TrackBoundaryMove:
-                        state.linkingState.counterpart = state.linkingState.counterpartOptions.find(
-                            (option) => option.trackId === onSelectOptions.locationTracks?.[0],
-                        );
+                        if (!state.linkingState.counterpartLocked) {
+                            state.linkingState.counterpart =
+                                state.linkingState.counterpartOptions.find(
+                                    (option) =>
+                                        option.trackId === onSelectOptions.locationTracks?.[0],
+                                );
+                        }
                         break;
                     case LinkingType.PlacingLayoutSwitch:
                     case LinkingType.LinkingLayoutSwitch:
