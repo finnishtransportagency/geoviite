@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -45,9 +44,11 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
     @Test
     fun `Track number kms API should return correct kms`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(trackNumber))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter(10, 100)), rlGeom).id
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(trackNumber, startAddress = TrackMeter(10, 100)),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
+            )
         val kmp13Id =
             mainDraftContext.save(kmPost(tnId, KmNumber(13), gkLocation = kmPostGkLocation(300.0, 2.0, true))).id
         val kmp14Id =
@@ -64,7 +65,6 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
         val publication =
             testDBService.publish(
                 trackNumbers = listOf(tnId),
-                referenceLines = listOf(rlId),
                 kmPosts = listOf(kmp13Id, kmp14Id, deletedKmp15Id, kmp16Id),
             )
         val response = api.trackNumberKms.get(tnOid)
@@ -124,13 +124,14 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
     @Test
     fun `Track number kms API respects the coordinate system argument`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(trackNumber))
-        val rlGeom = referenceLineGeometry(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(trackNumber, startAddress = TrackMeter.ZERO),
+                referenceLineGeometry(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0))),
+            )
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(1500.0, 1002.0))).id
 
-        val publication =
-            testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId), kmPosts = listOf(kmp1Id))
+        val publication = testDBService.publish(trackNumbers = listOf(tnId), kmPosts = listOf(kmp1Id))
         val response = api.trackNumberKms.get(tnOid, COORDINATE_SYSTEM to "EPSG:4326")
         assertEquals(publication.uuid.toString(), response.rataverkon_versio)
         assertEquals(Srid(4326).toString(), response.koordinaatisto)
@@ -169,12 +170,13 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
 
     @Test
     fun `A deleted track number has no kms`() {
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter.ZERO),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
+            )
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(500.0, 0.0))).id
-        val basePublication =
-            testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId), kmPosts = listOf(kmp1Id))
+        val basePublication = testDBService.publish(trackNumbers = listOf(tnId), kmPosts = listOf(kmp1Id))
 
         api.trackNumberKms.get(tnOid).also { response ->
             assertEquals(basePublication.uuid.toString(), response.rataverkon_versio)

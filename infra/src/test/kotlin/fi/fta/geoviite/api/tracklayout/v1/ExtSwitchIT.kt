@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -214,7 +213,6 @@ constructor(
                     switches = listOf(switch2Id, switch3Id),
                     locationTracks = switch3.tracks.map { it.id },
                     trackNumbers = listOf(switch3.trackNumber.id),
-                    referenceLines = listOf(switch3.referenceLineId),
                 )
                 .uuid
         val switch2Update1 = mainOfficialContext.fetch(switch2Id)!!
@@ -289,20 +287,20 @@ constructor(
 
         val segment1to2 = segment(joint1.location, joint2.location)
         val (tn1Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rl1Id = mainDraftContext.save(
-            referenceLine(tn1Id, startAddress = TrackMeter("0001+0100.000")),
+        mainDraftContext.save(
+            mainDraftContext.fetch(tn1Id)!!.copy(startAddress = TrackMeter("0001+0100.000")),
             referenceLineGeometry(segment1to2),
-        ).id
+        )
         val track1Geom = linkedTrackGeometry(switch, joint1.number, joint2.number, structure)
         val (track1Id, track1Oid) = mainDraftContext.saveWithOid(locationTrack(tn1Id), track1Geom)
 
         // Intentionally offset track 2 & it's reference line a bit: the link points be the points-on-track
         val segment1to3 = segment(joint1.location + 0.5, joint3.location + 0.5)
         val (tn2Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rl2Id = mainDraftContext.save(
-            referenceLine(tn2Id, startAddress = TrackMeter("0002+0200.000")),
+        mainDraftContext.save(
+            mainDraftContext.fetch(tn2Id)!!.copy(startAddress = TrackMeter("0002+0200.000")),
             referenceLineGeometry(segment1to3),
-        ).id
+        )
         val track2Geom =
             trackGeometry(
                 edge(
@@ -317,7 +315,6 @@ constructor(
             switches = listOf(switchId),
             locationTracks = listOf(track1Id, track2Id),
             trackNumbers = listOf(tn1Id, tn2Id),
-            referenceLines = listOf(rl1Id, rl2Id),
         )
 
         api.switch.get(switchOid).vaihde.raidelinkit.also { links ->
@@ -352,19 +349,19 @@ constructor(
         val switch2 = mainDraftContext.fetch(switch2Id)!!
 
         val (tn1Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rl1Id = mainDraftContext.save(
-            referenceLine(tn1Id, startAddress = TrackMeter("0001+0100.000")),
+        mainDraftContext.save(
+            mainDraftContext.fetch(tn1Id)!!.copy(startAddress = TrackMeter("0001+0100.000")),
             referenceLineGeometry(segment(s1Joint1.location, s1Joint2.location)),
-        ).id
+        )
         val track1Geom = linkedTrackGeometry(switch1, s1Joint1.number, s1Joint2.number, structure)
         val track1Id = mainDraftContext.save(locationTrack(tn1Id), track1Geom).id
         mainDraftContext.generateOid(track1Id)
 
         val (tn2Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rl2Id = mainDraftContext.save(
-            referenceLine(tn2Id, startAddress = TrackMeter("0002+0200.000")),
+        mainDraftContext.save(
+            mainDraftContext.fetch(tn2Id)!!.copy(startAddress = TrackMeter("0002+0200.000")),
             referenceLineGeometry(segment(s2Joint1.location, s2Joint2.location)),
-        ).id
+        )
         val track2Geom = linkedTrackGeometry(switch2, s2Joint1.number, s2Joint2.number, structure)
         val (track2Id, track2Oid) = mainDraftContext.saveWithOid(locationTrack(tn2Id), track2Geom)
 
@@ -374,7 +371,6 @@ constructor(
                     switches = listOf(switch1Id, switch2Id),
                     locationTracks = listOf(track1Id, track2Id),
                     trackNumbers = listOf(tn1Id, tn2Id),
-                    referenceLines = listOf(rl1Id, rl2Id),
                 )
                 .uuid
 
@@ -394,8 +390,8 @@ constructor(
 
         // Update reference line 2 start -> should produce calculated change for track 2, affecting switch2 links
         initUser()
-        mainDraftContext.mutate(rl2Id) { rl -> rl.copy(startAddress = TrackMeter("0003+0300.000")) }
-        val updateVersion = testDBService.publish(referenceLines = listOf(rl2Id)).uuid
+        mainDraftContext.mutate(tn2Id) { tn -> tn.copy(startAddress = TrackMeter("0003+0300.000")) }
+        val updateVersion = testDBService.publish(trackNumbers = listOf(tn2Id)).uuid
 
         // Different track number -> should not affect switch1
         api.switch.assertNoModificationSince(switch1Oid, baseVersion)

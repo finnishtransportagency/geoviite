@@ -36,7 +36,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
@@ -53,8 +52,6 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.rawPoints
-import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
@@ -83,26 +80,22 @@ class PublicationValidationTest {
     @Test
     fun trackNumberValidationCatchesLocationTrackReferencingDeletedTrackNumber() {
         val trackNumber = trackNumber(id = IntId(1), draft = true)
-        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId, id = IntId(1), draft = true)
         val alignment = locationTrack(trackNumberId = IntId(1), draft = true)
         assertTrackNumberReferenceError(
             true,
             trackNumber.copy(state = LayoutState.DELETED),
-            referenceLine,
             locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.DELETED),
-            referenceLine,
             alignment.copy(state = LocationTrackState.DELETED),
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.IN_USE),
-            referenceLine,
             alignment.copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
@@ -324,7 +317,7 @@ class PublicationValidationTest {
             validateAddressPoints(testTrackNumber, testLocationTrack, VALIDATION_GEOCODING) {
                 context.getAddressPoints(
                     // geometry being compared against (type is ignored) goes downward
-                    referenceLineGeometry(segment(Point(10.0, 100.0), Point(10.0, 10.0))).copy(id = IntId(2))
+                    referenceLineGeometry(segment(Point(10.0, 100.0), Point(10.0, 10.0)))
                 )
             },
         )
@@ -340,7 +333,7 @@ class PublicationValidationTest {
             // Alignment at slight angle to reference line -> should be OK
             {
                 context.getAddressPoints(
-                    referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2))
+                    referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0)))
                 )
             },
         )
@@ -365,7 +358,6 @@ class PublicationValidationTest {
                             Point(70.0, 90.0),
                         )
                     )
-                    .copy(id = IntId(2))
             )
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.stretched-meters")
@@ -384,7 +376,6 @@ class PublicationValidationTest {
                 referenceLineGeometry(
                         segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0))
                     )
-                    .copy(id = IntId(2))
             )
         }
         assertSingleAddressPointErrorRangeDescription(geocode, "0000+0000..0000+0050, 0000+0060..0000+0110")
@@ -405,7 +396,7 @@ class PublicationValidationTest {
         val geocode = {
             //  alignment goes straight up at offset -> should get non-continuous points
             context.getAddressPoints(
-                referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0))).copy(id = IntId(2))
+                referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0)))
             )
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
@@ -420,7 +411,7 @@ class PublicationValidationTest {
 
         val geocode = {
             context.getAddressPoints(
-                referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2))
+                referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack)))
             )
         }
 
@@ -1497,14 +1488,12 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: LayoutTrackNumber,
-        referenceLine: ReferenceLine?,
         locationTrack: LocationTrack,
         error: String,
     ) =
         assertTrackNumberReferenceError(
             hasError,
             trackNumber,
-            referenceLine,
             error,
             locationTracks = listOf(locationTrack),
         )
@@ -1512,7 +1501,6 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: LayoutTrackNumber,
-        referenceLine: ReferenceLine?,
         error: String,
         kmPosts: List<LayoutKmPost> = listOf(),
         locationTracks: List<LocationTrack> = listOf(),
@@ -1521,7 +1509,6 @@ class PublicationValidationTest {
             hasError,
             validateReferencesToTrackNumber(
                 if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                referenceLine,
                 kmPosts,
                 locationTracks,
             ),
@@ -1634,17 +1621,11 @@ class PublicationValidationTest {
         referenceLinePoints: List<SegmentPoint>,
         kmPosts: List<LayoutKmPost>,
     ): ValidatedGeocodingContext<ReferenceLineM> {
-        val (referenceLine, alignment) =
-            referenceLineAndGeometry(
-                trackNumberId = IntId(1),
-                segments = listOf(segment(referenceLinePoints)),
-                startAddress = TrackMeter.ZERO,
-                draft = true,
-            )
+        val alignment = referenceLineGeometry(listOf(segment(referenceLinePoints)))
         return GeocodingContext.create(
             // Start the geocoding from 0+0m
             TrackNumber("0000"),
-            referenceLine.startAddress,
+            TrackMeter.ZERO,
             alignment,
             kmPosts,
         )

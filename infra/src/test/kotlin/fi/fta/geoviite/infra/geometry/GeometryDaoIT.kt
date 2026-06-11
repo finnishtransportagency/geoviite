@@ -13,8 +13,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
-import kotlin.test.assertContains
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -23,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertNotNull
 
 const val TEST_NAME_PREFIX = "GEOM_DAO_IT_"
 
@@ -194,10 +194,11 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
     @Test
     fun getLinkingSummariesHappyCase() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        val createdTrackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber()
+        val trackNumberId = createdTrackNumber.id as IntId
         val plan =
             plan(
-                trackNumber = trackNumber,
+                trackNumber = createdTrackNumber.number,
                 fileName = file.name,
                 alignments = listOf(geometryAlignment(elements = listOf(minimalLine()))),
             )
@@ -207,7 +208,6 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
             locationTrackAndGeometry(
                 trackNumberId,
                 segment(Point(0.0, 0.0), Point(1.0, 1.0), sourceId = element.id),
-                draft = true,
             )
         val trackVersion = locationTrackService.saveDraft(LayoutBranch.main, track.first, track.second)
         locationTrackService.publish(LayoutBranch.main, trackVersion)

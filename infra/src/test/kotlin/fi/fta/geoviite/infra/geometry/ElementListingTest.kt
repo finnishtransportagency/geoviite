@@ -23,22 +23,21 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkKV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.util.FileName
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 
 private val allElementTypes = GeometryElementType.entries
 private val allTrackElementTypes = TrackGeometryElementType.entries
@@ -136,18 +135,14 @@ class ElementListingTest {
         val gk27CoordinateBase = Point(7059000.0, 27480000.0)
         val layoutCoordinateBase = transformNonKKJCoordinate(gk27, LAYOUT_SRID, gk27CoordinateBase)
 
-        val trackNumberId = IntId<LayoutTrackNumber>(1)
         val trackNumber = TrackNumber("4646")
-        val (referenceLine, alignment) =
-            referenceLineAndGeometry(
-                trackNumberId = trackNumberId,
-                segments =
-                    listOf(segment(Point(0.0, 0.0) + layoutCoordinateBase, Point(50.0, 0.0) + layoutCoordinateBase)),
-                startAddress = TrackMeter(KmNumber(1), 100),
-                draft = false,
+        val startAddress = TrackMeter(KmNumber(1), 100)
+        val referenceLineGeometry =
+            referenceLineGeometry(
+                listOf(segment(Point(0.0, 0.0) + layoutCoordinateBase, Point(50.0, 0.0) + layoutCoordinateBase))
             )
         val geocodingContext =
-            GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, listOf()).geocodingContext
+            GeocodingContext.create(trackNumber, startAddress, referenceLineGeometry, listOf()).geocodingContext
         val clothoid =
             minimalClothoid(
                 start = Point(10.0, 10.0) + gk27CoordinateBase,

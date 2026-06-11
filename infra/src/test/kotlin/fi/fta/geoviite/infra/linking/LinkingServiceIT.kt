@@ -38,13 +38,13 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.PlaceHolderNodeConnection
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
@@ -55,7 +55,7 @@ import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
@@ -65,7 +65,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -75,6 +74,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -371,7 +371,8 @@ constructor(
 
     @Test
     fun `Location track linking updates topology links correctly`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        val (trackNumber, trackNumberId) =
+            mainOfficialContext.createLayoutTrackNumber().let { v -> testDBService.fetch(v).number to v.id }
 
         val connectionPoint = Point(377921.0, 6676129.0)
 
@@ -483,17 +484,17 @@ constructor(
                     )
                 )
                 .id
-        val linkedReferenceLine =
+        val linkedTrackNumber =
             mainDraftContext
-                .saveReferenceLine(
-                    referenceLineAndGeometry(
-                        trackNumberId,
+                .save(
+                    mainDraftContext.fetch(trackNumberId)!!,
+                    referenceLineGeometry(
                         segment(
                             Point(0.0, 0.0),
                             Point(10.0, 0.0),
                             sourceId = linkingReferenceLine.alignments[0].elements[0].id,
-                        ),
-                    )
+                        )
+                    ),
                 )
                 .id
         val linkedSwitch = mainDraftContext.save(switch(stateCategory = LayoutStateCategory.EXISTING)).id
@@ -539,7 +540,7 @@ constructor(
         assertEquals(
             listOf(
                 expectPlanLinkedObjects(linkingLocationTrack, linkedLocationTrack to null),
-                expectPlanLinkedObjects(linkingReferenceLine, null to linkedReferenceLine),
+                expectPlanLinkedObjects(linkingReferenceLine, null to linkedTrackNumber),
                 expectPlanLinkedObjects(
                     linkingSwitchAndLocationTrack,
                     linkedLocationTrackAlongSwitch to null,
@@ -553,7 +554,7 @@ constructor(
 
     fun expectPlanLinkedObjects(
         plan: GeometryPlan,
-        firstAlignmentFirstElementLink: Pair<IntId<LocationTrack>?, IntId<ReferenceLine>?> = null to null,
+        firstAlignmentFirstElementLink: Pair<IntId<LocationTrack>?, IntId<LayoutTrackNumber>?> = null to null,
         firstSwitchIsLinked: Boolean = false,
         kmPostLinkedToFirst: IntId<LayoutKmPost>? = null,
     ) =

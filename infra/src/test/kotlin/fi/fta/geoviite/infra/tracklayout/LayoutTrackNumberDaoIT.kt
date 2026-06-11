@@ -2,17 +2,20 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -22,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -30,6 +34,7 @@ class LayoutTrackNumberDaoIT
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val trackNumberService: LayoutTrackNumberService,
+    private val alignmentDao: LayoutAlignmentDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -38,23 +43,37 @@ constructor(
     }
 
     @Test
-    fun trackNumberIsStoredAndLoadedOk() {
+    fun `TrackNumber save and load works`() {
         val original =
             LayoutTrackNumber(
                 number = testDBService.getUnusedTrackNumber(),
                 description = TrackNumberDescription("empty-test-track-number"),
                 state = IN_USE,
+                startAddress = TrackMeter(KmNumber(10), 125.5, 3),
                 contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
             )
-        val version = trackNumberDao.save(original)
+        val originalGeometry = referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 20.0)))
+        val version = trackNumberDao.save(original, originalGeometry)
         val fromDb = trackNumberDao.fetch(version)
         assertEquals(version.id, fromDb.id)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(original, fromDb, contextMatch = false)
+
+        val updated =
+            fromDb.copy(
+                description = TrackNumberDescription(fromDb.description.toString() + "-edited"),
+                startAddress = TrackMeter("0012+0321.000"),
+            )
+        val updatedGeometry = referenceLineGeometry(segment(Point(11.0, 11.0), Point(22.0, 22.0)))
+        val updatedVersion = trackNumberDao.save(updated, updatedGeometry)
+        val updatedFromDb = trackNumberDao.fetch(updatedVersion)
+        assertEquals(version.id, updatedFromDb.id)
+        assertEquals(DataType.STORED, updatedFromDb.dataType)
+        assertMatches(updated, updatedFromDb, contextMatch = false)
     }
 
     @Test
-    fun trackNumberExternalIdIsUnique() {
+    fun `TrackNumber external ID is unique`() {
         val oid = Oid<LayoutTrackNumber>("99.99.99.99.99.99")
 
         // If the OID is already in use, remove it
@@ -63,39 +82,54 @@ constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val tn1 = trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
-        val tn2 = trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
+        val tn1 =
+            trackNumberDao.save(
+                trackNumber(testDBService.getUnusedTrackNumber(), draft = false),
+                TmpReferenceLineGeometry.empty,
+            )
+        val tn2 =
+            trackNumberDao.save(
+                trackNumber(testDBService.getUnusedTrackNumber(), draft = false),
+                TmpReferenceLineGeometry.empty,
+            )
         trackNumberDao.insertExternalId(tn1.id, LayoutBranch.main, oid)
         assertThrows<DuplicateKeyException> { trackNumberDao.insertExternalId(tn2.id, LayoutBranch.main, oid) }
     }
 
     @Test
-    fun trackNumberVersioningWorks() {
+    fun `TrackNumber versioning works`() {
+        val tempGeometry = referenceLineGeometry(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
         val tempTrackNumber = trackNumber(testDBService.getUnusedTrackNumber(), description = "test 1", draft = false)
-        val insertVersion = trackNumberDao.save(tempTrackNumber)
+        val insertVersion = trackNumberDao.save(tempTrackNumber, tempGeometry)
         val id = insertVersion.id
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
+        assertMatches(tempGeometry, alignmentDao.fetch(insertVersion))
 
         val tempDraft1 = asMainDraft(inserted).copy(description = TrackNumberDescription("test 2"))
-        val draftVersion1 = trackNumberDao.save(tempDraft1)
+        val draftVersion1 = trackNumberDao.save(tempDraft1, tempGeometry)
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion1, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
+        assertMatches(tempGeometry, alignmentDao.fetch(draftVersion1))
 
+        val newTempGeometry = referenceLineGeometry(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
         val tempDraft2 = draft1.copy(description = TrackNumberDescription("test 3"))
-        val draftVersion2 = trackNumberDao.save(tempDraft2)
+        val draftVersion2 = trackNumberDao.save(tempDraft2, newTempGeometry)
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertMatches(tempGeometry, alignmentDao.fetch(insertVersion))
         assertEquals(draftVersion2, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
+        assertMatches(newTempGeometry, alignmentDao.fetch(draftVersion2))
 
         trackNumberDao.deleteDraft(LayoutBranch.main, id)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
+        assertMatches(tempGeometry, alignmentDao.fetch(insertVersion))
 
         assertEquals(inserted, trackNumberDao.fetch(insertVersion))
         assertEquals(draft1, trackNumberDao.fetch(draftVersion1))
@@ -104,7 +138,7 @@ constructor(
     }
 
     @Test
-    fun listingTrackNumberVersionsWorks() {
+    fun `Listing TrackNumber versions works`() {
         val officialVersion = mainOfficialContext.createLayoutTrackNumber()
         val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber()
         val deleteStateDraftVersion =
@@ -285,6 +319,65 @@ constructor(
         assertEquals(
             listOf("tn2 original", "tn2 edited in d1 n1", "tn2 edited in d1 n2"),
             design1History.filter { it.id == tn2 }.map { it.number.toString() },
+        )
+    }
+
+    @Test
+    fun `fetchVersionsNear() filters by context, bbox and includeDeleted`() {
+        testDBService.clearLayoutTables()
+
+        val design = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(design, OFFICIAL)
+        val existingMainAndNearby =
+            mainOfficialContext.save(
+                trackNumber(),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+            )
+        val existingMainButDistant =
+            mainOfficialContext.save(
+                trackNumber(),
+                referenceLineGeometry(segment(Point(0.0, 100.0), Point(1.0, 100.0))),
+            )
+        val nearbyAndMainButDeleted =
+            mainOfficialContext.save(
+                trackNumber(TrackNumber("123"), state = DELETED),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+            )
+        val existingAndNearbyInDesign =
+            mainOfficialContext.save(
+                trackNumber(),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+            )
+
+        assertEquals(
+            listOf(existingMainAndNearby),
+            trackNumberDao.fetchVersionsNear(
+                mainOfficialContext.context,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
+        )
+        assertEquals(
+            listOf(existingMainButDistant),
+            trackNumberDao.fetchVersionsNear(
+                mainOfficialContext.context,
+                boundingBoxAroundPoint(Point(0.0, 100.0), 1.0),
+            ),
+        )
+        assertEquals(
+            setOf(existingMainAndNearby, nearbyAndMainButDeleted),
+            trackNumberDao
+                .fetchVersionsNear(
+                    mainOfficialContext.context,
+                    boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+                    includeDeleted = true,
+                )
+                .toSet(),
+        )
+        assertEquals(
+            setOf(existingMainAndNearby, existingAndNearbyInDesign),
+            trackNumberDao
+                .fetchVersionsNear(designOfficialContext.context, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0))
+                .toSet(),
         )
     }
 }

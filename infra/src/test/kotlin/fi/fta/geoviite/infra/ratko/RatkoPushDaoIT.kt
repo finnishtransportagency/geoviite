@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.util.getEnum
@@ -319,7 +318,6 @@ constructor(
     fun createPublication(
         layoutBranch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>> = listOf(),
-        referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>> = listOf(),
         locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
         switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
         kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
@@ -339,7 +337,6 @@ constructor(
                         directChanges =
                             DirectChanges(
                                 kmPostChanges = kmPosts.map { it.new.id },
-                                referenceLineChanges = referenceLines.map { it.new.id },
                                 trackNumberChanges =
                                     trackNumbers.map {
                                         TrackNumberChange(
@@ -372,7 +369,7 @@ constructor(
                 publicationDao.insertCalculatedChanges(
                     publicationId,
                     calculatedChanges,
-                    publishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts),
+                    publishedVersions(trackNumbers, locationTracks, switches, kmPosts),
                 )
             }
 }

@@ -18,14 +18,12 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -364,9 +362,8 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
         val (opId, opOid) = mainDraftContext.saveWithOid(operationalPoint(location = Point(5.0, 0.0)))
 
         // Create track number and reference line
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val rlId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
 
         // Create switch linked to operational point
         val structure = switchStructureYV60_300_1_9()
@@ -387,7 +384,6 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
             switches = listOf(switchId),
             locationTracks = listOf(trackId),
             trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(rlId),
         )
 
         val response = api.operationalPoint.get(opOid)
@@ -437,10 +433,9 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
         // Phase 2: Create and link a location track to the operational point (calculated change)
         initUser()
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rlId =
+        val trackNumberId =
             mainDraftContext
-                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
 
         val (trackId, _) =
@@ -453,7 +448,6 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
             testDBService.publish(
                 locationTracks = listOf(trackId),
                 trackNumbers = listOf(trackNumberId),
-                referenceLines = listOf(rlId),
             )
 
         // Operational point should show as changed again

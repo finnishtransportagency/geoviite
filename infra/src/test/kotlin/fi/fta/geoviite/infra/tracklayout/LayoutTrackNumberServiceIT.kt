@@ -37,10 +37,7 @@ class LayoutTrackNumberServiceIT
 @Autowired
 constructor(
     private val trackNumberService: LayoutTrackNumberService,
-    private val referenceLineService: ReferenceLineService,
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineDao: ReferenceLineDao,
-    private val alignmentDao: LayoutAlignmentDao,
     private val kmPostDao: LayoutKmPostDao,
 ) : DBTestBase() {
 
@@ -70,60 +67,125 @@ constructor(
     }
 
     @Test
-    fun `deleting draft only TrackNumber deletes it and ReferenceLine with geometry`() {
-        val (trackNumber, referenceLine, geometry) = createTrackNumberAndReferenceLineAndAlignment()
-        assertEquals(referenceLine.geometryVersion?.id, geometry.id as IntId)
+    fun `TrackNumber add and update via saverequest works`() {
+        val insertRequest =
+            TrackNumberSaveRequest(
+                testDBService.getUnusedTrackNumber(),
+                TrackNumberDescription("inserted"),
+                LayoutState.IN_USE,
+                TrackMeter(KmNumber(111), 1.1, 3),
+            )
+        val insertV = trackNumberService.insert(LayoutBranch.main, insertRequest)
+        val id = insertV.id
+        trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id).also { (tn, geom) ->
+            assertEquals(insertRequest.number, tn.number)
+            assertEquals(insertRequest.description, tn.description)
+            assertEquals(insertRequest.state, tn.state)
+            assertEquals(insertRequest.startAddress, tn.startAddress)
+            assertEquals(emptyList<LayoutSegment>(), geom.segments)
+        }
+
+        val updateRequest =
+            TrackNumberSaveRequest(
+                testDBService.getUnusedTrackNumber(),
+                TrackNumberDescription("updated"),
+                LayoutState.NOT_IN_USE,
+                TrackMeter(KmNumber(222), 2.2, 3),
+            )
+        val updateV = trackNumberService.update(LayoutBranch.main, id, updateRequest)
+        trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id).also { (tn, geom) ->
+            assertEquals(updateRequest.number, tn.number)
+            assertEquals(updateRequest.description, tn.description)
+            assertEquals(updateRequest.state, tn.state)
+            assertEquals(updateRequest.startAddress, tn.startAddress)
+            assertEquals(emptyList<LayoutSegment>(), geom.segments)
+        }
+    }
+
+    @Test
+    fun `TrackNumber add and update via saveDraft() works`() {
+        val initial =
+            trackNumber(
+                number = testDBService.getUnusedTrackNumber(),
+                description = "inserted",
+                draft = true,
+                state = LayoutState.IN_USE,
+                startAddress = TrackMeter.ZERO,
+            )
+        val initialGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
+        val insertV = trackNumberService.saveDraft(LayoutBranch.main, initial, initialGeometry)
+        val id = insertV.id
+        trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id).also { (tn, geom) ->
+            assertEquals(initial.number, tn.number)
+            assertEquals(initial.description, tn.description)
+            assertEquals(initial.state, tn.state)
+            assertEquals(initial.startAddress, tn.startAddress)
+            assertMatches(initialGeometry, geom)
+        }
+
+        val updated =
+            trackNumberService
+                .getOrThrow(MainLayoutContext.draft, id)
+                .copy(
+                    number = testDBService.getUnusedTrackNumber(),
+                    description = TrackNumberDescription("updated"),
+                    state = LayoutState.NOT_IN_USE,
+                    startAddress = TrackMeter("0123+1234.123"),
+                )
+        val updatedGeometry = referenceLineGeometry(segment(Point(100.0, 100.0), Point(110.0, 110.0)))
+        val updateV = trackNumberService.saveDraft(LayoutBranch.main, updated, updatedGeometry)
+        trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id).also { (tn, geom) ->
+            assertEquals(updated.number, tn.number)
+            assertEquals(updated.description, tn.description)
+            assertEquals(updated.state, tn.state)
+            assertEquals(updated.startAddress, tn.startAddress)
+            assertMatches(updatedGeometry, geom)
+        }
+    }
+
+    @Test
+    fun `deleting draft only TrackNumber deletes it with geometry`() {
+        val (trackNumber, _) = createTrackNumberWithGeometry()
         val trackNumberId = trackNumber.id as IntId
 
         assertDoesNotThrow { trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId) }
-        assertThrows<NoSuchEntityException> {
-            referenceLineService.getOrThrow(MainLayoutContext.draft, referenceLine.id as IntId)
-        }
         assertThrows<NoSuchEntityException> { trackNumberService.getOrThrow(MainLayoutContext.draft, trackNumberId) }
-        assertFalse(alignmentDao.fetchVersions().map { rv -> rv.id }.contains(geometry.id))
     }
 
     @Test
     fun tryingToDeletePublishedTrackNumberThrows() {
-        val (trackNumber, referenceLine, _) = createTrackNumberAndReferenceLineAndAlignment()
+        val (trackNumber, _) = createTrackNumberWithGeometry()
         publishTrackNumber(trackNumber.id as IntId)
-        publishReferenceLine(referenceLine.id as IntId)
 
         assertThrows<DeletingFailureException> { trackNumberService.deleteDraft(LayoutBranch.main, trackNumber.id) }
     }
 
     @Test
     fun `should return correct lengths for km posts`() {
-        val trackNumber =
-            trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
+        val segments =
+            listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0)))
+        val geometry = referenceLineGeometry(segments)
+        val startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+        val (trackNumberId, trackNumber) =
+            trackNumberDao
+                .save(
+                    trackNumber(testDBService.getUnusedTrackNumber(), draft = false, startAddress = startAddress),
+                    geometry,
+                )
+                .let { it.id to trackNumberDao.fetch(it) }
         val trackOid = someOid<LayoutTrackNumber>()
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id as IntId, trackOid)
-
-        referenceLineAndGeometry(
-                trackNumberId = trackNumber.id as IntId,
-                segments =
-                    listOf(
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0))
-                    ),
-                startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5)),
-                draft = false,
-            )
-            .let { (referenceLine, geometry) ->
-                val referenceLineVersion =
-                    referenceLineDao.save(referenceLine.copy(geometryVersion = alignmentDao.insert(geometry)))
-                referenceLineDao.fetch(referenceLineVersion)
-            }
 
         val kmPostVersions =
             listOf(
                     kmPost(
-                        trackNumberId = trackNumber.id,
+                        trackNumberId = trackNumberId,
                         km = KmNumber(2),
                         gkLocation = kmPostGkLocation(1.0, 0.0),
                         draft = false,
                     ),
                     kmPost(
-                        trackNumberId = trackNumber.id,
+                        trackNumberId = trackNumberId,
                         km = KmNumber(3),
                         gkLocation = kmPostGkLocation(3.0, 0.0),
                         draft = false,
@@ -131,7 +193,7 @@ constructor(
                 )
                 .map(kmPostDao::save)
 
-        val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id)
+        val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumberId)
         assertNotNull(kmLengths)
         assertEquals(3, kmLengths.size)
 
@@ -195,38 +257,31 @@ constructor(
 
     @Test
     fun `should ignore km posts without location when calculating lengths between km posts`() {
-        val trackNumber =
-            trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
-
-        referenceLineAndGeometry(
-                trackNumberId = trackNumber.id as IntId,
-                segments =
-                    listOf(
-                        segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0))
-                    ),
-                startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5)),
-                draft = false,
+        val segments =
+            listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0)))
+        val geometry = referenceLineGeometry(segments)
+        val startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+        val version =
+            trackNumberDao.save(
+                trackNumber(testDBService.getUnusedTrackNumber(), draft = false, startAddress = startAddress),
+                geometry,
             )
-            .let { (referenceLine, geometry) ->
-                val referenceLineVersion =
-                    referenceLineDao.save(referenceLine.copy(geometryVersion = alignmentDao.insert(geometry)))
-
-                referenceLineDao.fetch(referenceLineVersion)
-            }
+        val trackNumber = trackNumberDao.fetch(version)
+        val trackNumberId = version.id
 
         val kmPostVersions =
             listOf(
                     kmPost(
-                        trackNumberId = trackNumber.id,
+                        trackNumberId = trackNumberId,
                         km = KmNumber(2),
                         gkLocation = kmPostGkLocation(1.0, 0.0),
                         draft = false,
                     ),
-                    kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), gkLocation = null, draft = false),
+                    kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = null, draft = false),
                 )
                 .map(kmPostDao::save)
 
-        val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id)
+        val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumberId)
         assertNotNull(kmLengths)
         assertEquals(2, kmLengths.size)
 
@@ -316,9 +371,6 @@ constructor(
         assertVersionReferences(designBranch, tnId, mainDraft = mainDraft1)
 
         val mainOfficial1 = trackNumberService.publish(LayoutBranch.main, mainDraft1).published
-        referenceLineService.getByTrackNumber(MainLayoutContext.draft, tnId).let { rl ->
-            referenceLineService.publish(LayoutBranch.main, rl!!.version!!)
-        }
         assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1)
 
         val designDraft1 =
@@ -362,7 +414,7 @@ constructor(
     }
 
     @Test
-    fun `draft track number can find reference line in any above context`() {
+    fun `draft track number geometry is visible from any above context`() {
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val designOfficialContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
@@ -370,16 +422,16 @@ constructor(
         val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val tn1 = designDraftContext.save(trackNumber(number = TrackNumber("asdf"))).id
-        val rl1 = designOfficialContext.save(referenceLine(tn1), geometry).id
-        assertEquals(rl1, designDraftContext.fetch(tn1)!!.referenceLineId)
+        designOfficialContext.save(designDraftContext.fetch(tn1)!!, geometry)
+        assertNotNull(trackNumberService.getWithGeometry(designDraftContext.context, tn1))
 
         val tn2 = designDraftContext.save(trackNumber(number = TrackNumber("aoeu"))).id
-        val rl2 = mainOfficialContext.save(referenceLine(tn2), geometry).id
-        assertEquals(rl2, designDraftContext.fetch(tn2)!!.referenceLineId)
+        mainOfficialContext.save(designDraftContext.fetch(tn2)!!, geometry)
+        assertNotNull(trackNumberService.getWithGeometry(designDraftContext.context, tn2))
 
         val tn3 = mainDraftContext.save(trackNumber(number = TrackNumber("arst"))).id
-        val rl3 = mainOfficialContext.save(referenceLine(tn3), geometry).id
-        assertEquals(rl3, mainDraftContext.fetch(tn3)!!.referenceLineId)
+        mainOfficialContext.save(mainDraftContext.fetch(tn3)!!, geometry)
+        assertNotNull(trackNumberService.getWithGeometry(mainDraftContext.context, tn3))
     }
 
     @Test
@@ -387,8 +439,8 @@ constructor(
         val referenceLineSegment = segment(Point(0.0, 0.0), Point(2000.0, 0.0))
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(
-                    referenceLineGeometry = referenceLineGeometry(referenceLineSegment),
+                .createLayoutTrackNumber(
+                    geometry = referenceLineGeometry(referenceLineSegment),
                     startAddress = TrackMeter(KmNumber(0), BigDecimal(0.0)),
                 )
                 .id
@@ -402,8 +454,8 @@ constructor(
     fun `ReferenceLine polygon is resolved correctly without cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
+                .createLayoutTrackNumber(
+                    geometry = referenceLineGeometry(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
                     startAddress = TrackMeter(KmNumber(0), BigDecimal(32.0)),
                 )
                 .id
@@ -445,7 +497,7 @@ constructor(
     fun `ReferenceLine polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
                 .id
 
         mainOfficialContext.saveAndFetch(
@@ -496,8 +548,8 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val id =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(1500.0, 0.0), Point(3500.0, 0.0))),
+                .createLayoutTrackNumber(
+                    geometry = referenceLineGeometry(segment(Point(1500.0, 0.0), Point(3500.0, 0.0))),
                     startAddress = TrackMeter(KmNumber(1), BigDecimal(500.0)),
                 )
                 .id
@@ -615,8 +667,7 @@ constructor(
         assertEquals(expected, actual, "$description expected=$expected actual=$actual")
     }
 
-    fun createTrackNumberAndReferenceLineAndAlignment():
-        Triple<LayoutTrackNumber, ReferenceLine, ReferenceLineGeometry> {
+    private fun createTrackNumberWithGeometry(): Pair<LayoutTrackNumber, DbReferenceLineGeometry> {
         val saveRequest =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
@@ -625,24 +676,11 @@ constructor(
                 TrackMeter(KmNumber(5555), 5.5, 3),
             )
         val id = trackNumberService.insert(LayoutBranch.main, saveRequest).id
-        val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
-
-        val (referenceLine, alignment) =
-            referenceLineService.getByTrackNumberWithGeometry(
-                MainLayoutContext.draft,
-                trackNumber.id as IntId<LayoutTrackNumber>,
-            )!! // Always exists, since we just created it
-
-        return Triple(trackNumber, referenceLine, alignment)
+        return trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
     }
 
     private fun publishTrackNumber(id: IntId<LayoutTrackNumber>) =
         trackNumberDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             trackNumberService.publish(LayoutBranch.main, version)
-        }
-
-    private fun publishReferenceLine(id: IntId<ReferenceLine>): LayoutRowVersion<ReferenceLine> =
-        referenceLineDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
-            referenceLineService.publish(LayoutBranch.main, version).published
         }
 }

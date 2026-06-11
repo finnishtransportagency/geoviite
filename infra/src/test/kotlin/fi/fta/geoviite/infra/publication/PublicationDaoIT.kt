@@ -37,9 +37,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -47,21 +47,19 @@ import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
-import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -72,7 +70,6 @@ constructor(
     val switchDao: LayoutSwitchDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val kmPostDao: LayoutKmPostDao,
-    val referenceLineDao: ReferenceLineDao,
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
@@ -87,21 +84,19 @@ constructor(
     @Test
     fun noPublicationCandidatesFoundWithoutDrafts() {
         assertTrue(publicationDao.fetchTrackNumberPublicationCandidates(PublicationInMain).isEmpty())
-        assertTrue(publicationDao.fetchReferenceLinePublicationCandidates(PublicationInMain).isEmpty())
         assertTrue(publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain).isEmpty())
         assertTrue(publicationDao.fetchSwitchPublicationCandidates(PublicationInMain).isEmpty())
         assertTrue(publicationDao.fetchKmPostPublicationCandidates(PublicationInMain).isEmpty())
     }
 
     @Test
-    fun referenceLinePublicationCandidatesAreFound() {
-        val trackNumberId = insertAndCheck(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)).first.id
-        val (_, line) = insertAndCheck(referenceLine(trackNumberId, draft = false))
-        val (_, draft) = insertAndCheck(asMainDraft(line).copy(startAddress = TrackMeter("0123", 658.321, 3)))
-        val candidates = publicationDao.fetchReferenceLinePublicationCandidates(PublicationInMain)
+    fun trackNumberPublicationCandidatesAreFound() {
+        val (_, tn) = insertAndCheck(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
+        val (_, draft) = insertAndCheck(asMainDraft(tn).copy(number = testDBService.getUnusedTrackNumber()))
+        val candidates = publicationDao.fetchTrackNumberPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
-        assertEquals(line.id, candidates.first().id)
-        assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
+        assertEquals(tn.id, candidates.first().id)
+        assertEquals(draft.number, candidates.first().number)
         assertEquals(UserName.of(TEST_USER), candidates.first().userName)
         assertEquals(Operation.MODIFY, candidates.first().operation)
     }
@@ -231,7 +226,6 @@ constructor(
                                 )
                             ),
                         kmPostChanges = emptyList(),
-                        referenceLineChanges = emptyList(),
                         locationTrackChanges =
                             listOf(
                                 LocationTrackChange(
@@ -442,15 +436,18 @@ constructor(
     }
 
     private fun insertAndCheck(
-        trackNumber: LayoutTrackNumber
+        trackNumber: LayoutTrackNumber,
+        geometry: ReferenceLineGeometry = TmpReferenceLineGeometry.empty,
     ): Pair<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {
-        val official = trackNumberDao.save(trackNumber)
+        val official = trackNumberDao.save(trackNumber, geometry)
         val fromDb = trackNumberDao.fetch(official)
         assertEquals(official.id, fromDb.id)
         assertMatches(trackNumber, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, trackNumber.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue { fromDb.id is IntId }
+        val geomFromDb = alignmentDao.fetch(official)
+        assertMatches(geometry, geomFromDb, false)
         return official to fromDb
     }
 
@@ -460,19 +457,6 @@ constructor(
         assertEquals(official.id, fromDb.id)
         assertMatches(switch, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, switch.dataType)
-        assertEquals(DataType.STORED, fromDb.dataType)
-        assertTrue(fromDb.id is IntId)
-        return official to fromDb
-    }
-
-    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<LayoutRowVersion<ReferenceLine>, ReferenceLine> {
-        val dbGeometryVersion = alignmentDao.insert(referenceLineGeometry())
-        val lineWithGeometry = referenceLine.copy(geometryVersion = dbGeometryVersion)
-        val official = referenceLineDao.save(lineWithGeometry)
-        val fromDb = referenceLineDao.fetch(official)
-        assertEquals(official.id, fromDb.id)
-        assertMatches(lineWithGeometry, fromDb, contextMatch = false)
-        assertEquals(DataType.TEMP, referenceLine.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return official to fromDb
@@ -501,6 +485,8 @@ constructor(
         assertEquals(DataType.TEMP, locationTrack.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
+        val geomFromDb = alignmentDao.fetch(official)
+        assertMatches(geometry, geomFromDb, false)
         return official to fromDb
     }
 

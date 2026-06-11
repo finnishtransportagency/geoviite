@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.geocoding.referenceLineGeometry
 import fi.fta.geoviite.infra.linking.switches.FittedSwitch
 import fi.fta.geoviite.infra.linking.switches.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -41,10 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
@@ -57,7 +55,6 @@ import fi.fta.geoviite.infra.tracklayout.moveLocationTrackGeometryPointsAndUpdat
 import fi.fta.geoviite.infra.tracklayout.moveReferenceLineGeometryPointsAndUpdate
 import fi.fta.geoviite.infra.tracklayout.moveSwitchPoints
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.removeTopologySwitchesFromLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -70,6 +67,11 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -79,11 +81,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -94,8 +91,6 @@ constructor(
     val switchDao: LayoutSwitchDao,
     val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
-    val referenceLineDao: ReferenceLineDao,
-    val referenceLineService: ReferenceLineService,
     val layoutAlignmentDao: LayoutAlignmentDao,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val layoutKmPostDao: LayoutKmPostDao,
@@ -124,7 +119,6 @@ constructor(
         assertTrue(changes.directChanges.trackNumberChanges.isEmpty())
         assertTrue(changes.directChanges.locationTrackChanges.isEmpty())
         assertTrue(changes.directChanges.switchChanges.isEmpty())
-        assertTrue(changes.directChanges.referenceLineChanges.isEmpty())
         assertTrue(changes.directChanges.kmPostChanges.isEmpty())
 
         assertTrue(changes.indirectChanges.trackNumberChanges.isEmpty())
@@ -534,25 +528,25 @@ constructor(
     fun referenceLineChangeGeneratesIndirectLocationTrackChanges() {
         val testData = insertTestData()
         val (locationTrack1, _) = testData.locationTracksAndGeometries[0]
-        val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
+        val (trackNumber, referenceLineAlignment) = testData.trackNumberAndGeometry
 
         // Move first kilometer only (kilometer 5)
         // - addresses should change
         moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine,
+            trackNumber,
             referenceLineAlignment,
             { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
-            referenceLineService = referenceLineService,
+            trackNumberservice,
         )
 
-        val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
+        val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
 
-        assertContains(changes.directChanges.referenceLineChanges, referenceLine.id)
+        assertContains(changes.directChanges.trackNumberChanges.map { it.trackNumberId }, trackNumber.id)
 
         assertContains(
             changes.indirectChanges.trackNumberChanges,
             TrackNumberChange(
-                trackNumberId = referenceLine.trackNumberId,
+                trackNumberId = trackNumber.id as IntId,
                 changedKmNumbers = setOf(KmNumber(5)),
                 isStartChanged = true,
                 isEndChanged = false,
@@ -575,14 +569,14 @@ constructor(
         val (locationTrack1, _) = testData.locationTracksAndGeometries[0]
         val (locationTrack3, _) = testData.locationTracksAndGeometries[2]
         val (locationTrack4, _) = testData.locationTracksAndGeometries[3]
-        val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
+        val (trackNumber, referenceLineAlignment) = testData.trackNumberAndGeometry
 
         // Move points from kilometers 6 and 7
         // - ref line addresses should change
         // - addresses of location tracks 1, 3 and 4 should be changed
         // - switch geom is changed
         moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine,
+            trackNumber,
             referenceLineAlignment,
             { point ->
                 if (point.m.distance > 1000 && point.m.distance < 2900) {
@@ -592,17 +586,17 @@ constructor(
                     point.toPoint()
                 }
             },
-            referenceLineService = referenceLineService,
+            trackNumberservice,
         )
 
-        val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
+        val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
 
-        assertContains(changes.directChanges.referenceLineChanges, referenceLine.id)
+        assertContains(changes.directChanges.trackNumberChanges.map { it.trackNumberId }, trackNumber.id)
 
         assertContains(
             changes.indirectChanges.trackNumberChanges,
             TrackNumberChange(
-                trackNumberId = referenceLine.trackNumberId,
+                trackNumberId = trackNumber.id as IntId,
                 changedKmNumbers = setOf(KmNumber(6), KmNumber(7)),
                 isStartChanged = false,
                 isEndChanged = false,
@@ -696,19 +690,18 @@ constructor(
     @Test
     fun `should not calculate anything when there aren't direct changes`() {
         val testData = insertTestData()
-        val (referenceLine, alignment) = testData.referenceLineAndAlignment
+        val (trackNumber, alignment) = testData.trackNumberAndGeometry
 
         moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine = referenceLine,
+            trackNumber = trackNumber,
             geometry = alignment,
             moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
-            referenceLineService = referenceLineService,
+            trackNumberservice,
         )
 
         val changes = getCalculatedChanges()
 
         assertEquals(0, changes.directChanges.kmPostChanges.size)
-        assertEquals(0, changes.directChanges.referenceLineChanges.size)
         assertEquals(0, changes.directChanges.trackNumberChanges.size)
         assertEquals(0, changes.directChanges.locationTrackChanges.size)
         assertEquals(0, changes.directChanges.switchChanges.size)
@@ -798,55 +791,19 @@ constructor(
     }
 
     @Test
-    fun `reference line changes should be included in calculated changes`() {
+    fun `changing track number should indirectly cause location track changes`() {
         val testData = insertTestData()
-        val (referenceLine, _) = testData.referenceLineAndAlignment
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine.copy(startAddress = TrackMeter("0000+0500.000")),
-        )
-
-        val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
-
-        assertEquals(1, changes.directChanges.referenceLineChanges.size)
-        assertContains(changes.directChanges.referenceLineChanges, referenceLine.id)
-        assertEquals(1, changes.indirectChanges.trackNumberChanges.size)
-        assertEquals(referenceLine.trackNumberId, changes.indirectChanges.trackNumberChanges[0].trackNumberId)
-        assertEquals(0, changes.directChanges.trackNumberChanges.size)
-    }
-
-    @Test
-    fun `changing reference line should indirectly cause track number changes`() {
-        val testData = insertTestData()
-        val (referenceLine, alignment) = testData.referenceLineAndAlignment
-
-        moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine = referenceLine,
-            geometry = alignment,
-            moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
-            referenceLineService = referenceLineService,
-        )
-
-        val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
-        assertEquals(1, changes.indirectChanges.trackNumberChanges.size)
-        assertEquals(changes.indirectChanges.trackNumberChanges[0].trackNumberId, referenceLine.trackNumberId)
-        assertEquals(0, changes.directChanges.trackNumberChanges.size)
-    }
-
-    @Test
-    fun `changing reference line should indirectly cause track number changes that cause location track changes`() {
-        val testData = insertTestData()
-        val (referenceLine, alignment) = testData.referenceLineAndAlignment
+        val (trackNumber, geometry) = testData.trackNumberAndGeometry
         val (locationTrack, _) = testData.locationTracksAndGeometries[0]
 
         moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine = referenceLine,
-            geometry = alignment,
+            trackNumber = trackNumber,
+            geometry = geometry,
             moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
-            referenceLineService = referenceLineService,
+            trackNumberservice,
         )
 
-        val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
+        val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
         assertEquals(1, changes.indirectChanges.locationTrackChanges.size)
         assertEquals(locationTrack.id, changes.indirectChanges.locationTrackChanges[0].locationTrackId)
         assertEquals(0, changes.directChanges.locationTrackChanges.size)
@@ -855,10 +812,11 @@ constructor(
     @Test
     fun `track number changes should be included in calculated changes`() {
         val testData = insertTestData()
-        val trackNumber = testData.trackNumber
+        val (trackNumber, geometry) = testData.trackNumberAndGeometry
         trackNumberservice.saveDraft(
             LayoutBranch.main,
             trackNumber.copy(description = TrackNumberDescription(UUID.randomUUID().toString())),
+            geometry,
         )
 
         val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
@@ -923,26 +881,22 @@ constructor(
     @Test
     fun `indirect track number changes should be combined with direct track number changes`() {
         val testData = insertTestData()
-        val (referenceLine, alignment) = testData.referenceLineAndAlignment
+        val (trackNumber, geometry) = testData.trackNumberAndGeometry
 
-        val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
             LayoutBranch.main,
             trackNumber.copy(description = TrackNumberDescription(UUID.randomUUID().toString())),
+            geometry,
         )
 
         moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine,
-            alignment,
+            trackNumber,
+            geometry,
             { point -> if (point.m.distance < 900.0) point - 2.0 else point.toPoint() },
-            referenceLineService,
+            trackNumberservice,
         )
 
-        val changes =
-            getCalculatedChanges(
-                trackNumberIds = listOf(trackNumber.id as IntId),
-                referenceLineIds = listOf(referenceLine.id as IntId),
-            )
+        val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
 
         assertEquals(1, changes.directChanges.trackNumberChanges.size)
         assertContains(
@@ -961,7 +915,7 @@ constructor(
     @Test
     fun `indirect location track changes should be combined with direct location track changes`() {
         val testData = insertTestData()
-        val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
+        val (trackNumber, referenceLineGeometry) = testData.trackNumberAndGeometry
         val (locationTrack, locationTrackGeometry) = testData.locationTracksAndGeometries[0]
 
         moveLocationTrackGeometryPointsAndUpdate(
@@ -972,16 +926,16 @@ constructor(
         )
 
         moveReferenceLineGeometryPointsAndUpdate(
-            referenceLine = referenceLine,
-            geometry = referenceLineAlignment,
+            trackNumber = trackNumber,
+            geometry = referenceLineGeometry,
             moveFunc = { point -> if (point.m.distance < 900.0) point - 2.0 else point.toPoint() },
-            referenceLineService = referenceLineService,
+            trackNumberservice,
         )
 
         val changes =
             getCalculatedChanges(
                 locationTrackIds = listOf(locationTrack.id as IntId),
-                referenceLineIds = listOf(referenceLine.id as IntId),
+                trackNumberIds = listOf(trackNumber.id as IntId),
             )
 
         assertEquals(1, changes.directChanges.locationTrackChanges.size)
@@ -1031,14 +985,9 @@ constructor(
 
     @Test
     fun `switch change with joint linked to segment gap should still be reported as only one change`() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val referenceLineId =
-            referenceLineService
-                .saveDraft(
-                    LayoutBranch.main,
-                    referenceLine(trackNumberId, draft = true),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 20.0))),
-                )
+        val trackNumberId =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 20.0))))
                 .id
         val switch =
             switchService
@@ -1064,7 +1013,6 @@ constructor(
                 locationTrackIds = listOf(wibblyTrack.id),
                 switchIds = listOf(switch),
                 trackNumberIds = listOf(trackNumberId),
-                referenceLineIds = listOf(referenceLineId),
             )
         assertEquals(1, changes.directChanges.switchChanges.size)
         assertEquals(1, changes.directChanges.switchChanges.find { it.switchId == switch }?.changedJoints?.size)
@@ -1144,11 +1092,10 @@ constructor(
 
     @Test
     fun `attaching location track to operational point generates indirect operational point change`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
         val locationTrack =
             mainOfficialContext
@@ -1170,11 +1117,10 @@ constructor(
 
     @Test
     fun `detaching location track from operational point generates indirect operational point change`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
         val locationTrack =
             mainOfficialContext
@@ -1199,11 +1145,10 @@ constructor(
 
     @Test
     fun `changing location track operational point references generates indirect changes for all affected operational points`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val operationalPoint1 = mainOfficialContext.save(operationalPoint("Test OP 1")).id
         val operationalPoint2 = mainOfficialContext.save(operationalPoint("Test OP 2")).id
         val operationalPoint3 = mainOfficialContext.save(operationalPoint("Test OP 3")).id
@@ -1235,11 +1180,10 @@ constructor(
 
     @Test
     fun `indirect operational point changes should be combined with direct operational point changes`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
         val locationTrack =
             mainOfficialContext
@@ -1274,11 +1218,10 @@ constructor(
 
     @Test
     fun `changes done in a main publication can be inherited to assets edited in design`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
         val trackId =
@@ -1312,7 +1255,6 @@ constructor(
             calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
                 branch = designBranch,
                 trackNumbers = listOf(),
-                referenceLines = listOf(),
                 locationTracks = listOf(),
                 switches = listOf(),
                 kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
@@ -1364,7 +1306,6 @@ constructor(
             calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
                 branch = designBranch,
                 trackNumbers = listOf(),
-                referenceLines = listOf(),
                 locationTracks = listOf(),
                 switches = listOf(mainDraftContext.fetchVersion(switch)!!),
                 kmPosts = listOf(),
@@ -1377,11 +1318,10 @@ constructor(
 
     @Test
     fun `changes done in a main publication can be inherited to assets created in design`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
@@ -1413,7 +1353,6 @@ constructor(
             calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
                 branch = designBranch,
                 trackNumbers = listOf(),
-                referenceLines = listOf(),
                 locationTracks = listOf(),
                 switches = listOf(),
                 kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
@@ -1443,11 +1382,10 @@ constructor(
 
     @Test
     fun `changes to main objects that are overridden in design don't cause inherited changes`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch =
             mainOfficialContext
@@ -1495,7 +1433,6 @@ constructor(
             calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
                 branch = designBranch,
                 trackNumbers = listOf(),
-                referenceLines = listOf(),
                 locationTracks = listOf(),
                 switches = listOf(),
                 kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
@@ -1508,11 +1445,10 @@ constructor(
 
     @Test
     fun `getChangedSwitchesFromChangedLocationTrackKms happy path`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(12.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
+                .id
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), kmPostGkLocation(6.0, 0.0))).id
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(3), kmPostGkLocation(9.0, 0.0))).id
@@ -1578,11 +1514,10 @@ constructor(
 
     @Test
     fun `getChangedSwitchesFromChangedLocationTrackKms accepts cancelled location tracks created in design`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(12.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
+                .id
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val designBranch = testDBService.createDesignBranch()
@@ -1621,13 +1556,15 @@ constructor(
     }
 
     data class TestData(
-        val trackNumber: LayoutTrackNumber,
+        val trackNumberAndGeometry: Pair<LayoutTrackNumber, ReferenceLineGeometry>,
         val locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
-        val referenceLineAndAlignment: Pair<ReferenceLine, ReferenceLineGeometry>,
         val kmPosts: List<LayoutKmPost>,
         val switches: List<LayoutSwitch>,
         val changeTime: Instant,
-    )
+    ) {
+        val trackNumber: LayoutTrackNumber
+            get() = trackNumberAndGeometry.first
+    }
 
     data class SwitchData(
         val location: IPoint,
@@ -1681,95 +1618,77 @@ constructor(
 
         val trackNumber =
             layoutTrackNumberDao.fetch(
-                layoutTrackNumberDao.save(trackNumber(TrackNumber("TEST TN $sequence"), draft = false))
+                layoutTrackNumberDao.save(
+                    trackNumber(
+                        TrackNumber("TEST TN $sequence"),
+                        startAddress = TrackMeter(kmNumber = kmPostData.first().first, meters = BigDecimal.ZERO),
+                        draft = false,
+                    ),
+                    referenceLineGeometry(segment(kmPostData.first().second, kmPostData.last().second)),
+                )
             )
-        val kmPosts =
-            kmPostData.map { (kmNumber, location) ->
-                layoutKmPostDao.fetch(
-                    layoutKmPostDao.save(
-                        kmPost(
-                            trackNumberId = trackNumber.id as IntId,
-                            km = kmNumber,
-                            gkLocation = kmPostGkLocation(refPoint + location),
-                            draft = false,
-                        )
+        val kmPosts = kmPostData.map { (kmNumber, location) ->
+            layoutKmPostDao.fetch(
+                layoutKmPostDao.save(
+                    kmPost(
+                        trackNumberId = trackNumber.id as IntId,
+                        km = kmNumber,
+                        gkLocation = kmPostGkLocation(refPoint + location),
+                        draft = false,
                     )
                 )
-            }
-        val referenceLineGeometryVersion =
-            layoutAlignmentDao.insert(
-                referenceLineGeometry(
-                    segment(kmPosts.first().layoutLocation as Point, kmPosts.last().layoutLocation as Point)
-                )
             )
-        val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLineGeometryVersion)
-        val referenceLine =
-            referenceLineDao.fetch(
-                referenceLineDao.save(
-                    referenceLine(
-                            trackNumber.id as IntId<LayoutTrackNumber>,
-                            geometry = referenceLineGeometry,
-                            startAddress = TrackMeter(kmNumber = kmPosts.first().kmNumber, meters = BigDecimal.ZERO),
-                            draft = false,
-                        )
-                        .copy(geometryVersion = referenceLineGeometryVersion)
-                )
-            )
+        }
 
         var locationTrackSequence = 0
-        val locationTracksAndGeometries =
-            locationTrackData.map { line ->
-                locationTrackService.getWithGeometry(
-                    locationTrackDao.save(
-                        locationTrack(
-                            trackNumberId = trackNumber.id as IntId,
-                            name = "TEST LocTr $sequence ${locationTrackSequence++}",
-                            draft = false,
-                        ),
-                        trackGeometryOfSegments(segments(refPoint + line.start, refPoint + line.end, 10.0)),
-                    )
+        val locationTracksAndGeometries = locationTrackData.map { line ->
+            locationTrackService.getWithGeometry(
+                locationTrackDao.save(
+                    locationTrack(
+                        trackNumberId = trackNumber.id as IntId,
+                        name = "TEST LocTr $sequence ${locationTrackSequence++}",
+                        draft = false,
+                    ),
+                    trackGeometryOfSegments(segments(refPoint + line.start, refPoint + line.end, 10.0)),
                 )
-            }
+            )
+        }
 
-        val switches =
-            switchData.map { switch ->
-                linkTestSwitch(
-                    refPoint + switch.location,
-                    locationTracksAndGeometries[switch.locationTrackIndexA],
-                    locationTracksAndGeometries[switch.locationTrackIndexB],
-                    switch.name,
-                )
-            }
+        val switches = switchData.map { switch ->
+            linkTestSwitch(
+                refPoint + switch.location,
+                locationTracksAndGeometries[switch.locationTrackIndexA],
+                locationTracksAndGeometries[switch.locationTrackIndexB],
+                switch.name,
+            )
+        }
 
-        val publishedLocationTracksAndGeometries =
-            locationTracksAndGeometries.map { (locationTrack, _) ->
-                val id = locationTrack.id as IntId
-                val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-                val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
-                if (edited.isDraft) {
-                    val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion).published
-                    locationTrackService.getWithGeometry(publicationResponse)
-                } else {
-                    edited to editedGeometry
-                }
+        val publishedLocationTracksAndGeometries = locationTracksAndGeometries.map { (locationTrack, _) ->
+            val id = locationTrack.id as IntId
+            val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
+            val (edited, editedGeometry) = locationTrackService.getWithGeometry(rowVersion)
+            if (edited.isDraft) {
+                val publicationResponse = locationTrackService.publish(LayoutBranch.main, rowVersion).published
+                locationTrackService.getWithGeometry(publicationResponse)
+            } else {
+                edited to editedGeometry
             }
-        val publishedSwitches =
-            switches.map { switch ->
-                val id = switch.id as IntId
-                val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-                val edited = switchDao.fetch(rowVersion)
-                if (edited.isDraft) {
-                    val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion).published
-                    switchDao.fetch(publicationResponse)
-                } else {
-                    edited
-                }
+        }
+        val publishedSwitches = switches.map { switch ->
+            val id = switch.id as IntId
+            val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
+            val edited = switchDao.fetch(rowVersion)
+            if (edited.isDraft) {
+                val publicationResponse = switchService.publish(LayoutBranch.main, rowVersion).published
+                switchDao.fetch(publicationResponse)
+            } else {
+                edited
             }
+        }
 
         return TestData(
-            trackNumber = trackNumber,
+            trackNumberAndGeometry = trackNumber to referenceLineGeometry,
             locationTracksAndGeometries = publishedLocationTracksAndGeometries,
-            referenceLineAndAlignment = referenceLine to referenceLineGeometry,
             kmPosts = kmPosts,
             switches = publishedSwitches,
             changeTime = maxOf(locationTrackService.getChangeTime(), switchService.getChangeTime()),
@@ -1891,7 +1810,6 @@ constructor(
         layoutBranch: LayoutBranch = LayoutBranch.main,
         locationTrackIds: List<IntId<LocationTrack>> = emptyList(),
         kmPostIds: List<IntId<LayoutKmPost>> = emptyList(),
-        referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         switchIds: List<IntId<LayoutSwitch>> = emptyList(),
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
         operationalPointIds: List<IntId<OperationalPoint>> = emptyList(),
@@ -1901,7 +1819,6 @@ constructor(
             target = target,
             locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext, locationTrackIds),
             kmPosts = layoutKmPostDao.fetchCandidateVersions(target.candidateContext, kmPostIds),
-            referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext, referenceLineIds),
             switches = switchDao.fetchCandidateVersions(target.candidateContext, switchIds),
             trackNumbers = layoutTrackNumberDao.fetchCandidateVersions(target.candidateContext, trackNumberIds),
             operationalPoints =
@@ -1915,7 +1832,6 @@ constructor(
         layoutBranch: LayoutBranch = LayoutBranch.main,
         locationTrackIds: List<IntId<LocationTrack>> = emptyList(),
         kmPostIds: List<IntId<LayoutKmPost>> = emptyList(),
-        referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         switchIds: List<IntId<LayoutSwitch>> = emptyList(),
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
         operationalPointIds: List<IntId<OperationalPoint>> = emptyList(),
@@ -1925,7 +1841,6 @@ constructor(
                 layoutBranch,
                 locationTrackIds,
                 kmPostIds,
-                referenceLineIds,
                 switchIds,
                 trackNumberIds,
                 operationalPointIds,

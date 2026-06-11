@@ -19,12 +19,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
@@ -50,7 +48,6 @@ class GeometryServiceIT
 @Autowired
 constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineService: ReferenceLineService,
     private val locationTrackService: LocationTrackService,
     private val kmPostService: LayoutKmPostService,
     private val geometryDao: GeometryDao,
@@ -90,17 +87,19 @@ constructor(
 
     @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
-        val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(
-                trackNumberId = trackNumberId,
-                startAddress = TrackMeter("0154", BigDecimal("123.4")),
-                draft = true,
-            ),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(
+                        testDBService.getUnusedTrackNumber(),
+                        draft = true,
+                        startAddress = TrackMeter("0154", BigDecimal("123.4")),
+                        geometry = geom,
+                    ),
+                    geom,
+                )
+                .id
         val locationTrackId =
             locationTrackService
                 .saveDraft(
@@ -174,12 +173,14 @@ constructor(
     @Test
     fun getLocationTrackHeightsReturnsBothOrdinaryTicksAndPlanBoundaries() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(trackNumber.number, draft = true, geometry = geom),
+                    geom,
+                )
+                .id
         val p1 = insertPlanWithGeometry("plan1.xml", trackNumber.number)
         val p2 = insertPlanWithGeometry("plan2.xml", trackNumber.number)
         val p3 = insertPlanWithGeometry("plan3.xml", trackNumber.number)
@@ -268,12 +269,19 @@ constructor(
     @Test
     fun getLocationTrackHeightsHandlesSegmentChangeAtRightBeforeKilometerStart() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400), draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(
+                        trackNumber.number,
+                        draft = true,
+                        startAddress = TrackMeter("0154", 400),
+                        geometry = geom,
+                    ),
+                    geom,
+                )
+                .id
         val sourceElement = insertPlanWithGeometry("plan1.xml", trackNumber.number).alignments[0].elements[0]
         val locationTrackId =
             locationTrackService
@@ -326,12 +334,19 @@ constructor(
     @Test
     fun getLocationTrackHeightsHandlesKmShorterThanTickLength() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 0), draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(
+                        trackNumber.number,
+                        draft = true,
+                        startAddress = TrackMeter("0154", 0),
+                        geometry = geom,
+                    ),
+                    geom,
+                )
+                .id
         val locationTrackId =
             locationTrackService
                 .saveDraft(
@@ -414,12 +429,14 @@ constructor(
     @Test
     fun `Vertical geometry listing returns break points with correct field values for a location track with linked geometry plans`() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(trackNumber.number, draft = true, geometry = geom),
+                    geom,
+                )
+                .id
         val profile =
             GeometryProfile(
                 PlanElementName("profile"),
@@ -464,12 +481,14 @@ constructor(
     @Test
     fun `Vertical geometry listing returns empty list for location track with no linked geometry plans`() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(trackNumber.number, draft = true, geometry = geom),
+                    geom,
+                )
+                .id
         val locationTrackId =
             locationTrackService
                 .saveDraft(
@@ -487,12 +506,14 @@ constructor(
     @Test
     fun `Vertical geometry listing for location track spanning multiple geometry plans returns break points from all plans`() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(trackNumber.number, draft = true, geometry = geom),
+                    geom,
+                )
+                .id
         // Two plans with distinct profiles so deduplication keeps both entries
         val profile1 =
             GeometryProfile(
@@ -554,12 +575,14 @@ constructor(
     @Test
     fun `Vertical geometry listing overlapsAnother is set correctly when gradient sections overlap`() {
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
-        val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
-        )
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        val trackNumberId =
+            layoutTrackNumberDao
+                .save(
+                    trackNumber(trackNumber.number, draft = true, geometry = geom),
+                    geom,
+                )
+                .id
         // Two plans with distinct profiles whose curve tangent ranges overlap in geocoded addresses.
         // Addresses are computed from plan alignment coordinates, so curves at similar stations
         // on both plans produce entries with overlapping address ranges.
@@ -613,7 +636,10 @@ constructor(
         assertEquals(setOf(plan1.id, plan2.id), listing.map { it.planId }.toSet())
         listing.forEach { entry ->
             assertEquals(BigDecimal("-50"), entry.radius)
-            assertTrue(entry.overlapsAnother, "Both entries should overlap since their geocoded address ranges intersect")
+            assertTrue(
+                entry.overlapsAnother,
+                "Both entries should overlap since their geocoded address ranges intersect",
+            )
         }
     }
 

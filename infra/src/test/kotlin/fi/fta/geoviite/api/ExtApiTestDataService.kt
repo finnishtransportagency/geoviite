@@ -11,10 +11,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -60,7 +58,6 @@ class ExtApiTestDataServiceV1 : DBTestBase() {
         val switch: IdAndOid<LayoutSwitch>,
         val tracks: List<IdAndOid<LocationTrack>>,
         val trackNumber: IdAndOid<LayoutTrackNumber>,
-        val referenceLineId: IntId<ReferenceLine>,
     )
 
     fun insertSwitchAndTracks(
@@ -73,8 +70,6 @@ class ExtApiTestDataServiceV1 : DBTestBase() {
         val switchId = layoutContext.save(switch(structure.id, allJoints)).id
         val savedSwitch = layoutContext.fetch(switchId)!!
 
-        val (trackNumberId, trackNumberOid) =
-            layoutContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val rlGeometry =
             referenceLineGeometry(
                 segment(
@@ -82,7 +77,9 @@ class ExtApiTestDataServiceV1 : DBTestBase() {
                     Point(allJoints.maxOf { it.location.x }, allJoints.maxOf { it.location.y }),
                 )
             )
-        val referenceLineId = layoutContext.save(referenceLine(trackNumberId), rlGeometry).id
+        val trackNumberId =
+            layoutContext.saveTrackNumber(trackNumber(testDBService.getUnusedTrackNumber()) to rlGeometry).id
+        val trackNumberOid = layoutContext.generateOid(trackNumberId)
 
         val trackIds = joints.map { (start, end) ->
             val geom = linkedTrackGeometry(savedSwitch, start.number, end.number, structure)
@@ -93,14 +90,12 @@ class ExtApiTestDataServiceV1 : DBTestBase() {
             switch = IdAndOid(switchId, layoutContext.generateOid(switchId)),
             tracks = trackIds.map { id -> IdAndOid(id, layoutContext.generateOid(id)) },
             trackNumber = IdAndOid(trackNumberId, trackNumberOid),
-            referenceLineId = referenceLineId,
         )
     }
 
     fun publishInMain(switchAndTrackIds: List<SwitchAndTrackIds>): Publication =
         testDBService.publish(
             trackNumbers = switchAndTrackIds.map { it.trackNumber.id },
-            referenceLines = switchAndTrackIds.map { it.referenceLineId },
             locationTracks = switchAndTrackIds.flatMap { it.tracks.map { track -> track.id } },
             switches = switchAndTrackIds.map { it.switch.id },
         )

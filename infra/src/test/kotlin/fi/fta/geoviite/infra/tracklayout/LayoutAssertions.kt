@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import java.util.function.Supplier
 import kotlin.test.assertNull
-import org.junit.jupiter.api.Assertions.assertEquals
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -11,21 +11,12 @@ private const val HEIGHT_DELTA: Double = 0.000001
 private const val CANT_DELTA: Double = 0.000001
 
 fun assertMatches(expected: LayoutTrackNumber, actual: LayoutTrackNumber, contextMatch: Boolean = false) {
+    val expectedNormalized = expected.copy(boundingBox = actual.boundingBox, length = actual.length)
     if (contextMatch) {
-        assertEquals(expected, actual)
+        assertEquals(expectedNormalized, actual)
     } else {
         val unified = actual.copy(contextData = expected.contextData)
-        assertEquals(expected, unified)
-    }
-}
-
-fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, contextMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(boundingBox = actual.boundingBox, length = actual.length)
-    if (contextMatch) {
-        assertEquals(expectedWithSameFloats, actual)
-    } else {
-        val unified = actual.copy(contextData = expected.contextData)
-        assertEquals(expectedWithSameFloats, unified)
+        assertEquals(expectedNormalized, unified)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
@@ -79,12 +70,8 @@ fun assertMatches(expected: NodeConnection, actual: NodeConnection, idMatch: Boo
 }
 
 fun assertMatches(expected: ReferenceLineGeometry, actual: ReferenceLineGeometry, idMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(segments = actual.segments)
     if (idMatch) {
-        assertEquals(expectedWithSameFloats, actual)
-    } else {
-        val unified = actual.copy(id = expected.id, dataType = expected.dataType)
-        assertEquals(expectedWithSameFloats, unified)
+        assertEquals(expected.trackNumberId, actual.trackNumberId)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
     assertEquals(expected.segments.size, actual.segments.size)

@@ -293,12 +293,18 @@ fun trackNumber(
     draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
     id: IntId<LayoutTrackNumber>? = null,
+    geometry: ReferenceLineGeometry = TmpReferenceLineGeometry.empty,
+    startAddress: TrackMeter = TrackMeter.ZERO,
     contextData: LayoutContextData<LayoutTrackNumber> = createMainContext(id, draft),
 ) =
     LayoutTrackNumber(
         number = number,
         description = TrackNumberDescription(description),
         state = state,
+        startAddress = startAddress,
+        boundingBox = geometry.boundingBox,
+        length = geometry.length,
+        segmentCount = geometry.segments.size,
         contextData = contextData,
     )
 
@@ -315,55 +321,32 @@ fun trackNumberSaveRequest(
         startAddress = startAddress.round(3),
     )
 
-fun referenceLineAndGeometry(
-    trackNumberId: IntId<LayoutTrackNumber>,
+fun trackNumberAndGeometry(
     vararg segments: LayoutSegment,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
-): Pair<ReferenceLine, ReferenceLineGeometry> =
-    referenceLineAndGeometry(trackNumberId, segments.toList(), startAddress = startAddress, draft = draft)
+): Pair<LayoutTrackNumber, ReferenceLineGeometry> =
+    trackNumberAndGeometry(segments.toList(), startAddress = startAddress, draft = draft)
 
-fun referenceLineAndGeometry(
-    trackNumberId: IntId<LayoutTrackNumber>,
+fun trackNumberAndGeometry(
     segments: List<LayoutSegment>,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
-): Pair<ReferenceLine, ReferenceLineGeometry> {
+): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
     val geometry = referenceLineGeometry(segments)
-    val referenceLine =
-        referenceLine(trackNumberId = trackNumberId, geometry = geometry, startAddress = startAddress, draft = draft)
-    return referenceLine to geometry
+    val tn = trackNumber(geometry = geometry, startAddress = startAddress, draft = draft)
+    return tn to geometry
 }
 
-fun referenceLineAndGeometryOfElements(
-    trackNumberId: IntId<LayoutTrackNumber>,
+fun trackNumberAndGeometryOfElements(
     elements: List<GeometryElement>,
     startAddress: TrackMeter = TrackMeter.ZERO,
     planSrid: Srid = LAYOUT_SRID,
-): Pair<ReferenceLine, ReferenceLineGeometry> {
+): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
     val geometry = referenceLineGeometryOfElements(elements, planSrid)
-    val referenceLine = referenceLine(trackNumberId = trackNumberId, geometry = geometry, startAddress = startAddress)
-    return referenceLine to geometry
+    val tn = trackNumber(geometry = geometry, startAddress = startAddress)
+    return tn to geometry
 }
-
-fun referenceLine(
-    trackNumberId: IntId<LayoutTrackNumber>,
-    geometry: ReferenceLineGeometry? = null,
-    startAddress: TrackMeter = TrackMeter.ZERO,
-    id: IntId<ReferenceLine>? = null,
-    geometryVersion: RowVersion<ReferenceLineGeometry>? = if (id != null) someRowVersion() else null,
-    draft: Boolean = false,
-    contextData: LayoutContextData<ReferenceLine> = createMainContext(id, draft),
-) =
-    ReferenceLine(
-        trackNumberId = trackNumberId,
-        startAddress = startAddress.round(3),
-        boundingBox = geometry?.boundingBox,
-        segmentCount = geometry?.segments?.size ?: 0,
-        length = geometry?.length ?: LineM(0.0),
-        geometryVersion = geometryVersion,
-        contextData = contextData,
-    )
 
 private var locationTrackNameCounter = 0
 
@@ -530,13 +513,14 @@ fun someReferenceLineGeometry(): ReferenceLineGeometry = referenceLineGeometry(s
 
 fun someTrackGeometry() = trackGeometryOfSegments(someSegment())
 
-fun referenceLineGeometryOfPoints(vararg points: Point): ReferenceLineGeometry = referenceLineGeometry(segment(*points))
+fun referenceLineGeometryOfPoints(vararg points: Point): TmpReferenceLineGeometry =
+    referenceLineGeometry(segment(*points))
 
-fun referenceLineGeometry(vararg segments: LayoutSegment): ReferenceLineGeometry =
+fun referenceLineGeometry(vararg segments: LayoutSegment): TmpReferenceLineGeometry =
     referenceLineGeometry(segments.toList())
 
-fun referenceLineGeometry(segments: List<LayoutSegment>): ReferenceLineGeometry =
-    ReferenceLineGeometry(segments = segments)
+fun referenceLineGeometry(segments: List<LayoutSegment>): TmpReferenceLineGeometry =
+    TmpReferenceLineGeometry(segments = segments, trackNumberId = null)
 
 fun referenceLineGeometryOfElements(
     elements: List<GeometryElement>,
@@ -1074,7 +1058,7 @@ fun someKmNumber(): KmNumber {
 }
 
 fun offsetAlignment(alignment: ReferenceLineGeometry, amount: Point) =
-    alignment.copy(segments = alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
+    alignment.withSegments(alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
 
 fun offsetGeometry(geometry: LocationTrackGeometry, amount: Point): LocationTrackGeometry =
     TmpLocationTrackGeometry.of(edges = geometry.edges.map { edge -> offsetEdge(edge, amount) }, geometry.trackId)
@@ -1164,26 +1148,21 @@ fun layoutDesign(
 fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
 
 fun geocodingContextCacheKey(
-    trackNumberId: IntId<LayoutTrackNumber>,
     trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
-    referenceLineVersion: LayoutRowVersion<ReferenceLine>,
     vararg kmPostVersions: LayoutRowVersion<LayoutKmPost>,
 ) =
     LayoutGeocodingContextCacheKey(
-        trackNumberId = trackNumberId,
         trackNumberVersion = trackNumberVersion,
-        referenceLineVersion = referenceLineVersion,
         kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.id.intValue },
     )
 
 fun publishedVersions(
     trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>> = listOf(),
-    referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>> = listOf(),
     locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
     switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
     kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
     operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>> = listOf(),
-) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts, operationalPoints)
+) = PublishedVersions(trackNumbers, locationTracks, switches, kmPosts, operationalPoints)
 
 fun operationalPoint(
     name: String = "name",
