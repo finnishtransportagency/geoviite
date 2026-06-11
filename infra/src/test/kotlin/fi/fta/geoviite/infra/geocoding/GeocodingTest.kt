@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometryOfPoints
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -803,17 +802,11 @@ class GeocodingTest {
     fun switchPointsAreFetchedCorrectly() {
         val start = Point(385757.97, 6672279.26)
         val referenceLineGeometry = referenceLineGeometry(segment(start, start + Point(0.0, 100.0)))
-        val referenceLine =
-            referenceLine(
-                trackNumberId = IntId(1),
-                geometry = referenceLineGeometry,
-                startAddress = TrackMeter(10, 0),
-                draft = false,
-            )
+        val startAddress = TrackMeter(10, 0)
         val testContext =
             GeocodingContext.create(
                     trackNumber = trackNumber,
-                    startAddress = referenceLine.startAddress,
+                    startAddress = startAddress,
                     referenceLineGeometry = referenceLineGeometry,
                     kmPosts = listOf(),
                 )

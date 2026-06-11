@@ -36,7 +36,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
@@ -53,8 +52,6 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.rawPoints
-import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
@@ -83,26 +80,22 @@ class PublicationValidationTest {
     @Test
     fun trackNumberValidationCatchesLocationTrackReferencingDeletedTrackNumber() {
         val trackNumber = trackNumber(id = IntId(1), draft = true)
-        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId, id = IntId(1), draft = true)
         val alignment = locationTrack(trackNumberId = IntId(1), draft = true)
         assertTrackNumberReferenceError(
             true,
             trackNumber.copy(state = LayoutState.DELETED),
-            referenceLine,
             locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.DELETED),
-            referenceLine,
             alignment.copy(state = LocationTrackState.DELETED),
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.IN_USE),
-            referenceLine,
             alignment.copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
@@ -1503,14 +1496,12 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: LayoutTrackNumber,
-        referenceLine: ReferenceLine?,
         locationTrack: LocationTrack,
         error: String,
     ) =
         assertTrackNumberReferenceError(
             hasError,
             trackNumber,
-            referenceLine,
             error,
             locationTracks = listOf(locationTrack),
         )
@@ -1518,7 +1509,6 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: LayoutTrackNumber,
-        referenceLine: ReferenceLine?,
         error: String,
         kmPosts: List<LayoutKmPost> = listOf(),
         locationTracks: List<LocationTrack> = listOf(),
@@ -1527,7 +1517,6 @@ class PublicationValidationTest {
             hasError,
             validateReferencesToTrackNumber(
                 if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                referenceLine,
                 kmPosts,
                 locationTracks,
             ),
@@ -1640,17 +1629,11 @@ class PublicationValidationTest {
         referenceLinePoints: List<SegmentPoint>,
         kmPosts: List<LayoutKmPost>,
     ): ValidatedGeocodingContext<ReferenceLineM> {
-        val (referenceLine, alignment) =
-            referenceLineAndGeometry(
-                trackNumberId = IntId(1),
-                segments = listOf(segment(referenceLinePoints)),
-                startAddress = TrackMeter.ZERO,
-                draft = true,
-            )
+        val alignment = referenceLineGeometry(listOf(segment(referenceLinePoints)))
         return GeocodingContext.create(
             // Start the geocoding from 0+0m
             TrackNumber("0000"),
-            referenceLine.startAddress,
+            TrackMeter.ZERO,
             alignment,
             kmPosts,
         )
