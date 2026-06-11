@@ -109,12 +109,12 @@ private fun replaceStartWithTopoSwitch(
     geometry.edges.first().startNode.node.contentKey to LayoutNode.of(SwitchLink(switchId, jointRole, jointNumber))
 
 fun moveReferenceLineGeometryPointsAndUpdate(
-    referenceLine: ReferenceLine,
+    trackNumber: LayoutTrackNumber,
     geometry: ReferenceLineGeometry,
     moveFunc: (point: IPoint3DM<*>) -> Point?,
-    referenceLineService: ReferenceLineService,
-): LayoutRowVersion<ReferenceLine> =
-    referenceLineService.saveDraft(LayoutBranch.main, referenceLine, moveAlignmentPoints(geometry, moveFunc))
+    trackNumberService: LayoutTrackNumberService,
+): LayoutRowVersion<LayoutTrackNumber> =
+    trackNumberService.saveDraft(LayoutBranch.main, trackNumber, moveAlignmentPoints(geometry, moveFunc))
 
 fun moveLocationTrackPoints(
     geometry: LocationTrackGeometry,
@@ -145,24 +145,23 @@ fun moveAlignmentPoints(
     moveFunc: (point: AlignmentPoint<ReferenceLineM>) -> Point?,
 ): ReferenceLineGeometry {
     return geometry
-        .copy(
-            segments =
-                geometry.segmentsWithM.map { (segment, m) ->
-                    var prevPoint: IPoint3DM<*>? = null
-                    val newPoints =
-                        segment.segmentPoints.mapNotNull { point ->
-                            moveFunc(point.toAlignmentPoint(m.min))?.let { newPoint ->
-                                val segmentM =
-                                    prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: LineM<SegmentM>(0.0)
-                                point.copy(x = newPoint.x, y = newPoint.y, m = segmentM.castToDifferentM()).also { p ->
-                                    prevPoint = p
-                                }
+        .withSegments(
+            geometry.segmentsWithM.map { (segment, m) ->
+                var prevPoint: IPoint3DM<*>? = null
+                val newPoints =
+                    segment.segmentPoints.mapNotNull { point ->
+                        moveFunc(point.toAlignmentPoint(m.min))?.let { newPoint ->
+                            val segmentM =
+                                prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: LineM<SegmentM>(0.0)
+                            point.copy(x = newPoint.x, y = newPoint.y, m = segmentM.castToDifferentM()).also { p ->
+                                prevPoint = p
                             }
                         }
-                    segment.withPoints(points = newPoints, newSourceStart = null).also {
-                        assertEquals(LineM(0.0), it.segmentPoints.first().m)
                     }
+                segment.withPoints(points = newPoints, newSourceStart = null).also {
+                    assertEquals(LineM(0.0), it.segmentPoints.first().m)
                 }
+            }
         )
         .also {
             assertEquals(LineM(0.0), it.segmentMValues.first().min)
