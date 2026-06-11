@@ -273,6 +273,7 @@ class LayoutTrackNumberDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
         logger.daoAccess(AccessType.INSERT, LayoutTrackNumber::class, response)
+        alignmentDao.saveReferenceLineGeometry(response, params)
         clearVersionCache()
         return response
     }
