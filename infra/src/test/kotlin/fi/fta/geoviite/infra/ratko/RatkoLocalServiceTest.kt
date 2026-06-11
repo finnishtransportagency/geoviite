@@ -54,4 +54,18 @@ class RatkoLocalServiceTest {
             service.getRatkoOnlineStatus(),
         )
     }
+
+    @Test
+    fun `refreshOnlineStatus sets OFFLINE when client throws`() {
+        val client = mock(RatkoClient::class.java)
+        org.mockito.Mockito.`when`(client.getRatkoOnlineStatus()).thenThrow(RuntimeException("unexpected"))
+
+        val service = serviceWithClient(client)
+        service.refreshOnlineStatus()
+
+        assertEquals(
+            RatkoClient.RatkoStatus(RatkoConnectionStatus.OFFLINE, null),
+            service.getRatkoOnlineStatus(),
+        )
+    }
 }
