@@ -1048,7 +1048,8 @@
                     "track-draft-exists": "Muokatun sijaintiraiteen vaihtumiskohtaa ei voi siirtää. Julkaise tai kumoa muutokset.",
                     "part-of-split": "Raide on mukana keskeneräisessä raiteen jakamisessa",
                     "part-of-boundary-move": "Raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa",
-                    "switches-part-of-split": "Raiteen vaihteita on mukana julkaisemattomissa raiteen jakamisissa"
+                    "switches-part-of-split": "Raiteen vaihteita on mukana julkaisemattomissa raiteen jakamisissa",
+                    "on-different-track-number": "Raide on eri ratanumerolla kuin ensimmäinen raide"
                 }
             }
         },

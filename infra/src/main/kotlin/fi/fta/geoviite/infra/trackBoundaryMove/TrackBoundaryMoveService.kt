@@ -194,14 +194,14 @@ class TrackBoundaryMoveService(
         val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutContext.branch)
         val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutContext.branch)
         val getDisabledReasons = { track: LocationTrack, geometry: DbLocationTrackGeometry ->
-            boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves)
+            boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves) +
+                listOfNotNull(BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER.takeIf { track.trackNumberId != headTrack.trackNumberId })
         }
 
         val counterpartFirstOptions =
             locationTrackService
                 .listWithGeometries(
                     layoutContext = layoutContext,
-                    trackNumberId = headTrack.trackNumberId,
                     boundingBox = boundingBoxAroundPoint(headStartPoint, ENDPOINT_MATCH_DISTANCE),
                 )
                 .let { candidates ->
@@ -219,7 +219,6 @@ class TrackBoundaryMoveService(
             locationTrackService
                 .listWithGeometries(
                     layoutContext = layoutContext,
-                    trackNumberId = headTrack.trackNumberId,
                     boundingBox = boundingBoxAroundPoint(headEndPoint, ENDPOINT_MATCH_DISTANCE),
                 )
                 .let { candidates ->
@@ -255,6 +254,7 @@ private fun validateTrackForBoundaryMove(
             BoundaryMoveDisabledReason.TRACK_DRAFT_EXISTS -> "track-draft-exists"
             BoundaryMoveDisabledReason.NO_GEOMETRY -> "no-geometry"
             BoundaryMoveDisabledReason.SWITCHES_PART_OF_SPLIT -> "switches-part-of-split"
+            BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER -> "on-different-track-number"
         }
     throw TrackBoundaryMoveFailureException(
         "track cannot take part in a boundary move: id=${track.id}, reason=$reason",

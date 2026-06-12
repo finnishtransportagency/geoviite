@@ -124,6 +124,8 @@ const boundaryMoveDisabledReasonTranslationKeys: Record<BoundaryMoveDisabledReas
     NO_GEOMETRY: 'tool-panel.location-track.no-geometry',
     SWITCHES_PART_OF_SPLIT:
         'tool-panel.location-track.track-boundary-move.validation.switches-part-of-split',
+    ON_DIFFERENT_TRACK_NUMBER:
+        'tool-panel.location-track.track-boundary-move.validation.on-different-track-number',
 };
 
 export const translatedBoundaryMoveDisabledReasons = (
