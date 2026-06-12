@@ -57,6 +57,7 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
             layoutContext={layoutContext}
             onSelectCounterpart={delegates.setTrackBoundaryMoveCounterpart}
             changeTimes={changeTimes}
+            onLoadCounterpartOptions={delegates.setTrackBoundaryMoveCounterpartOptions}
             onStopTrackBoundaryMove={() => {
                 delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
@@ -101,6 +102,7 @@ type LocationTrackBoundaryMoveInfoboxProps = {
     linkingState: ChangingTrackBoundary;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
+    onLoadCounterpartOptions: (counterpartOptions: BoundaryMoveCounterpart[]) => void;
     onStopTrackBoundaryMove: () => void;
     onSelectCounterpart: (counterpart: BoundaryMoveCounterpart) => void;
     onConfirmCounterpartSelection: () => void;
@@ -129,6 +131,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
     linkingState,
     layoutContext,
     changeTimes,
+    onLoadCounterpartOptions,
     onSelectCounterpart,
     onConfirmCounterpartSelection,
     onStopTrackBoundaryMove,
@@ -146,6 +149,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
             layoutContext,
             locationTrack.id,
         );
+        onLoadCounterpartOptions(options);
         setCounterpartOptions(options);
         const trackIds = options.map((o) => o.trackId);
         if (trackIds.length === 0) return [];
