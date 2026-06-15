@@ -217,7 +217,6 @@ class TestDBService(
                     "location_track",
                     "location_track_km",
                     "publication",
-                    "reference_line",
                     "switch",
                     "switch_joint",
                     "switch_location_tracks",
