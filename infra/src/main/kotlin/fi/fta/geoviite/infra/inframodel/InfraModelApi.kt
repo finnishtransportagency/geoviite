@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.XmlCharset
@@ -60,7 +61,8 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
                 listOf(
                     ParsingError(
                         if (e is HasLocalizedMessage) e.localizationKey
-                        else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC)
+                        else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC),
+                        if (e is HasLocalizedMessage) e.localizationParams else localizationParams(),
                     )
                 ),
             geometryPlan = null,
