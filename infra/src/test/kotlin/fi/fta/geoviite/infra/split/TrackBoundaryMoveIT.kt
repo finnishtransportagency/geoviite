@@ -929,7 +929,7 @@ constructor(
                     trackId = otherTrackNumberTrack.id,
                     orientation = BoundaryOrientation.HEAD_FIRST,
                     connectingSwitchJoint = null,
-                    disabledReasons = listOf(BoundaryMoveCounterpartDisabledReason.ON_DIFFERENT_TRACK_NUMBER),
+                    disabledReasons = listOf(BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER),
                 )
             ),
             trackBoundaryMoveService.getBoundaryMoveCounterpartOptions(LayoutBranch.main.draft, headTrack.id),
