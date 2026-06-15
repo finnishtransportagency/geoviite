@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -16,11 +15,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
+import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -34,19 +31,19 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.testdata.locationTrack
 import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
-import fi.fta.geoviite.infra.ui.testdata.referenceLine
+import fi.fta.geoviite.infra.ui.testdata.referenceLineGeometryFromPoints
 import fi.fta.geoviite.infra.ui.util.metersToDouble
 import fi.fta.geoviite.infra.ui.util.pointToCoordinateString
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 // the point where the map opens up by default
 val DEFAULT_BASE_POINT = Point(385782.89, 6672277.83)
@@ -61,7 +58,6 @@ constructor(
     private val testGeometryPlanService: TestGeometryPlanService,
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackService: LocationTrackService,
 ) : SeleniumTest() {
@@ -78,8 +74,7 @@ constructor(
     @Test
     fun `Create a new location track and link geometry`() {
         val trackNumber = TrackNumber("foo")
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
-        createAndInsertCommonReferenceLine(trackNumberId)
+        mainOfficialContext.createLayoutTrackNumber(trackNumber, createCommonReferenceLine()).id
         val geometryPlan =
             testGeometryPlanService
                 .buildPlan(trackNumber)
@@ -120,8 +115,8 @@ constructor(
 
     @Test
     fun `Replace existing location track geometry with new geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        createAndInsertCommonReferenceLine(trackNumberId)
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, createCommonReferenceLine()).id
         val originalLocationTrack =
             mainOfficialContext.saveLocationTrack(
                 locationTrack(
@@ -186,8 +181,7 @@ constructor(
 
     @Test
     fun `Edit location track end coordinate`() {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        createAndInsertCommonReferenceLine(trackNumberId)
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = createCommonReferenceLine()).id
         val originalLocationTrack =
             mainOfficialContext.saveLocationTrack(
                 locationTrack(
@@ -222,8 +216,7 @@ constructor(
 
     @Test
     fun `Edit location track start coordinate`() {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        createAndInsertCommonReferenceLine(trackNumberId)
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = createCommonReferenceLine()).id
         val originalLocationTrack =
             mainOfficialContext.saveLocationTrack(
                 locationTrack(
@@ -258,7 +251,8 @@ constructor(
 
     @Test
     fun `Link geometry KM-Post to nearest track layout KM-post`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, createCommonReferenceLine()).id
         kmPostDao.save(
             kmPost(
                 trackNumberId,
@@ -432,8 +426,8 @@ constructor(
 
     @Test
     fun `Continue location track using geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        createAndInsertCommonReferenceLine(trackNumberId)
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, createCommonReferenceLine()).id
         val plan =
             testGeometryPlanService
                 .buildPlan(trackNumber)
@@ -504,8 +498,8 @@ constructor(
 
     @Test
     fun `Continue and replace location track using geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        createAndInsertCommonReferenceLine(trackNumberId)
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, createCommonReferenceLine()).id
         val plan =
             testGeometryPlanService
                 .buildPlan(trackNumber)
@@ -575,15 +569,14 @@ constructor(
         val trackNumber = TrackNumber("foo tracknumber")
         val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
 
-        val originalReferenceLine =
-            referenceLine(
-                trackNumber = trackNumberId,
-                basePoint = DEFAULT_BASE_POINT + Point(15.0, 35.0),
-                incrementPoints = listOf(Point(5.0, 10.0), Point(3.0, 5.0), Point(4.0, 5.0)),
-                draft = false,
+        val originalReferenceLineGeometry =
+            referenceLineGeometryFromPoints(
+                DEFAULT_BASE_POINT + Point(15.0, 35.0),
+                listOf(Point(5.0, 10.0), Point(3.0, 5.0), Point(4.0, 5.0)),
             )
-        referenceLineDao.save(
-            originalReferenceLine.first.copy(geometryVersion = alignmentDao.insert(originalReferenceLine.second))
+        mainOfficialContext.save(
+            mainOfficialContext.fetch<LayoutTrackNumber>(trackNumberId)!!,
+            originalReferenceLineGeometry,
         )
 
         val plan =
@@ -608,8 +601,8 @@ constructor(
         val geometryTrackStartPoint = geometryAlignment.elements.first().start
         val geometryTrackEndPoint = geometryAlignment.elements.last().end
 
-        val referenceLineStartPoint = originalReferenceLine.second.segments.first().segmentStart
-        val referenceLineEndPoint = originalReferenceLine.second.segments.last().segmentEnd
+        val referenceLineStartPoint = originalReferenceLineGeometry.segments.first().segmentStart
+        val referenceLineEndPoint = originalReferenceLineGeometry.segments.last().segmentEnd
 
         trackLayoutPage.clickAtCoordinates(geometryTrackStartPoint)
         trackLayoutPage.clickAtCoordinates(geometryTrackEndPoint)
@@ -630,8 +623,7 @@ constructor(
 
     @Test
     fun `Delete location track`() {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        createAndInsertCommonReferenceLine(trackNumberId)
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = createCommonReferenceLine()).id
 
         val originalLocationTrack =
             locationTrack(
@@ -749,23 +741,14 @@ constructor(
         waitAndClearToast("linking-succeeded")
     }
 
-    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<LayoutTrackNumber>): ReferenceLineGeometry {
+    private fun createCommonReferenceLine(): TmpReferenceLineGeometry {
         val points =
             pointsFromIncrementList(
                 DEFAULT_BASE_POINT + Point(1.0, 1.0),
                 listOf(Point(x = 2.0, y = 3.0), Point(x = 5.0, y = 12.0)),
             )
 
-        val geometry = referenceLineGeometry(segment(toSegmentPoints(*points.toTypedArray())))
-        val commonReferenceLine =
-            referenceLine(
-                geometry = geometry,
-                trackNumberId = trackNumber,
-                startAddress = TrackMeter(KmNumber(0), 0),
-                draft = false,
-            )
-        referenceLineDao.save(commonReferenceLine.copy(geometryVersion = alignmentDao.insert(geometry)))
-        return geometry
+        return referenceLineGeometry(segment(toSegmentPoints(*points.toTypedArray())))
     }
 
     private fun getGeometryAlignmentFromPlan(alignmentName: String, geometryPlan: GeometryPlan) =

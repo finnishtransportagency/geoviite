@@ -9,15 +9,12 @@ import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import java.time.ZoneOffset
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -26,6 +23,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -40,8 +41,13 @@ constructor(
     fun `Publication log date search works`() {
         testDBService.clearAllTables()
 
-        val someTrackNumberId = mainDraftContext.save(trackNumber(TrackNumber("Test track number"))).id
-        val someReferenceLine = HelsinkiTestData.westReferenceLine(someTrackNumberId, draft = true)
+        val someTrackNumberId =
+            mainDraftContext
+                .save(
+                    trackNumber(TrackNumber("Test track number")),
+                    HelsinkiTestData.westReferenceLineGeometry(),
+                )
+                .id
         val someTrack = HelsinkiTestData.westMainLocationTrack(someTrackNumberId, draft = true)
 
         val publicationRequests =
@@ -53,8 +59,15 @@ constructor(
                 PublicationRequest(
                     content =
                         publicationRequestIds(
-                            referenceLines =
-                                listOf(mainDraftContext.save(someReferenceLine.first, someReferenceLine.second).id)
+                            trackNumbers =
+                                listOf(
+                                    mainDraftContext
+                                        .save(
+                                            mainOfficialContext.fetch<LayoutTrackNumber>(someTrackNumberId)!!,
+                                            HelsinkiTestData.westReferenceLineGeometry(),
+                                        )
+                                        .id
+                                )
                         ),
                     message = PublicationMessage.of("some test publication 2"),
                 ),

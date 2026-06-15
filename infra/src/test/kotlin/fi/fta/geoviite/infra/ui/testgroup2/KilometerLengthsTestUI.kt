@@ -3,15 +3,12 @@ package fi.fta.geoviite.infra.ui.testgroup2
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
@@ -34,9 +31,7 @@ class KilometerLengthsTestUI
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val kmPostDao: LayoutKmPostDao,
-    private val alignmentDao: LayoutAlignmentDao,
     private val webClient: LocalHostWebClient,
 ) : SeleniumTest() {
 
@@ -44,16 +39,9 @@ constructor(
     fun cleanup() {
         testDBService.clearAllTables()
 
-        val trackNumberId = trackNumberDao.save(trackNumber(TrackNumber("foo"), draft = false)).id
-
         val lineSegments = listOf((segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
-        referenceLineDao.save(
-            referenceLine(
-                trackNumberId,
-                geometryVersion = alignmentDao.insert(referenceLineGeometry(lineSegments)),
-                draft = false,
-            )
-        )
+        val trackNumberId =
+            trackNumberDao.save(trackNumber(TrackNumber("foo"), draft = false), referenceLineGeometry(lineSegments)).id
         locationTrackDao.save(
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = false),
             trackGeometryOfSegments(lineSegments),
