@@ -1898,16 +1898,18 @@ constructor(
               linked_reference_line as (
                 select
                   alignment.plan_id,
-                  rlv.change_user,
-                  rlv.change_time,
+                  tnv.change_user,
+                  tnv.change_time,
                   (current.id is not null) as is_current
-                  from layout.reference_line_version rlv
-                    inner join layout.segment_version sv
-                               on sv.alignment_id = rlv.alignment_id and sv.alignment_version = rlv.alignment_version
+                  from layout.track_number_version tnv
+                    inner join layout.track_number_version_segment sv
+                               on sv.track_number_id = tnv.id
+                               and sv.track_layout_context_id = tnv.layout_context_id
+                               and sv.track_number_version = tnv.version
                     inner join geometry.alignment on alignment.id = sv.geometry_alignment_id
-                    left join layout.reference_line current
-                              on current.id = rlv.id and current.alignment_id = rlv.alignment_id and current.alignment_version = rlv.alignment_version
-                  where rlv.draft = false
+                    left join layout.track_number current
+                              on current.id = tnv.id and current.layout_context_id = tnv.layout_context_id and current.version = tnv.version
+                  where tnv.draft = false
               ),
               switch_links as (
                 select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time, layout_switch.is_current

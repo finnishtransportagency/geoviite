@@ -1603,19 +1603,19 @@ constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
 
         val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
-        val trackNumber = designOfficialContext.save(trackNumber(), referenceLineGeometry).id
+        val trackNumberId = designOfficialContext.save(trackNumber(), referenceLineGeometry).id
         val locationTrack =
             designOfficialContext
-                .save(locationTrack(trackNumber), trackGeometryOfSegments(referenceLineGeometry.segments))
+                .save(locationTrack(trackNumberId), trackGeometryOfSegments(referenceLineGeometry.segments))
                 .id
         val switch = designOfficialContext.save(switch()).id
-        val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1))).id
+        val kmPost = designOfficialContext.save(kmPost(trackNumberId, KmNumber(1))).id
 
         val trackNumberToBeCancelled =
             designOfficialContext.save(trackNumber(TrackNumber("aoeu")), referenceLineGeometry).id
         val locationTrackToBeCancelled =
             designOfficialContext
-                .save(locationTrack(trackNumber), trackGeometryOfSegments(referenceLineGeometry.segments))
+                .save(locationTrack(trackNumberId), trackGeometryOfSegments(referenceLineGeometry.segments))
                 .id
         val switchToBeCancelled = designOfficialContext.save(switch()).id
         val kmPostToBeCancelled = designOfficialContext.save(kmPost(trackNumberToBeCancelled, KmNumber(1))).id
@@ -1636,7 +1636,7 @@ constructor(
 
         val candidates =
             publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(designBranch))
-        assertEquals(listOf(trackNumber), candidates.trackNumbers.map { it.id })
+        assertEquals(listOf(trackNumberId), candidates.trackNumbers.map { it.id })
         assertEquals(listOf(locationTrack), candidates.locationTracks.map { it.id })
         assertEquals(listOf(switch), candidates.switches.map { it.id })
         assertEquals(listOf(kmPost), candidates.kmPosts.map { it.id })
@@ -1647,18 +1647,20 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
 
         val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
-        val trackNumber =
-            mainOfficialContext
-                .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
-                .id
-        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment)).id
-        testDBService.generateOid(locationTrack, designBranch)
+        val (trackNumberId, _) =
+            mainOfficialContext.saveWithOid(
+                trackNumber(startAddress = TrackMeter("0100+0100")),
+                referenceLineGeometry(segment),
+            )
+        val locationTrackId =
+            mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment)).id
+        testDBService.generateOid(locationTrackId, designBranch)
 
         mainDraftContext.save(
-            mainOfficialContext.fetch(trackNumber)!!.copy(startAddress = TrackMeter("0123+0123.000")),
+            mainOfficialContext.fetch(trackNumberId)!!.copy(startAddress = TrackMeter("0123+0123.000")),
             referenceLineGeometry(segment),
         )
-        val mainPublicationResult = publishManualPublication(trackNumbers = listOf(trackNumber))
+        val mainPublicationResult = publishManualPublication(trackNumbers = listOf(trackNumberId))
         val designPublications = publicationDao.list(LayoutBranchType.DESIGN)
         assertEquals(1, designPublications.size)
 
@@ -1674,11 +1676,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumber =
+        val trackNumberId =
             mainOfficialContext
                 .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
                 .id
-        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         testDBService.generateOid(locationTrack.id, designBranch)
         testDBService.generateOid(locationTrack.id, MainBranch.instance)
         designDraftContext.copyFrom(locationTrack)
@@ -1702,11 +1704,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumber =
+        val trackNumberId =
             mainOfficialContext
                 .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
                 .id
-        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         testDBService.generateOid(locationTrack.id, designBranch)
         testDBService.generateOid(locationTrack.id, MainBranch.instance)
         designDraftContext.copyFrom(locationTrack)
@@ -1725,11 +1727,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumber =
+        val trackNumberId =
             mainOfficialContext
                 .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
                 .id
-        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         testDBService.generateOid(locationTrack.id, designBranch)
         testDBService.generateOid(locationTrack.id, MainBranch.instance)
         designDraftContext.copyFrom(locationTrack)
@@ -1754,11 +1756,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumber =
+        val trackNumberId =
             mainOfficialContext
                 .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
                 .id
-        val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
+        val locationTrack = designDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         testDBService.generateOid(locationTrack.id, designBranch)
         testDBService.generateOid(locationTrack.id, MainBranch.instance)
 
@@ -1776,11 +1778,11 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumber =
+        val trackNumberId =
             mainOfficialContext
                 .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
                 .id
-        val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
+        val locationTrack = designDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         testDBService.generateOid(locationTrack.id, designBranch)
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))

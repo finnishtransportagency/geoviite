@@ -81,8 +81,11 @@ constructor(
     fun `change inherited to reference-line-only change in design goes to main branch track number version`() {
         // case: track number is only in main-official, but reference line is also edited in design, and km post on
         // the track number is changed -> inherited change is recorded on the track number version in main
-        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))).id
-        testDBService.generateOid(trackNumber, LayoutBranch.main)
+        val (trackNumber, _) =
+            mainOfficialContext.saveWithOid(
+                trackNumber(),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
         val kmPost =
             mainOfficialContext
                 .save(kmPost(trackNumber, gkLocation = kmPostGkLocation(Point(5.0, 0.0)), km = KmNumber(1)))
@@ -120,7 +123,10 @@ constructor(
     fun `change inherited to track number change in design is recorded`() {
         // case: track number is edited in design, and km post on the track number is changed -> inherited change is
         // recorded on the track number version in the design
-        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))).id
+        val trackNumber =
+            mainOfficialContext
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         testDBService.generateOid(trackNumber, LayoutBranch.main)
         val kmPost =
             mainOfficialContext
@@ -161,7 +167,10 @@ constructor(
     fun `changes inherited to location track edited in design is recorded`() {
         // case: location track is create in main and edited in design, then a km post change is edited in main,
         // causing an inherited change
-        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))).id
+        val trackNumber =
+            mainOfficialContext
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         testDBService.generateOid(trackNumber, LayoutBranch.main)
         val kmPost =
             mainOfficialContext
@@ -204,7 +213,10 @@ constructor(
     fun `changes inherited to location track created in design is recorded`() {
         // case: location track is created in design, then a km post change is edited in main, causing an inherited
         // change
-        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))).id
+        val trackNumber =
+            mainOfficialContext
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         testDBService.generateOid(trackNumber, LayoutBranch.main)
         val kmPost =
             mainOfficialContext
@@ -245,7 +257,10 @@ constructor(
 
     @Test
     fun `self-inherited changes both assign oids and record indirect changes for the inheritance targets`() {
-        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))).id
+        val trackNumber =
+            mainOfficialContext
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         testDBService.generateOid(trackNumber, LayoutBranch.main)
         val kmPost =
             mainOfficialContext

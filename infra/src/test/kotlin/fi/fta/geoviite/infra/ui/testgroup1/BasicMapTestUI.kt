@@ -177,6 +177,4 @@ constructor(
         assertEquals("R36240", locationTrackInfobox.name)
         locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
     }
-
 }
-
