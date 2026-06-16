@@ -91,8 +91,8 @@ constructor(
         validationContext.preloadKmPostsByTrackNumbers(trackNumberIds)
         validationContext.preloadLocationTracksByTrackNumbers(trackNumberIds)
 
-        return trackNumberIds.mapNotNull { id ->
-            validateTrackNumber(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
+        return trackNumberIds.map { id ->
+            ValidatedAsset(id, validateTrackNumber(id, validationContext))
         }
     }
 
@@ -381,7 +381,7 @@ constructor(
             val (trackNumber, geometry) = trackNumberWithGeometry
             val alignmentIssues = if (trackNumber.exists) validateReferenceLineGeometry(geometry) else listOf()
             val geocodingIssues =
-                if (trackNumber.exists) {
+                if (trackNumber.exists && geometry.segments.isNotEmpty()) {
                     val contextKey = validationContext.getGeocodingContextCacheKey(id)
                     val contextIssues =
                         validateGeocodingContext(contextKey, VALIDATION_TRACK_NUMBER, trackNumber.number)
@@ -416,7 +416,7 @@ constructor(
                 else validateKmPostReferences(kmPost, context.getTrackNumberLiveness(kmPost.trackNumberId))
 
             val geocodingIssues =
-                if (kmPost.exists && trackNumber?.exists == true) {
+                if (kmPost.exists && trackNumber?.exists == true && trackNumber.segmentCount > 0) {
                     validateGeocodingContext(
                         context.getGeocodingContextCacheKey(kmPost.trackNumberId),
                         VALIDATION_KM_POST,
@@ -573,7 +573,11 @@ constructor(
                 } else listOf()
             val geocodingIssues =
                 if (track.exists && trackNumber != null && geometry.isNotEmpty) {
-                    validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
+                    val geocodingContext =
+                        if (trackNumber.exists && trackNumber.segmentCount > 0)
+                            validationContext.getGeocodingContextCacheKey(track.trackNumberId)
+                        else null
+                    geocodingContext?.let { key ->
                         validateAddressPoints(trackNumber, key, track, VALIDATION_LOCATION_TRACK)
                     } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
                 } else listOf()
