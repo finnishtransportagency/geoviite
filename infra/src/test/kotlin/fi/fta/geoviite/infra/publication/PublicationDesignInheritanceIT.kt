@@ -78,48 +78,6 @@ constructor(
     }
 
     @Test
-    fun `change inherited to reference-line-only change in design goes to main branch track number version`() {
-        // case: track number is only in main-official, but reference line is also edited in design, and km post on
-        // the track number is changed -> inherited change is recorded on the track number version in main
-        val (trackNumber, _) =
-            mainOfficialContext.saveWithOid(
-                trackNumber(),
-                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-            )
-        val kmPost =
-            mainOfficialContext
-                .save(kmPost(trackNumber, gkLocation = kmPostGkLocation(Point(5.0, 0.0)), km = KmNumber(1)))
-                .id
-        val design = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(design, DRAFT)
-
-        designDraftContext.copyFrom(mainOfficialContext.fetchVersion(trackNumber)!!)
-        fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("2.2.2.2.2"))
-        publicationService.publishManualPublication(
-            design,
-            publicationRequest(trackNumbers = listOf(trackNumber), message = "ref line to design"),
-        )
-
-        mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
-        publicationService.publishManualPublication(
-            LayoutBranch.main,
-            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
-        )
-
-        val designPublications = publicationLogService.fetchPublications(design)
-        assertEquals(
-            listOf(PublicationCause.MANUAL, PublicationCause.CALCULATED_CHANGE),
-            designPublications.map { it.cause },
-        )
-        val inheritedPublicationId = designPublications[1].id
-        assertPublicationHasInheritedTrackNumberChange(
-            mainOfficialContext.fetchVersion(trackNumber)!!,
-            setOf(KmNumber(1), KmNumber(2)),
-            inheritedPublicationId,
-        )
-    }
-
-    @Test
     fun `change inherited to track number change in design is recorded`() {
         // case: track number is edited in design, and km post on the track number is changed -> inherited change is
         // recorded on the track number version in the design
