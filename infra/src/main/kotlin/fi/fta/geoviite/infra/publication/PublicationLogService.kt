@@ -862,7 +862,7 @@ constructor(
                 changes.rinfType,
                 { rinfType ->
                     if (rinfType == null) null
-                    else "${translation.t("enum.OperationalPointRinfType.${rinfType.type.name}")} (${rinfType.code})"
+                    else translation.t("enum.OperationalPointRinfType.${rinfType.type.name}")
                 },
                 PropKey("rinf-type"),
             ),
