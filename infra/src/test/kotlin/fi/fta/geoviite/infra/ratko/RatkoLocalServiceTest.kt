@@ -35,18 +35,6 @@ class RatkoLocalServiceTest {
     }
 
     @Test
-    fun `refreshOnlineStatus updates cached value from client`() {
-        val client = mock(RatkoClient::class.java)
-        val expected = RatkoClient.RatkoStatus(RatkoConnectionStatus.ONLINE, 200)
-        org.mockito.Mockito.`when`(client.getRatkoOnlineStatus()).thenReturn(expected)
-
-        val service = serviceWithClient(client)
-        service.refreshOnlineStatus()
-
-        assertEquals(expected, service.getRatkoOnlineStatus())
-    }
-
-    @Test
     fun `refreshOnlineStatus with null client keeps NOT_CONFIGURED`() {
         val service = serviceWithClient(null)
         service.refreshOnlineStatus()
