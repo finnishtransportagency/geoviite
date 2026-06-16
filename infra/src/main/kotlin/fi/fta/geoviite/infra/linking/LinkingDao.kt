@@ -77,24 +77,23 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               element.element_index,
               bool_or(
                   case
-                    when linked_track.id is not null or reference_track_number.id is not null then true
+                    when linked_track.id is not null or track_number.id is not null then true
                     else false
                   end
               ) as is_linked,
               array_agg(distinct linked_track.id) filter (where linked_track.id is not null) as location_track_ids,
-              array_agg(distinct reference_line.id) filter (where reference_line.id is not null) as reference_line_ids
+              array_agg(distinct track_number.id) filter (where track_number.id is not null) as track_number_ids
               from geometry.alignment geometry_alignment
                 join geometry.element on geometry_alignment.id = element.alignment_id
                 left join linked_track on element.alignment_id = linked_track.geometry_alignment_id and element.element_index = linked_track.geometry_element_index
-                left join layout.segment_version
-                          on element.alignment_id = segment_version.geometry_alignment_id
-                            and element.element_index = segment_version.geometry_element_index
-                left join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_line
-                          on reference_line.alignment_id = segment_version.alignment_id
-                            and reference_line.alignment_version = segment_version.alignment_version
-                left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
-                          on reference_line.track_number_id = reference_track_number.id
-                            and reference_track_number.state != 'DELETED'
+                left join layout.track_number_version_segment tnvs
+                          on element.alignment_id = tnvs.geometry_alignment_id
+                            and element.element_index = tnvs.geometry_element_index
+                left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) track_number
+                          on track_number.id = tnvs.track_number_id
+                            and track_number.layout_context_id = tnvs.track_layout_context_id
+                            and track_number.version = tnvs.track_number_version
+                            and track_number.state != 'DELETED'
               where geometry_alignment.plan_id in (:plan_ids)
               group by plan_id, element.alignment_id, element.element_index
               order by plan_id, element.alignment_id, element.element_index;
@@ -116,8 +115,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                         id = rs.getIndexedId("alignment_id", "element_index"),
                         isLinked = rs.getBoolean("is_linked"),
                         linkedLocationTrackIds = rs.getIntIdArray("location_track_ids"),
-                        // TODO: GVT-3637 fix after data migration -- should be track number ids now
-                        linkedReferenceLineIds = rs.getIntIdArray("reference_line_ids"),
+                        linkedReferenceLineIds = rs.getIntIdArray("track_number_ids"),
                     )
                 Triple(planId, alignmentId, geometryElementLinkStatus)
             }
