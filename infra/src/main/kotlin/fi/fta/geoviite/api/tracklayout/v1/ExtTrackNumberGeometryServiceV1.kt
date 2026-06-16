@@ -125,14 +125,7 @@ constructor(
                         // Address points are null for example in case when the user provided
                         // address filter is outside the track boundaries.
                         filteredAddressPoints?.let { addressPoints ->
-                            ExtCenterLineTrackIntervalV1(
-                                startAddress = addressPoints.startPoint.address.toString(),
-                                endAddress = addressPoints.endPoint.address.toString(),
-                                addressPoints =
-                                    filteredAddressPoints.allPoints.map { point ->
-                                        toExtAddressPoint(point, coordinateSystem)
-                                    },
-                            )
+                            toExtInterval(addressPoints, coordinateSystem)
                         },
                 )
             }

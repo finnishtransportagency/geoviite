@@ -39,8 +39,7 @@ fun <M : AnyM<M>> createModifiedCenterLineIntervals(
                     startAddress = newPoints!!.startPoint.address.formatFixedDecimals(3),
                     endAddress = newPoints.endPoint.address.formatFixedDecimals(3),
                     changeType = ExtGeometryChangeTypeV1.GEOMETRY,
-                    addressPoints =
-                        newPoints.allPoints.map { addressPoint -> toExtAddressPoint(addressPoint, coordinateSystem) },
+                    addressPoints = toExtMeasuredAddressPoints(newPoints.allPoints, coordinateSystem),
                 )
             )
         }
@@ -133,7 +132,7 @@ private class RangeBuilder<M : AnyM<M>>(val coordinateSystem: Srid) {
     ): ExtModifiedCenterLineTrackIntervalV1? {
         val startAddress = start?.formatFixedDecimals(3)
         val endAddress = end?.formatFixedDecimals(3)
-        val addressPoints = points.map { addressPoint -> toExtAddressPoint(addressPoint, coordinateSystem) }
+        val addressPoints = toExtMeasuredAddressPoints(points, coordinateSystem)
         val changeType =
             if (points.isEmpty() || isGeometryChange(points.first().point, points.last().point)) {
                 ExtGeometryChangeTypeV1.GEOMETRY
@@ -155,10 +154,12 @@ private class RangeBuilder<M : AnyM<M>>(val coordinateSystem: Srid) {
     }
 }
 
-fun toExtInterval(addressPoints: AlignmentAddresses<*>, coordinateSystem: Srid): ExtCenterLineTrackIntervalV1 =
+fun <M : AnyM<M>> toExtInterval(
+    addressPoints: AlignmentAddresses<M>,
+    coordinateSystem: Srid,
+): ExtCenterLineTrackIntervalV1 =
     ExtCenterLineTrackIntervalV1(
         startAddress = addressPoints.startPoint.address.formatFixedDecimals(3),
         endAddress = addressPoints.endPoint.address.formatFixedDecimals(3),
-        addressPoints =
-            addressPoints.allPoints.map { addressPoint -> toExtAddressPoint(addressPoint, coordinateSystem) },
+        addressPoints = toExtMeasuredAddressPoints(addressPoints.allPoints, coordinateSystem),
     )
