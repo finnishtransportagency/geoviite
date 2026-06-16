@@ -46,16 +46,6 @@ function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
     }));
 }
 
-function rinfTypeValues(): LocalizedEnum<OperationalPointRinfType>[] {
-    return operationalPointRinfTypes.map(([rinfType, rinfTypeCode]) => ({
-        value: rinfType,
-        get name() {
-            return i18n.t(`enum.rinf-type-full`, { rinfType, rinfTypeCode });
-        },
-        qaId: `RinfType-${rinfTypeCode}`,
-    }));
-}
-
 export const planSources: LocalizedEnum<PlanSource>[] = values('PlanSource', [
     'GEOMETRIAPALVELU',
     'PAIKANNUSPALVELU',
@@ -224,7 +214,10 @@ export const locationTrackNameSpecifiers: LocalizedEnum<LocationTrackNameSpecifi
     ],
 );
 
-export const rinfTypes: LocalizedEnum<OperationalPointRinfType>[] = rinfTypeValues();
+export const rinfTypes: LocalizedEnum<OperationalPointRinfType>[] = values(
+    'OperationalPointRinfType',
+    [...operationalPointRinfTypes],
+);
 
 export const translateSwitchTrapPoint = (trapPoint: TrapPoint) =>
     switchTrapPoints.find((option) => option.value === trapPoint)?.name;

@@ -398,23 +398,22 @@
             "LVH": "Linjavaihde (LVH)"
         },
         "OperationalPointRinfType": {
-            "STATION": "Asema",
-            "SMALL_STATION": "Asema (pieni)",
-            "PASSENGER_TERMINAL": "Matkustaja-asema",
-            "FREIGHT_TERMINAL": "Tavara-asema",
-            "DEPOT_OR_WORKSHOP": "Varikko",
-            "TRAIN_TECHNICAL_SERVICES": "Tekninen ratapiha",
-            "PASSENGER_STOP": "Seisake",
-            "JUNCTION": "Kohtauspaikka",
-            "BORDER_POINT": "Valtakunnan raja",
-            "SHUNTING_YARD": "Vaihtotyöratapiha",
-            "TECHNICAL_CHANGE": "Raideleveyden vaihtumiskohta",
-            "SWITCH": "Linjavaihde",
-            "PRIVATE_SIDING": "Yksityinen",
-            "DOMESTIC_BORDER_POINT": "Omistusraja",
-            "OVER_CROSSING": "Ylikulku"
+            "STATION": "Asema (koodi 10)",
+            "SMALL_STATION": "Asema (pieni) (koodi 20)",
+            "PASSENGER_TERMINAL": "Matkustaja-asema (koodi 30)",
+            "FREIGHT_TERMINAL": "Tavara-asema (koodi 40)",
+            "DEPOT_OR_WORKSHOP": "Varikko (koodi 50)",
+            "TRAIN_TECHNICAL_SERVICES": "Tekninen ratapiha (koodi 60)",
+            "PASSENGER_STOP": "Seisake (koodi 70)",
+            "JUNCTION": "Kohtauspaikka (koodi 80)",
+            "BORDER_POINT": "Valtakunnan raja (koodi 90)",
+            "SHUNTING_YARD": "Vaihtotyöratapiha (koodi 100)",
+            "TECHNICAL_CHANGE": "Raideleveyden vaihtumiskohta (koodi 110)",
+            "SWITCH": "Linjavaihde (koodi 120)",
+            "PRIVATE_SIDING": "Yksityinen (koodi 130)",
+            "DOMESTIC_BORDER_POINT": "Omistusraja (koodi 140)",
+            "OVER_CROSSING": "Ylikulku (koodi 150)"
         },
-        "rinf-type-full": "$t(enum.OperationalPointRinfType.{{rinfType}}) (koodi {{rinfTypeCode}})",
         "OperationalPointOrigin": {
             "RATKO": "Ratko",
             "GEOVIITE": "Geoviite"

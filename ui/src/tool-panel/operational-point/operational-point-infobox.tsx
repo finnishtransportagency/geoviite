@@ -15,7 +15,6 @@ import {
     LayoutSwitchId,
     LocationTrackId,
     OperationalPoint,
-    operationalPointRinfTypeToTypeCode,
 } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
@@ -218,12 +217,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         label={t('tool-panel.operational-point.type-rinf')}
                         value={
                             operationalPoint.rinfType
-                                ? t('enum.rinf-type-full', {
-                                      rinfType: operationalPoint.rinfType,
-                                      rinfTypeCode: operationalPointRinfTypeToTypeCode(
-                                          operationalPoint.rinfType,
-                                      ),
-                                  })
+                                ? t(`enum.OperationalPointRinfType.${operationalPoint.rinfType}`)
                                 : t('tool-panel.operational-point.unset')
                         }
                     />

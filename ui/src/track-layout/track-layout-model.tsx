@@ -35,30 +35,24 @@ export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING';
 
 export const operationalPointRinfTypes = [
-    ['STATION', 10],
-    ['SMALL_STATION', 20],
-    ['PASSENGER_TERMINAL', 30],
-    ['FREIGHT_TERMINAL', 40],
-    ['DEPOT_OR_WORKSHOP', 50],
-    ['TRAIN_TECHNICAL_SERVICES', 60],
-    ['PASSENGER_STOP', 70],
-    ['JUNCTION', 80],
-    ['BORDER_POINT', 90],
-    ['SHUNTING_YARD', 100],
-    ['TECHNICAL_CHANGE', 110],
-    ['SWITCH', 120],
-    ['PRIVATE_SIDING', 130],
-    ['DOMESTIC_BORDER_POINT', 140],
-    ['OVER_CROSSING', 150],
+    'STATION',
+    'SMALL_STATION',
+    'PASSENGER_TERMINAL',
+    'FREIGHT_TERMINAL',
+    'DEPOT_OR_WORKSHOP',
+    'TRAIN_TECHNICAL_SERVICES',
+    'PASSENGER_STOP',
+    'JUNCTION',
+    'BORDER_POINT',
+    'SHUNTING_YARD',
+    'TECHNICAL_CHANGE',
+    'SWITCH',
+    'PRIVATE_SIDING',
+    'DOMESTIC_BORDER_POINT',
+    'OVER_CROSSING',
 ] as const;
 
-export type OperationalPointRinfType = (typeof operationalPointRinfTypes)[number][0];
-export type OperationalPointRinfTypeCode = (typeof operationalPointRinfTypes)[number][1];
-
-export const operationalPointRinfTypeCodeToType = (code: OperationalPointRinfTypeCode) =>
-    operationalPointRinfTypes.find((t) => t[1] === code)?.[0];
-export const operationalPointRinfTypeToTypeCode = (type: OperationalPointRinfType) =>
-    operationalPointRinfTypes.find((t) => t[0] === type)?.[1];
+export type OperationalPointRinfType = (typeof operationalPointRinfTypes)[number];
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
 
