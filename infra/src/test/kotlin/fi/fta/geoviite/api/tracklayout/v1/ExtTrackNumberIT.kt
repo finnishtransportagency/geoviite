@@ -240,13 +240,14 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 HelsinkiTestData.HKI_BASE_POINT + Point(endM - startM, 0.0),
                 startM,
             )
-        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext
-                .fetch(trackNumberId)!!
-                .copy(startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal())),
-            referenceLineGeometry(segment),
-        )
+        val (trackNumberId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(
+                    testDBService.getUnusedTrackNumber(),
+                    startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
+                ),
+                referenceLineGeometry(segment),
+            )
 
         testDBService.publish(trackNumbers = listOf(trackNumberId))
 
@@ -273,11 +274,11 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
                 startM,
             )
-        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext.fetch(trackNumberId)!!.copy(startAddress = intervalStartAddress),
-            referenceLineGeometry(segment),
-        )
+        val (trackNumberId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = intervalStartAddress),
+                referenceLineGeometry(segment),
+            )
 
         testDBService.publish(trackNumbers = listOf(trackNumberId))
 
@@ -307,7 +308,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
 
         initUser()
         val newStart = TrackMeter("0001+0010.000")
-        mainDraftContext.save(mainOfficialContext.fetch(tnId)!!.copy(startAddress = newStart), rlGeom)
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = newStart) }
         val rlPublication = testDBService.publish(trackNumbers = listOf(tnId))
         assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0001+0020.000")
         api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
@@ -407,12 +408,12 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
             }
 
         // Publication 1 adds a new track number
-        val alignment1 = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlGeometry1 = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         // Straight reference line initially
         val (tnId, tnOid) =
             mainDraftContext.saveWithOid(
                 trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0100.000")),
-                alignment1,
+                rlGeometry1,
             )
         // Use km-posts to reset address calculation, as otherwise any change would change the geometry until the end
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(2), gkLocation = kmPostGkLocation(15.0, 0.0))).id
@@ -425,7 +426,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
 
         api.trackNumberGeometry.get(tnOid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
-            assertGeometryMatches(response, tnOid, "0001+0100.000", "0003+0035.000", alignment1, 101)
+            assertGeometryMatches(response, tnOid, "0001+0100.000", "0003+0035.000", rlGeometry1, 101)
         }
         api.trackNumberGeometry.assertNoModificationSince(tnOid, publication1.uuid)
         // Modification since 0 shows the full geometry
@@ -436,13 +437,13 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 ExtGeometryChangeTypeV1.GEOMETRY,
                 "0001+0100.000",
                 "0003+0035.000",
-                alignment1,
+                rlGeometry1,
                 101,
             )
         }
 
         // Publication 2 modifies the geometry
-        val alignment2 =
+        val rlGeometry2 =
             referenceLineGeometry(
                 // Shorten the beginning
                 segment(Point(10.0, 0.0), Point(40.0, 0.0)),
@@ -454,12 +455,12 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 segment(Point(60.0, 0.0), Point(120.0, 0.0)),
             )
         initUser()
-        mainDraftContext.save(mainDraftContext.fetch(tnId)!!, alignment2)
+        mainDraftContext.save(mainDraftContext.fetch(tnId)!!, rlGeometry2)
         val publication2 = testDBService.publish(trackNumbers = listOf(tnId))
 
         api.trackNumberGeometry.get(tnOid).also { response ->
             assertEquals(publication2.uuid.toString(), response.rataverkon_versio)
-            assertGeometryMatches(response, tnOid, "0001+0100.000", "0003+0055.000", alignment2, 113)
+            assertGeometryMatches(response, tnOid, "0001+0100.000", "0003+0055.000", rlGeometry2, 113)
         }
         api.trackNumberGeometry.assertNoModificationSince(tnOid, publication2.uuid)
         // Modification since 1 show the edits
@@ -472,7 +473,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 ExtGeometryChangeTypeV1.GEOMETRY,
                 "0001+0100.000",
                 "0001+0114.000",
-                alignment2,
+                rlGeometry2,
                 5,
                 Point(10.0, 0.0),
                 Point(14.0, 0.0),
@@ -486,7 +487,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 ExtGeometryChangeTypeV1.GEOMETRY,
                 "0002+0026.000",
                 "0002+0051.000",
-                alignment2,
+                rlGeometry2,
                 26,
                 Point(40.7072, 0.7072), // Where 1m points land by pythagorean distance
                 Point(64.3433, 0.0),
@@ -499,7 +500,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 ExtGeometryChangeTypeV1.GEOMETRY,
                 "0003+0036.000",
                 "0003+0055.000",
-                alignment2,
+                rlGeometry2,
                 20,
                 Point(101.0, 0.0),
                 Point(120.0, 0.0),
@@ -513,7 +514,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 ExtGeometryChangeTypeV1.GEOMETRY,
                 "0001+0100.000",
                 "0003+0055.000",
-                alignment2,
+                rlGeometry2,
                 113,
             )
         }

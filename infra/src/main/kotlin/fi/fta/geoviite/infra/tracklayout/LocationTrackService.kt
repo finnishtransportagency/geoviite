@@ -47,11 +47,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -441,7 +441,7 @@ class LocationTrackService(
 
     private fun getWithGeometryInternal(
         version: LayoutRowVersion<LocationTrack>
-    ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackWithGeometry(dao, alignmentDao, version)
+    ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackDao.fetch(version) to alignmentDao.fetch(version)
 
     private fun associateWithGeometries(
         lines: Collection<LocationTrack>
@@ -906,12 +906,6 @@ fun recalculateDependencies(
     return track.takeIf { t -> newName == t.name && newDescription == t.description }
         ?: track.copy(name = newName, description = newDescription)
 }
-
-fun locationTrackWithGeometry(
-    locationTrackDao: LocationTrackDao,
-    alignmentDao: LayoutAlignmentDao,
-    rowVersion: LayoutRowVersion<LocationTrack>,
-) = locationTrackDao.fetch(rowVersion) to alignmentDao.fetch(rowVersion)
 
 fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list

@@ -194,11 +194,11 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
     @Test
     fun getLinkingSummariesHappyCase() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val createdTrackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber()
-        val trackNumberId = createdTrackNumber.id as IntId
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber).id
         val plan =
             plan(
-                trackNumber = createdTrackNumber.number,
+                trackNumber = trackNumber,
                 fileName = file.name,
                 alignments = listOf(geometryAlignment(elements = listOf(minimalLine()))),
             )
@@ -208,6 +208,7 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
             locationTrackAndGeometry(
                 trackNumberId,
                 segment(Point(0.0, 0.0), Point(1.0, 1.0), sourceId = element.id),
+                draft = true,
             )
         val trackVersion = locationTrackService.saveDraft(LayoutBranch.main, track.first, track.second)
         locationTrackService.publish(LayoutBranch.main, trackVersion)

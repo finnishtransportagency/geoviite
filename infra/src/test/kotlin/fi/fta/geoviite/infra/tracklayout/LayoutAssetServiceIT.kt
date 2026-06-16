@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import org.junit.jupiter.api.BeforeEach
@@ -124,7 +125,10 @@ constructor(
                 asDesignDraft(
                     mainOfficialContext
                         .fetch(trackNumberId)!!
-                        .copy(description = TrackNumberDescription("edited in design")),
+                        .copy(
+                            description = TrackNumberDescription("edited in design"),
+                            startAddress = TrackMeter("0123+0000.000"),
+                        ),
                     someDesignBranch.designId,
                 )
             )

@@ -351,7 +351,11 @@ class TestDBService(
         originVersion: LayoutRowVersion<T>? = asset.version,
     ): LayoutRowVersion<T> =
         when (asset) {
-            is LayoutTrackNumber -> trackNumberDao.save(asset, TmpReferenceLineGeometry.empty)
+            is LayoutTrackNumber -> {
+                val tnVersion = originVersion as? LayoutRowVersion<LayoutTrackNumber>
+                val geometry = tnVersion?.let(alignmentDao::fetch) ?: TmpReferenceLineGeometry.empty
+                trackNumberDao.save(asset, geometry)
+            }
             is LocationTrack -> {
                 val trackVersion = originVersion as? LayoutRowVersion<LocationTrack>
                 val geometry = trackVersion?.let(alignmentDao::fetch) ?: TmpLocationTrackGeometry.empty
@@ -519,10 +523,8 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun saveTrackNumber(asset: Pair<LayoutTrackNumber, ReferenceLineGeometry>): LayoutRowVersion<LayoutTrackNumber> =
         save(testService.updateContext(asset.first, context), asset.second)
 
-    fun save(
-        asset: LayoutTrackNumber,
-        geometry: ReferenceLineGeometry = TmpReferenceLineGeometry.empty,
-    ): LayoutRowVersion<LayoutTrackNumber> = testService.save(testService.updateContext(asset, context), geometry)
+    fun save(asset: LayoutTrackNumber, geometry: ReferenceLineGeometry): LayoutRowVersion<LayoutTrackNumber> =
+        testService.save(testService.updateContext(asset, context), geometry)
 
     inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>): Oid<T> =
         testService.generateOid(id, context.branch)

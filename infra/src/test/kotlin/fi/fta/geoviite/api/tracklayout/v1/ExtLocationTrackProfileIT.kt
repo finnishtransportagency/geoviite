@@ -470,10 +470,11 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
             )
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[0]
-        val trackNumberId =
-            mainDraftContext
-                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 2000.0))))
-                .id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 2000.0))),
+            )
 
         // Segment 1 (0..600) linked to plan1, gap (600..800) unlinked, segment 2 (800..1400) linked to plan2
         val points1 = (0..600).map { Point(0.0, it.toDouble()) }
@@ -565,10 +566,11 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         // Segment 2 linked to plan2's second element (stations 500-1000, contains curve at 550)
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[1]
-        val trackNumberId =
-            mainDraftContext
-                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 1000.0))))
-                .id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 1000.0))),
+            )
 
         val points1 = (0..500).map { Point(0.0, it.toDouble()) }
         val points2 = (500..1000).map { Point(0.0, it.toDouble()) }
@@ -637,8 +639,11 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
     @Test
     fun `Location track with no vertical geometry returns 200 with no PVI points`() {
         val refLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId =
-            mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(refLineSegment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(refLineSegment),
+            )
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(refLineSegment))
         testDBService.publish(
@@ -827,14 +832,13 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
     private fun insertTrackNumberWithReferenceLine(
         elements: List<GeometryElement>,
         planSrid: Srid = LAYOUT_SRID,
-    ): IntId<LayoutTrackNumber> {
-        val (trackNumberId, _) =
-            mainDraftContext.saveWithOid(
+    ): IntId<LayoutTrackNumber> =
+        mainDraftContext
+            .saveWithOid(
                 trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometryOfElements(elements, planSrid),
             )
-        return trackNumberId
-    }
+            .first
 
     @Test
     fun `Profile locations are returned in LAYOUT_SRID when geometry plan uses different SRID`() {

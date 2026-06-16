@@ -36,13 +36,6 @@ constructor(
 ) : DBTestBase() {
 
     @Test
-    fun trackNumberWithoutReferenceLineHasNoContext() {
-        val id = mainOfficialContext.createLayoutTrackNumber().id
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
-    }
-
-    @Test
     fun trackNumberWithoutKmPostsHasAContext() {
         val id = mainOfficialContext.createLayoutTrackNumber().id
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))

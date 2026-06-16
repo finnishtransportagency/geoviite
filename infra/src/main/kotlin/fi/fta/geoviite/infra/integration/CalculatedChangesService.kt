@@ -46,7 +46,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
@@ -97,7 +96,11 @@ data class DirectChanges(
     val locationTrackChanges: List<LocationTrackChange>,
     val switchChanges: List<SwitchChange>,
     val operationalPointChanges: List<IntId<OperationalPoint>>,
-)
+) {
+    companion object {
+        val empty: DirectChanges = DirectChanges(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+    }
+}
 
 data class IndirectChanges(
     val trackNumberChanges: List<TrackNumberChange>,
@@ -106,7 +109,7 @@ data class IndirectChanges(
     val operationalPointChanges: List<IntId<OperationalPoint>>,
 ) {
     companion object {
-        fun empty(): IndirectChanges = IndirectChanges(listOf(), listOf(), listOf(), listOf())
+        val empty: IndirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList(), emptyList())
     }
 
     @JsonIgnore
@@ -119,17 +122,9 @@ data class IndirectChanges(
 
 data class CalculatedChanges(val directChanges: DirectChanges, val indirectChanges: IndirectChanges) {
     companion object {
-        fun empty() =
-            CalculatedChanges(
-                DirectChanges(listOf(), listOf(), listOf(), listOf(), listOf()),
-                IndirectChanges.empty(),
-            )
+        val empty = CalculatedChanges(DirectChanges.empty, IndirectChanges.empty)
 
-        fun onlyIndirect(indirectChanges: IndirectChanges) =
-            CalculatedChanges(
-                DirectChanges(listOf(), listOf(), listOf(), listOf(), listOf()),
-                indirectChanges,
-            )
+        fun onlyIndirect(indirectChanges: IndirectChanges) = CalculatedChanges(DirectChanges.empty, indirectChanges)
     }
 
     init {
@@ -183,7 +178,6 @@ class CalculatedChangesService(
     val switchLibraryService: SwitchLibraryService,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
-    val referenceLineService: ReferenceLineService,
     val kmPostDao: LayoutKmPostDao,
     val operationalPointDao: OperationalPointDao,
     val geocodingService: GeocodingService,
@@ -270,7 +264,7 @@ class CalculatedChangesService(
         operationalPoints: List<LayoutRowVersion<OperationalPoint>>,
     ): IndirectChanges {
         val allOids = getAllOids(branch)
-        return if (allOids.isEmpty()) IndirectChanges.empty()
+        return if (allOids.isEmpty()) IndirectChanges.empty
         else {
             val validationVersions =
                 ValidationVersions(
@@ -308,7 +302,7 @@ class CalculatedChangesService(
                 completedOperationalPoints.keys)
             .map { branch ->
                 combineInheritedChangesAndFinishedMergesInBranch(
-                    inheritedChanges[branch] ?: IndirectChanges.empty(),
+                    inheritedChanges[branch] ?: IndirectChanges.empty,
                     branch,
                     completedTrackNumbers[branch] ?: listOf(),
                     completedLocationTracks[branch] ?: listOf(),

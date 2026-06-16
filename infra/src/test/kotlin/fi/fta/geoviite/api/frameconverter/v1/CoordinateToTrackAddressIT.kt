@@ -231,7 +231,7 @@ constructor(
     fun `Basic request should default to return feature with basic and detailed data`() {
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
         val (track, _) =
             mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId, type = LocationTrackType.MAIN),

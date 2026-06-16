@@ -38,12 +38,12 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @Service
@@ -84,10 +84,13 @@ constructor(
     }
 
     fun simpleSplitSetup(sourceLocationTrackState: LocationTrackState = LocationTrackState.DELETED): SplitSetup {
-        val trackNumberId = mainOfficialContext.save(
-            trackNumber(),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        ).id
+        val trackNumberId =
+            mainOfficialContext
+                .save(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                )
+                .id
 
         val origin = Point.zero()
         val splitPoint = Point(5.0, 0.0)
@@ -224,8 +227,9 @@ data class SplitSetup(
     val targetTracks: List<Pair<LayoutRowVersion<LocationTrack>, IntRange>>,
 ) {
 
-    val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> =
-        targetTracks.map { (track, range) -> track.id to range }
+    val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> = targetTracks.map { (track, range) ->
+        track.id to range
+    }
 
     val trackResponses = (listOf(sourceTrack) + targetTracks.map { it.first })
 

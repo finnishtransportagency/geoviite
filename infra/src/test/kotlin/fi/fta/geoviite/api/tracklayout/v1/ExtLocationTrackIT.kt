@@ -47,7 +47,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Newest official location track is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val trackVersion = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         val oid = mainDraftContext.generateOid(trackVersion.id)
@@ -70,7 +74,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Location track api respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
@@ -115,7 +123,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
         val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
@@ -140,13 +152,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
     @Test
     fun `Official geometry is returned at correct track layout version state`() {
-        val trackNumberId =
-            mainDraftContext
-                .createLayoutTrackNumber(
-                    geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
-                    startAddress = TrackMeter("0001+0100.000"),
-                )
-                .id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0100.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
 
         val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val (trackId, oid) = mainDraftContext.saveWithOid(locationTrack(trackNumberId), geometry)
@@ -195,13 +205,14 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
                 startM,
             )
-        val trackNumberId =
-            mainDraftContext
-                .createLayoutTrackNumber(
-                    geometry = referenceLineGeometry(segment),
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(
+                    testDBService.getUnusedTrackNumber(),
                     startAddress = TrackMeter(KmNumber(0), startM.toBigDecimal()),
-                )
-                .id
+                ),
+                referenceLineGeometry(segment),
+            )
 
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
@@ -234,13 +245,14 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
                 startM,
             )
-        val trackNumberId =
-            mainDraftContext
-                .createLayoutTrackNumber(
-                    geometry = referenceLineGeometry(segment),
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(
+                    testDBService.getUnusedTrackNumber(),
                     startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
-                )
-                .id
+                ),
+                referenceLineGeometry(segment),
+            )
 
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
@@ -268,7 +280,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Location track api should return track information regardless of its state`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             LocationTrackState.entries.map { state ->
@@ -297,7 +313,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Location track modifications api should return track information regardless of its state`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             LocationTrackState.entries.map { state ->
@@ -339,7 +359,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Location track modification API should show modifications for calculated change`() {
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val tnId = mainDraftContext.createLayoutTrackNumber(geometry = rlGeom).id
+        val (tnId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), rlGeom)
 
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
         val (trackId, trackOid) = mainDraftContext.saveWithOid(locationTrack(tnId), trackGeom)
@@ -382,13 +402,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Deleted tracks don't have geometry`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId =
-            mainDraftContext
-                .createLayoutTrackNumber(
-                    geometry = referenceLineGeometry(segment),
-                    startAddress = TrackMeter("0001+0100.000"),
-                )
-                .id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0100.000")),
+                referenceLineGeometry(segment),
+            )
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
@@ -415,10 +433,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
     @Test
     fun `Deleted tracks have no addresses exposed through the API`() {
-        val tnId =
-            mainDraftContext
-                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
-                .id
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
 
         val trackGeom = trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(90.0, 0.0)))
         val (trackId, trackOid) = mainDraftContext.saveWithOid(locationTrack(tnId), trackGeom)
@@ -458,11 +477,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
     @Test
     fun `Geometry modifications show correct diffs`() {
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext.fetch(trackNumberId)!!.copy(startAddress = TrackMeter("0001+0100.000")),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
-        )
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0100.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
         val publication0 = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         // Publication 1 adds a new track
@@ -579,7 +598,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     @Test
     fun `Geometry modifications API shows calculated changes correctly`() {
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val tnId = mainDraftContext.createLayoutTrackNumber(geometry = rlGeom).id
+        val (tnId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), rlGeom)
 
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
         val (trackId, oid) = mainDraftContext.saveWithOid(locationTrack(tnId), trackGeom)
@@ -596,10 +615,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         api.locationTrackGeometry.assertNoModificationSince(oid, basePub.uuid)
 
         initUser()
-        mainDraftContext.save(
-            mainOfficialContext.fetch(tnId)!!.copy(startAddress = TrackMeter("0001+0010.000")),
-            rlGeom,
-        )
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0010.000")) }
         val rlPub = testDBService.publish(trackNumbers = listOf(tnId))
         api.locationTrackGeometry.get(oid).osoitevali!!.also { interval ->
             assertEquals("0001+0030.000", interval.alkuosoite)

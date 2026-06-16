@@ -322,19 +322,21 @@ fun trackNumberSaveRequest(
     )
 
 fun trackNumberAndGeometry(
+    number: TrackNumber,
     vararg segments: LayoutSegment,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
 ): Pair<LayoutTrackNumber, ReferenceLineGeometry> =
-    trackNumberAndGeometry(segments.toList(), startAddress = startAddress, draft = draft)
+    trackNumberAndGeometry(number, segments.toList(), startAddress = startAddress, draft = draft)
 
 fun trackNumberAndGeometry(
+    number: TrackNumber,
     segments: List<LayoutSegment>,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
 ): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
     val geometry = referenceLineGeometry(segments)
-    val tn = trackNumber(geometry = geometry, startAddress = startAddress, draft = draft)
+    val tn = trackNumber(number = number, geometry = geometry, startAddress = startAddress, draft = draft)
     return tn to geometry
 }
 

@@ -44,7 +44,6 @@ enum class KmLengthsLocationPrecision {
 @GeoviiteService
 class LayoutTrackNumberService(
     dao: LayoutTrackNumberDao,
-    private val referenceLineService: ReferenceLineService,
     private val geocodingService: GeocodingService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
@@ -190,7 +189,7 @@ class LayoutTrackNumberService(
 
     private fun getWithGeometryInternal(
         version: LayoutRowVersion<LayoutTrackNumber>
-    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> = trackNumberWithGeometry(dao, alignmentDao, version)
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> = dao.fetch(version) to alignmentDao.fetch(version)
 
     private fun associateWithGeometries(
         lines: List<LayoutTrackNumber>
@@ -474,13 +473,6 @@ private fun getCropMRange(
         )
     }
 }
-
-// TODO: GVT-3637 cleanup (this same structure also in locationtracks)
-fun trackNumberWithGeometry(
-    trackNumberDao: LayoutTrackNumberDao,
-    alignmentDao: LayoutAlignmentDao,
-    rowVersion: LayoutRowVersion<LayoutTrackNumber>,
-): Pair<LayoutTrackNumber, DbReferenceLineGeometry> = trackNumberDao.fetch(rowVersion) to alignmentDao.fetch(rowVersion)
 
 fun filterByBoundingBox(list: List<LayoutTrackNumber>, boundingBox: BoundingBox?): List<LayoutTrackNumber> =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list

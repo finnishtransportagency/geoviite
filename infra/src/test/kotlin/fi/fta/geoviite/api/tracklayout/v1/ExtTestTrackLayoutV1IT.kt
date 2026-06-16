@@ -517,7 +517,9 @@ constructor(
 
         val trackNumberIds =
             listOf(1, 2, 3).map { _ ->
-                mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+                mainDraftContext
+                    .saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), referenceLineGeometry(segment))
+                    .first
             }
 
         return testDBService.publish(trackNumbers = trackNumberIds)
@@ -540,8 +542,11 @@ constructor(
             )
         val elements = plan.alignments[0].elements
 
-        val trackNumberId =
-            mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometryOfElements(elements)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometryOfElements(elements),
+            )
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
 
@@ -556,7 +561,11 @@ constructor(
     private fun setupValidLocationTrackCollection(): Publication {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             listOf(1, 2, 3).map { _ ->

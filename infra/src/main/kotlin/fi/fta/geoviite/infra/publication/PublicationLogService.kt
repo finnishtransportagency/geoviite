@@ -1097,7 +1097,6 @@ constructor(
                 publicationDao.fetchPublicationTrackNumberChanges(
                     publication.layoutBranch.branch,
                     publication.id,
-                    previousComparisonTime,
                 )
         val publicationKmPostChanges =
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.KM_POST)) mapOf()

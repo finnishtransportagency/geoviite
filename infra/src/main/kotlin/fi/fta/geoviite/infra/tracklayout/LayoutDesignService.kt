@@ -130,7 +130,7 @@ class LayoutDesignService(
         publicationService.publishChanges(
             branchBranch,
             ValidationVersions.emptyWithTarget(LayoutContextTransition.publicationIn(branchBranch)),
-            CalculatedChanges.empty(),
+            CalculatedChanges.empty,
             PublicationMessage.of(""),
             cause,
         )

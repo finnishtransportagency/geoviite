@@ -51,7 +51,8 @@ class LayoutTrackNumberDao(
     ),
     IExternallyIdentifiedLayoutAssetDao<LayoutTrackNumber> {
 
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = alignmentDao.fetch(rowVersion)
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>): DbReferenceLineGeometry =
+        alignmentDao.fetch(rowVersion)
 
     override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LayoutTrackNumber>> {
         val sql =
@@ -200,9 +201,6 @@ class LayoutTrackNumberDao(
             segmentCount = rs.getInt("segment_count"),
         )
 
-    //    @Transactional
-    //    fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, NoParams.instance)
-
     @Transactional
     override fun save(item: LayoutTrackNumber, params: ReferenceLineGeometry): LayoutRowVersion<LayoutTrackNumber> {
         val id = item.id as? IntId ?: createId()
@@ -268,10 +266,11 @@ class LayoutTrackNumberDao(
                 "length" to params.length.distance,
             )
         jdbcTemplate.setUser()
-        val response: LayoutRowVersion<LayoutTrackNumber> =
+        val response: LayoutRowVersion<LayoutTrackNumber>? =
             jdbcTemplate.queryForObject(sql, sqlParams) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
+            }
+        requireNotNull(response) { "Failed to save TrackNumber: ${item.toLog()}" }
         logger.daoAccess(AccessType.INSERT, LayoutTrackNumber::class, response)
         alignmentDao.saveReferenceLineGeometry(response, params)
         clearVersionCache()

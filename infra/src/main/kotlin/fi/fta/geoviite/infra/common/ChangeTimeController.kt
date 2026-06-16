@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
@@ -45,7 +44,6 @@ class ChangeTimeController(
     private val trackNumberService: LayoutTrackNumberService,
     private val kmPostService: LayoutKmPostService,
     private val locationTrackService: LocationTrackService,
-    private val referenceLineService: ReferenceLineService,
     private val publicationService: PublicationService,
     private val ratkoPushDao: RatkoPushDao,
     private val pvDocumentService: PVDocumentService,

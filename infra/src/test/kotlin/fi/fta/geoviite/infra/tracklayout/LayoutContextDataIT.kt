@@ -40,7 +40,7 @@ constructor(
 
     @Test
     fun draftAndOfficialTrackNumbersHaveSameOfficialId() {
-        val dbAlignment = insertAndVerifyTrackNumber(trackNumberAndGeometry())
+        val dbAlignment = insertAndVerifyTrackNumber(trackNumberAndGeometry(testDBService.getUnusedTrackNumber()))
         val (dbDraft, _) = insertAndVerifyTrackNumber(alterLine(createAndVerifyDraftTrackNumber(dbAlignment)))
 
         assertNotEquals(dbAlignment.first, dbDraft)
@@ -163,9 +163,7 @@ constructor(
     @Test
     fun `track number save is an upsert`() {
         val (trackNumber, geom) =
-            insertAndVerifyTrackNumber(
-                trackNumber(testDBService.getUnusedTrackNumber(), draft = false) to someReferenceLineGeometry()
-            )
+            insertAndVerifyTrackNumber(trackNumberAndGeometry(testDBService.getUnusedTrackNumber(), someSegment()))
 
         val draft1 = trackNumberDao.save(asMainDraft(trackNumber), geom)
         val draft2 = trackNumberDao.save(asMainDraft(trackNumber), geom)
@@ -280,7 +278,7 @@ constructor(
     ): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
         val (trackNumber, geometry) = trackNumberAndGeometry
         assertEquals(DataType.TEMP, trackNumber.dataType)
-        val response = trackNumberDao.save(trackNumber, TmpReferenceLineGeometry.empty)
+        val response = trackNumberDao.save(trackNumber, geometry)
         val fromDb = trackNumberDao.fetch(response)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(trackNumber, fromDb, contextMatch = false)

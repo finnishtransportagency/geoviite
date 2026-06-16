@@ -44,6 +44,7 @@ constructor(
 
     @Test
     fun `TrackNumber save and load works`() {
+        val originalGeometry = referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 20.0)))
         val original =
             LayoutTrackNumber(
                 number = testDBService.getUnusedTrackNumber(),
@@ -51,20 +52,25 @@ constructor(
                 state = IN_USE,
                 startAddress = TrackMeter(KmNumber(10), 125.5, 3),
                 contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
+                length = originalGeometry.length,
+                segmentCount = originalGeometry.segments.size,
+                boundingBox = originalGeometry.boundingBox,
             )
-        val originalGeometry = referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 20.0)))
         val version = trackNumberDao.save(original, originalGeometry)
         val fromDb = trackNumberDao.fetch(version)
         assertEquals(version.id, fromDb.id)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(original, fromDb, contextMatch = false)
 
+        val updatedGeometry = referenceLineGeometry(segment(Point(11.0, 11.0), Point(22.0, 22.0)))
         val updated =
             fromDb.copy(
                 description = TrackNumberDescription(fromDb.description.toString() + "-edited"),
                 startAddress = TrackMeter("0012+0321.000"),
+                length = updatedGeometry.length,
+                segmentCount = updatedGeometry.segments.size,
+                boundingBox = updatedGeometry.boundingBox,
             )
-        val updatedGeometry = referenceLineGeometry(segment(Point(11.0, 11.0), Point(22.0, 22.0)))
         val updatedVersion = trackNumberDao.save(updated, updatedGeometry)
         val updatedFromDb = trackNumberDao.fetch(updatedVersion)
         assertEquals(version.id, updatedFromDb.id)
@@ -99,7 +105,13 @@ constructor(
     @Test
     fun `TrackNumber versioning works`() {
         val tempGeometry = referenceLineGeometry(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
-        val tempTrackNumber = trackNumber(testDBService.getUnusedTrackNumber(), description = "test 1", draft = false)
+        val tempTrackNumber =
+            trackNumber(
+                testDBService.getUnusedTrackNumber(),
+                description = "test 1",
+                draft = false,
+                geometry = tempGeometry,
+            )
         val insertVersion = trackNumberDao.save(tempTrackNumber, tempGeometry)
         val id = insertVersion.id
         val inserted = trackNumberDao.fetch(insertVersion)
@@ -117,7 +129,13 @@ constructor(
         assertMatches(tempGeometry, alignmentDao.fetch(draftVersion1))
 
         val newTempGeometry = referenceLineGeometry(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
-        val tempDraft2 = draft1.copy(description = TrackNumberDescription("test 3"))
+        val tempDraft2 =
+            draft1.copy(
+                description = TrackNumberDescription("test 3"),
+                length = newTempGeometry.length,
+                boundingBox = newTempGeometry.boundingBox,
+                segmentCount = newTempGeometry.segments.size,
+            )
         val draftVersion2 = trackNumberDao.save(tempDraft2, newTempGeometry)
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
@@ -330,12 +348,12 @@ constructor(
         val designOfficialContext = testDBService.testContext(design, OFFICIAL)
         val existingMainAndNearby =
             mainOfficialContext.save(
-                trackNumber(),
+                trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
             )
         val existingMainButDistant =
             mainOfficialContext.save(
-                trackNumber(),
+                trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometry(segment(Point(0.0, 100.0), Point(1.0, 100.0))),
             )
         val nearbyAndMainButDeleted =
@@ -344,8 +362,8 @@ constructor(
                 referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
             )
         val existingAndNearbyInDesign =
-            mainOfficialContext.save(
-                trackNumber(),
+            designOfficialContext.save(
+                trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
             )
 

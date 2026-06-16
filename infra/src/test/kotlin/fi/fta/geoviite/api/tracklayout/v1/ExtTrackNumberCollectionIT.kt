@@ -47,12 +47,10 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val trackNumbers =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, trackNumberOid) =
-                    mainDraftContext.saveWithOid(
-                        trackNumber(testDBService.getUnusedTrackNumber()),
-                        referenceLineGeometry(segment),
-                    )
-                Pair(trackNumberId, trackNumberOid)
+                mainDraftContext.saveWithOid(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment),
+                )
             }
 
         testDBService.publish(trackNumbers = trackNumbers.map { (trackNumberId, _) -> trackNumberId })
@@ -74,12 +72,10 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val officialTrackNumbers =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, trackNumberOid) =
-                    mainDraftContext.saveWithOid(
-                        trackNumber(testDBService.getUnusedTrackNumber()),
-                        referenceLineGeometry(segment),
-                    )
-                Pair(trackNumberId, trackNumberOid)
+                mainDraftContext.saveWithOid(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment),
+                )
             }
 
         val newestPublication = testDBService.publish(trackNumbers = officialTrackNumbers.map { it.first })
@@ -93,11 +89,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
         }
 
         // Also save an additional draft track
-        val (draftTrackNumberId, _) =
-            mainDraftContext.saveWithOid(
-                trackNumber(testDBService.getUnusedTrackNumber()),
-                referenceLineGeometry(segment),
-            )
+        mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), referenceLineGeometry(segment))
 
         val response = api.trackNumberCollection.get()
         assertEquals(newestPublication.uuid.toString(), response.rataverkon_versio)
@@ -122,8 +114,11 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val expectedAmountToPublications =
             listOf(1, 2, 3).map { totalAmountOfTrackNumbers ->
-                val trackNumberId =
-                    mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+                val (trackNumberId, _) =
+                    mainDraftContext.saveWithOid(
+                        trackNumber(testDBService.getUnusedTrackNumber()),
+                        referenceLineGeometry(segment),
+                    )
 
                 val publication = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
@@ -369,10 +364,11 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
     fun `Track number collection is filtered by track number name`() {
         val (matchingId, matchingOid) =
             mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")), referenceLineGeometry(someSegment()))
-        val otherId =
-            mainDraftContext
-                .createLayoutTrackNumber(TrackNumber("999 OTHER"), geometry = referenceLineGeometry(someSegment()))
-                .id
+        val (otherId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(TrackNumber("999 OTHER")),
+                referenceLineGeometry(someSegment()),
+            )
 
         testDBService.publish(trackNumbers = listOf(matchingId, otherId))
 
@@ -388,10 +384,11 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
     fun `Track number change-list is filtered by track number name`() {
         val (matchingId, matchingOid) =
             mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")), referenceLineGeometry(someSegment()))
-        val otherId =
-            mainDraftContext
-                .createLayoutTrackNumber(TrackNumber("999 OTHER"), geometry = referenceLineGeometry(someSegment()))
-                .id
+        val (otherId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(TrackNumber("999 OTHER")),
+                referenceLineGeometry(someSegment()),
+            )
 
         val fromPublication = testDBService.publish(trackNumbers = listOf(matchingId, otherId)).uuid
 

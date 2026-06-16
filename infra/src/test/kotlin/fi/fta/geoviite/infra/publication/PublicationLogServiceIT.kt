@@ -81,7 +81,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
 import kotlin.math.absoluteValue
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -217,7 +216,6 @@ constructor(
             publicationDao.fetchPublicationTrackNumberChanges(
                 LayoutBranch.main,
                 thisAndPreviousPublication.first().id,
-                thisAndPreviousPublication.last().publicationTime,
             )
 
         val diff =
@@ -275,7 +273,6 @@ constructor(
             publicationDao.fetchPublicationTrackNumberChanges(
                 LayoutBranch.main,
                 thisAndPreviousPublication.first().id,
-                thisAndPreviousPublication.last().publicationTime,
             )
         val updatedTrackNumber = trackNumberService.getOrThrow(MainLayoutContext.official, idOfUpdated)
 
@@ -1535,7 +1532,6 @@ constructor(
             .fetchPublicationTrackNumberChanges(
                 LayoutBranch.main,
                 originalPublication,
-                Instant.parse("2023-01-01T00:00:00Z"),
             )
             .let { changes ->
                 assertEquals(1, changes.size)

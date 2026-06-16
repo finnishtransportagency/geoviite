@@ -48,7 +48,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Newest location track listing is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             listOf(1, 2, 3).map { _ ->
@@ -74,7 +78,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Newest location track listing does not contain draft tracks`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val officialTracks =
             listOf(1, 2, 3).map { index ->
@@ -130,7 +138,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Location track listing respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         testDBService.publish(trackNumbers = listOf(trackNumberId))
 
@@ -166,7 +178,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
         val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val (trackId, trackOid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
@@ -203,7 +219,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Location track listing should not contain deleted tracks`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val (deletedTrackId, _) =
             mainDraftContext.saveWithOid(
@@ -224,7 +244,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Location track listing should contain all but deleted tracks`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             LocationTrackState.entries
@@ -258,7 +282,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Location track modifications listing only lists modified location tracks`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val allTracks =
             listOf(1, 2, 3, 4).map { _ ->
@@ -326,10 +354,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         api.locationTrackCollection.assertNoModificationSince(basePublication.uuid)
 
         initUser()
-        mainDraftContext.save(
-            mainOfficialContext.fetch(trackNumberId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
-            referenceLineGeometry(segment),
-        )
+        mainDraftContext.mutate(trackNumberId1) { tn -> tn.copy(startAddress = TrackMeter("0001+0010.000")) }
         val rlPublication = testDBService.publish(trackNumbers = listOf(trackNumberId1))
         getTracksByTrackNumberOids(trackNumberOid1).forEach { track ->
             assertEquals("0001+0030.000", track.alkusijainti?.rataosoite)
@@ -375,7 +400,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Location track modifications listing contains tracks in all states (including deleted)`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             LocationTrackState.entries.map { state ->
@@ -416,7 +445,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val trackVersion = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         val trackId = trackVersion.id
@@ -458,7 +491,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     fun `Location track modifications listing uses the newest track layout version if end version is not supplied`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val trackVersion = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         val trackId = trackVersion.id
@@ -497,7 +534,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometry(segment),
             )
-        val otherTnId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (otherTnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val (matchingTrackId, matchingOid) =
             mainDraftContext.saveWithOid(
@@ -538,7 +579,11 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometry(segment),
             )
-        val otherTnId = mainDraftContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segment)).id
+        val (otherTnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val matchingTrackVersion =
             mainDraftContext.save(

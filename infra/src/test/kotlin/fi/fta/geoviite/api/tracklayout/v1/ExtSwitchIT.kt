@@ -286,21 +286,21 @@ constructor(
         val switch = mainDraftContext.fetch(switchId)!!
 
         val segment1to2 = segment(joint1.location, joint2.location)
-        val (tn1Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext.fetch(tn1Id)!!.copy(startAddress = TrackMeter("0001+0100.000")),
-            referenceLineGeometry(segment1to2),
-        )
+        val (tn1Id, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0100.000")),
+                referenceLineGeometry(segment1to2),
+            )
         val track1Geom = linkedTrackGeometry(switch, joint1.number, joint2.number, structure)
         val (track1Id, track1Oid) = mainDraftContext.saveWithOid(locationTrack(tn1Id), track1Geom)
 
         // Intentionally offset track 2 & it's reference line a bit: the link points be the points-on-track
         val segment1to3 = segment(joint1.location + 0.5, joint3.location + 0.5)
-        val (tn2Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext.fetch(tn2Id)!!.copy(startAddress = TrackMeter("0002+0200.000")),
-            referenceLineGeometry(segment1to3),
-        )
+        val (tn2Id, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0002+0200.000")),
+                referenceLineGeometry(segment1to3),
+            )
         val track2Geom =
             trackGeometry(
                 edge(
@@ -348,20 +348,20 @@ constructor(
             mainDraftContext.saveWithOid(switch(structure.id, joints = listOf(s2Joint1, s2Joint2)))
         val switch2 = mainDraftContext.fetch(switch2Id)!!
 
-        val (tn1Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext.fetch(tn1Id)!!.copy(startAddress = TrackMeter("0001+0100.000")),
-            referenceLineGeometry(segment(s1Joint1.location, s1Joint2.location)),
-        )
+        val (tn1Id, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0100.000")),
+                referenceLineGeometry(segment(s1Joint1.location, s1Joint2.location)),
+            )
         val track1Geom = linkedTrackGeometry(switch1, s1Joint1.number, s1Joint2.number, structure)
         val track1Id = mainDraftContext.save(locationTrack(tn1Id), track1Geom).id
         mainDraftContext.generateOid(track1Id)
 
-        val (tn2Id, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(
-            mainDraftContext.fetch(tn2Id)!!.copy(startAddress = TrackMeter("0002+0200.000")),
-            referenceLineGeometry(segment(s2Joint1.location, s2Joint2.location)),
-        )
+        val (tn2Id, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0002+0200.000")),
+                referenceLineGeometry(segment(s2Joint1.location, s2Joint2.location)),
+            )
         val track2Geom = linkedTrackGeometry(switch2, s2Joint1.number, s2Joint2.number, structure)
         val (track2Id, track2Oid) = mainDraftContext.saveWithOid(locationTrack(tn2Id), track2Geom)
 

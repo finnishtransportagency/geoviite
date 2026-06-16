@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
-import fi.fta.geoviite.infra.geocoding.referenceLineGeometry
 import fi.fta.geoviite.infra.linking.switches.FittedSwitch
 import fi.fta.geoviite.infra.linking.switches.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -91,7 +90,6 @@ constructor(
     val switchDao: LayoutSwitchDao,
     val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
-    val layoutAlignmentDao: LayoutAlignmentDao,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val layoutKmPostDao: LayoutKmPostDao,
     val operationalPointDao: OperationalPointDao,
@@ -528,13 +526,13 @@ constructor(
     fun referenceLineChangeGeneratesIndirectLocationTrackChanges() {
         val testData = insertTestData()
         val (locationTrack1, _) = testData.locationTracksAndGeometries[0]
-        val (trackNumber, referenceLineAlignment) = testData.trackNumberAndGeometry
+        val (trackNumber, referenceLineGeometry) = testData.trackNumberAndGeometry
 
         // Move first kilometer only (kilometer 5)
         // - addresses should change
         moveReferenceLineGeometryPointsAndUpdate(
             trackNumber,
-            referenceLineAlignment,
+            referenceLineGeometry,
             { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             trackNumberservice,
         )
@@ -544,7 +542,7 @@ constructor(
         assertContains(changes.directChanges.trackNumberChanges.map { it.trackNumberId }, trackNumber.id)
 
         assertContains(
-            changes.indirectChanges.trackNumberChanges,
+            changes.directChanges.trackNumberChanges,
             TrackNumberChange(
                 trackNumberId = trackNumber.id as IntId,
                 changedKmNumbers = setOf(KmNumber(5)),
@@ -555,7 +553,7 @@ constructor(
         assertContains(
             changes.indirectChanges.locationTrackChanges,
             LocationTrackChange(
-                locationTrackId = locationTrack1.id as IntId<LocationTrack>,
+                locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(KmNumber(5)),
                 isStartChanged = true,
                 isEndChanged = false,
@@ -594,7 +592,7 @@ constructor(
         assertContains(changes.directChanges.trackNumberChanges.map { it.trackNumberId }, trackNumber.id)
 
         assertContains(
-            changes.indirectChanges.trackNumberChanges,
+            changes.directChanges.trackNumberChanges,
             TrackNumberChange(
                 trackNumberId = trackNumber.id as IntId,
                 changedKmNumbers = setOf(KmNumber(6), KmNumber(7)),
@@ -899,14 +897,16 @@ constructor(
         val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
 
         assertEquals(1, changes.directChanges.trackNumberChanges.size)
-        assertContains(
-            changes.directChanges.trackNumberChanges,
-            TrackNumberChange(
-                trackNumberId = trackNumber.id as IntId,
-                changedKmNumbers = setOf(KmNumber(5)),
-                isStartChanged = true,
-                isEndChanged = false,
+        assertEquals(
+            listOf(
+                TrackNumberChange(
+                    trackNumberId = trackNumber.id as IntId,
+                    changedKmNumbers = setOf(KmNumber(5)),
+                    isStartChanged = true,
+                    isEndChanged = false,
+                )
             ),
+            changes.directChanges.trackNumberChanges,
         )
 
         assertEquals(0, changes.indirectChanges.trackNumberChanges.size)
@@ -1440,7 +1440,7 @@ constructor(
             )
         // no calculated changes affecting the design whatsoever, as the change's cause (the moved
         // km post) is overridden in the design
-        assertEquals(IndirectChanges.empty(), changes)
+        assertEquals(IndirectChanges.empty, changes)
     }
 
     @Test
@@ -1616,17 +1616,18 @@ constructor(
         val sequence = System.currentTimeMillis().toString().takeLast(8)
         val refPoint = Point(350000.0, 7000000.0) // any point in Finland
 
-        val trackNumber =
-            layoutTrackNumberDao.fetch(
-                layoutTrackNumberDao.save(
-                    trackNumber(
-                        TrackNumber("TEST TN $sequence"),
-                        startAddress = TrackMeter(kmNumber = kmPostData.first().first, meters = BigDecimal.ZERO),
-                        draft = false,
-                    ),
-                    referenceLineGeometry(segment(kmPostData.first().second, kmPostData.last().second)),
-                )
+        val trackNumberVersion =
+            layoutTrackNumberDao.save(
+                trackNumber(
+                    TrackNumber("TEST TN $sequence"),
+                    startAddress = TrackMeter(kmNumber = kmPostData.first().first, meters = BigDecimal.ZERO),
+                    draft = false,
+                ),
+                referenceLineGeometry(
+                    segment(refPoint + kmPostData.first().second, refPoint + kmPostData.last().second)
+                ),
             )
+        val trackNumber = layoutTrackNumberDao.fetch(trackNumberVersion)
         val kmPosts = kmPostData.map { (kmNumber, location) ->
             layoutKmPostDao.fetch(
                 layoutKmPostDao.save(
@@ -1687,7 +1688,7 @@ constructor(
         }
 
         return TestData(
-            trackNumberAndGeometry = trackNumber to referenceLineGeometry,
+            trackNumberAndGeometry = trackNumber to alignmentDao.fetch(trackNumberVersion),
             locationTracksAndGeometries = publishedLocationTracksAndGeometries,
             kmPosts = kmPosts,
             switches = publishedSwitches,

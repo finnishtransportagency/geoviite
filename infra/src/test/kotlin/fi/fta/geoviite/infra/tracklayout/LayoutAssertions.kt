@@ -136,7 +136,7 @@ fun assertMatches(expected: LayoutSwitchJoint, actual: LayoutSwitchJoint) {
 }
 
 fun <M : AnyM<M>> assertEquals(a: LineM<M>, b: LineM<M>, absoluteTolerance: Double, message: String? = null) =
-    kotlin.test.assertEquals(a.distance, b.distance, absoluteTolerance, message)
+    assertEquals(a.distance, b.distance, absoluteTolerance, message)
 
 fun <M : AnyM<M>> assertEquals(a: LineM<M>, b: LineM<M>, absoluteTolerance: Double, messageSupplier: Supplier<String>) =
     assertEquals(a.distance, b.distance, absoluteTolerance, messageSupplier)
