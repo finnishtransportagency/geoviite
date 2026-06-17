@@ -982,12 +982,10 @@ data class PublicationComparison(val from: Publication, val to: Publication) {
 
 data class AdministrativeChangeLayoutValidationIssues(
     val trackNumbers: Map<IntId<LayoutTrackNumber>, List<LayoutValidationIssue>>,
-    val referenceLines: Map<IntId<ReferenceLine>, List<LayoutValidationIssue>>,
     val kmPosts: Map<IntId<LayoutKmPost>, List<LayoutValidationIssue>>,
     val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
     val switches: Map<IntId<LayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
     fun allIssues(): List<LayoutValidationIssue> =
-        (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values)
-            .flatten()
+        (trackNumbers.values + kmPosts.values + locationTracks.values + switches.values).flatten()
 }

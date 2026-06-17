@@ -687,7 +687,7 @@ constructor(
             val dependencies =
                 publicationService.getRevertRequestDependencies(
                     LayoutBranch.main,
-                    publicationRequest(locationTracks = listOf(id)),
+                    publicationRequestIds(locationTracks = listOf(id)),
                 )
             for (otherId in bothTracks) {
                 assertContains(dependencies.locationTracks, otherId)
@@ -702,7 +702,7 @@ constructor(
         assertThrows<PartialTrackBoundaryMoveRevertException> {
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
-                publicationRequest(locationTracks = listOf(setup.shorteningTrackId)),
+                publicationRequestIds(locationTracks = listOf(setup.shorteningTrackId)),
             )
         }
 
@@ -716,7 +716,7 @@ constructor(
         assertThrows<PartialTrackBoundaryMoveRevertException> {
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
-                publicationRequest(locationTracks = listOf(setup.lengtheningTrackId)),
+                publicationRequestIds(locationTracks = listOf(setup.lengtheningTrackId)),
             )
         }
 
@@ -729,7 +729,7 @@ constructor(
 
         publicationService.revertPublicationCandidates(
             LayoutBranch.main,
-            publicationRequest(locationTracks = listOf(setup.shorteningTrackId, setup.lengtheningTrackId)),
+            publicationRequestIds(locationTracks = listOf(setup.shorteningTrackId, setup.lengtheningTrackId)),
         )
 
         assertNull(trackBoundaryMoveDao.get(setup.boundaryMoveId))
