@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
@@ -41,34 +40,30 @@ constructor(
     fun `Publication log date search works`() {
         testDBService.clearAllTables()
 
-        val someTrackNumberId =
+        val westTrackNumberId =
             mainDraftContext
                 .save(
                     trackNumber(TrackNumber("Test track number")),
                     HelsinkiTestData.westReferenceLineGeometry(),
                 )
                 .id
-        val someTrack = HelsinkiTestData.westMainLocationTrack(someTrackNumberId, draft = true)
+        val eastTrackNumberId =
+            mainDraftContext
+                .save(
+                    trackNumber(TrackNumber("Test track number 2")),
+                    HelsinkiTestData.eastReferenceLineGeometry(),
+                )
+                .id
+        val someTrack = HelsinkiTestData.westMainLocationTrack(westTrackNumberId, draft = true)
 
         val publicationRequests =
             listOf(
                 PublicationRequest(
-                    content = publicationRequestIds(trackNumbers = listOf(someTrackNumberId)),
+                    content = publicationRequestIds(trackNumbers = listOf(westTrackNumberId)),
                     message = PublicationMessage.of("some test publication 1"),
                 ),
                 PublicationRequest(
-                    content =
-                        publicationRequestIds(
-                            trackNumbers =
-                                listOf(
-                                    mainDraftContext
-                                        .save(
-                                            mainOfficialContext.fetch<LayoutTrackNumber>(someTrackNumberId)!!,
-                                            HelsinkiTestData.westReferenceLineGeometry(),
-                                        )
-                                        .id
-                                )
-                        ),
+                    content = publicationRequestIds(trackNumbers = listOf(eastTrackNumberId)),
                     message = PublicationMessage.of("some test publication 2"),
                 ),
                 PublicationRequest(
