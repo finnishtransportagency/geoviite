@@ -73,13 +73,13 @@ class LayoutTrackNumberController(
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
-    fun validateTrackNumberAndReferenceLine(
+    fun validateTrackNumber(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<LayoutTrackNumber>> {
         return publicationValidationService
-            .validateTrackNumbersAndReferenceLines(branch, publicationState, listOf(id))
+            .validateTrackNumbers(branch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }

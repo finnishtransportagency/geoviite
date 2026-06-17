@@ -129,9 +129,7 @@ constructor(
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
 
         val validation =
-            publicationValidationService
-                .validateTrackNumbersAndReferenceLines(LayoutBranch.main, OFFICIAL, listOf(trackNumber))
-                .first()
+            publicationValidationService.validateTrackNumbers(LayoutBranch.main, OFFICIAL, listOf(trackNumber)).first()
         assertEquals(validation.errors.size, 1)
     }
 

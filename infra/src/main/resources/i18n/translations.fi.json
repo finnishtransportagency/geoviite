@@ -1800,7 +1800,6 @@
                 "duplicate-name-draft-in-main": "Ratanumerolla {{trackNumber}} on jo luotu luonnostilassa kilometri tunnuksella {{kmNumber}}."
             },
             "reference-line": {
-                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "no-addresses": "Pituusmittauslinjalta ei voida laskea osoitteita raiteelle {{locationTrack}}",
                 "end-before-start": "Raiteen {{locationTrack}} loppupisteen osoite on ennen alkupisteen osoitetta",
                 "empty-segments": "Pituusmittauslinjalla ei ole geometriaa",

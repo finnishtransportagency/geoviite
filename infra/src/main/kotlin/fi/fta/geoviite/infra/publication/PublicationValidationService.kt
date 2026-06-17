@@ -65,7 +65,7 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun validateTrackNumbersAndReferenceLines(
+    fun validateTrackNumbers(
         branch: LayoutBranch,
         state: PublicationState,
         trackNumberIds: List<IntId<LayoutTrackNumber>>,
