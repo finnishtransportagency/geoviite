@@ -142,10 +142,10 @@ fun assertIntervalPointsMatch(
             getError("point $i distance to line geometry", 0.0),
         )
         assertEquals(
-            pointOnLine.m.distance,
-            p.osoitevali_m + startM,
+            pointOnLine.m.distance - startM,
+            p.osoitevali_m,
             COORDINATE_DELTA,
-            getError("m-value", p.osoitevali_m),
+            getError("m-value", pointOnLine.m.distance - startM),
         )
         assertNotNull(p.rataosoite, getError("point should have an address at index $i", "not null"))
         previousAddress =
