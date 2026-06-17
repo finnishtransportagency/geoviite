@@ -792,7 +792,7 @@ class PublicationDao(
                         trackNumber = rs.getChange("track_number", rs::getTrackNumberOrNull),
                         description = rs.getChange("description") { rs.getString(it)?.let(::TrackNumberDescription) },
                         state = rs.getChange("state") { rs.getEnumOrNull<LayoutState>(it) },
-                        startAddress = rs.getNullableChange("start_address", rs::getTrackMeterOrNull),
+                        startAddress = rs.getChange("start_address", rs::getTrackMeterOrNull),
                         startPoint = rs.getNullableChangePoint("start_x", "start_y"),
                         endPoint = rs.getNullableChangePoint("end_x", "end_y"),
                         length = rs.getChange("length", rs::getDoubleOrNull),

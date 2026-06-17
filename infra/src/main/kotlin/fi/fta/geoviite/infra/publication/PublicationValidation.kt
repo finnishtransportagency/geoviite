@@ -900,23 +900,6 @@ fun validateDuplicateStructure(
     return duplicateValidityIssues
 }
 
-fun validateReferencesToReferenceLine(trackNumber: LayoutTrackNumber?, referenceLineLivenessType: AssetLivenessType) =
-    validateReferenceFromByTrackNumber(
-        "$VALIDATION_REFERENCE_LINE.reference-from-track-number",
-        referenceLineLivenessType,
-        listOfNotNull(trackNumber),
-    )
-
-fun validateReferencesFromReferenceLine(
-    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>
-): List<LayoutValidationIssue> =
-    validateReferenceToLiveness(
-        "$VALIDATION_REFERENCE_LINE.reference-to-track-number",
-        trackNumberLiveness,
-        // reference lines don't have their own existing/deleted state
-        referrerIsAlive = false,
-    )
-
 data class SwitchTrackLinking(
     val switchId: IntId<LayoutSwitch>,
     val switchName: SwitchName?,

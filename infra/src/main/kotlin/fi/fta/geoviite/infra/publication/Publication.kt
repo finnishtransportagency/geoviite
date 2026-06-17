@@ -817,8 +817,7 @@ data class TrackNumberChanges(
     val description: Change<TrackNumberDescription>,
     val state: Change<LayoutState>,
     val length: Change<Double>,
-    // TODO: These should not be nullable, but current test data contains broken track numbers
-    val startAddress: Change<TrackMeter?>,
+    val startAddress: Change<TrackMeter>,
     val startPoint: Change<Point?>,
     val endPoint: Change<Point?>,
 )

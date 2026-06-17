@@ -529,7 +529,12 @@ constructor(
                 trackNumberChanges.startAddress,
                 { it.toString() },
                 PropKey("start-address"),
-                remark = getAddressMovedRemarkOrNull(translation, trackNumberChanges.startAddress),
+                remark =
+                    getAddressMovedRemarkOrNull(
+                        translation,
+                        trackNumberChanges.startAddress.old,
+                        trackNumberChanges.startAddress.new,
+                    ),
             ),
             compareChange(
                 { oldEndAddress != newEndAddress },
