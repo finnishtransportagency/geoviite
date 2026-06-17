@@ -38,6 +38,7 @@ import {
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
 import {
     getReferenceLineStartAndEnd,
+    getSomeTrackNumbers,
     getTrackNumber,
     getTrackNumberChangeTimes,
     getTrackNumbers,
@@ -154,7 +155,7 @@ export function useSomeTrackNumbers(
 ): LayoutTrackNumber[] {
     return (
         useLoader(
-            () => (ids ? getTrackNumbers(layoutContext, changeTime) : undefined),
+            () => (ids ? getSomeTrackNumbers(ids, layoutContext, changeTime) : undefined),
             [JSON.stringify(ids), layoutContext.publicationState, layoutContext.branch, changeTime],
         ) || EMPTY_ARRAY
     );
