@@ -39,7 +39,7 @@ export function createSelectedReferenceLineAlignmentLayer(
     const dataPromise: Promise<AlignmentDataHolder[]> =
         selectedTrackNumber && !splittingIsActive
             ? getSelectedReferenceLineMapAlignmentByTiles(
-                  changeTimes,
+                  changeTimes.layoutTrackNumber,
                   mapTiles,
                   layoutContext,
                   selectedTrackNumber,

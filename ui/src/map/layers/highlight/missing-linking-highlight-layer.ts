@@ -46,7 +46,7 @@ export function createMissingLinkingHighlightLayer(
     const linkingStatusPromise: Promise<AlignmentHighlight[]> =
         resolution <= HIGHLIGHTS_SHOW
             ? getAlignmentSectionsWithoutLinkingByTiles(
-                  getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
+                  getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutTrackNumber),
                   layoutContext,
                   'ALL',
                   mapTiles,

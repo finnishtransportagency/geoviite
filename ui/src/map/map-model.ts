@@ -6,7 +6,6 @@ import {
     LocationTrackId,
     MapAlignmentType,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { expectDefined, ValueOf } from 'utils/type-utils';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
@@ -86,7 +85,7 @@ export type MapViewport = {
 };
 
 export type OptionalShownItems = {
-    referenceLines?: ReferenceLineId[];
+    trackNumbers?: LayoutTrackNumberId[];
     locationTracks?: LocationTrackId[];
     kmPosts?: LayoutKmPostId[];
     switches?: LayoutSwitchId[];
@@ -94,7 +93,7 @@ export type OptionalShownItems = {
 };
 
 export type ShownItems = {
-    referenceLines: ReferenceLineId[];
+    trackNumbers: LayoutTrackNumberId[];
     locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPostId[];
     switches: LayoutSwitchId[];

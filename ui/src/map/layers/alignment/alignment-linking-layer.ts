@@ -36,7 +36,6 @@ import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout
 import { ChangeTimes } from 'common/common-slice';
 import { getTickStyle } from '../utils/alignment-layer-utils';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
-import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Point, Rectangle } from 'model/geometry';
 import VectorSource from 'ol/source/Vector';
@@ -754,9 +753,7 @@ async function getLinkPointsWithAddresses<
         ? getLocationTrack(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
               (locationTrack) => locationTrack?.trackNumberId,
           )
-        : getReferenceLine(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
-              (referenceLine) => referenceLine?.trackNumberId,
-          ));
+        : Promise.resolve(layoutAlignment.id));
 
     if (!trackNumberId) {
         return points;
@@ -844,7 +841,7 @@ async function getLinkingData(
     includeSegmentEndPoints: boolean,
 ): Promise<LinkingData> {
     const changeTime = getMaxTimestamp(
-        changeTimes.layoutReferenceLine,
+        changeTimes.layoutTrackNumber,
         changeTimes.layoutLocationTrack,
     );
     const { highlightedItems } = selection;

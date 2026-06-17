@@ -21,11 +21,11 @@ import {
     AlignmentPoint,
     LayoutSwitch,
     LayoutSwitchId,
+    LayoutTrackNumberId,
     LocationTrackId,
     MapAlignmentType,
     OperationalPoint,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId, GeometryPlanId, GeometrySwitch } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
@@ -175,7 +175,7 @@ export const linkingReducers = {
 
             state.linkingState = validateLinkingState({
                 layoutAlignment: {
-                    id: brand<LocationTrackId & ReferenceLineId>(alignmentId),
+                    id: brand<LocationTrackId & LayoutTrackNumberId>(alignmentId),
                     type: alignmentType,
                 },
                 layoutAlignmentInterval: interval,

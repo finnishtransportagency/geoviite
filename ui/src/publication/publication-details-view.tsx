@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
-import { LayoutContext, TimeStamp } from 'common/common-model';
+import { TimeStamp } from 'common/common-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { useAppNavigate } from 'common/navigate';
 import {
@@ -25,14 +25,12 @@ import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { TableSorting } from 'utils/table-utils';
 
 export type PublicationDetailsViewProps = {
-    layoutContext: LayoutContext;
     publication: PublicationDetails;
     setSelectedPublicationId: (publicationId: PublicationId | undefined) => void;
     changeTime: TimeStamp;
 };
 
 const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
-    layoutContext,
     publication,
     setSelectedPublicationId,
     changeTime,
@@ -96,7 +94,6 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                     )}
                 </div>
                 <PublicationTable
-                    layoutContext={layoutContext}
                     isLoading={isLoading}
                     items={publicationItems}
                     sortInfo={sortInfo}

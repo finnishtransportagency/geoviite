@@ -1,10 +1,6 @@
 import * as React from 'react';
 import styles from './reference-line.scss';
-import {
-    LayoutReferenceLine,
-    LayoutTrackNumberId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
 import { compareByField } from 'utils/array-utils';
@@ -12,66 +8,56 @@ import {
     TrackNumberBadge,
     TrackNumberBadgeStatus,
 } from 'geoviite-design-lib/alignment/track-number-badge';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { LayoutContext, TimeStamp } from 'common/common-model';
 
 type ReferenceLinesPanelProps = {
-    layoutContext: LayoutContext;
-    trackNumberChangeTime: TimeStamp;
-    referenceLines: LayoutReferenceLine[];
-    onToggleReferenceLineSelection: (
-        trackNumberId: LayoutTrackNumberId,
-        referenceLine: ReferenceLineId,
-    ) => void;
+    trackNumbers: LayoutTrackNumber[];
+    onToggleTrackNumberSelection: (trackNumberId: LayoutTrackNumberId) => void;
     selectedTrackNumbers?: LayoutTrackNumberId[];
-    canSelectReferenceLine: boolean;
+    canSelectTrackNumber: boolean;
     max?: number;
     disabled: boolean;
 };
 
 const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
-    layoutContext,
-    trackNumberChangeTime,
-    referenceLines,
-    onToggleReferenceLineSelection,
+    trackNumbers,
+    onToggleTrackNumberSelection,
     selectedTrackNumbers,
-    canSelectReferenceLine,
+    canSelectTrackNumber: canSelectReferenceLine,
     max = 16,
     disabled,
 }: ReferenceLinesPanelProps) => {
     const { t } = useTranslation();
-    const [linesCount, setLinesCount] = React.useState(0);
-    const [visibleLines, setVisibleLines] = React.useState<LayoutReferenceLine[]>([]);
-    const trackNumbers = useTrackNumbers(layoutContext, trackNumberChangeTime);
+    const [trackNumberCount, setTrackNumberCount] = React.useState(0);
+    const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     React.useEffect(() => {
-        if (referenceLines) {
-            const sortedLines = [...referenceLines].sort((a, b) => {
+        if (trackNumbers) {
+            const sortedTrackNumbers = [...trackNumbers].sort((a, b) => {
                 return compareByField(a, b, (l) => l.id);
             });
 
-            setVisibleLines(sortedLines.length < max + 1 ? sortedLines : []);
-            setLinesCount(sortedLines.length);
+            setVisibleTrackNumbers(sortedTrackNumbers.length < max + 1 ? sortedTrackNumbers : []);
+            setTrackNumberCount(sortedTrackNumbers.length);
         } else {
-            setVisibleLines([]);
-            setLinesCount(0);
+            setVisibleTrackNumbers([]);
+            setTrackNumberCount(0);
         }
-    }, [referenceLines]);
+    }, [trackNumbers]);
 
     return (
         <div>
             <ol
                 className={styles['reference-lines-panel__reference-lines']}
                 qa-id="reference-lines-list">
-                {visibleLines.map((line) => {
+                {visibleTrackNumbers.map((tn) => {
                     const isSelected = selectedTrackNumbers?.some(
-                        (selectedId) => selectedId === line.trackNumberId,
+                        (selectedId) => selectedId === tn.id,
                     );
                     const itemClassName = createClassName(
                         'reference-lines-panel__reference-line',
                         canSelectReferenceLine &&
                             'reference-lines-panel__reference-line--can-select',
                     );
-                    const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
+                    const trackNumber = trackNumbers?.find((tn) => tn.id === tn.id);
                     const status = () => {
                         if (disabled) return TrackNumberBadgeStatus.DISABLED;
                         else if (isSelected) return TrackNumberBadgeStatus.SELECTED;
@@ -79,11 +65,10 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                     };
                     return trackNumber ? (
                         <li
-                            key={line.id}
+                            key={tn.id}
                             className={itemClassName}
                             onClick={() =>
-                                canSelectReferenceLine &&
-                                onToggleReferenceLineSelection(line.trackNumberId, line.id)
+                                canSelectReferenceLine && onToggleTrackNumberSelection(tn.id)
                             }>
                             <TrackNumberBadge trackNumber={trackNumber} status={status()} />
                             <span
@@ -96,17 +81,17 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                             </span>
                         </li>
                     ) : (
-                        <React.Fragment key={line.id} />
+                        <React.Fragment key={tn.id} />
                     );
                 })}
             </ol>
-            {linesCount > max && (
+            {trackNumberCount > max && (
                 <span className={styles['reference-lines-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
                 )}`}</span>
             )}
 
-            {linesCount === 0 && (
+            {trackNumberCount === 0 && (
                 <span className={styles['reference-lines-panel__subtitle']}>{`${t(
                     'selection-panel.no-results',
                 )}`}</span>

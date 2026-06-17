@@ -20,7 +20,7 @@ import { initialVerticalGeometryDiagramState, planAlignmentKey } from 'vertical-
 
 export function getEmptyShownItems(): ShownItems {
     return {
-        referenceLines: [],
+        trackNumbers: [],
         locationTracks: [],
         kmPosts: [],
         switches: [],
@@ -225,7 +225,7 @@ export const initialMapState: Map = {
 
 export const mapReducers = {
     onShownItemsChange: ({ shownItems }: Map, { payload }: PayloadAction<OptionalShownItems>) => {
-        if ('referenceLines' in payload) shownItems.referenceLines = payload.referenceLines ?? [];
+        if ('trackNumbers' in payload) shownItems.trackNumbers = payload.trackNumbers ?? [];
         if ('locationTracks' in payload) shownItems.locationTracks = payload.locationTracks ?? [];
         if ('kmPosts' in payload) shownItems.kmPosts = payload.kmPosts ?? [];
         if ('switches' in payload) shownItems.switches = payload.switches ?? [];

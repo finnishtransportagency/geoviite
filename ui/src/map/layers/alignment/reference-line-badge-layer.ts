@@ -30,7 +30,11 @@ export function createReferenceLineBadgeLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const dataPromise: Promise<ReferenceLineAlignmentDataHolder[]> =
-        getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
+        getReferenceLineMapAlignmentsByTiles(
+            changeTimes.layoutTrackNumber,
+            mapTiles,
+            layoutContext,
+        );
 
     const createFeatures = (referenceLines: ReferenceLineAlignmentDataHolder[]) => {
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;

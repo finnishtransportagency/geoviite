@@ -415,7 +415,6 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     )}
                 </div>
                 <PublicationTable
-                    layoutContext={layoutContext}
                     isLoading={isLoading}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}

@@ -1,9 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {
-    LayoutReferenceLine,
-    LayoutState,
-    LayoutTrackNumber,
-} from 'track-layout/track-layout-model';
+import { LayoutState, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { isEmpty, isEqualWithoutWhitespace, isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
@@ -37,7 +33,6 @@ export type TrackNumberSaveRequest = {
 
 export type TrackNumberEditState = {
     inEditTrackNumber: LayoutTrackNumber | undefined;
-    inEditReferenceLine: LayoutReferenceLine | undefined;
     existingTrackNumbers: LayoutTrackNumber[];
     request: TrackNumberSaveRequest;
     validationIssues: FieldValidationIssue<TrackNumberSaveRequest>[];
@@ -46,18 +41,16 @@ export type TrackNumberEditState = {
 
 export function initialTrackNumberEditState(
     existingTrackNumber: LayoutTrackNumber | undefined,
-    existingReferenceLine: LayoutReferenceLine | undefined,
     trackNumbers: LayoutTrackNumber[],
 ): TrackNumberEditState {
     const state = {
         inEditTrackNumber: existingTrackNumber,
-        inEditReferenceLine: existingReferenceLine,
         existingTrackNumbers: trackNumbers,
         request: {
             number: existingTrackNumber?.number || '',
             description: existingTrackNumber?.description || '',
             state: existingTrackNumber?.state || 'IN_USE',
-            startAddress: formatTrackMeter(existingReferenceLine?.startAddress || ZERO_TRACK_METER),
+            startAddress: formatTrackMeter(existingTrackNumber?.startAddress || ZERO_TRACK_METER),
         },
         validationIssues: [],
         committedFields: [],
@@ -109,7 +102,7 @@ function validateTrackNumberEdit(
 
 const trackNumberEditSlice = createSlice({
     name: 'trackNumberEdit',
-    initialState: initialTrackNumberEditState(undefined, undefined, []),
+    initialState: initialTrackNumberEditState(undefined, []),
     reducers: {
         onUpdateProp: function <TKey extends keyof TrackNumberSaveRequest>(
             state: TrackNumberEditState,

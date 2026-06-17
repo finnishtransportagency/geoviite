@@ -7,7 +7,6 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 
@@ -22,7 +21,6 @@ import {
     kmPostChangeTableEntry,
     locationTrackToChangeTableEntry,
     operationalPointChangeTableEntry,
-    referenceLineToChangeTableEntry,
     switchToChangeTableEntry,
     trackNumberToChangeTableEntry,
 } from 'preview/change-table-entry-mapping';
@@ -47,7 +45,6 @@ import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-heade
 
 export type PublishableObjectId =
     | LayoutTrackNumberId
-    | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
     | LayoutKmPostId
@@ -113,8 +110,6 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 return trackNumberToChangeTableEntry(candidate);
             case DraftChangeType.LOCATION_TRACK:
                 return locationTrackToChangeTableEntry(candidate, trackNumbers);
-            case DraftChangeType.REFERENCE_LINE:
-                return referenceLineToChangeTableEntry(candidate, trackNumbers);
             case DraftChangeType.SWITCH:
                 return switchToChangeTableEntry(candidate, trackNumbers);
             case DraftChangeType.KM_POST:
@@ -132,9 +127,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         switch (candidateType) {
             case DraftChangeType.TRACK_NUMBER:
             case DraftChangeType.LOCATION_TRACK:
-            case DraftChangeType.REFERENCE_LINE:
                 return candidate.boundingBox;
-
             case DraftChangeType.SWITCH:
             case DraftChangeType.KM_POST:
             case DraftChangeType.OPERATIONAL_POINT:

@@ -3,7 +3,6 @@ import {
     LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
-    LayoutReferenceLine,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumber,
@@ -12,7 +11,6 @@ import {
     LocationTrackInfoboxExtras,
     OperationalPoint,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
 import {
@@ -29,13 +27,6 @@ import { getCoordinateSystem, getSwitchStructure } from 'common/common-api';
 import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
 import { getGeometryPlanHeader } from 'geometry/geometry-api';
 import {
-    getReferenceLine,
-    getReferenceLineChangeTimes,
-    getReferenceLines,
-    getReferenceLineStartAndEnd,
-    getTrackNumberReferenceLine,
-} from 'track-layout/layout-reference-line-api';
-import {
     getLocationTrack,
     getLocationTrackChangeTimes,
     getLocationTrackInfoboxExtras,
@@ -46,7 +37,8 @@ import {
 } from 'track-layout/layout-location-track-api';
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
 import {
-    getTrackNumberById,
+    getReferenceLineStartAndEnd,
+    getTrackNumber,
     getTrackNumberChangeTimes,
     getTrackNumbers,
 } from 'track-layout/layout-track-number-api';
@@ -70,44 +62,6 @@ import {
     getAllOperationalPoints,
     getOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
-
-export function useTrackNumberReferenceLine(
-    trackNumberId: LayoutTrackNumberId | undefined,
-    layoutContext: LayoutContext,
-    changeTime?: TimeStamp,
-): LayoutReferenceLine | undefined {
-    return useOptionalLoader(
-        () =>
-            trackNumberId
-                ? getTrackNumberReferenceLine(trackNumberId, layoutContext, changeTime)
-                : undefined,
-        [trackNumberId, layoutContext.branch, layoutContext.publicationState, changeTime],
-    );
-}
-
-export function useReferenceLine(
-    id: ReferenceLineId | undefined,
-    layoutContext: LayoutContext,
-    changeTime?: TimeStamp,
-): LayoutReferenceLine | undefined {
-    return useOptionalLoader(
-        () => (id ? getReferenceLine(id, layoutContext) : undefined),
-        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
-    );
-}
-
-export function useReferenceLines(
-    ids: ReferenceLineId[],
-    layoutContext: LayoutContext,
-    changeTime?: TimeStamp,
-): LayoutReferenceLine[] {
-    return (
-        useLoader(
-            () => (ids ? getReferenceLines(ids, layoutContext) : undefined),
-            [JSON.stringify(ids), layoutContext.publicationState, layoutContext.branch, changeTime],
-        ) || EMPTY_ARRAY
-    );
-}
 
 export function useLocationTrack(
     id: LocationTrackId | undefined,
@@ -167,7 +121,7 @@ export function useTrackNumber(
     changeTime?: TimeStamp,
 ): LayoutTrackNumber | undefined {
     return useLoader(
-        () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
+        () => (id ? getTrackNumber(id, layoutContext, changeTime) : undefined),
         [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
@@ -178,7 +132,7 @@ export function useTrackNumberWithStatus(
     changeTime: TimeStamp,
 ): [LayoutTrackNumber | undefined, LoaderStatus] {
     return useLoaderWithStatus(
-        () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
+        () => (id ? getTrackNumber(id, layoutContext, changeTime) : undefined),
         [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
@@ -193,6 +147,19 @@ export function useTrackNumbers(
     );
 }
 
+export function useSomeTrackNumbers(
+    ids: LayoutTrackNumberId[],
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
+): LayoutTrackNumber[] {
+    return (
+        useLoader(
+            () => (ids ? getTrackNumbers(layoutContext, changeTime) : undefined),
+            [JSON.stringify(ids), layoutContext.publicationState, layoutContext.branch, changeTime],
+        ) || EMPTY_ARRAY
+    );
+}
+
 export function useTrackNumbersIncludingDeleted(
     layoutContext: LayoutContext,
     changeTime?: TimeStamp,
@@ -204,7 +171,7 @@ export function useTrackNumbersIncludingDeleted(
 }
 
 export function useReferenceLineStartAndEnd(
-    id: ReferenceLineId | undefined,
+    id: LayoutTrackNumberId | undefined,
     layoutContext: LayoutContext,
     changeTime: TimeStamp | undefined = undefined,
 ): AlignmentStartAndEnd | undefined {
@@ -222,7 +189,6 @@ export function useLocationTrackStartAndEnd(
     const changeTime = getMaxTimestamp(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutTrackNumber,
-        changeTimes.layoutReferenceLine,
         changeTimes.layoutKmPost,
     );
     return useLoaderWithStatus(
@@ -318,16 +284,6 @@ export function useTrackNumberChangeTimes(
     );
 }
 
-export function useReferenceLineChangeTimes(
-    id: ReferenceLineId | undefined,
-    layoutContext: LayoutContext,
-): LayoutAssetChangeInfo | undefined {
-    return useOptionalLoader(
-        () => (id ? getReferenceLineChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.branch, layoutContext.publicationState],
-    );
-}
-
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
     layoutContext: LayoutContext,
@@ -411,7 +367,7 @@ export function refreshTrackNumberSelection(
     return (id) => {
         Promise.all([updateAllChangeTimes()])
             .then(([changeTimes]) =>
-                getTrackNumberById(id, layoutContext, changeTimes.layoutTrackNumber),
+                getTrackNumber(id, layoutContext, changeTimes.layoutTrackNumber),
             )
             .then((tn) =>
                 tn

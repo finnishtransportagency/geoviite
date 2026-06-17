@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
@@ -15,6 +16,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
@@ -248,5 +250,33 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<LayoutTrackNumber>
     ): Map<LayoutBranch, Oid<LayoutTrackNumber>> {
         return trackNumberService.getExternalIdsByBranch(id)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["bbox"])
+    fun getTrackNumbersNear(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<LayoutTrackNumber> {
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        return trackNumberService.listNear(layoutContext, bbox)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/start-and-end")
+    fun getReferenceLineStartAndEnd(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+    ): ResponseEntity<AlignmentStartAndEnd<LayoutTrackNumber>> {
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        return toResponse(trackNumberService.getStartAndEnd(layoutContext, id))
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @GetMapping("/{$LAYOUT_BRANCH}/draft/non-linked")
+    fun getNonLinkedTrackNumbers(@PathVariable(LAYOUT_BRANCH) branch: LayoutBranch): List<LayoutTrackNumber> {
+        return trackNumberService.listNonLinked(branch)
     }
 }

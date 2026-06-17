@@ -7,7 +7,12 @@ import { useTranslation } from 'react-i18next';
 import { formatToGkFinString, formatToTM35FINString, formatWithSrid } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { CoordinateSystem, draftLayoutContext, LayoutContext, TimeStamp, } from 'common/common-model';
+import {
+    CoordinateSystem,
+    draftLayoutContext,
+    LayoutContext,
+    TimeStamp,
+} from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getKmPost, getKmPostInfoboxExtras } from 'track-layout/layout-km-post-api';
@@ -117,7 +122,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             layoutContext.branch,
             layoutContext.publicationState,
             changeTimes.layoutKmPost,
-            changeTimes.layoutReferenceLine,
         ],
     );
     const geometryPlan = useLoader(

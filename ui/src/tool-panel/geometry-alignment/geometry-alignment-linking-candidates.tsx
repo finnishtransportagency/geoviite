@@ -7,14 +7,10 @@ import { useTranslation } from 'react-i18next';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     LayoutLocationTrack,
-    LayoutReferenceLine,
+    LayoutTrackNumber,
+    LayoutTrackNumberId,
     LocationTrackId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import {
-    getNonLinkedReferenceLines,
-    getReferenceLinesNear,
-} from 'track-layout/layout-reference-line-api';
 import { deduplicateById, fieldComparator, negComparator } from 'utils/array-utils';
 import { expandBoundingBox } from 'model/geometry';
 import {
@@ -34,15 +30,19 @@ import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import {
     LocationTrackCandidates,
-    ReferenceLineCandidate,
-    ReferenceLineCandidates,
+    TrackNumberCandidate,
+    TrackNumberCandidates,
 } from 'linking/alignment-linking-candidates';
+import {
+    getNonLinkedTrackNumbers,
+    getTrackNumbersNear,
+} from 'track-layout/layout-track-number-api';
 
 type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
     geometryAlignment: AlignmentHeader;
     layoutContext: LayoutContext;
     trackNumberChangeTime: TimeStamp;
-    selectedLayoutReferenceLine?: LayoutReferenceLine;
+    selectedTrackNumber?: LayoutTrackNumber;
     linkingState?:
         | LinkingGeometryWithAlignment
         | LinkingGeometryWithEmptyAlignment
@@ -67,7 +67,7 @@ type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
     selectedPartOfUnfinishedSplit: boolean;
 };
 
-type LayoutReferenceLineSearchResult = LayoutReferenceLine & {
+type LayoutTrackNumberSearchResult = LayoutTrackNumber & {
     foundWithBoundingBox?: true;
 };
 
@@ -91,7 +91,7 @@ function byDraftsFirst<T extends { isDraft: boolean }>(a: T, b: T) {
 
 const NEAR_TRACK_SEARCH_BUFFER = 10.0;
 
-function lockedAlignmentIdOf<TId extends LocationTrackId | ReferenceLineId>(
+function lockedAlignmentIdOf<TId extends LocationTrackId | LayoutTrackNumberId>(
     linkingState:
         | LinkingGeometryWithAlignment
         | LinkingGeometryWithEmptyAlignment
@@ -108,7 +108,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     geometryAlignment,
     layoutContext,
     trackNumberChangeTime,
-    selectedLayoutReferenceLine,
+    selectedTrackNumber,
     linkingState,
     onSelect,
     onShowAddTrackNumberDialog,
@@ -116,10 +116,10 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
 }) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext, trackNumberChangeTime);
-    const [referenceLines, setReferenceLines] = React.useState<LayoutReferenceLineSearchResult[]>(
+    const [tnSearchResults, setTnSearchResults] = React.useState<LayoutTrackNumberSearchResult[]>(
         [],
     );
-    const [referenceLineSearchInput, setReferenceLineSearchInput] = React.useState<string>('');
+    const [tnSearchInput, setTnSearchInput] = React.useState<string>('');
     const [isLoading, setIsLoading] = React.useState(true);
 
     React.useEffect(() => {
@@ -127,12 +127,12 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
             setIsLoading(true);
 
             Promise.all([
-                getReferenceLinesNear(
+                getTrackNumbersNear(
                     layoutContext,
                     expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
                 ).then(toBoundingBoxSearchResults),
 
-                getNonLinkedReferenceLines(layoutContext).then((lines) =>
+                getNonLinkedTrackNumbers(layoutContext).then((lines) =>
                     lines.sort(negComparator(fieldComparator((line) => line.id))),
                 ),
             ])
@@ -140,7 +140,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     const uniqueReferenceLines = deduplicateById(trackGroups.flat(), (l) => l.id);
 
                     uniqueReferenceLines.sort(byDraftsFirst);
-                    setReferenceLines(uniqueReferenceLines);
+                    setTnSearchResults(uniqueReferenceLines);
                 })
                 .finally(() => {
                     setIsLoading(false);
@@ -148,31 +148,31 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
         }
     }, [geometryAlignment.boundingBox, trackNumberChangeTime]);
 
-    const candidates: ReferenceLineCandidate[] = React.useMemo(() => {
+    const candidates: TrackNumberCandidate[] = React.useMemo(() => {
         if (!trackNumbers) return [];
-        const hasSearchInput = referenceLineSearchInput.length > 0;
+        const hasSearchInput = tnSearchInput.length > 0;
 
-        return referenceLines.flatMap((line) => {
-            const trackNumber = trackNumbers.find((tn) => tn.id === line.trackNumberId);
+        return tnSearchResults.flatMap((result) => {
+            const trackNumber = trackNumbers.find((tn) => tn.id === result.id);
             if (!trackNumber) return [];
 
             const trackNumberMatchesSearchInput = trackNumber.number
                 .toLowerCase()
-                .includes(referenceLineSearchInput);
+                .includes(tnSearchInput);
             const trackNumberWithEmptyGeometryIsAlreadyPublished =
-                !line.foundWithBoundingBox && !line.isDraft;
+                !result.foundWithBoundingBox && !result.isDraft;
 
             const displayTrackNumberOption =
                 (hasSearchInput && trackNumberMatchesSearchInput) ||
                 (!hasSearchInput && !trackNumberWithEmptyGeometryIsAlreadyPublished);
 
-            const isSelected = line.id === selectedLayoutReferenceLine?.id;
+            const isSelected = result.id === selectedTrackNumber?.id;
 
             return isSelected || displayTrackNumberOption
-                ? [{ referenceLine: line, trackNumber }]
+                ? [{ referenceLine: result, trackNumber }]
                 : [];
         });
-    }, [referenceLines, trackNumbers, referenceLineSearchInput, selectedLayoutReferenceLine]);
+    }, [tnSearchResults, trackNumbers, tnSearchInput, selectedTrackNumber]);
 
     return (
         <React.Fragment>
@@ -194,13 +194,13 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     'tool-panel.alignment.geometry.search-all-reference-lines-without-geometry',
                 )}
                 wide={true}
-                onChange={(event) => setReferenceLineSearchInput(event.target.value.toLowerCase())}
+                onChange={(event) => setTnSearchInput(event.target.value.toLowerCase())}
             />
 
-            <ReferenceLineCandidates
+            <TrackNumberCandidates
                 candidates={candidates}
-                selectedId={selectedLayoutReferenceLine?.id}
-                lockedAlignmentId={lockedAlignmentIdOf<ReferenceLineId>(linkingState)}
+                selectedId={selectedTrackNumber?.id}
+                lockedAlignmentId={lockedAlignmentIdOf<LayoutTrackNumberId>(linkingState)}
                 isLoading={isLoading}
                 emptyMessage={t('tool-panel.alignment.geometry.no-linkable-reference-lines')}
                 onSelect={(trackNumberId) =>

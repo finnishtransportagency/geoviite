@@ -6,7 +6,6 @@ import {
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
     OperationalPointPublicationCandidate,
-    ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
@@ -14,7 +13,6 @@ import { OperationalPointId } from 'track-layout/track-layout-model';
 
 export type LayerItemSearchResult = OptionalItemCollections & {
     locationTrackPublicationCandidates?: LocationTrackPublicationCandidate[];
-    referenceLinePublicationCandidates?: ReferenceLinePublicationCandidate[];
     trackNumberPublicationCandidates?: TrackNumberPublicationCandidate[];
     switchPublicationCandidates?: SwitchPublicationCandidate[];
     kmPostPublicationCandidates?: KmPostPublicationCandidate[];

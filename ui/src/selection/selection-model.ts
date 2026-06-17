@@ -5,7 +5,6 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
     GeometryAlignmentId,
@@ -45,7 +44,6 @@ export type ItemCollections = {
 export type UnselectableItemCollections = {
     segments: LayoutSegmentId[];
     locationTracks: LocationTrackId[];
-    referenceLines: ReferenceLineId[];
     kmPosts: LayoutKmPostId[];
     geometryKmPosts: LayoutKmPostId[];
     switches: LayoutSwitchId[];

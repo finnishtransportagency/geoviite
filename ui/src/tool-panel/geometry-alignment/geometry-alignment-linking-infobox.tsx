@@ -7,10 +7,10 @@ import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox
 import {
     isPartOfUnfinishedSplit,
     LayoutLocationTrack,
-    LayoutReferenceLine,
+    LayoutTrackNumber,
+    LayoutTrackNumberId,
     LocationTrackId,
     MapAlignmentType,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
     getLinkedAlignmentIdsInPlan,
@@ -25,8 +25,6 @@ import { draftLayoutContext, LayoutBranch, LayoutContext } from 'common/common-m
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
-import { getReferenceLine } from 'track-layout/layout-reference-line-api';
-import { filterNotEmpty } from 'utils/array-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import {
     GeometryLinkingAlignmentLockParameters,
@@ -44,7 +42,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import LocationTrackNames from './location-track-names';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
-import ReferenceLineNames from 'tool-panel/geometry-alignment/reference-line-names';
+import TrackNumberNames from 'tool-panel/geometry-alignment/reference-line-names';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
@@ -115,7 +113,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     geometryAlignment: GeometryAlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
-    selectedLayoutReferenceLine?: LayoutReferenceLine;
+    selectedLayoutTrackNumber?: LayoutTrackNumber;
     planId: GeometryPlanId;
     changeTimes: ChangeTimes;
     linkingState?:
@@ -155,7 +153,7 @@ type GeometryLinkingFunction = (
     parameters:
         | LinkingGeometryWithAlignmentParameters
         | LinkingGeometryWithEmptyAlignmentParameters,
-) => Promise<LocationTrackId | ReferenceLineId>;
+) => Promise<LocationTrackId | LayoutTrackNumberId>;
 
 const geometryLinkingFunctions: Record<
     LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment,
@@ -176,7 +174,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onUnselect,
     geometryAlignment,
     selectedLayoutLocationTrack,
-    selectedLayoutReferenceLine,
+    selectedLayoutTrackNumber,
     planId,
     changeTimes,
     linkingState,
@@ -203,22 +201,15 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         [
             planId,
             changeTimes.layoutLocationTrack,
-            changeTimes.layoutReferenceLine,
+            changeTimes.layoutTrackNumber,
             layoutContext.publicationState,
             layoutContext.branch,
         ],
     );
 
-    const linkedReferenceLines = useLoader(() => {
-        if (!planStatus) return undefined;
-        const referenceLineIds = planStatus.alignments
-            .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
-            .flatMap((linkStatus) => linkStatus.linkedReferenceLineIds);
-        const referenceLinePromises = referenceLineIds.map((referenceLineId) =>
-            getReferenceLine(referenceLineId, layoutContext),
-        );
-        return Promise.all(referenceLinePromises).then((lines) => lines.filter(filterNotEmpty));
-    }, [planStatus, geometryAlignment]);
+    const linkedTrackNumberIds = planStatus?.alignments
+        ?.filter((linkStatus) => linkStatus.id === geometryAlignment.id)
+        ?.flatMap((linkStatus) => linkStatus.linkedTrackNumberIds);
 
     const linkedLocationTracks = useLoader(() => {
         if (!planStatus) return undefined;
@@ -240,7 +231,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         !isPartOfUnfinishedSplit(selectedLocationTrackInfoboxExtras?.partOfSplit);
 
     const canLockAlignment =
-        (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) ||
+        (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutTrackNumber) ||
         (linkingAlignmentType === 'LOCATION_TRACK' &&
             selectedLayoutLocationTrack &&
             !isPartOfUnfinishedSplit(selectedLocationTrackInfoboxExtras?.partOfSplit));
@@ -252,7 +243,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             layoutContext.publicationState,
             layoutContext.branch,
             changeTimes.layoutLocationTrack,
-            changeTimes.layoutReferenceLine,
+            changeTimes.layoutTrackNumber,
         ],
     );
     const isLinked = linkedAlignmentIds ? linkedAlignmentIds.includes(geometryAlignment.id) : false;
@@ -269,7 +260,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     );
 
     function linkingTypeBySegmentCount(
-        alignment: LayoutLocationTrack | LayoutReferenceLine,
+        alignment: LayoutLocationTrack | LayoutTrackNumber,
     ): LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment {
         return alignment.segmentCount > 0
             ? LinkingType.LinkingGeometryWithAlignment
@@ -285,13 +276,13 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 },
                 type: linkingTypeBySegmentCount(selectedLayoutLocationTrack),
             });
-        } else if (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) {
+        } else if (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutTrackNumber) {
             onLockAlignment({
                 alignment: {
-                    id: selectedLayoutReferenceLine.id,
+                    id: selectedLayoutTrackNumber.id,
                     type: MapAlignmentType.ReferenceLine,
                 },
-                type: linkingTypeBySegmentCount(selectedLayoutReferenceLine),
+                type: linkingTypeBySegmentCount(selectedLayoutTrackNumber),
             });
         }
     }
@@ -356,9 +347,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     {linkedLocationTracks && linkedLocationTracks.length > 0 && (
                         <LocationTrackNames linkedLocationTracks={linkedLocationTracks} />
                     )}
-                    {linkedReferenceLines && linkedReferenceLines.length > 0 && (
-                        <ReferenceLineNames
-                            linkedReferenceLines={linkedReferenceLines}
+                    {linkedTrackNumberIds && linkedTrackNumberIds.length > 0 && (
+                        <TrackNumberNames
+                            linkedTrackNumberIds={linkedTrackNumberIds}
                             layoutContext={layoutContext}
                             changeTimes={changeTimes}
                         />
@@ -399,7 +390,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     layoutContext={layoutContext}
                                     trackNumberChangeTime={changeTimes.layoutTrackNumber}
                                     onSelect={onSelect}
-                                    selectedLayoutReferenceLine={selectedLayoutReferenceLine}
+                                    selectedTrackNumber={selectedLayoutTrackNumber}
                                     disableAddButton={
                                         linkingState.type !== LinkingType.UnknownAlignment
                                     }
@@ -420,9 +411,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     onShowAddLocationTrackDialog={() =>
                                         setShowAddLocationTrackDialog(true)
                                     }
-                                    selectedPartOfUnfinishedSplit={
-                                        isPartOfUnfinishedSplit(selectedLocationTrackInfoboxExtras?.partOfSplit)
-                                    }
+                                    selectedPartOfUnfinishedSplit={isPartOfUnfinishedSplit(
+                                        selectedLocationTrackInfoboxExtras?.partOfSplit,
+                                    )}
                                 />
                             )}
                         </React.Fragment>

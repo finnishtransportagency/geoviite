@@ -15,7 +15,6 @@ import {
     PublicationResultSummary,
     PublicationStage,
     PublicationTableItem,
-    ReferenceLinePublicationCandidate,
     SplitInPublication,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
@@ -30,7 +29,6 @@ import {
     LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
-    LayoutReferenceLine,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumber,
@@ -38,7 +36,6 @@ import {
     LocationTrackId,
     OperationalPoint,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { SortablePublicationTableProps } from 'publication/table/publication-table-utils';
 
@@ -55,7 +52,6 @@ function mergeToMainUri(designBranch: DesignBranch): string {
 export type PublicationCandidatesResponse = {
     trackNumbers: TrackNumberPublicationCandidate[];
     locationTracks: LocationTrackPublicationCandidate[];
-    referenceLines: ReferenceLinePublicationCandidate[];
     switches: SwitchPublicationCandidate[];
     kmPosts: KmPostPublicationCandidate[];
     operationalPoints: OperationalPointPublicationCandidate[];
@@ -69,7 +65,6 @@ export type ValidatedPublicationCandidatesResponse = {
 export const emptyPublicationRequestIds = (): PublicationRequestIds => ({
     trackNumbers: [],
     locationTracks: [],
-    referenceLines: [],
     switches: [],
     kmPosts: [],
     operationalPoints: [],
@@ -97,9 +92,6 @@ const toPublicationCandidates = (
         publicationCandidatesResponse.locationTracks.map((candidate) =>
             addCandidateTypeAndState(candidate, DraftChangeType.LOCATION_TRACK),
         ),
-        publicationCandidatesResponse.referenceLines.map((candidate) =>
-            addCandidateTypeAndState(candidate, DraftChangeType.REFERENCE_LINE),
-        ),
         publicationCandidatesResponse.switches.map((candidate) =>
             addCandidateTypeAndState(candidate, DraftChangeType.SWITCH),
         ),
@@ -121,9 +113,6 @@ const toPublicationCandidateReferences = (
         ),
         publicationRequestIds.locationTracks.map((candidateId) =>
             createPublicationCandidateReference(candidateId, DraftChangeType.LOCATION_TRACK),
-        ),
-        publicationRequestIds.referenceLines.map((candidateId) =>
-            createPublicationCandidateReference(candidateId, DraftChangeType.REFERENCE_LINE),
         ),
         publicationRequestIds.switches.map((candidateId) =>
             createPublicationCandidateReference(candidateId, DraftChangeType.SWITCH),
@@ -148,10 +137,6 @@ const toPublicationRequestIds = (
 
             case DraftChangeType.LOCATION_TRACK:
                 publicationRequestIds.locationTracks.push(candidate.id);
-                break;
-
-            case DraftChangeType.REFERENCE_LINE:
-                publicationRequestIds.referenceLines.push(candidate.id);
                 break;
 
             case DraftChangeType.SWITCH:
@@ -314,14 +299,12 @@ export const getPublicationsAsTableItems = (
 
 export type PublishableObjectIdAndType =
     | TrackNumberIdAndType
-    | ReferenceLineIdAndType
     | LocationTrackIdAndType
     | SwitchIdAndType
     | KmPostIdAndType
     | OperationalPointIdAndType;
 
 export type TrackNumberIdAndType = { id: LayoutTrackNumberId; type: 'TRACK_NUMBER' };
-export type ReferenceLineIdAndType = { id: ReferenceLineId; type: 'REFERENCE_LINE' };
 export type LocationTrackIdAndType = { id: LocationTrackId; type: 'LOCATION_TRACK' };
 export type SwitchIdAndType = { id: LayoutSwitchId; type: 'SWITCH' };
 export type KmPostIdAndType = { id: LayoutKmPostId; type: 'KM_POST' };
@@ -329,14 +312,12 @@ export type OperationalPointIdAndType = { id: OperationalPointId; type: 'OPERATI
 
 export type PublishedAsset =
     | PublishedAssetTrackNumber
-    | PublishedAssetReferenceLine
     | PublishedAssetLocationTrack
     | PublishedAssetSwitch
     | PublishedAssetKmPost
     | PublishedAssetOperationalPoint;
 
 export type PublishedAssetTrackNumber = { asset: LayoutTrackNumber; type: 'TRACK_NUMBER' };
-export type PublishedAssetReferenceLine = { asset: LayoutReferenceLine; type: 'REFERENCE_LINE' };
 export type PublishedAssetLocationTrack = { asset: LayoutLocationTrack; type: 'LOCATION_TRACK' };
 export type PublishedAssetSwitch = { asset: LayoutSwitch; type: 'SWITCH' };
 export type PublishedAssetKmPost = { asset: LayoutKmPost; type: 'KM_POST' };

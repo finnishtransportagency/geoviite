@@ -115,7 +115,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                         id = rs.getIndexedId("alignment_id", "element_index"),
                         isLinked = rs.getBoolean("is_linked"),
                         linkedLocationTrackIds = rs.getIntIdArray("location_track_ids"),
-                        linkedReferenceLineIds = rs.getIntIdArray("track_number_ids"),
+                        linkedTrackNumberIds = rs.getIntIdArray("track_number_ids"),
                     )
                 Triple(planId, alignmentId, geometryElementLinkStatus)
             }

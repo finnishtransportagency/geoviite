@@ -102,7 +102,6 @@ export function filterAlignmentPoints(
     });
 }
 
-export type ReferenceLineId = Brand<string, 'ReferenceLineId'>;
 export type LocationTrackId = Brand<string, 'LocationTrackId'>;
 export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
@@ -125,21 +124,11 @@ export type LayoutAssetFields = {
 };
 
 export type LayoutAsset =
-    | LayoutReferenceLine
     | LayoutLocationTrack
     | LayoutSwitch
     | LayoutTrackNumber
     | LayoutKmPost
     | OperationalPoint;
-
-export type LayoutReferenceLine = {
-    id: ReferenceLineId;
-    startAddress: TrackMeter;
-    trackNumberId: LayoutTrackNumberId;
-    boundingBox?: BoundingBox;
-    length: number;
-    segmentCount: number;
-} & LayoutAssetFields;
 
 export enum LocationTrackNamingScheme {
     FREE_TEXT = 'FREE_TEXT',
@@ -382,7 +371,7 @@ export type LocationTrackSwitchJoint = {
     m: number;
 };
 
-export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
+export type AlignmentId = LocationTrackId | LayoutTrackNumberId | GeometryAlignmentId;
 
 export enum TrapPoint {
     YES = 1,
@@ -548,6 +537,10 @@ export type LayoutTrackNumber = {
     number: TrackNumber;
     state: LayoutState;
     sourceId?: LayoutTrackNumberId;
+    startAddress: TrackMeter;
+    boundingBox?: BoundingBox;
+    length: number;
+    segmentCount: number;
 } & LayoutAssetFields;
 
 export type AddressPoint = {

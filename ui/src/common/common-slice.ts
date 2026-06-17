@@ -10,7 +10,6 @@ export type ChangeTimes = {
     layoutTrackNumberExtId: TimeStamp;
     layoutLocationTrack: TimeStamp;
     layoutLocationTrackExtId: TimeStamp;
-    layoutReferenceLine: TimeStamp;
     layoutSwitch: TimeStamp;
     layoutSwitchExtId: TimeStamp;
     layoutKmPost: TimeStamp;
@@ -31,7 +30,6 @@ export const initialChangeTimes: ChangeTimes = {
     layoutTrackNumberExtId: initialChangeTime,
     layoutLocationTrack: initialChangeTime,
     layoutLocationTrackExtId: initialChangeTime,
-    layoutReferenceLine: initialChangeTime,
     layoutSwitch: initialChangeTime,
     layoutSwitchExtId: initialChangeTime,
     layoutKmPost: initialChangeTime,
@@ -113,12 +111,6 @@ const commonSlice = createSlice({
             { payload }: PayloadAction<TimeStamp>,
         ) {
             updateChangeTime(changeTimes, 'layoutLocationTrack', payload);
-        },
-        setLayoutReferenceLineChangeTime: function (
-            { changeTimes }: CommonState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            updateChangeTime(changeTimes, 'layoutReferenceLine', payload);
         },
         setLayoutSwitchChangeTime: function (
             { changeTimes }: CommonState,

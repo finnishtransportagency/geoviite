@@ -31,7 +31,7 @@ export function createReferenceLineBackgroundLayer(
     );
 
     const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
-        changeTimes,
+        changeTimes.layoutTrackNumber,
         mapTiles,
         layoutContext,
     );

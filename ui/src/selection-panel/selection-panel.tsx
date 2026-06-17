@@ -4,7 +4,6 @@ import styles from './selection-panel.scss';
 import {
     LayoutKmPost,
     LayoutLocationTrack,
-    LayoutReferenceLine,
     LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumber,
@@ -43,7 +42,7 @@ import {
 import { LayoutBranch, LayoutContext } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';
-import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
+import TrackNumbersPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 import { ChangeTimes } from 'common/common-slice';
 import { Eye } from 'geoviite-design-lib/eye/eye';
@@ -68,7 +67,7 @@ type SelectionPanelProps = {
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     kmPosts: LayoutKmPost[];
-    referenceLines: LayoutReferenceLine[];
+    trackNumbers: LayoutTrackNumber[];
     locationTracks: LayoutLocationTrack[];
     switchCount: number;
     switches: LayoutSwitch[];
@@ -103,7 +102,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     openPlans,
     visiblePlans,
     kmPosts,
-    referenceLines,
+    trackNumbers,
     locationTracks,
     switchCount,
     switches,
@@ -216,7 +215,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         });
     };
 
-    const onToggleReferenceLineSelection = (trackNumberId: LayoutTrackNumberId) => {
+    const onToggleTrackNumberSelection = (trackNumberId: LayoutTrackNumberId) => {
         onSelect({
             ...createEmptyItemCollections(),
             trackNumbers: [trackNumberId],
@@ -242,7 +241,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
 
     const visibleTrackNumberIds = [
         ...new Set([
-            ...referenceLines.map((rl) => rl.trackNumberId),
+            ...trackNumbers.map((rl) => rl.id),
             ...locationTracks.map((lt) => lt.trackNumberId),
             ...kmPosts.map((p) => p.trackNumberId),
         ]),
@@ -261,18 +260,16 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             .then((visible) => setVisibleTrackNumbers(visible));
     }, [changeTimes.layoutTrackNumber, visibleTrackNumberIds.join()]);
 
-    const filterByTrackNumberId = (tn: LayoutTrackNumberId) =>
+    const isTrackNumberSelected = (tn: LayoutTrackNumberId) =>
         selectedTrackNumberIds.length === 0 || selectedTrackNumberIds.some((s) => s === tn);
 
     const filteredLocationTracks = locationTracks.filter((a) =>
-        filterByTrackNumberId(a.trackNumberId),
+        isTrackNumberSelected(a.trackNumberId),
     );
 
-    const filteredReferenceLines = referenceLines.filter((l) =>
-        filterByTrackNumberId(l.trackNumberId),
-    );
+    const filteredTrackNumbers = trackNumbers.filter((l) => isTrackNumberSelected(l.id));
 
-    const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
+    const filteredKmPosts = kmPosts.filter((km) => isTrackNumberSelected(km.trackNumberId));
 
     return (
         <div className={styles['selection-panel']}>
@@ -354,17 +351,15 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {t('selection-panel.reference-lines-title')} ({filteredReferenceLines.length}/
-                    {referenceLines.length})
+                    {t('selection-panel.reference-lines-title')} ({filteredTrackNumbers.length}/
+                    {trackNumbers.length})
                 </h3>
                 <div className={styles['selection-panel__content']}>
-                    <ReferenceLinesPanel
-                        layoutContext={layoutContext}
-                        referenceLines={filteredReferenceLines}
-                        trackNumberChangeTime={changeTimes.layoutTrackNumber}
+                    <TrackNumbersPanel
+                        trackNumbers={filteredTrackNumbers}
                         selectedTrackNumbers={selectedItems.trackNumbers}
-                        canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
-                        onToggleReferenceLineSelection={onToggleReferenceLineSelection}
+                        canSelectTrackNumber={selectableItemTypes.includes('trackNumbers')}
+                        onToggleTrackNumberSelection={onToggleTrackNumberSelection}
                         disabled={
                             isLinkingOrSplitting && !selectableItemTypes.includes('trackNumbers')
                         }

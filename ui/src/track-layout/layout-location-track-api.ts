@@ -117,7 +117,6 @@ export function locationTrackInfoboxExtrasChangeTime(changeTimes: ChangeTimes): 
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
         changeTimes.layoutTrackNumber,
-        changeTimes.layoutReferenceLine,
         changeTimes.layoutKmPost,
         changeTimes.split,
         changeTimes.operationalPoints,

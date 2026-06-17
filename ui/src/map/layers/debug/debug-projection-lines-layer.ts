@@ -106,7 +106,7 @@ async function getDataPromise(
         getProjectionLines(
             trackNumberId,
             layoutContext,
-            getMaxTimestamp(changeTimes.layoutReferenceLine, changeTimes.layoutKmPost),
+            getMaxTimestamp(changeTimes.layoutTrackNumber, changeTimes.layoutKmPost),
         )
     );
 }

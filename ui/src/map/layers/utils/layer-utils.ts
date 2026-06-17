@@ -282,10 +282,6 @@ export function mergePartialItemSearchResults(
                 merged.locationTrackPublicationCandidates,
                 searchResult.locationTrackPublicationCandidates,
             ),
-            referenceLinePublicationCandidates: mergeOptionalArrays(
-                merged.referenceLinePublicationCandidates,
-                searchResult.referenceLinePublicationCandidates,
-            ),
             trackNumberPublicationCandidates: mergeOptionalArrays(
                 merged.trackNumberPublicationCandidates,
                 searchResult.trackNumberPublicationCandidates,

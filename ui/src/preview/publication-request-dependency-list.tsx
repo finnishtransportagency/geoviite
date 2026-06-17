@@ -6,7 +6,6 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +13,6 @@ import {
     useKmPost,
     useLocationTrack,
     useOperationalPoint,
-    useReferenceLine,
     useSwitch,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
@@ -53,47 +51,6 @@ const LookupTrackNumberItem: React.FC<{
         draftLayoutContext(props.layoutContext),
         props.changeTime,
     )?.find((tn) => tn.id === props.trackNumberId)?.number ?? '';
-
-const ReferenceLineItem: React.FC<{
-    layoutContext: LayoutContext;
-    referenceLine: PublicationCandidateReference & { type: DraftChangeType.REFERENCE_LINE };
-    changeTimes: ChangeTimes;
-}> = (props) => {
-    const { t } = useTranslation();
-    return (
-        <li className={styles['dependency-list-item']}>
-            {`${t('publish.revert-confirm.dependency-list.reference-line')} `}
-            {props.referenceLine.name ?? (
-                <LookupReferenceLineItem
-                    layoutContext={props.layoutContext}
-                    referenceLineId={props.referenceLine.id}
-                    changeTimes={props.changeTimes}
-                />
-            )}
-        </li>
-    );
-};
-
-const LookupReferenceLineItem: React.FC<{
-    layoutContext: LayoutContext;
-    referenceLineId: ReferenceLineId;
-    changeTimes: ChangeTimes;
-}> = (props) => {
-    const trackNumbers = useTrackNumbersIncludingDeleted(
-        draftLayoutContext(props.layoutContext),
-        props.changeTimes.layoutTrackNumber,
-    );
-    const referenceLine = useReferenceLine(
-        props.referenceLineId,
-        draftLayoutContext(props.layoutContext),
-        props.changeTimes.layoutReferenceLine,
-    );
-    if (referenceLine === undefined || trackNumbers === undefined) {
-        return <li />;
-    }
-    const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
-    return trackNumber?.number ?? '';
-};
 
 const LocationTrackItem: React.FC<{
     layoutContext: LayoutContext;
@@ -195,8 +152,6 @@ export const publicationRequestTypeTranslationKey = (type: DraftChangeType) => {
             return 'track-number';
         case DraftChangeType.LOCATION_TRACK:
             return 'location-track';
-        case DraftChangeType.REFERENCE_LINE:
-            return 'reference-line';
         case DraftChangeType.SWITCH:
             return 'switch';
         case DraftChangeType.KM_POST:
@@ -267,16 +222,6 @@ const getPublicationCandidateComponent = (
                 />
             );
 
-        case DraftChangeType.REFERENCE_LINE:
-            return (
-                <ReferenceLineItem
-                    layoutContext={layoutContext}
-                    key={candidateComponentKey}
-                    referenceLine={candidate}
-                    changeTimes={changeTimes}
-                />
-            );
-
         case DraftChangeType.SWITCH:
             return (
                 <SwitchItem
@@ -314,7 +259,6 @@ const sortCandidatesByAssetType = (
 ): PublicationCandidateReference[] => {
     const candidateDisplayOrder = {
         [DraftChangeType.TRACK_NUMBER]: 1,
-        [DraftChangeType.REFERENCE_LINE]: 2,
         [DraftChangeType.LOCATION_TRACK]: 3,
         [DraftChangeType.SWITCH]: 4,
         [DraftChangeType.KM_POST]: 5,

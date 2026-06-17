@@ -86,9 +86,6 @@ export const createPublicationCandidateReference = (
         case DraftChangeType.LOCATION_TRACK:
             return { id: brand(id), type };
 
-        case DraftChangeType.REFERENCE_LINE:
-            return { id: brand(id), type };
-
         case DraftChangeType.SWITCH:
             return { id: brand(id), type };
 
@@ -143,7 +140,6 @@ export const noCalculatedChanges: CalculatedChanges = {
         kmPostChanges: [],
         locationTrackChanges: [],
         switchChanges: [],
-        referenceLineChanges: [],
         trackNumberChanges: [],
     },
     indirectChanges: {

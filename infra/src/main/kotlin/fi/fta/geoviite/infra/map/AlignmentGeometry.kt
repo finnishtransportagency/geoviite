@@ -75,13 +75,14 @@ data class ReferenceLineHeader(
 ) : AlignmentHeader<LayoutTrackNumber, LayoutState>() {
     override val alignmentSource = MapAlignmentSource.LAYOUT
     override val alignmentType = MapAlignmentType.REFERENCE_LINE
-    // TODO: GVT-3637 cleanup redundancies -- fields expected by UI
-    override val id: IntId<LayoutTrackNumber> = version.id
-    override val trackNumberId: IntId<LayoutTrackNumber> = version.id
+    override val id: IntId<LayoutTrackNumber>
+        get() = version.id
+
+    override val trackNumberId: IntId<LayoutTrackNumber>
+        get() = version.id
 }
 
 data class LocationTrackHeader(
-    override val id: IntId<LocationTrack>,
     val version: LayoutRowVersion<LocationTrack>,
     override val trackNumberId: IntId<LayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
@@ -94,6 +95,8 @@ data class LocationTrackHeader(
 ) : AlignmentHeader<LocationTrack, LocationTrackState>() {
     override val alignmentSource = MapAlignmentSource.LAYOUT
     override val alignmentType = MapAlignmentType.LOCATION_TRACK
+    override val id: IntId<LocationTrack>
+        get() = version.id
 }
 
 data class AlignmentPolyLine<T, M : AlignmentM<M>>(
@@ -119,7 +122,6 @@ fun toAlignmentHeader(
 
 fun toAlignmentHeader(locationTrack: LocationTrack, geometry: DbLocationTrackGeometry) =
     LocationTrackHeader(
-        id = locationTrack.id.also { require(it is IntId) } as IntId,
         version = locationTrack.getVersionOrThrow(),
         trackNumberId = locationTrack.trackNumberId,
         duplicateOf = locationTrack.duplicateOf,

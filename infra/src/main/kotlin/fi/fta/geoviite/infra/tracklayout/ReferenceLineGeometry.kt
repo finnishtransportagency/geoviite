@@ -18,7 +18,9 @@ data class DbReferenceLineGeometry(
     override val trackNumberId: IntId<LayoutTrackNumber>
         get() = trackNumberVersion.id
 
-    init { validateSegments() }
+    init {
+        validateSegments()
+    }
 }
 
 data class TmpReferenceLineGeometry(
@@ -26,7 +28,9 @@ data class TmpReferenceLineGeometry(
     override val trackNumberId: IntId<LayoutTrackNumber>?,
 ) : ReferenceLineGeometry() {
 
-    init { validateSegments() }
+    init {
+        validateSegments()
+    }
 
     companion object {
         val empty = TmpReferenceLineGeometry(emptyList(), null)
@@ -34,8 +38,6 @@ data class TmpReferenceLineGeometry(
 }
 
 sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
-    // TODO: GVT-3637 cleanup
-    val id get() = trackNumberId
     abstract val trackNumberId: IntId<LayoutTrackNumber>?
     abstract override val segments: List<LayoutSegment>
 
@@ -56,19 +58,19 @@ sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
 
             if (index == 0) {
                 require(m.min.distance == 0.0) {
-                    "First segment should start at 0.0: alignment=$id firstStart=${m.min.distance}"
+                    "First segment should start at 0.0: trackNumberId=$trackNumberId firstStart=${m.min.distance}"
                 }
             } else {
                 val previous = segments[index - 1]
                 val previousM = segmentMValues[index - 1]
                 require(previous.segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)) {
                     "Alignment segment doesn't start where the previous one ended: " +
-                        "alignment=$id segment=$index length=${segment.length} prevLength=${previous.length} " +
+                        "trackNumberId=$trackNumberId segment=$index length=${segment.length} prevLength=${previous.length} " +
                         "diff=${lineLength(previous.segmentEnd, segment.segmentStart)}"
                 }
                 require(isSame(previousM.max.distance, m.min.distance, LAYOUT_M_DELTA)) {
                     "Alignment segment m-calculation should be continuous: " +
-                        "alignment=$id segment=$index prev=$previousM next=$m"
+                        "trackNumberId=$trackNumberId segment=$index prev=$previousM next=$m"
                 }
             }
         }
@@ -76,5 +78,6 @@ sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
 
     fun withSegments(newSegments: List<LayoutSegment>) = TmpReferenceLineGeometry(segments = newSegments, trackNumberId)
 
-    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
+    override fun toLog(): String =
+        logFormat("trackNumberId" to trackNumberId, "segments" to segments.size, "length" to round(length, 3))
 }

@@ -19,15 +19,14 @@ data class GeometryAlignmentLinkStatus(
 ) {
     val isLinked = elements.any(GeometryElementLinkStatus::isLinked)
     val linkedLocationTrackIds = elements.flatMap(GeometryElementLinkStatus::linkedLocationTrackIds).distinct()
-    val linkedReferenceLineIds = elements.flatMap(GeometryElementLinkStatus::linkedReferenceLineIds).distinct()
+    val linkedTrackNumberIds = elements.flatMap(GeometryElementLinkStatus::linkedTrackNumberIds).distinct()
 }
 
 data class GeometryElementLinkStatus(
     val id: IndexedId<GeometryElement>,
     val isLinked: Boolean,
     val linkedLocationTrackIds: List<IntId<LocationTrack>>,
-    // TODO: GVT-3637 clean up naming
-    val linkedReferenceLineIds: List<IntId<LayoutTrackNumber>>,
+    val linkedTrackNumberIds: List<IntId<LayoutTrackNumber>>,
 )
 
 data class GeometrySwitchLinkStatus(val id: IntId<GeometrySwitch>, val isLinked: Boolean)

@@ -16,13 +16,10 @@ import {
 } from 'track-layout/layout-location-track-api';
 import {
     getPlansLinkedToTrackNumber,
-    getTrackNumberById,
+    getReferenceLineStartAndEnd,
+    getTrackNumber,
 } from 'track-layout/layout-track-number-api';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
-import {
-    getReferenceLineStartAndEnd,
-    getTrackNumberReferenceLine,
-} from 'track-layout/layout-reference-line-api';
 import { getChangeTimes } from 'common/change-time-api';
 
 export const filterPlans = (
@@ -88,12 +85,9 @@ const fetchTrackNumberAndExtremities = async (
     trackNumberId: LayoutTrackNumberId,
     layoutContext: LayoutContext,
 ): Promise<TrackNumberAssetAndExtremities | undefined> => {
-    const trackNumber = await getTrackNumberById(trackNumberId, layoutContext);
-    const referenceLine = trackNumber
-        ? await getTrackNumberReferenceLine(trackNumber.id, layoutContext)
-        : undefined;
-    const startAndEnd = referenceLine
-        ? await getReferenceLineStartAndEnd(referenceLine.id, layoutContext)
+    const trackNumber = await getTrackNumber(trackNumberId, layoutContext);
+    const startAndEnd = trackNumber
+        ? await getReferenceLineStartAndEnd(trackNumber.id, layoutContext)
         : undefined;
     return trackNumber && startAndEnd
         ? { type: PlanDownloadAssetType.TRACK_NUMBER, asset: trackNumber, startAndEnd }

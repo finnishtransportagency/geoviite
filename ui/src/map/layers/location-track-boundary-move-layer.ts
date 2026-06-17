@@ -68,7 +68,7 @@ async function getTrackInfo(
     id: LocationTrackId,
 ): Promise<BoundaryMoveTrackInfo | undefined> {
     const alignmentPromise = getSelectedLocationTrackMapAlignmentByTiles(
-        changeTimes,
+        changeTimes.layoutLocationTrack,
         mapTiles,
         layoutContext,
         id,

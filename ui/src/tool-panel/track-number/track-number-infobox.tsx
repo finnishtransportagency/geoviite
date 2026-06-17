@@ -4,7 +4,6 @@ import Infobox from 'tool-panel/infobox/infobox';
 import {
     AlignmentEndPoint,
     LAYOUT_SRID,
-    LayoutReferenceLine,
     LayoutTrackNumber,
     MapAlignmentType,
     LocationTrackId,
@@ -27,7 +26,6 @@ import { updateReferenceLineGeometry } from 'linking/linking-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { getMaxTimestamp } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
@@ -47,7 +45,6 @@ import { TrackNumberLocationTrackInfobox } from './track-number-location-track-i
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
-    referenceLine: LayoutReferenceLine | undefined;
     layoutContext: LayoutContext;
     linkingState?: LinkingState;
     splittingState?: SplittingState;
@@ -85,7 +82,6 @@ const TrackNumberEndpointAddressInfo: React.FC<TrackNumberEndpointAddressInfoPro
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     trackNumber,
-    referenceLine,
     layoutContext,
     linkingState,
     splittingState,
@@ -103,12 +99,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const isLinkingOrSplitting = !!linkingState || !!splittingState;
-    const trackNumberChangeTime = getMaxTimestamp(
-        changeTimes.layoutTrackNumber,
-        changeTimes.layoutReferenceLine,
-    );
+    const trackNumberChangeTime = changeTimes.layoutTrackNumber;
     const startAndEndPoints = useReferenceLineStartAndEnd(
-        referenceLine?.id,
+        trackNumber.id,
         layoutContext,
         trackNumberChangeTime,
     );
@@ -251,7 +244,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                 <TrackNumberEndpointAddressInfo endpoint={startAndEndPoints?.end} />
                             }
                         />
-                        {linkingState === undefined && referenceLine && (
+                        {linkingState === undefined && (
                             <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                 <InfoboxButtons>
                                     <Button
@@ -261,10 +254,10 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                         disabled={!canModifyStartOrEnd}
                                         onClick={() => {
                                             getEndLinkPoints(
-                                                referenceLine.id,
+                                                trackNumber.id,
                                                 layoutContext,
                                                 MapAlignmentType.ReferenceLine,
-                                                changeTimes.layoutReferenceLine,
+                                                changeTimes.layoutTrackNumber,
                                             ).then(onStartReferenceLineGeometryChange);
                                         }}>
                                         {t('tool-panel.location-track.modify-start-or-end')}
@@ -306,7 +299,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.reference-line.true-length')}
                             value={
                                 roundToPrecision(
-                                    referenceLine?.length || 0,
+                                    trackNumber?.length || 0,
                                     Precision.alignmentLengthMeters,
                                 ) + ' m'
                             }
@@ -339,14 +332,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                 size={ButtonSize.SMALL}
                                 qa-id="zoom-to-track-number"
                                 title={
-                                    !referenceLine?.boundingBox
+                                    !trackNumber.boundingBox
                                         ? t('tool-panel.reference-line.layout.no-geometry')
                                         : ''
                                 }
-                                disabled={!referenceLine?.boundingBox}
+                                disabled={!trackNumber?.boundingBox}
                                 onClick={() =>
-                                    referenceLine?.boundingBox &&
-                                    showArea(referenceLine.boundingBox)
+                                    trackNumber?.boundingBox && showArea(trackNumber.boundingBox)
                                 }>
                                 {t('tool-panel.reference-line.show-on-map')}
                             </Button>
@@ -363,19 +355,17 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 changeTime={changeTimes.layoutLocationTrack}
                 isLinkingOrSplitting={isLinkingOrSplitting}
             />
-            {referenceLine && (
-                <PrivilegeRequired privilege={VIEW_GEOMETRY}>
-                    <TrackNumberGeometryInfobox
-                        contentVisible={visibilities.geometry}
-                        onContentVisibilityChange={() => visibilityChange('geometry')}
-                        trackNumberId={trackNumber.id}
-                        layoutContext={layoutContext}
-                        viewport={viewport}
-                        onHighlightItem={onHighlightItem}
-                        changeTime={trackNumberChangeTime}
-                    />
-                </PrivilegeRequired>
-            )}
+            <PrivilegeRequired privilege={VIEW_GEOMETRY}>
+                <TrackNumberGeometryInfobox
+                    contentVisible={visibilities.geometry}
+                    onContentVisibilityChange={() => visibilityChange('geometry')}
+                    trackNumberId={trackNumber.id}
+                    layoutContext={layoutContext}
+                    viewport={viewport}
+                    onHighlightItem={onHighlightItem}
+                    changeTime={trackNumberChangeTime}
+                />
+            </PrivilegeRequired>
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
@@ -385,7 +375,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             />
             <TrackNumberChangeInfoInfobox
                 trackNumber={trackNumber}
-                referenceLine={referenceLine}
                 layoutContext={layoutContext}
                 visible={visibilities.log}
                 visibilityChange={() => visibilityChange('log')}

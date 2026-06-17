@@ -14,7 +14,6 @@ export const previewViewAreaSelectTool = (
 
         const selectedCandidates = [
             ...(items.locationTrackPublicationCandidates || []),
-            ...(items.referenceLinePublicationCandidates || []),
             ...(items.trackNumberPublicationCandidates || []),
             ...(items.switchPublicationCandidates || []),
             ...(items.kmPostPublicationCandidates || []),
