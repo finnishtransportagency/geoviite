@@ -183,7 +183,7 @@ constructor(
     ): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
         val (dbTrackNumber, dbGeometry) = dbTnAndGeometry
         assertTrue(dbTrackNumber.id is IntId)
-        assertTrue(dbGeometry.id is IntId)
+        assertTrue(dbGeometry.trackNumberId is IntId)
         assertFalse(dbTrackNumber.isDraft)
         val draft = asMainDraft(dbTrackNumber)
         assertTrue(draft.isDraft)

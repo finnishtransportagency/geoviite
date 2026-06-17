@@ -234,6 +234,41 @@ constructor(
     }
 
     @Test
+    fun `Track number diff includes reference line geometry changes`() {
+        val trackNumberVersion =
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            )
+        val trackNumberId = trackNumberVersion.id
+        val trackNumber = trackNumberDao.fetch(trackNumberVersion)
+
+        trackNumberService.saveDraft(
+            LayoutBranch.main,
+            trackNumber,
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(20.0, 0.0))),
+        )
+        publish(publicationService, trackNumbers = listOf(trackNumberId))
+
+        val latestPublication = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
+        val changes = publicationDao.fetchPublicationTrackNumberChanges(LayoutBranch.main, latestPublication.id)
+
+        val diff =
+            publicationLogService.diffTrackNumber(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(trackNumberId),
+                latestPublication.publicationTime,
+                latestPublication.publicationTime,
+            ) { _, _ ->
+                null
+            }
+
+        val propKeys = diff.map { it.propKey.key.toString() }
+        assertTrue(propKeys.contains("length"), "Expected length change in diff")
+        assertTrue(propKeys.contains("end-location"), "Expected end-location change in diff")
+        assertTrue(!propKeys.contains("start-location"), "Expected no start-location change in diff")
+    }
+
+    @Test
     fun `Changing specific Track Number field returns only that field`() {
         val (trackNumberId, trackNumber) =
             trackNumberService

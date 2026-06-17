@@ -373,7 +373,7 @@ private fun assertGeometryChange(
     newGeometry: ReferenceLineGeometry,
     segmentPointLists: List<List<SegmentPoint>>,
 ) {
-    assertEquals(originalGeometry.id, newGeometry.id)
+    assertEquals(originalGeometry.trackNumberId, newGeometry.trackNumberId)
     assertEquals(segmentPointLists.size, newGeometry.segments.size)
     segmentPointLists.forEachIndexed { index, expectedPoints ->
         val segment = newGeometry.segments[index]

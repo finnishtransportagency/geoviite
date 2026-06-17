@@ -528,7 +528,7 @@ constructor(
     ): LayoutRowVersion<LayoutTrackNumber> {
         val rowVersion = trackNumberDao.save(trackNumberDao.fetch(tnVersion), geometry)
         assertNotNull(rowVersion.previous())
-        assertEquals(geometry.id, rowVersion.id)
+        assertEquals(geometry.trackNumberId, rowVersion.id)
         assertMatches(geometry, alignmentDao.fetch(rowVersion))
         return rowVersion
     }
