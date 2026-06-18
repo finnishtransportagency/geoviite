@@ -309,7 +309,6 @@ export type PublicationRequest = {
 export interface PublicationResultSummary {
     trackNumbers: number;
     locationTracks: number;
-    referenceLines: number;
     switches: number;
     kmPosts: number;
     operationalPoints: number;
