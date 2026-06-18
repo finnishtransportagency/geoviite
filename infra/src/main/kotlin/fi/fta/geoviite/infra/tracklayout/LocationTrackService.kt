@@ -517,7 +517,13 @@ class LocationTrackService(
             val unpublishedBoundaryMoves =
                 trackBoundaryMoveDao.getUnpublished().filter { move -> move.branch == layoutContext.branch }
             val boundaryMoveDisabledReasons =
-                boundaryMoveDisabledReasons(track, geometry, allUnfinishedSplits, unpublishedBoundaryMoves)
+                boundaryMoveDisabledReasons(
+                    track,
+                    geometry,
+                    allUnfinishedSplits,
+                    unpublishedBoundaryMoves,
+                    track.trackNumberId,
+                )
 
             val switches =
                 geometry.trackSwitchLinks
