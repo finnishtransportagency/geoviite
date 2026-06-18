@@ -159,7 +159,7 @@ $$;
 
 -- Collect the version combinations that should be active on each interval
 drop table if exists combined_tn_rl_versions;
-create table combined_tn_rl_versions as
+create temporary table combined_tn_rl_versions as
 with
   -- All interval version combinations (everything that's active in the interval)
   interval_versions as (
