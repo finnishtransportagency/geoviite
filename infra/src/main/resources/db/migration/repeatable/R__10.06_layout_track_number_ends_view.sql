@@ -1,4 +1,3 @@
--- increment this to force re-execution: 1
 drop view if exists layout.track_number_version_ends_view;
 create view layout.track_number_version_ends_view as
 select
@@ -6,7 +5,7 @@ select
   tnv.layout_context_id,
   tnv.version,
   postgis.st_startpoint(first_geom.geometry) as start_point,
-  postgis.st_endpoint(last_geom.geometry)    as end_point
+  postgis.st_endpoint(last_geom.geometry) as end_point
   from layout.track_number_version tnv
     left join layout.track_number_version_segment first_seg
               on tnv.id = first_seg.track_number_id
