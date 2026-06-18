@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -66,17 +67,20 @@ class TrackBoundaryMoveService(
 
         val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutBranch)
         val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutBranch)
+        val expectedTrackNumberId = lengtheningTrack.trackNumberId
         validateTrackForBoundaryMove(
             shorteningTrack,
             shorteningTrackGeometry,
             unfinishedSplits,
             unpublishedBoundaryMoves,
+            expectedTrackNumberId,
         )
         validateTrackForBoundaryMove(
             lengtheningTrack,
             lengtheningTrackGeometry,
             unfinishedSplits,
             unpublishedBoundaryMoves,
+            expectedTrackNumberId,
         )
 
         val geometries =
@@ -194,8 +198,13 @@ class TrackBoundaryMoveService(
         val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutContext.branch)
         val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutContext.branch)
         val getDisabledReasons = { track: LocationTrack, geometry: DbLocationTrackGeometry ->
-            boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves) +
-                listOfNotNull(BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER.takeIf { track.trackNumberId != headTrack.trackNumberId })
+            boundaryMoveDisabledReasons(
+                track,
+                geometry,
+                unfinishedSplits,
+                unpublishedBoundaryMoves,
+                headTrack.trackNumberId,
+            )
         }
 
         val counterpartFirstOptions =
@@ -243,10 +252,11 @@ private fun validateTrackForBoundaryMove(
     geometry: LocationTrackGeometry,
     unfinishedSplits: List<Split>,
     unpublishedBoundaryMoves: List<TrackBoundaryMove>,
+    expectedTrackNumberId: IntId<LayoutTrackNumber>,
 ) {
     val reason =
-        boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves).firstOrNull()
-            ?: return
+        boundaryMoveDisabledReasons(track, geometry, unfinishedSplits, unpublishedBoundaryMoves, expectedTrackNumberId)
+            .firstOrNull() ?: return
     val messageKey =
         when (reason) {
             BoundaryMoveDisabledReason.PART_OF_SPLIT -> "track-part-of-split"

@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.split.AdministrativeChange
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 
@@ -65,6 +66,7 @@ fun boundaryMoveDisabledReasons(
     geometry: LocationTrackGeometry,
     unfinishedSplits: List<Split>,
     unpublishedBoundaryMoves: List<TrackBoundaryMove>,
+    expectedTrackNumberId: IntId<LayoutTrackNumber>,
 ): List<BoundaryMoveDisabledReason> {
     val trackId = track.id as IntId
     val unpublishedSplits = unfinishedSplits.filter { split -> split.publicationId == null }
@@ -80,6 +82,7 @@ fun boundaryMoveDisabledReasons(
         BoundaryMoveDisabledReason.SWITCHES_PART_OF_SPLIT.takeIf {
             geometry.switchIds.any { switchId -> unpublishedSplits.any { split -> split.containsSwitch(switchId) } }
         },
+        BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER.takeIf { track.trackNumberId != expectedTrackNumberId },
     )
 }
 
