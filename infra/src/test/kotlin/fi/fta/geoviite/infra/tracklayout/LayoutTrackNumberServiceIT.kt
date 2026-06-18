@@ -92,7 +92,7 @@ constructor(
                 LayoutState.NOT_IN_USE,
                 TrackMeter(KmNumber(222), 2.2, 3),
             )
-        val updateV = trackNumberService.update(LayoutBranch.main, id, updateRequest)
+        trackNumberService.update(LayoutBranch.main, id, updateRequest)
         trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id).also { (tn, geom) ->
             assertEquals(updateRequest.number, tn.number)
             assertEquals(updateRequest.description, tn.description)
@@ -133,7 +133,7 @@ constructor(
                     startAddress = TrackMeter("0123+1234.123"),
                 )
         val updatedGeometry = referenceLineGeometry(segment(Point(100.0, 100.0), Point(110.0, 110.0)))
-        val updateV = trackNumberService.saveDraft(LayoutBranch.main, updated, updatedGeometry)
+        trackNumberService.saveDraft(LayoutBranch.main, updated, updatedGeometry)
         trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id).also { (tn, geom) ->
             assertEquals(updated.number, tn.number)
             assertEquals(updated.description, tn.description)
@@ -144,7 +144,7 @@ constructor(
     }
 
     @Test
-    fun `deleting draft only TrackNumber deletes it with geometry`() {
+    fun `deleted draft-only TrackNumber is not fetchable by ID`() {
         val (trackNumber, _) = createTrackNumberWithGeometry()
         val trackNumberId = trackNumber.id as IntId
 

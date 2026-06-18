@@ -17,7 +17,6 @@ data class LayoutTrackNumber(
     val length: LineM<ReferenceLineM> = LineM(0.0),
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<LayoutTrackNumber>,
-    //    @JsonIgnore val geometryVersion: RowVersion<ReferenceLineGeometry>? = null,
 ) : LayoutAsset<LayoutTrackNumber>(contextData) {
     @JsonIgnore val exists = !state.isRemoved()
 
@@ -31,9 +30,6 @@ data class LayoutTrackNumber(
 
     override fun withContext(contextData: LayoutContextData<LayoutTrackNumber>): LayoutTrackNumber =
         copy(contextData = contextData)
-
-    //    fun getGeometryVersionOrThrow(): RowVersion<ReferenceLineGeometry> =
-    //        requireNotNull(geometryVersion) { "${this::class.simpleName} has no geometry: id=$id" }
 }
 
 data class TrackNumberAndChangeTime(val id: IntId<LayoutTrackNumber>, val number: TrackNumber, val changeTime: Instant)

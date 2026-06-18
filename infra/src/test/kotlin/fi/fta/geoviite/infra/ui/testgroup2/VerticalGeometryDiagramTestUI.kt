@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -41,7 +40,6 @@ import java.math.BigDecimal
 class VerticalGeometryDiagramTestUI
 @Autowired
 constructor(
-    private val trackNumberService: LayoutTrackNumberService,
     private val kmPostDao: LayoutKmPostDao,
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
