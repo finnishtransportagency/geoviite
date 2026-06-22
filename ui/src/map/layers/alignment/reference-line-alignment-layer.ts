@@ -110,11 +110,7 @@ export function createReferenceLineAlignmentLayer(
         const trackNumberIds = deduplicate(
             referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),
         );
-
-        return {
-            referenceLines: referenceLines.map((r) => r.header.id),
-            trackNumbers: trackNumberIds,
-        };
+        return { trackNumbers: trackNumberIds };
     };
 
     return {
