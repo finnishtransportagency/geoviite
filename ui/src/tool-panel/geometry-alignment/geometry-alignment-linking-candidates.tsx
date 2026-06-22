@@ -4,7 +4,6 @@ import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     LayoutLocationTrack,
     LayoutTrackNumber,
@@ -115,7 +114,6 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     disableAddButton,
 }) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers(layoutContext, trackNumberChangeTime);
     const [tnSearchResults, setTnSearchResults] = React.useState<LayoutTrackNumberSearchResult[]>(
         [],
     );
@@ -149,14 +147,10 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     }, [geometryAlignment.boundingBox, trackNumberChangeTime]);
 
     const candidates: TrackNumberCandidate[] = React.useMemo(() => {
-        if (!trackNumbers) return [];
         const hasSearchInput = tnSearchInput.length > 0;
 
         return tnSearchResults.flatMap((result) => {
-            const trackNumber = trackNumbers.find((tn) => tn.id === result.id);
-            if (!trackNumber) return [];
-
-            const trackNumberMatchesSearchInput = trackNumber.number
+            const trackNumberMatchesSearchInput = result.number
                 .toLowerCase()
                 .includes(tnSearchInput);
             const trackNumberWithEmptyGeometryIsAlreadyPublished =
@@ -168,11 +162,9 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
 
             const isSelected = result.id === selectedTrackNumber?.id;
 
-            return isSelected || displayTrackNumberOption
-                ? [{ referenceLine: result, trackNumber }]
-                : [];
+            return isSelected || displayTrackNumberOption ? [{ trackNumber: result }] : [];
         });
-    }, [tnSearchResults, trackNumbers, tnSearchInput, selectedTrackNumber]);
+    }, [tnSearchResults, tnSearchInput, selectedTrackNumber]);
 
     return (
         <React.Fragment>
