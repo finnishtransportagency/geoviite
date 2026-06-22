@@ -30,9 +30,8 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
 }) => {
     const { t } = useTranslation();
     const trackNumberChangeInfo = useTrackNumberChangeTimes(trackNumber.id, layoutContext);
-    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id, layoutContext);
-    const createdTime = tnChangeTimes?.created;
-    const changedTime = tnChangeTimes?.changed;
+    const createdTime = trackNumberChangeInfo?.created;
+    const changedTime = trackNumberChangeInfo?.changed;
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const navigate = useAppNavigate();
