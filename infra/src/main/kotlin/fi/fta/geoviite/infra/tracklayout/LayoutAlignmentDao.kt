@@ -46,14 +46,14 @@ import fi.fta.geoviite.infra.util.getPoint3DMOrNull
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -532,7 +532,7 @@ class LayoutAlignmentDao(
             from layout.track_number tn
               left join layout.track_number_version_segment sv
                 on sv.track_number_id = tn.id
-                  and sv.track_layout_context_id = tn.layout_context_id
+                  and sv.track_number_layout_context_id = tn.layout_context_id
                   and sv.track_number_version = tn.version
             order by tn.id, tn.layout_context_id, sv.segment_index
             """
@@ -580,7 +580,7 @@ class LayoutAlignmentDao(
             """
             insert into layout.track_number_version_segment(
                 track_number_id,
-                track_layout_context_id,
+                track_number_layout_context_id,
                 track_number_version,
                 segment_index,
                 start_m,
@@ -706,7 +706,7 @@ class LayoutAlignmentDao(
               geometry_id
             from layout.track_number_version_segment
             where track_number_id = :track_number_id
-              and track_layout_context_id = :track_layout_context_id
+              and track_number_layout_context_id = :track_number_layout_context_id
               and track_number_version = :track_number_version
             order by segment_index
             """
@@ -714,7 +714,7 @@ class LayoutAlignmentDao(
         val params =
             mapOf(
                 "track_number_id" to version.id.intValue,
-                "track_layout_context_id" to version.context.toSqlString(),
+                "track_number_layout_context_id" to version.context.toSqlString(),
                 "track_number_version" to version.version,
             )
 
@@ -911,7 +911,7 @@ class LayoutAlignmentDao(
                 from layout.track_number_version_segment sv
                   inner join layout.segment_geometry on segment_geometry.id = sv.geometry_id
                 where sv.track_number_id = :track_number_id
-                  and sv.track_layout_context_id = :track_layout_context_id
+                  and sv.track_number_layout_context_id = :track_number_layout_context_id
                   and sv.track_number_version = :track_number_version
                   and (
                       :use_bounding_box = false or postgis.st_intersects(
@@ -943,14 +943,14 @@ class LayoutAlignmentDao(
                     and segment_metadata.track_number_id = :track_number_id
                   inner join layout.track_number_version_segment segment
                     on segment.track_number_id = segment_metadata.track_number_id
-                    and segment.track_layout_context_id = 'main_official'
+                    and segment.track_number_layout_context_id = 'main_official'
                     and segment.track_number_version = 1
                     and segment.segment_index = segment_metadata.segment_index
                     and segment.source = 'IMPORTED'
                   inner join layout.track_number_version_segment current_segment
                     on current_segment.geometry_id = segment.geometry_id
                     and current_segment.track_number_id = :track_number_id
-                    and current_segment.track_layout_context_id = :track_layout_context_id
+                    and current_segment.track_number_layout_context_id = :track_number_layout_context_id
                     and current_segment.track_number_version = :track_number_version
                     and current_segment.geometry_alignment_id is null
                   left join layout.segment_geometry on segment.geometry_id = segment_geometry.id
@@ -981,7 +981,7 @@ class LayoutAlignmentDao(
                   left join geometry.plan_file on plan_file.plan_id = geom_alignment.plan_id
                   left join orig_metadata on orig_metadata.current_segment_index = segment.segment_index
                 where segment.track_number_id = :track_number_id
-                  and segment.track_layout_context_id = :track_layout_context_id
+                  and segment.track_number_layout_context_id = :track_number_layout_context_id
                   and segment.track_number_version = :track_number_version
               ),
               metadata_segments as (
@@ -1019,7 +1019,7 @@ class LayoutAlignmentDao(
         val params =
             mapOf(
                 "track_number_id" to trackNumberVersion.id.intValue,
-                "track_layout_context_id" to trackNumberVersion.context.toSqlString(),
+                "track_number_layout_context_id" to trackNumberVersion.context.toSqlString(),
                 "track_number_version" to trackNumberVersion.version,
                 "external_id" to metadataExternalId,
                 "use_bounding_box" to (boundingBox != null),
@@ -1266,7 +1266,7 @@ class LayoutAlignmentDao(
                     from layout.track_number_version_segment sv
                       inner join layout.track_number tn
                         on tn.id = sv.track_number_id
-                          and tn.layout_context_id = sv.track_layout_context_id
+                          and tn.layout_context_id = sv.track_number_layout_context_id
                           and tn.version = sv.track_number_version
                   union all
                   select s.geometry_id

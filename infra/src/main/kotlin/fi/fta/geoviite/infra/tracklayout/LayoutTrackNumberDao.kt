@@ -24,11 +24,11 @@ import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
@@ -342,7 +342,7 @@ class LayoutTrackNumberDao(
                     from layout.track_number_version_segment sv
                       inner join layout.segment_geometry on segment_geometry.id = sv.geometry_id
                     where sv.track_number_id = track_number.id
-                      and sv.track_layout_context_id = track_number.layout_context_id
+                      and sv.track_number_layout_context_id = track_number.layout_context_id
                       and sv.track_number_version = track_number.version
                       and postgis.st_intersects(
                         postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
