@@ -52,7 +52,7 @@ type TrackNumberEditDialogContainerProps = {
 type TrackNumberEditDialogProps = {
     layoutContext: LayoutContext;
     inEditTrackNumber?: LayoutTrackNumber;
-    isNewDraft: boolean;
+    isNewDraft?: boolean;
     trackNumbers: LayoutTrackNumber[];
     onClose: () => void;
     onSave?: (trackNumberId: LayoutTrackNumberId) => void;
@@ -83,7 +83,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
                 layoutContext={layoutContext}
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id === trackNumberId)}
                 trackNumbers={trackNumbers}
-                isNewDraft={status !== LoaderStatus.Ready && !officialTrackNumber}
+                isNewDraft={status === LoaderStatus.Ready ? !officialTrackNumber : undefined}
                 onClose={onClose}
                 onSave={onSave}
                 onEditTrackNumber={setTrackNumberId}
@@ -121,7 +121,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
-    const canSetDeleted = inEditTrackNumber !== undefined && !isNewDraft;
+    const canSetDeleted = inEditTrackNumber !== undefined && isNewDraft === false;
     const trackNumberStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((s) => ({ ...s, qaId: s.value }));
