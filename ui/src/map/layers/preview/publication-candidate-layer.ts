@@ -84,7 +84,7 @@ export function createPublicationCandidateLayer(
         mapTiles,
         layoutContext,
     ).then((rlAlignments) => {
-        const rlCandidates = rlAlignments
+        return rlAlignments
             .map((alignment) => {
                 const candidate = trackNumberCandidates.find((c) => c.id === alignment.header.id);
                 return candidate
@@ -95,21 +95,6 @@ export function createPublicationCandidateLayer(
                     : undefined;
             })
             .filter(filterNotEmpty);
-        const tnCandidates = rlAlignments
-            .map((alignment) => {
-                const candidate = trackNumberCandidates.find(
-                    (c) => c.id === alignment.header.trackNumberId,
-                );
-                return candidate
-                    ? {
-                          alignment: alignment,
-                          publishCandidate: candidate,
-                      }
-                    : undefined;
-            })
-            .filter(filterNotEmpty);
-
-        return { candidateTrackNumbers: tnCandidates, candidateReferenceLines: rlCandidates };
     });
 
     const candidateLocationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
@@ -304,7 +289,7 @@ export function createPublicationCandidateLayer(
     ]).then(
         ([
             candidateLocationTracks,
-            candidateTrackNumbersAndReferenceLines,
+            candidateTrackNumbers,
             baseLocationTracks,
             baseTrackNumbers,
             baseSwitches,
@@ -312,13 +297,9 @@ export function createPublicationCandidateLayer(
             baseOperationalPoints,
             switchStructures,
         ]) => {
-            const { candidateTrackNumbers, candidateReferenceLines } =
-                candidateTrackNumbersAndReferenceLines;
-
             return {
                 candidateLocationTracks,
                 candidateTrackNumbers,
-                candidateReferenceLines,
                 baseLocationTracks,
                 baseTrackNumbers,
                 baseSwitches,
