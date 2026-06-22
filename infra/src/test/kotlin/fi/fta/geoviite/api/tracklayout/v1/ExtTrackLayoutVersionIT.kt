@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -36,10 +35,12 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
         api.trackLayoutVersionCollection.getWithEmptyBody(httpStatus = HttpStatus.NO_CONTENT)
 
         initUser()
-        val (tnId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0001.000")), rlGeom).id
-        val publication1 = testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(tnId))
 
         assertMatches(publication1, api.trackLayoutVersionLatest.get())
         assertMatches(publication1, api.trackLayoutVersion.get(publication1.uuid))
@@ -50,8 +51,8 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
         }
 
         initUser()
-        mainDraftContext.mutate(rlId) { rl -> rl.copy(startAddress = TrackMeter("0001+0002.000")) }
-        val publication2 = testDBService.publish(referenceLines = listOf(rlId))
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val publication2 = testDBService.publish(trackNumbers = listOf(tnId))
 
         assertMatches(publication2, api.trackLayoutVersionLatest.get())
         assertMatches(publication1, api.trackLayoutVersion.get(publication1.uuid))
@@ -63,8 +64,8 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
         }
 
         initUser()
-        mainDraftContext.mutate(rlId) { rl -> rl.copy(startAddress = TrackMeter("0001+0003.000")) }
-        val publication3 = testDBService.publish(referenceLines = listOf(rlId))
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0003.000")) }
+        val publication3 = testDBService.publish(trackNumbers = listOf(tnId))
 
         assertMatches(publication3, api.trackLayoutVersionLatest.get())
         assertMatches(publication1, api.trackLayoutVersion.get(publication1.uuid))
@@ -79,16 +80,18 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
 
     @Test
     fun `Track layout version modifications should be returned correctly`() {
-        val (tnId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0001.000")), rlGeom).id
-        val publication1 = testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(tnId))
 
         api.trackLayoutVersionCollection.assertNoModificationSince(publication1.uuid)
 
         initUser()
-        mainDraftContext.mutate(rlId) { rl -> rl.copy(startAddress = TrackMeter("0001+0002.000")) }
-        val publication2 = testDBService.publish(referenceLines = listOf(rlId))
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val publication2 = testDBService.publish(trackNumbers = listOf(tnId))
 
         api.trackLayoutVersionCollection.getModifiedSince(publication1.uuid).let { result ->
             assertEquals(publication1.uuid.toString(), result.alkuversio)
@@ -102,8 +105,8 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
         }
 
         initUser()
-        mainDraftContext.mutate(rlId) { rl -> rl.copy(startAddress = TrackMeter("0001+0003.000")) }
-        val publication3 = testDBService.publish(referenceLines = listOf(rlId))
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0003.000")) }
+        val publication3 = testDBService.publish(trackNumbers = listOf(tnId))
 
         api.trackLayoutVersionCollection.getModifiedSince(publication1.uuid).let { result ->
             assertEquals(publication1.uuid.toString(), result.alkuversio)
@@ -127,18 +130,20 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
 
     @Test
     fun `Design publications should not be returned`() {
-        val (tnId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0001.000")), rlGeom).id
-        val publication1 = testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(tnId))
 
         api.trackLayoutVersionCollection.assertNoModificationSince(publication1.uuid)
 
         initUser()
         val designBranch = testDBService.createDesignBranch()
         val designCtx = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        designCtx.mutate(rlId) { rl -> rl.copy(startAddress = TrackMeter("0001+0002.000")) }
-        val designPublication = testDBService.publish(designBranch, referenceLines = listOf(rlId))
+        designCtx.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
 
         api.trackLayoutVersionCollection.assertNoModificationSince(publication1.uuid)
         api.trackLayoutVersion.getWithExpectedError(

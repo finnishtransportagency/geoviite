@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.testFile
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -12,9 +11,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
@@ -26,12 +22,12 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.WEST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastLayoutSwitch
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastLocationTrack
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastReferenceLine
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastReferenceLineGeometry
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.geometryPlan
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westLayoutSwitch
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLocationTrack
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLineGeometry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -50,12 +46,9 @@ constructor(
     private val geometryDao: GeometryDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
-    private val referenceLineDao: ReferenceLineDao,
-    private val alignmentDao: LayoutAlignmentDao,
 ) : SeleniumTest() {
     lateinit var WEST_LT: Pair<LocationTrack, LocationTrackGeometry>
     lateinit var GEOMETRY_PLAN: GeometryPlan
-    lateinit var WEST_REFERENCE_LINE: Pair<ReferenceLine, ReferenceLineGeometry>
     lateinit var EAST_LAYOUT_SWITCH: LayoutSwitch
     lateinit var TRACK_NUMBER_WEST: LayoutTrackNumber
 
@@ -67,20 +60,16 @@ constructor(
         // it's clear what is expected
         TRACK_NUMBER_WEST = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
         val trackNumberEast = trackNumber(HKI_TRACK_NUMBER_2, draft = false)
-        val trackNumberWestId = trackNumberDao.save(TRACK_NUMBER_WEST)
-        val trackNumberEastId = trackNumberDao.save(trackNumberEast)
+        val trackNumberWestId = trackNumberDao.save(TRACK_NUMBER_WEST, westReferenceLineGeometry())
+        val trackNumberEastId = trackNumberDao.save(trackNumberEast, eastReferenceLineGeometry())
 
         WEST_LT = westMainLocationTrack(trackNumberWestId.id)
 
-        WEST_REFERENCE_LINE = westReferenceLine(trackNumberWestId.id)
-        val eastReferenceLine = eastReferenceLine(trackNumberEastId.id)
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
 
         val westLtId = mainOfficialContext.saveLocationTrack(WEST_LT).id
         testDBService.generateOid(westLtId, LayoutBranch.main)
         mainOfficialContext.saveLocationTrack(eastLocationTrack)
-        insertReferenceLine(WEST_REFERENCE_LINE)
-        insertReferenceLine(eastReferenceLine)
 
         westLayoutKmPosts(trackNumberWestId.id).forEach(kmPostDao::save)
         eastLayoutKmPosts(trackNumberEastId.id).forEach(kmPostDao::save)
@@ -187,10 +176,5 @@ constructor(
 
         assertEquals("R36240", locationTrackInfobox.name)
         locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
-    }
-
-    fun insertReferenceLine(lineAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>) {
-        val geometryVersion = alignmentDao.insert(lineAndGeometry.second)
-        referenceLineDao.save(lineAndGeometry.first.copy(geometryVersion = geometryVersion))
     }
 }

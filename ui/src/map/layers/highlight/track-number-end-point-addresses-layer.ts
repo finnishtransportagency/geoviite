@@ -188,7 +188,7 @@ async function getTrackNumberEndPointData(
     layerSettings: TrackNumberDiagramLayerSetting,
 ): Promise<AlignmentDataHolderWithAddresses[]> {
     const referenceLines = await getReferenceLineMapAlignmentsByTiles(
-        changeTimes,
+        changeTimes.layoutTrackNumber,
         mapTiles,
         layoutContext,
     );

@@ -10,9 +10,8 @@ import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-
 import {
     getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
-    useTrackNumber,
-    useTrackNumberReferenceLine,
     useTrackNumbersIncludingDeleted,
+    useTrackNumberWithStatus,
 } from 'track-layout/track-layout-react-utils';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import {
@@ -25,11 +24,7 @@ import {
 } from './track-number-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { FieldValidationIssueType } from 'utils/validation-utils';
-import {
-    LayoutReferenceLine,
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { formatTrackMeter, parseTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
@@ -45,6 +40,8 @@ import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common
 import { UnknownAction } from 'redux';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { isNil } from 'utils/type-utils';
+import { LoaderStatus } from 'utils/react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -55,8 +52,7 @@ type TrackNumberEditDialogContainerProps = {
 type TrackNumberEditDialogProps = {
     layoutContext: LayoutContext;
     inEditTrackNumber?: LayoutTrackNumber;
-    inEditReferenceLine?: LayoutReferenceLine;
-    isNewDraft: boolean;
+    isNewDraft?: boolean;
     trackNumbers: LayoutTrackNumber[];
     onClose: () => void;
     onSave?: (trackNumberId: LayoutTrackNumberId) => void;
@@ -68,6 +64,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     onClose,
     onSave,
 }: TrackNumberEditDialogContainerProps) => {
+    const trackNumberChangeTime = getChangeTimes().layoutTrackNumber;
     const layoutContext = draftLayoutContext(
         useTrackLayoutAppSelector((state) => state.layoutContext),
     );
@@ -75,21 +72,18 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     const [trackNumberId, setTrackNumberId] = React.useState<LayoutTrackNumberId | undefined>(
         editTrackNumberId,
     );
-    const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, layoutContext);
-    const hasOfficialTrackNumber = useTrackNumber(
+    const [officialTrackNumber, status] = useTrackNumberWithStatus(
         trackNumberId,
         officialLayoutContext(layoutContext),
+        trackNumberChangeTime,
     );
-    const isNewDraft = !!editReferenceLine && !hasOfficialTrackNumber;
-
-    if (trackNumbers !== undefined && trackNumberId === editReferenceLine?.trackNumberId) {
+    if (trackNumbers !== undefined) {
         return (
             <TrackNumberEditDialog
                 layoutContext={layoutContext}
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id === trackNumberId)}
-                inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
-                isNewDraft={isNewDraft}
+                isNewDraft={status === LoaderStatus.Ready ? !officialTrackNumber : undefined}
                 onClose={onClose}
                 onSave={onSave}
                 onEditTrackNumber={setTrackNumberId}
@@ -105,7 +99,6 @@ const mapError = (errorReason: string) => `track-number-edit.error.${errorReason
 export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     layoutContext,
     inEditTrackNumber,
-    inEditReferenceLine,
     trackNumbers,
     isNewDraft,
     onClose,
@@ -116,11 +109,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 
     const [state, dispatcher] = React.useReducer<TrackNumberEditState, [action: UnknownAction]>(
         reducer,
-        initialTrackNumberEditState(inEditTrackNumber, inEditReferenceLine, trackNumbers),
+        initialTrackNumberEditState(inEditTrackNumber, trackNumbers),
     );
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-    const startAndEndPoints = inEditReferenceLine
-        ? useReferenceLineStartAndEnd(inEditReferenceLine.id, draftLayoutContext(layoutContext))
+    const startAndEndPoints = inEditTrackNumber
+        ? useReferenceLineStartAndEnd(inEditTrackNumber.id, draftLayoutContext(layoutContext))
         : undefined;
 
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
@@ -128,7 +121,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(false);
 
-    const canSetDeleted = inEditTrackNumber !== undefined && !isNewDraft;
+    const canSetDeleted = inEditTrackNumber !== undefined && isNewDraft === false;
     const trackNumberStateOptions = layoutStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((s) => ({ ...s, qaId: s.value }));
@@ -207,10 +200,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         {inEditTrackNumber && (
                             <div className={styles['dialog__footer-content--left-aligned']}>
                                 <Button
-                                    disabled={
-                                        !inEditTrackNumber.isDraft &&
-                                        inEditReferenceLine?.isDraft === false
-                                    }
+                                    disabled={!inEditTrackNumber.isDraft}
                                     onClick={() => {
                                         inEditTrackNumber && confirmNewDraftDelete();
                                     }}
@@ -370,13 +360,13 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 }
                             />
                         )}
-                        {inEditReferenceLine && (
+                        {inEditTrackNumber && (
                             <FieldLayout
                                 label={t('track-number-edit.field.true-length')}
                                 value={
                                     <TextField
                                         value={roundToPrecision(
-                                            inEditReferenceLine.length,
+                                            inEditTrackNumber.length,
                                             Precision.alignmentLengthMeters,
                                         )}
                                         wide

@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -59,11 +58,10 @@ constructor(
     @Test
     fun `LocationTrack split shows up a boundary change`() {
         val tn = testDBService.getUnusedTrackNumber()
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(tn))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
-
-        // Switches with main (split-point) joints at 200 and 300
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(
+            trackNumber(tn),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0))),
+        )
         val structureId = switchStructureYV60_300_1_9().id
         val switch1Joints = listOf(switchJoint(1, Point(200.0, 0.0)), switchJoint(2, Point(210.0, 10.0)))
         val switch1Id = mainDraftContext.save(switch(structureId, switch1Joints)).id
@@ -137,7 +135,6 @@ constructor(
         val basePublication =
             testDBService.publish(
                 trackNumbers = listOf(tnId),
-                referenceLines = listOf(rlId),
                 locationTracks = listOf(sourceId, target2Id, target3Id),
                 switches = listOf(switch1Id, switch2Id),
             )
@@ -203,9 +200,10 @@ constructor(
     @Test
     fun `Track boundary change shows up with vaihtumiskohdan_siirto type`() {
         val tn = testDBService.getUnusedTrackNumber()
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(tn))
-        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(
+            trackNumber(tn),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0))),
+        )
 
         // Switch1 at 100: current boundary between tracks
         // Switch2 at 200: new boundary point (on shortening track)
@@ -255,7 +253,6 @@ constructor(
         val basePublication =
             testDBService.publish(
                 trackNumbers = listOf(tnId),
-                referenceLines = listOf(rlId),
                 locationTracks = listOf(shorteningId, lengtheningId),
                 switches = listOf(switch1Id, switch2Id),
             )

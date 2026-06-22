@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -37,6 +36,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -48,7 +48,6 @@ constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
     private val switchDao: LayoutSwitchDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val splitService: SplitService,
     private val splitTestDataService: SplitTestDataService,
     private val layoutTrackNumberService: LayoutTrackNumberService,
@@ -683,7 +682,7 @@ constructor(
     @Test
     fun fetchDuplicatesIsVersioned() {
         val geometry = someTrackGeometry()
-        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine(someReferenceLineGeometry()).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = someReferenceLineGeometry()).id
 
         val (originalLocationTrack, _) = insertAndFetchDraft(locationTrack(trackNumberId, draft = true), geometry)
         val originalTrackId = originalLocationTrack.id as IntId
@@ -729,10 +728,8 @@ constructor(
 
     @Test
     fun `Splitting initialization parameters are fetched properly`() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val referenceLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val referenceLineGeometry = alignmentDao.insert(referenceLineGeometry(referenceLineSegment))
-        referenceLineDao.save(referenceLine(trackNumberId, geometryVersion = referenceLineGeometry, draft = false))
+        val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val trackNumberId = mainDraftContext.save(trackNumber(), geom).id
 
         val middleSwitch =
             insertAndFetchDraft(
@@ -838,7 +835,7 @@ constructor(
     fun `LocationTrack polygon is simplified to reduce point count`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0))))
                 .id
         val trackSegment = segment(Point(0.0, 0.0), Point(1000.0, 0.0))
         assertTrue(trackSegment.segmentPoints.size > 900)
@@ -852,7 +849,7 @@ constructor(
     fun `LocationTrack polygon is resolved correctly without cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -896,7 +893,7 @@ constructor(
     fun `LocationTrack polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -952,8 +949,8 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(2000.0, 0.0), Point(5000.0, 0.0)))
+                .createLayoutTrackNumber(
+                    geometry = referenceLineGeometry(segment(Point(2000.0, 0.0), Point(5000.0, 0.0)))
                 )
                 .id
         val (track, _) =
@@ -1010,8 +1007,7 @@ constructor(
     @Test
     fun `name and description autogeneration works`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber)).id
-        mainOfficialContext.save(referenceLine(trackNumberId), someReferenceLineGeometry()).id
+        val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber), someReferenceLineGeometry()).id
         val switch1Id = mainOfficialContext.save(switch(name = "ABC V0001", draft = false)).id
         val switch2Id = mainOfficialContext.save(switch(name = "ABC V0002", draft = false)).id
         val switch3Id = mainOfficialContext.save(switch(name = "ABC V0003", draft = false)).id
@@ -1077,9 +1073,11 @@ constructor(
 
         // Changing the track number should update the name
         val newTrackNumber = testDBService.getUnusedTrackNumber()
+        val tnForRename = mainDraftContext.fetch(trackNumberId)!!
         layoutTrackNumberService.saveDraft(
             LayoutBranch.main,
-            mainDraftContext.fetch(trackNumberId)!!.copy(number = newTrackNumber),
+            tnForRename.copy(number = newTrackNumber),
+            alignmentDao.fetch(tnForRename.version!!),
         )
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
@@ -1192,7 +1190,7 @@ constructor(
     fun `getInfoboxExtras includes operational point addresses`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
 
         val op1Id =

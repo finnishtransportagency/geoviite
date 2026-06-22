@@ -8,8 +8,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
+import fi.fta.geoviite.infra.map.LocationTrackHeader
+import fi.fta.geoviite.infra.map.ReferenceLineHeader
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
 import fi.fta.geoviite.infra.util.toResponse
@@ -63,7 +64,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
+    ): List<LocationTrackHeader> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getLocationTrackHeaders(layoutContext, ids)
     }
@@ -73,8 +74,8 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getReferenceLineHeaders(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids") ids: List<IntId<ReferenceLine>>,
-    ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
+        @RequestParam("ids") ids: List<IntId<LayoutTrackNumber>>,
+    ): List<ReferenceLineHeader> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getReferenceLineHeaders(layoutContext, ids)
     }
@@ -118,7 +119,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getReferenceLineSegmentMValues(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<ReferenceLine>,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): List<LineM<ReferenceLineM>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getReferenceLineSegmentMValues(layoutContext, id)
@@ -140,7 +141,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getReferenceLineEnds(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<ReferenceLine>,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): MapAlignmentEndPoints<ReferenceLineM> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getReferenceLineEnds(layoutContext, id)

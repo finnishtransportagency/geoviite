@@ -140,7 +140,7 @@ export function createLocationTrackSplitAlignmentLayer(
     const alignmentPromise: Promise<AlignmentDataHolder[]> =
         splittingState !== undefined
             ? getSelectedLocationTrackMapAlignmentByTiles(
-                  changeTimes,
+                  changeTimes.layoutLocationTrack,
                   mapTiles,
                   layoutContext,
                   splittingState.originLocationTrack.id,

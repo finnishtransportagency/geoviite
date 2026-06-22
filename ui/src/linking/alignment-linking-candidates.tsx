@@ -11,11 +11,9 @@ import {
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import {
     LayoutLocationTrack,
-    LayoutReferenceLine,
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import styles from 'tool-panel/geometry-alignment/geometry-alignment-infobox.scss';
@@ -140,21 +138,20 @@ export const LocationTrackCandidates: React.FC<LocationTrackCandidatesProps> = (
     </CandidatesList>
 );
 
-export type ReferenceLineCandidate = {
-    referenceLine: LayoutReferenceLine;
+export type TrackNumberCandidate = {
     trackNumber: LayoutTrackNumber;
 };
 
-type ReferenceLineCandidatesProps = {
-    candidates: ReferenceLineCandidate[];
-    selectedId: ReferenceLineId | undefined;
-    lockedAlignmentId: ReferenceLineId | undefined;
+type TrackNumberCandidatesProps = {
+    candidates: TrackNumberCandidate[];
+    selectedId: LayoutTrackNumberId | undefined;
+    lockedAlignmentId: LayoutTrackNumberId | undefined;
     isLoading: boolean;
     emptyMessage: React.ReactNode;
     onSelect: (trackNumberId: LayoutTrackNumberId) => void;
 };
 
-export const ReferenceLineCandidates: React.FC<ReferenceLineCandidatesProps> = ({
+export const TrackNumberCandidates: React.FC<TrackNumberCandidatesProps> = ({
     candidates,
     selectedId,
     lockedAlignmentId,
@@ -166,13 +163,13 @@ export const ReferenceLineCandidates: React.FC<ReferenceLineCandidatesProps> = (
         isLoading={isLoading}
         isEmpty={candidates.length === 0}
         emptyMessage={emptyMessage}>
-        {candidates.map(({ referenceLine, trackNumber }) => {
-            const isSelected = referenceLine.id === selectedId;
+        {candidates.map(({ trackNumber }) => {
+            const isSelected = trackNumber.id === selectedId;
             return (
                 <SelectionCandidate
-                    key={referenceLine.id}
+                    key={trackNumber.id}
                     isSelected={isSelected}
-                    onClick={() => onSelect(referenceLine.trackNumberId)}>
+                    onClick={() => onSelect(trackNumber.id)}>
                     <TrackNumberBadge
                         trackNumber={trackNumber}
                         status={
@@ -181,7 +178,7 @@ export const ReferenceLineCandidates: React.FC<ReferenceLineCandidatesProps> = (
                                 : TrackNumberBadgeStatus.DEFAULT
                         }
                     />
-                    {lockedAlignmentId === referenceLine.id && (
+                    {lockedAlignmentId === trackNumber.id && (
                         <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
                     )}
                 </SelectionCandidate>

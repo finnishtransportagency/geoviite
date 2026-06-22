@@ -21,9 +21,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
-import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
@@ -502,10 +501,13 @@ constructor(
 
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val (trackNumberId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
-        testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         return oid
     }
@@ -513,19 +515,14 @@ constructor(
     private fun setupValidTrackNumberCollection(): Publication {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumbersAndReferenceLines =
+        val trackNumberIds =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-                val referenceLineId =
-                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
-
-                trackNumberId to referenceLineId
+                mainDraftContext
+                    .saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), referenceLineGeometry(segment))
+                    .first
             }
 
-        return testDBService.publish(
-            trackNumbers = trackNumbersAndReferenceLines.map { it.first },
-            referenceLines = trackNumbersAndReferenceLines.map { it.second },
-        )
+        return testDBService.publish(trackNumbers = trackNumberIds)
     }
 
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
@@ -545,15 +542,16 @@ constructor(
             )
         val elements = plan.alignments[0].elements
 
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId =
-            mainDraftContext.saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometryOfElements(elements),
+            )
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
 
         testDBService.publish(
             trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
         )
 
@@ -563,8 +561,11 @@ constructor(
     private fun setupValidLocationTrackCollection(): Publication {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
         val tracks =
             listOf(1, 2, 3).map { _ ->
@@ -575,7 +576,6 @@ constructor(
 
         return testDBService.publish(
             trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
             locationTracks = tracks,
         )
     }

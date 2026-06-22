@@ -1,5 +1,9 @@
 import { asyncCache } from 'cache/cache';
-import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import {
+    AlignmentStartAndEnd,
+    LayoutTrackNumber,
+    LayoutTrackNumberId,
+} from 'track-layout/track-layout-model';
 import {
     DesignBranch,
     draftLayoutContext,
@@ -21,7 +25,6 @@ import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-num
 import {
     getChangeTimes,
     updateLocationTrackChangeTime,
-    updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
 import { ValidatedTrackNumber } from 'publication/publication-model';
@@ -36,7 +39,7 @@ const trackNumberOidsCache = asyncCache<
     { [key in LayoutBranch]?: Oid } | undefined
 >();
 
-export async function getTrackNumberById(
+export async function getTrackNumber(
     trackNumberId: LayoutTrackNumberId,
     layoutContext: LayoutContext,
     changeTime?: TimeStamp,
@@ -59,6 +62,17 @@ export async function getTrackNumbers(
     );
 }
 
+export async function getSomeTrackNumbers(
+    ids: LayoutTrackNumberId[],
+    layoutContext: LayoutContext,
+    changeTime: TimeStamp = getChangeTimes().layoutTrackNumber,
+    includeDeleted = false,
+): Promise<LayoutTrackNumber[]> {
+    return getTrackNumbers(layoutContext, changeTime, includeDeleted).then((tns) =>
+        tns.filter((tn) => ids.includes(tn.id)),
+    );
+}
+
 export async function updateTrackNumber(
     layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
@@ -68,7 +82,6 @@ export async function updateTrackNumber(
     const result = await putNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request);
     await Promise.all([
         updateTrackNumberChangeTime(),
-        updateReferenceLineChangeTime(),
         // Track number changes can also affect location track names
         updateLocationTrackChangeTime(),
     ]);
@@ -134,7 +147,6 @@ export async function cancelTrackNumber(
     );
     await Promise.all([
         updateTrackNumberChangeTime(),
-        updateReferenceLineChangeTime(),
         // Track number changes can also affect location track names
         updateLocationTrackChangeTime(),
     ]);
@@ -151,4 +163,29 @@ export async function getTrackNumberOids(
         ),
     );
     return oids ?? {};
+}
+
+export async function getReferenceLineStartAndEnd(
+    trackNumberId: LayoutTrackNumberId,
+    layoutContext: LayoutContext,
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getNullable<AlignmentStartAndEnd>(
+        `${layoutUri('track-numbers', layoutContext, trackNumberId)}/start-and-end`,
+    );
+}
+
+export async function getTrackNumbersNear(
+    layoutContext: LayoutContext,
+    bbox: BoundingBox,
+): Promise<LayoutTrackNumber[]> {
+    const params = queryParams({ bbox: bboxString(bbox) });
+    return getNonNull<LayoutTrackNumber[]>(`${layoutUri('track-numbers', layoutContext)}${params}`);
+}
+
+export async function getNonLinkedTrackNumbers(
+    layoutContext: LayoutContext,
+): Promise<LayoutTrackNumber[]> {
+    return getNonNull<LayoutTrackNumber[]>(
+        `${layoutUri('track-numbers', draftLayoutContext(layoutContext))}/non-linked`,
+    );
 }

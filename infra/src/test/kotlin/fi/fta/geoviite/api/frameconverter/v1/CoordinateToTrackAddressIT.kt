@@ -6,6 +6,7 @@ import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -24,7 +25,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -231,8 +231,7 @@ constructor(
     fun `Basic request should default to return feature with basic and detailed data`() {
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
         val (track, _) =
             mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId, type = LocationTrackType.MAIN),
@@ -351,7 +350,7 @@ constructor(
         // Purposefully uses the same segments for overlap in order to determine
         // that the filtering works based on the location track name.
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments)).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
         val tracks =
             (0..2).map { _ ->
                 val name = "Test track-${UUID.randomUUID()}"
@@ -376,7 +375,7 @@ constructor(
         // Purposefully uses the same segments for overlap in order to determine
         // that the filtering works based on the location track type.
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments)).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
 
         LocationTrackType.entries.forEach { type ->
             mainOfficialContext.save(locationTrack(trackNumberId, type = type), trackGeometryOfSegments(segments))
@@ -452,8 +451,7 @@ constructor(
     fun `Response output data can be set to only return detailed feature data`() {
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
         val (track, _) =
             mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -493,8 +491,7 @@ constructor(
     fun `Response output data setting combination works`() {
         val segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
         val (track, _) =
             mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId, type = LocationTrackType.TRAP),
@@ -546,8 +543,7 @@ constructor(
     fun `Track km position is returned correctly`() {
         val segments = listOf(segment(Point(0.0, 0.0), Point(3000.0, 0.0)))
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.TRAP),
             trackGeometryOfSegments(segments),
@@ -670,7 +666,7 @@ constructor(
 
     @Test
     fun `Deleted track is not found`() {
-        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val trackVersion = mainOfficialContext.save(locationTrack(trackNumberId), someTrackGeometry())
         testDBService.update(trackVersion) { t -> t.copy(state = LocationTrackState.DELETED) }
 
@@ -688,8 +684,9 @@ constructor(
     @Test
     fun `Reverse geocoded address should match the returned coordinate`() {
         val referenceLineSegments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        mainOfficialContext.save(referenceLine(trackNumberId), referenceLineGeometry(referenceLineSegments))
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(referenceLineSegments)).id
 
         // Track is offset from the reference line and with a slightly different angle
         val trackStart = Point(-5.0, 1.0)
@@ -782,10 +779,9 @@ constructor(
 
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
 
-        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).id.let { tnId ->
-            mainOfficialContext.save(referenceLine(tnId), referenceLineGeometry(segments))
-            mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
-        }
+        val tnId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
+        testDBService.saveOid(tnId, LayoutBranch.main, trackNumberOid)
+        mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = searchOid.toString())
         val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
@@ -803,8 +799,8 @@ constructor(
         val testOids = listOf<Oid<LayoutTrackNumber>>(someOid(), someOid())
 
         testOids.forEach { oid ->
-            val tnId = mainOfficialContext.createLayoutTrackNumberWithOid(oid).id
-            mainOfficialContext.save(referenceLine(tnId), referenceLineGeometry(segments))
+            val tnId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
+            testDBService.saveOid(tnId, LayoutBranch.main, oid)
             mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
         }
 

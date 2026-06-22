@@ -7,7 +7,7 @@ import {
     useKmPosts,
     useLocationTracks,
     useOperationalPoints,
-    useReferenceLines,
+    useSomeTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { planDownloadAssetIdFromToolPanelAsset } from 'map/plan-download/plan-download-store';
 import { boundingBoxContains } from 'model/geometry';
@@ -36,11 +36,12 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         state.layoutContext,
         changeTimes.layoutLocationTrack,
     );
-    const referenceLines = useReferenceLines(
-        state.map.shownItems.referenceLines,
+    const trackNumbers = useSomeTrackNumbers(
+        state.map.shownItems.trackNumbers,
         state.layoutContext,
-        changeTimes.layoutReferenceLine,
+        changeTimes.layoutTrackNumber,
     );
+
     const kmPosts = useKmPosts(
         state.map.shownItems.kmPosts,
         state.layoutContext,
@@ -102,7 +103,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
             selectedItems={state.selection.selectedItems}
             visiblePlans={state.selection.visiblePlans}
             kmPosts={kmPosts}
-            referenceLines={referenceLines}
+            trackNumbers={trackNumbers}
             locationTracks={locationTracks}
             switchCount={switchAreaSummary?.switchCount ?? 0}
             switches={switchAreaSummary?.switches ?? []}

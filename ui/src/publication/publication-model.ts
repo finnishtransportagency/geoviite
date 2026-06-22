@@ -19,7 +19,6 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { RatkoPushStatus } from 'ratko/ratko-model';
 import { BoundingBox, Point } from 'model/geometry';
@@ -53,7 +52,6 @@ export const validationIssueIsError = validationIssueIsAtLeastAsBadAs('ERROR');
 export enum DraftChangeType {
     TRACK_NUMBER = 'TRACK_NUMBER',
     LOCATION_TRACK = 'LOCATION_TRACK',
-    REFERENCE_LINE = 'REFERENCE_LINE',
     SWITCH = 'SWITCH',
     KM_POST = 'KM_POST',
     OPERATIONAL_POINT = 'OPERATIONAL_POINT',
@@ -75,7 +73,6 @@ export type PublicationId = string;
 
 export type PublicationCandidateId =
     | LayoutTrackNumberId
-    | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
     | LayoutKmPostId
@@ -96,7 +93,6 @@ export type BasePublicationCandidate = {
 export type PublicationCandidate =
     | TrackNumberPublicationCandidate
     | LocationTrackPublicationCandidate
-    | ReferenceLinePublicationCandidate
     | SwitchPublicationCandidate
     | KmPostPublicationCandidate
     | OperationalPointPublicationCandidate;
@@ -107,7 +103,6 @@ export type PublicationCandidateReference =
           type: DraftChangeType.TRACK_NUMBER;
           number?: TrackNumber;
       }
-    | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE; name?: TrackNumber }
     | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK; name?: string }
     | { id: LayoutSwitchId; type: DraftChangeType.SWITCH; name?: string }
     | { id: LayoutKmPostId; type: DraftChangeType.KM_POST; kmNumber?: KmNumber }
@@ -131,6 +126,8 @@ export type TrackNumberPublicationCandidate = BasePublicationCandidate &
         id: LayoutTrackNumberId;
         type: DraftChangeType.TRACK_NUMBER;
         number: TrackNumber;
+        boundingBox?: BoundingBox;
+        geometryChanges?: GeometryChangeRanges;
     };
 
 export type LocationTrackPublicationCandidate = BasePublicationCandidate &
@@ -140,17 +137,6 @@ export type LocationTrackPublicationCandidate = BasePublicationCandidate &
         trackNumberId: LayoutTrackNumberId;
         name: string;
         duplicateOf: LocationTrackId;
-        geometryChanges?: GeometryChangeRanges;
-    };
-
-export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
-    WithBoundingBox & {
-        id: ReferenceLineId;
-        type: DraftChangeType.REFERENCE_LINE;
-        trackNumberId: LayoutTrackNumberId;
-        name: TrackNumber;
-        operation?: Operation;
-        boundingBox?: BoundingBox;
         geometryChanges?: GeometryChangeRanges;
     };
 
@@ -235,7 +221,6 @@ export type PublicationDetails = {
     publicationUser: string;
     layoutBranch: PublishedInBranch;
     trackNumbers: PublishedTrackNumber[];
-    referenceLines: PublishedReferenceLine[];
     locationTracks: PublishedLocationTrack[];
     switches: PublishedSwitch[];
     kmPosts: PublishedKmPost[];
@@ -251,13 +236,6 @@ export type PublishedTrackNumber = {
     version: RowVersion;
     id: LayoutTrackNumberId;
     number: TrackNumber;
-    operation: Operation;
-    changedKmNumbers: KmNumber[];
-};
-
-export type PublishedReferenceLine = {
-    version: RowVersion;
-    trackNumberId: LayoutTrackNumberId;
     operation: Operation;
     changedKmNumbers: KmNumber[];
 };
@@ -286,7 +264,6 @@ export type PublishedKmPost = {
 
 export type PublicationRequestIds = {
     trackNumbers: LayoutTrackNumberId[];
-    referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
     switches: LayoutSwitchId[];
     kmPosts: LayoutKmPostId[];
@@ -320,7 +297,6 @@ export type ValidatedAsset<Id extends AssetId> = {
 
 export type ValidatedTrackNumber = ValidatedAsset<LayoutTrackNumberId>;
 export type ValidatedLocationTrack = ValidatedAsset<LocationTrackId>;
-export type ValidatedReferenceLine = ValidatedAsset<ReferenceLineId>;
 export type ValidatedSwitch = ValidatedAsset<LayoutSwitchId>;
 export type ValidatedKmPost = ValidatedAsset<LayoutKmPostId>;
 export type ValidatedOperationalPoint = ValidatedAsset<OperationalPointId>;
@@ -333,7 +309,6 @@ export type PublicationRequest = {
 export interface PublicationResultSummary {
     trackNumbers: number;
     locationTracks: number;
-    referenceLines: number;
     switches: number;
     kmPosts: number;
     operationalPoints: number;
@@ -371,7 +346,6 @@ export interface SwitchChange {
 
 export interface DirectChanges {
     kmPostChanges: LayoutKmPostId[];
-    referenceLineChanges: ReferenceLineId[];
     trackNumberChanges: TrackNumberChange[];
     locationTrackChanges: LocationTrackChange[];
     switchChanges: SwitchChange[];

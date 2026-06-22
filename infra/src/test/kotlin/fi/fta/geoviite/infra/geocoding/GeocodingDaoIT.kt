@@ -7,16 +7,13 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.publication.validationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -26,7 +23,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import validationVersions
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -35,24 +31,13 @@ class GeocodingDaoIT
 constructor(
     val geocodingDao: GeocodingDao,
     val trackNumberDao: LayoutTrackNumberDao,
-    val referenceLineDao: ReferenceLineDao,
-    val alignmentDao: LayoutAlignmentDao,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
 ) : DBTestBase() {
 
     @Test
-    fun trackNumberWithoutReferenceLineHasNoContext() {
-        val id = mainOfficialContext.createLayoutTrackNumber().id
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
-    }
-
-    @Test
     fun trackNumberWithoutKmPostsHasAContext() {
         val id = mainOfficialContext.createLayoutTrackNumber().id
-        val alignmentVersion = alignmentDao.insert(referenceLineGeometry())
-        referenceLineDao.save(referenceLine(id, geometryVersion = alignmentVersion, draft = false))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
@@ -62,9 +47,6 @@ constructor(
         val tnOfficialVersion = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnOfficialVersion.id
         val tnDraft = testDBService.createDraft(tnOfficialVersion)
-
-        val rlOfficial = mainOfficialContext.saveReferenceLine(referenceLineAndGeometry(tnId))
-        val rlDraft = testDBService.createDraft(rlOfficial)
 
         val kmPost1Official = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val kmPost1Draft = testDBService.createDraft(kmPost1Official)
@@ -77,9 +59,7 @@ constructor(
         val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
-                trackNumberId = tnId,
                 trackNumberVersion = tnOfficialVersion,
-                referenceLineVersion = rlOfficial,
                 kmPostVersions = listOf(kmPost1Official, kmPost3OnlyOfficial),
             ),
             officialKey,
@@ -88,9 +68,7 @@ constructor(
         val draftKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
-                trackNumberId = tnId,
                 trackNumberVersion = tnDraft,
-                referenceLineVersion = rlDraft,
                 kmPostVersions = listOf(kmPost1Draft, kmPost2OnlyDraft, kmPost3OnlyOfficial),
             ),
             draftKey,
@@ -106,7 +84,6 @@ constructor(
                 tnId,
                 validationVersions(
                     trackNumbers = listOf(tnDraft),
-                    referenceLines = listOf(rlDraft),
                     kmPosts = listOf(kmPost1Draft, kmPost2OnlyDraft),
                 ),
             ),
@@ -116,10 +93,6 @@ constructor(
         assertEquals(
             officialKey.copy(trackNumberVersion = tnDraft),
             geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(trackNumbers = listOf(tnDraft))),
-        )
-        assertEquals(
-            officialKey.copy(referenceLineVersion = rlDraft),
-            geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(referenceLines = listOf(rlDraft))),
         )
         assertEquals(
             officialKey.copy(kmPostVersions = listOf(kmPost1Draft, kmPost2OnlyDraft, kmPost3OnlyOfficial)),
@@ -145,19 +118,16 @@ constructor(
         // First off, the main official versions for starting context
         val tnMainV1 = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnMainV1.id
-        val rlMainV1 = mainOfficialContext.saveReferenceLine(referenceLineAndGeometry(tnId))
         val kmp1MainV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val kmp2MainV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(2)))
 
         // Add some draft changes as well. These shouldn't affect the results
         testDBService.createDraft(tnMainV1)
-        testDBService.createDraft(rlMainV1)
         testDBService.createDraft(kmp1MainV1)
         mainDraftContext.save(kmPost(tnId, KmNumber(10)))
 
         // Add some design changes
         val tnDesignV1 = officialDesignContext.copyFrom(tnMainV1)
-        val rlDesignV1 = officialDesignContext.copyFrom(rlMainV1)
         val kmp1DesignV1 = officialDesignContext.copyFrom(kmp1MainV1)
         val kmp3DesignV1 = officialDesignContext.save(kmPost(tnId, KmNumber(3)))
 
@@ -171,13 +141,13 @@ constructor(
 
         val mainKeyV1 =
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
-                assertEquals(geocodingContextCacheKey(tnId, tnMainV1, rlMainV1, kmp1MainV1, kmp2MainV1), key)
+                assertEquals(geocodingContextCacheKey(tnMainV1, kmp1MainV1, kmp2MainV1), key)
             }
 
         val designKeyV1 =
             geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
                 assertEquals(
-                    geocodingContextCacheKey(tnId, tnDesignV1, rlDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1),
+                    geocodingContextCacheKey(tnDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1),
                     key,
                 )
             }
@@ -186,7 +156,6 @@ constructor(
 
         // Update the official stuff
         val tnMainV2 = testDBService.update(tnMainV1)
-        val rlMainV2 = testDBService.update(rlMainV1)
         val kmp1MainV2 = testDBService.update(kmp1MainV1)
         val kmp4MainV2 = mainOfficialContext.save(kmPost(tnId, KmNumber(4)))
         // Add a deleted post - should not appear in results
@@ -194,7 +163,6 @@ constructor(
 
         // Update the design stuff
         val tnDesignV2 = testDBService.update(tnDesignV1)
-        val rlDesignV2 = testDBService.update(rlDesignV1)
         // Also delete one kmpost in the design -> it should be removed from the key
         testDBService.update(kmp1DesignV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
         val kmp3DesignV2 = testDBService.update(kmp3DesignV1)
@@ -205,7 +173,7 @@ constructor(
         val mainKeyV2 =
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
                 assertEquals(
-                    geocodingContextCacheKey(tnId, tnMainV2, rlMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2),
+                    geocodingContextCacheKey(tnMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2),
                     key,
                 )
             }
@@ -213,7 +181,7 @@ constructor(
         val designKeyV2 =
             geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
                 assertEquals(
-                    geocodingContextCacheKey(tnId, tnDesignV2, rlDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2),
+                    geocodingContextCacheKey(tnDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2),
                     key,
                 )
             }
@@ -225,7 +193,6 @@ constructor(
         // Mark kmp2 deleted
         testDBService.update(kmp2MainV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
         // Delete some design-rows (should result in using main ones)
-        referenceLineDao.deleteRow(rlDesignV2.rowId)
         kmPostDao.deleteRow(kmp1DesignV1.rowId)
 
         val version3Time = testDBService.layoutChangeTime()
@@ -233,14 +200,14 @@ constructor(
         val mainKeyV3 =
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
                 assertEquals(
-                    geocodingContextCacheKey(tnId, tnMainV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
+                    geocodingContextCacheKey(tnMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
                     key,
                 )
             }
         val designKeyV3 =
             geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
                 assertEquals(
-                    geocodingContextCacheKey(tnId, tnDesignV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
+                    geocodingContextCacheKey(tnDesignV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
                     key,
                 )
             }
@@ -261,16 +228,15 @@ constructor(
     //   ones that were already deleted before that
     @Test
     fun `No cache keys are returned for deleted TrackNumbers`() {
-        val tnV1 = mainOfficialContext.createLayoutTrackNumber()
-        val tnId = tnV1.id
-        val rlV1 =
-            mainOfficialContext.saveReferenceLine(
-                referenceLineAndGeometry(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val tnV1 =
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
             )
+        val tnId = tnV1.id
         val kmpV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val dbTimeAfterInit = testDBService.getDbTime()
         assertEquals(
-            geocodingContextCacheKey(tnId, tnV1, rlV1, kmpV1),
+            geocodingContextCacheKey(tnV1, kmpV1),
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId),
         )
 
@@ -280,7 +246,7 @@ constructor(
 
         // Verify moment fetches as well
         assertEquals(
-            geocodingContextCacheKey(tnId, tnV1, rlV1, kmpV1),
+            geocodingContextCacheKey(tnV1, kmpV1),
             geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, dbTimeAfterInit),
         )
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, dbTimeAfterDelete))
@@ -291,12 +257,8 @@ constructor(
         // Create a valid initial state with an existing cache key
         val tnOfficial = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnOfficial.id
-        val rlOfficial = mainOfficialContext.saveReferenceLine(referenceLineAndGeometry(tnId))
         val initialKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)
-        assertEquals(
-            geocodingContextCacheKey(tnId, tnOfficial, rlOfficial),
-            initialKey,
-        )
+        assertEquals(geocodingContextCacheKey(tnOfficial), initialKey)
 
         // Delete the track number, resulting in the cache key disappearing
         mainOfficialContext.mutate(tnId) { it.copy(state = LayoutState.DELETED) }
@@ -305,7 +267,7 @@ constructor(
         // Create a draft version that restores the track number to IN_USE state, restoring the cache key
         val restored = mainDraftContext.mutate(tnId) { it.copy(state = LayoutState.IN_USE) }!!
         assertEquals(
-            geocodingContextCacheKey(tnId, restored, rlOfficial),
+            geocodingContextCacheKey(restored),
             geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(trackNumbers = listOf(restored))),
         )
 

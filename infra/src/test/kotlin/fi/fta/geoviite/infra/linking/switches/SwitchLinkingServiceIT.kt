@@ -931,7 +931,7 @@ constructor(
     fun `validateRelinkingTrack relinks okay cases and gives validation errors about bad ones`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(150.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(150.0, 0.0))))
                 .id
 
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
@@ -1072,7 +1072,7 @@ constructor(
     fun `relinkTrack and validateRelinkingTrack find nearby switches`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
 
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
@@ -1120,7 +1120,7 @@ constructor(
     fun `validateRelinkingTrack warns about switches getting unlinked`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
 
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
@@ -1221,7 +1221,9 @@ constructor(
                             localizationKey =
                                 LocalizationKey.of("validation.layout.split.track-links-missing-after-relinking"),
                             params =
-                                LocalizationParams(mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")),
+                                LocalizationParams(
+                                    mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")
+                                ),
                         ),
                     ),
             )
@@ -1237,7 +1239,7 @@ constructor(
     fun `re-linking switch cleans up previous references consistently`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
         val (templateSwitch, templateTrackSections) =
@@ -1307,7 +1309,7 @@ constructor(
     fun `re-linking switch cleans up topological connections`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
         val (templateSwitch, templateTrackSections) =
@@ -1361,7 +1363,7 @@ constructor(
     fun `relinking with head-to-head linked YV switches with initially unlinked through track`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
         val leftSwitch =
@@ -1543,7 +1545,7 @@ constructor(
     fun `relinking removes misplaced topological switch link`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
         val (templateSwitch, templateTrackSections) =
@@ -1913,7 +1915,7 @@ constructor(
         Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<LayoutSwitch>> {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         // switch structure YV60_300_1_9_O's rightmost joints are at x-coords:
         // - 34.430 (through track)
@@ -2018,7 +2020,7 @@ constructor(
     fun `relinkTrack does not relink unrelated tracks`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
         val switchToRelink =
@@ -2132,7 +2134,7 @@ constructor(
     fun `relinkTrack connects track outward topologically`() {
         val trackNumberId =
             mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
         val startSwitch =

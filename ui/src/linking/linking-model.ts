@@ -17,7 +17,6 @@ import {
     MapAlignmentType,
     OperationalPoint,
     OperationalPointId,
-    ReferenceLineId,
     TopologicalConnectivityType,
 } from 'track-layout/track-layout-model';
 import {
@@ -88,7 +87,7 @@ export type LinkPointId = string;
 export type LinkPoint = {
     id: LinkPointId;
     alignmentType: MapAlignmentType;
-    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
+    alignmentId: LocationTrackId | LayoutTrackNumberId | GeometryAlignmentId;
     x: number;
     y: number;
     m: number;
@@ -145,7 +144,7 @@ export type GeometryLinkingAlignmentLockParameters = {
 
 export type LayoutAlignmentTypeAndId =
     | { type: MapAlignmentType.LocationTrack; id: LocationTrackId }
-    | { type: MapAlignmentType.ReferenceLine; id: ReferenceLineId };
+    | { type: MapAlignmentType.ReferenceLine; id: LayoutTrackNumberId };
 
 export type AlignmentTypeAndId =
     | LayoutAlignmentTypeAndId
@@ -274,7 +273,7 @@ export enum LinkingType {
 
 export type IntervalRequest = {
     mRange: Range<number>;
-    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
+    alignmentId: LocationTrackId | LayoutTrackNumberId | GeometryAlignmentId;
 };
 
 export type LinkingGeometryWithAlignmentParameters = {
@@ -285,12 +284,12 @@ export type LinkingGeometryWithAlignmentParameters = {
 
 export type LinkingGeometryWithEmptyAlignmentParameters = {
     geometryPlanId: GeometryPlanId;
-    layoutAlignmentId: LocationTrackId | ReferenceLineId;
+    layoutAlignmentId: LocationTrackId | LayoutTrackNumberId;
     geometryInterval: IntervalRequest;
 };
 
 export function toIntervalRequest(
-    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId,
+    alignmentId: LocationTrackId | LayoutTrackNumberId | GeometryAlignmentId,
     startM: number,
     endM: number,
 ): IntervalRequest {
@@ -315,14 +314,14 @@ export type GeometryAlignmentLinkStatus = {
     elements: GeometryElementLinkStatus[];
     isLinked: boolean;
     linkedLocationTrackIds: LocationTrackId[];
-    linkedReferenceLineIds: ReferenceLineId[];
+    linkedTrackNumberIds: LayoutTrackNumberId[];
 };
 
 export type GeometryElementLinkStatus = {
     id: GeometryElementId;
     isLinked: boolean;
     linkedLocationTrackIds: LocationTrackId[];
-    linkedReferenceLineIds: ReferenceLineId[];
+    linkedTrackNumberIds: LayoutTrackNumberId[];
 };
 
 export type GeometrySwitchLinkStatus = {

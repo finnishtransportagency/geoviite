@@ -28,6 +28,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -35,10 +37,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -58,7 +58,7 @@ class LinkingService
 constructor(
     private val geometryService: GeometryService,
     private val planLayoutService: PlanLayoutService,
-    private val referenceLineService: ReferenceLineService,
+    private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
@@ -83,15 +83,15 @@ constructor(
     @Transactional
     fun saveReferenceLineLinking(
         branch: LayoutBranch,
-        parameters: LinkingParameters<ReferenceLine>,
-    ): IntId<ReferenceLine> {
+        parameters: LinkingParameters<LayoutTrackNumber>,
+    ): IntId<LayoutTrackNumber> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val referenceLineId = parameters.layoutInterval.alignmentId
-        val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, geometry) = trackNumberService.getWithGeometryOrThrow(branch.draft, referenceLineId)
 
         val newGeometry = linkGeometry(geometry, parameters)
-        return referenceLineService.saveDraft(branch, referenceLine, newGeometry).id
+        return trackNumberService.saveDraft(branch, referenceLine, newGeometry).id
     }
 
     @Transactional
@@ -165,20 +165,20 @@ constructor(
     @Transactional
     fun saveReferenceLineLinking(
         branch: LayoutBranch,
-        parameters: EmptyAlignmentLinkingParameters<ReferenceLine>,
-    ): IntId<ReferenceLine> {
+        parameters: EmptyAlignmentLinkingParameters<LayoutTrackNumber>,
+    ): IntId<LayoutTrackNumber> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val referenceLineId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, geometry) = trackNumberService.getWithGeometryOrThrow(branch.draft, referenceLineId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
         val newGeometry =
             replaceReferenceLineGeometry(geometry, geometryAlignment, geometryInterval.mRange.map(::LineM))
 
-        return referenceLineService.saveDraft(branch, referenceLine, newGeometry).id
+        return trackNumberService.saveDraft(branch, referenceLine, newGeometry).id
     }
 
     @Transactional
@@ -214,13 +214,13 @@ constructor(
     @Transactional
     fun shortenReferenceLineGeometry(
         branch: LayoutBranch,
-        referenceLineId: IntId<ReferenceLine>,
+        referenceLineId: IntId<LayoutTrackNumber>,
         mRange: Range<Double>,
-    ): IntId<ReferenceLine> {
-        val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
+    ): IntId<LayoutTrackNumber> {
+        val (referenceLine, geometry) = trackNumberService.getWithGeometryOrThrow(branch.draft, referenceLineId)
         val updatedGeometry = cutReferenceLineGeometry(geometry, mRange.map(::LineM))
 
-        return referenceLineService.saveDraft(branch, referenceLine, updatedGeometry).id
+        return trackNumberService.saveDraft(branch, referenceLine, updatedGeometry).id
     }
 
     @Transactional

@@ -20,8 +20,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -38,7 +36,6 @@ class ValidationContextIT
 @Autowired
 constructor(
     val trackNumberDao: LayoutTrackNumberDao,
-    val referenceLineDao: ReferenceLineDao,
     val kmPostDao: LayoutKmPostDao,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
@@ -174,7 +171,6 @@ constructor(
         branch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
         locationTracks: List<IntId<LocationTrack>> = listOf(),
-        referenceLines: List<IntId<ReferenceLine>> = listOf(),
         switches: List<IntId<LayoutSwitch>> = listOf(),
         kmPosts: List<IntId<LayoutKmPost>> = listOf(),
         operationalPoints: List<IntId<OperationalPoint>> = listOf(),
@@ -183,7 +179,6 @@ constructor(
         val candidateContext = target.candidateContext
         return ValidationContext(
             trackNumberDao = trackNumberDao,
-            referenceLineDao = referenceLineDao,
             kmPostDao = kmPostDao,
             locationTrackDao = locationTrackDao,
             switchDao = switchDao,
@@ -198,7 +193,6 @@ constructor(
                 ValidationVersions(
                     target = target,
                     trackNumbers = trackNumberDao.fetchCandidateVersions(candidateContext, trackNumbers),
-                    referenceLines = referenceLineDao.fetchCandidateVersions(candidateContext, referenceLines),
                     kmPosts = kmPostDao.fetchCandidateVersions(candidateContext, kmPosts),
                     locationTracks = locationTrackDao.fetchCandidateVersions(candidateContext, locationTracks),
                     switches = switchDao.fetchCandidateVersions(candidateContext, switches),

@@ -13,10 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.util.DaoBase
-import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersionArray
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
@@ -37,7 +34,6 @@ class GeocodingDao(
     val trackNumberDao: LayoutTrackNumberDao,
     val kmPostDao: LayoutKmPostDao,
     val switchDao: LayoutSwitchDao,
-    val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
@@ -77,18 +73,11 @@ class GeocodingDao(
               tn.design_id as tn_design_id,
               tn.draft as tn_draft,
               tn.version as tn_version,
-              rl.id as rl_id,
-              rl.design_id as rl_design_id,
-              rl.draft as rl_draft,
-              rl.version as rl_version,
               kmp_ids,
               kmp_design_ids,
               kmp_drafts,
               kmp_versions
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-              left join
-                layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                  rl on rl.track_number_id = tn.id
               left join lateral (
                 select
                   coalesce(array_agg(kmp.id order by id), '{}') as kmp_ids,
@@ -140,23 +129,6 @@ class GeocodingDao(
                         order by is_design
                         limit 1
                       ),
-                      rl_versions as (
-                        select distinct on (id, is_design)
-                          id, design_id, version, deleted, case when design_id is not null then 0 else 1 end as is_design
-                        from layout.reference_line_version
-                        where track_number_id = :tn_id
-                          and draft = false
-                          and (design_id is null or design_id = :design_id)
-                          and change_time <= :moment
-                        order by id, is_design, version desc
-                      ),
-                      rl as (
-                        select id, design_id, version
-                        from rl_versions
-                        where deleted = false
-                        order by is_design
-                        limit 1
-                      ),
                       kmp_versions as (
                         select distinct on (id, is_design)
                           id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
@@ -178,16 +150,11 @@ class GeocodingDao(
                       tn.design_id as tn_design_id,
                       false as tn_draft,
                       tn.version as tn_version,
-                      rl.id as rl_id,
-                      rl.design_id as rl_design_id,
-                      false as rl_draft,
-                      rl.version as rl_version,
                       kmp_ids,
                       kmp_design_ids,
                       kmp_drafts,
                       kmp_versions
                     from tn
-                      left join rl on true
                       left join lateral (
                         select
                           coalesce(
@@ -226,20 +193,14 @@ class GeocodingDao(
             }
             .getOrNull()
 
-    private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
-        val tnVersion =
-            rs.getLayoutRowVersionOrNull<LayoutTrackNumber>("tn_id", "tn_design_id", "tn_draft", "tn_version")
-        val rlVersion = rs.getLayoutRowVersionOrNull<ReferenceLine>("rl_id", "rl_design_id", "rl_draft", "rl_version")
-        return if (tnVersion == null || rlVersion == null) {
-            null
-        } else
+    private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? =
+        rs.getLayoutRowVersionOrNull<LayoutTrackNumber>("tn_id", "tn_design_id", "tn_draft", "tn_version")?.let {
+            tnVersion ->
             LayoutGeocodingContextCacheKey(
-                trackNumberId = rs.getIntId("tn_id"),
                 trackNumberVersion = tnVersion,
-                referenceLineVersion = rlVersion,
                 kmPostVersions = rs.getLayoutRowVersionArray("kmp_ids", "kmp_design_ids", "kmp_drafts", "kmp_versions"),
             )
-    }
+        }
 
     fun getLayoutGeocodingContextCacheKey(
         trackNumberId: IntId<LayoutTrackNumber>,
@@ -251,33 +212,26 @@ class GeocodingDao(
 
         // Since we included deleted versions, we now need to verify the existence for the final TrackNumber
         // as DELETED TrackNumbers don't have geocoding contexts
-        val trackNumberVersion =
-            (versions.findTrackNumber(trackNumberId) ?: base?.trackNumberVersion)?.takeIf { tnVersion ->
-                trackNumberDao.fetch(tnVersion).exists
-            } ?: return null
+        return (versions.findTrackNumber(trackNumberId) ?: base?.trackNumberVersion)
+            ?.takeIf { tnVersion -> trackNumberDao.fetch(tnVersion).exists }
+            ?.let { tnVersion ->
+                val validationKmPostsParticipatingInGeocoding =
+                    kmPostDao.fetchManyByVersion(versions.kmPosts).filter { it.value.trackNumberId == trackNumberId }
+                val participatingValidationKmPostIds =
+                    validationKmPostsParticipatingInGeocoding.map { it.key.id }.toSet()
+                val nonOverriddenBaseKmPosts =
+                    base?.kmPostVersions?.filter { v -> !participatingValidationKmPostIds.contains(v.id) } ?: listOf()
+                val kmPostVersions =
+                    listOf(
+                            validationKmPostsParticipatingInGeocoding
+                                .filter { it.value.state == LayoutState.IN_USE }
+                                .map { it.key },
+                            nonOverriddenBaseKmPosts,
+                        )
+                        .flatten()
+                        .sortedBy { p -> p.id.intValue }
 
-        // We have to fetch the actual km-posts here to check references
-        // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
-        val referenceLineVersion =
-            versions.referenceLines.find { v -> referenceLineDao.fetch(v).trackNumberId == trackNumberId }
-                ?: base?.referenceLineVersion
-                ?: return null
-
-        val validationKmPostsParticipatingInGeocoding =
-            kmPostDao.fetchManyByVersion(versions.kmPosts).filter { it.value.trackNumberId == trackNumberId }
-        val participatingValidationKmPostIds = validationKmPostsParticipatingInGeocoding.map { it.key.id }.toSet()
-        val nonOverriddenBaseKmPosts =
-            base?.kmPostVersions?.filter { v -> !participatingValidationKmPostIds.contains(v.id) } ?: listOf()
-        val kmPostVersions =
-            listOf(
-                    validationKmPostsParticipatingInGeocoding
-                        .filter { it.value.state == LayoutState.IN_USE }
-                        .map { it.key },
-                    nonOverriddenBaseKmPosts,
-                )
-                .flatten()
-                .sortedBy { p -> p.id.intValue }
-
-        return LayoutGeocodingContextCacheKey(trackNumberId, trackNumberVersion, referenceLineVersion, kmPostVersions)
+                return LayoutGeocodingContextCacheKey(tnVersion, kmPostVersions)
+            }
     }
 }

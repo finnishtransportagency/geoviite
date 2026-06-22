@@ -33,13 +33,13 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkRR
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -989,11 +989,13 @@ constructor(
     }
 
     private fun savePublishableConnectedTracks(): ConnectedTracks {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
-        )
+        val trackNumberId =
+            mainOfficialContext
+                .save(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
+                )
+                .id
         val switch1 = mainOfficialContext.createSwitch().id
         val switch2 = mainOfficialContext.createSwitch().id
 
@@ -1021,8 +1023,8 @@ constructor(
                 ),
             )
 
-        val lengtheningTrack = mainDraftContext.save(locationTrack(trackNumber), lengtheningGeometry)
-        val shorteningTrack = mainDraftContext.save(locationTrack(trackNumber), shorteningGeometry)
+        val lengtheningTrack = mainDraftContext.save(locationTrack(trackNumberId), lengtheningGeometry)
+        val shorteningTrack = mainDraftContext.save(locationTrack(trackNumberId), shorteningGeometry)
 
         mainDraftContext.generateOid(lengtheningTrack.id)
         mainDraftContext.generateOid(shorteningTrack.id)

@@ -9,8 +9,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
-import kotlin.test.assertContains
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -21,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -215,7 +215,13 @@ constructor(
                 operationalPoint(
                     location = Point(7.0, 7.0),
                     polygon =
-                        Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0)),
+                        Polygon(
+                            Point(0.0, 0.0),
+                            Point(10.0, 0.0),
+                            Point(10.0, 10.0),
+                            Point(0.0, 10.0),
+                            Point(0.0, 0.0),
+                        ),
                 )
             )
         assertEquals(

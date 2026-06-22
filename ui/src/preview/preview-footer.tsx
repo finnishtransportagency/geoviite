@@ -65,7 +65,6 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         return [
             describe(t('publish.track-numbers'), result?.trackNumbers),
             describe(t('publish.km-posts'), result?.kmPosts),
-            describe(t('publish.reference-lines'), result?.referenceLines),
             describe(t('publish.location-tracks'), result?.locationTracks),
             describe(t('publish.switches'), result?.switches),
         ]

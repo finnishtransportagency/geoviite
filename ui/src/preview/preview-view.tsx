@@ -66,7 +66,6 @@ import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
 import { createClassName } from 'vayla-design-lib/utils';
 import { cancelLocationTrack } from 'track-layout/layout-location-track-api';
-import { cancelReferenceLine } from 'track-layout/layout-reference-line-api';
 import { cancelSwitch } from 'track-layout/layout-switch-api';
 import { cancelTrackNumber } from 'track-layout/layout-track-number-api';
 import { cancelKmPost } from 'track-layout/layout-km-post-api';
@@ -151,8 +150,6 @@ function cancelPublicationCandidate(
     switch (publicationCandidate.type) {
         case DraftChangeType.TRACK_NUMBER:
             return cancelTrackNumber(design, publicationCandidate.id);
-        case DraftChangeType.REFERENCE_LINE:
-            return cancelReferenceLine(design, publicationCandidate.id);
         case DraftChangeType.LOCATION_TRACK:
             return cancelLocationTrack(design, publicationCandidate.id);
         case DraftChangeType.SWITCH:

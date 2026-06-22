@@ -20,29 +20,26 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
-import java.math.BigDecimal
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
 class VerticalGeometryDiagramTestUI
 @Autowired
 constructor(
-    private val referenceLineService: ReferenceLineService,
     private val kmPostDao: LayoutKmPostDao,
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
@@ -55,14 +52,16 @@ constructor(
 
     @Test
     fun `Vertical geometry diagram for location track loads`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(
-                segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0))
-            ),
-        )
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumber(
+                    trackNumber,
+                    referenceLineGeometry(
+                        segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0))
+                    ),
+                )
+                .id
         kmPostDao.save(
             kmPost(
                 trackNumberId = trackNumberId,

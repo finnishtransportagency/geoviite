@@ -116,6 +116,7 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 
         childButton(byQaId("modify-start-or-end")).click()
         clickWhenClickable(byQaId("shorten-track-start-or-end"))
+        waitUntilChildVisible(byQaId("save-start-and-end-changes"))
     }
 
     fun startSplitting(): E2ELocationTrackSplittingInfobox {

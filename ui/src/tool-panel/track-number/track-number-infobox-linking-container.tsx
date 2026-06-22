@@ -5,7 +5,6 @@ import {
     trackLayoutActionCreators as TrackLayoutActions,
     TrackNumberInfoboxVisibilities,
 } from 'track-layout/track-layout-slice';
-import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-utils';
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
 import { HighlightedReferenceLine } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
@@ -27,16 +26,9 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
-    const referenceLine = useTrackNumberReferenceLine(
-        trackNumber.id,
-        trackLayoutState.layoutContext,
-        changeTimes.layoutReferenceLine,
-    );
-
     return (
         <TrackNumberInfobox
             trackNumber={trackNumber}
-            referenceLine={referenceLine}
             linkingState={trackLayoutState.linkingState}
             splittingState={trackLayoutState.splittingState}
             onStartReferenceLineGeometryChange={(interval) => {

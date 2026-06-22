@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LayoutLocationTrack, LayoutReferenceLine } from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import { useTranslation } from 'react-i18next';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -29,7 +29,7 @@ type GeometryAlignmentInfoboxProps = {
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     geometryAlignment: GeometryAlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
-    selectedLayoutReferenceLine?: LayoutReferenceLine;
+    selectedLayoutTrackNumber?: LayoutTrackNumber;
     planId: GeometryPlanId;
     changeTimes: ChangeTimes;
     linkingState?: LinkingState;
@@ -50,7 +50,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     onUnselect,
     geometryAlignment,
     selectedLayoutLocationTrack,
-    selectedLayoutReferenceLine,
+    selectedLayoutTrackNumber,
     planId,
     changeTimes,
     linkingState,
@@ -117,7 +117,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     onUnselect={onUnselect}
                     geometryAlignment={geometryAlignment}
                     selectedLayoutLocationTrack={selectedLayoutLocationTrack}
-                    selectedLayoutReferenceLine={selectedLayoutReferenceLine}
+                    selectedLayoutTrackNumber={selectedLayoutTrackNumber}
                     planId={planId}
                     changeTimes={changeTimes}
                     linkingState={linkingState}

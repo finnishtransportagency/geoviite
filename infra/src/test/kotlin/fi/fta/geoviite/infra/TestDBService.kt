@@ -63,16 +63,14 @@ import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -95,7 +93,6 @@ interface TestDB {
     val locationTrackDao: LocationTrackDao
     val switchDao: LayoutSwitchDao
     val trackNumberDao: LayoutTrackNumberDao
-    val referenceLineDao: ReferenceLineDao
     val kmPostDao: LayoutKmPostDao
     val alignmentDao: LayoutAlignmentDao
     val geometryDao: GeometryDao
@@ -112,7 +109,6 @@ interface TestDB {
             LocationTrack::class -> locationTrackDao
             LayoutSwitch::class -> switchDao
             LayoutTrackNumber::class -> trackNumberDao
-            ReferenceLine::class -> referenceLineDao
             LayoutKmPost::class -> kmPostDao
             OperationalPoint::class -> operationalPointDao
             else -> error("Unsupported asset type: ${clazz.simpleName}")
@@ -125,7 +121,6 @@ interface TestDB {
             is LocationTrack -> locationTrackDao
             is LayoutSwitch -> switchDao
             is LayoutTrackNumber -> trackNumberDao
-            is ReferenceLine -> referenceLineDao
             is LayoutKmPost -> kmPostDao
             is OperationalPoint -> operationalPointDao
         }
@@ -139,7 +134,6 @@ class TestDBService(
     override val locationTrackDao: LocationTrackDao,
     override val switchDao: LayoutSwitchDao,
     override val trackNumberDao: LayoutTrackNumberDao,
-    override val referenceLineDao: ReferenceLineDao,
     override val kmPostDao: LayoutKmPostDao,
     override val alignmentDao: LayoutAlignmentDao,
     override val geometryDao: GeometryDao,
@@ -169,22 +163,19 @@ class TestDBService(
             tables =
                 arrayOf(
                     "design",
-                    "alignment",
                     "km_post",
                     "location_track",
                     "location_track_version",
                     "location_track_version_edge",
                     "location_track_external_id",
-                    "reference_line",
-                    "reference_line_version",
                     "switch",
                     "switch_external_id",
                     "switch_version",
                     "switch_version_joint",
                     "track_number",
                     "track_number_version",
+                    "track_number_version_segment",
                     "track_number_external_id",
-                    "segment_version",
                     "segment_geometry",
                     "edge",
                     "edge_segment",
@@ -226,7 +217,6 @@ class TestDBService(
                     "location_track",
                     "location_track_km",
                     "publication",
-                    "reference_line",
                     "switch",
                     "switch_joint",
                     "switch_location_tracks",
@@ -314,10 +304,10 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: LayoutRowVersion<T>): T =
         getReader(T::class).fetch(rowVersion)
 
-    final fun fetchReferenceLineWithGeometry(
-        rowVersion: LayoutRowVersion<ReferenceLine>
-    ): Pair<ReferenceLine, ReferenceLineGeometry> =
-        fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getGeometryVersionOrThrow()) }
+    final fun fetchTrackNumberWithGeometry(
+        rowVersion: LayoutRowVersion<LayoutTrackNumber>
+    ): Pair<LayoutTrackNumber, ReferenceLineGeometry> =
+        fetch(rowVersion).let { tn -> tn to alignmentDao.fetch(tn.getVersionOrThrow()) }
 
     final fun fetchLocationTrackWithGeometry(
         rowVersion: LayoutRowVersion<LocationTrack>
@@ -361,17 +351,16 @@ class TestDBService(
         originVersion: LayoutRowVersion<T>? = asset.version,
     ): LayoutRowVersion<T> =
         when (asset) {
-            is LayoutTrackNumber -> trackNumberDao.save(asset)
+            is LayoutTrackNumber -> {
+                val tnVersion = originVersion as? LayoutRowVersion<LayoutTrackNumber>
+                val geometry = tnVersion?.let(alignmentDao::fetch) ?: TmpReferenceLineGeometry.empty
+                trackNumberDao.save(asset, geometry)
+            }
             is LocationTrack -> {
                 val trackVersion = originVersion as? LayoutRowVersion<LocationTrack>
                 val geometry = trackVersion?.let(alignmentDao::fetch) ?: TmpLocationTrackGeometry.empty
                 locationTrackDao.save(asset, geometry)
             }
-            is ReferenceLine ->
-                referenceLineDao.save(
-                    asset.takeIf { it.geometryVersion != null }
-                        ?: asset.copy(geometryVersion = alignmentDao.insert(referenceLineGeometry()))
-                )
             is LayoutKmPost -> kmPostDao.save(asset)
             is LayoutSwitch -> switchDao.save(asset)
             is OperationalPoint -> operationalPointDao.save(asset)
@@ -381,8 +370,8 @@ class TestDBService(
     fun save(asset: LocationTrack, geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> =
         locationTrackDao.save(asset, geometry)
 
-    fun save(asset: ReferenceLine, geometry: ReferenceLineGeometry): LayoutRowVersion<ReferenceLine> =
-        referenceLineDao.save(asset.copy(geometryVersion = alignmentDao.insert(geometry)))
+    fun save(asset: LayoutTrackNumber, geometry: ReferenceLineGeometry): LayoutRowVersion<LayoutTrackNumber> =
+        trackNumberDao.save(asset, geometry)
 
     final inline fun <reified T : LayoutAsset<T>> update(
         rowVersion: LayoutRowVersion<T>,
@@ -393,7 +382,6 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> delete(asset: LayoutRowVersion<T>) =
         when (T::class) {
             LocationTrack::class -> locationTrackDao.deleteRow(asset.rowId as LayoutRowId<LocationTrack>)
-            ReferenceLine::class -> referenceLineDao.deleteRow(asset.rowId as LayoutRowId<ReferenceLine>)
             LayoutSwitch::class -> switchDao.deleteRow(asset.rowId as LayoutRowId<LayoutSwitch>)
             LayoutKmPost::class -> kmPostDao.deleteRow(asset.rowId as LayoutRowId<LayoutKmPost>)
             LayoutTrackNumber::class -> trackNumberDao.deleteRow(asset.rowId as LayoutRowId<LayoutTrackNumber>)
@@ -403,27 +391,30 @@ class TestDBService(
 
     @Suppress("UNCHECKED_CAST")
     final inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>, branch: LayoutBranch): Oid<T> =
-        someOid<T>().also { oid: Oid<T> ->
-            when (T::class) {
-                LayoutTrackNumber::class ->
-                    trackNumberDao.insertExternalId(
-                        id as IntId<LayoutTrackNumber>,
-                        branch,
-                        oid as Oid<LayoutTrackNumber>,
-                    )
-                LocationTrack::class ->
-                    locationTrackDao.insertExternalId(id as IntId<LocationTrack>, branch, oid as Oid<LocationTrack>)
-                LayoutSwitch::class ->
-                    switchDao.insertExternalId(id as IntId<LayoutSwitch>, branch, oid as Oid<LayoutSwitch>)
-                OperationalPoint::class ->
-                    operationalPointDao.insertExternalId(
-                        id as IntId<OperationalPoint>,
-                        branch,
-                        oid as Oid<OperationalPoint>,
-                    )
-                else -> error("Unsupported asset type for Oid generation: ${T::class.simpleName}")
-            }
+        someOid<T>().also { oid: Oid<T> -> saveOid(id, branch, oid) }
+
+    @Suppress("UNCHECKED_CAST")
+    final inline fun <reified T : LayoutAsset<T>> saveOid(id: IntId<T>, branch: LayoutBranch, oid: Oid<T>) {
+        when (T::class) {
+            LayoutTrackNumber::class ->
+                trackNumberDao.insertExternalId(
+                    id as IntId<LayoutTrackNumber>,
+                    branch,
+                    oid as Oid<LayoutTrackNumber>,
+                )
+            LocationTrack::class ->
+                locationTrackDao.insertExternalId(id as IntId<LocationTrack>, branch, oid as Oid<LocationTrack>)
+            LayoutSwitch::class ->
+                switchDao.insertExternalId(id as IntId<LayoutSwitch>, branch, oid as Oid<LayoutSwitch>)
+            OperationalPoint::class ->
+                operationalPointDao.insertExternalId(
+                    id as IntId<OperationalPoint>,
+                    branch,
+                    oid as Oid<OperationalPoint>,
+                )
+            else -> error("Unsupported asset type for Oid: ${T::class.simpleName}")
         }
+    }
 
     fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign(getUnusedDesignName()))
 
@@ -432,7 +423,6 @@ class TestDBService(
     fun layoutChangeTime(): Instant =
         listOf(
                 trackNumberDao.fetchChangeTime(),
-                referenceLineDao.fetchChangeTime(),
                 locationTrackDao.fetchChangeTime(),
                 switchDao.fetchChangeTime(),
                 kmPostDao.fetchChangeTime(),
@@ -472,14 +462,12 @@ class TestDBService(
     fun publish(
         branch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
-        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
         locationTracks: List<IntId<LocationTrack>> = emptyList(),
         switches: List<IntId<LayoutSwitch>> = emptyList(),
         kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
         operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
     ): Publication {
-        val requestIds =
-            publicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
+        val requestIds = publicationRequestIds(trackNumbers, locationTracks, switches, kmPosts, operationalPoints)
         val versions = publicationService.getValidationVersions(branch, requestIds)
         val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
         val result =
@@ -496,14 +484,12 @@ class TestDBService(
     fun publishAndValidate(
         branch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
-        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
         locationTracks: List<IntId<LocationTrack>> = emptyList(),
         switches: List<IntId<LayoutSwitch>> = emptyList(),
         kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
         operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
     ): Publication {
-        val request =
-            publicationRequest(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
+        val request = publicationRequest(trackNumbers, locationTracks, switches, kmPosts, operationalPoints)
         val result = publicationService.publishManualPublication(branch, request)
         return publicationDao.getPublication(requireNotNull(result.publicationId))
     }
@@ -516,8 +502,8 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
 
     inline fun <reified T : LayoutAsset<T>> fetch(id: IntId<T>): T? = getReader(T::class).get(context, id)
 
-    fun fetchReferenceLineWithGeometry(id: IntId<ReferenceLine>): Pair<ReferenceLine, ReferenceLineGeometry>? =
-        fetch(id)?.let { a -> a to alignmentDao.fetch(a.getGeometryVersionOrThrow()) }
+    fun fetchTrackNumberWithGeometry(id: IntId<LayoutTrackNumber>): Pair<LayoutTrackNumber, ReferenceLineGeometry>? =
+        trackNumberDao.get(context, id)?.let { tn -> tn to alignmentDao.fetch(tn.getVersionOrThrow()) }
 
     fun fetchLocationTrackWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, DbLocationTrackGeometry>? =
         locationTrackDao.get(context, id)?.let { track -> track to alignmentDao.fetch(track.getVersionOrThrow()) }
@@ -534,14 +520,11 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun save(asset: LocationTrack, geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> =
         testService.save(testService.updateContext(asset, context), geometry)
 
-    fun saveReferenceLine(asset: Pair<ReferenceLine, ReferenceLineGeometry>): LayoutRowVersion<ReferenceLine> =
+    fun saveTrackNumber(asset: Pair<LayoutTrackNumber, ReferenceLineGeometry>): LayoutRowVersion<LayoutTrackNumber> =
         save(testService.updateContext(asset.first, context), asset.second)
 
-    fun save(asset: ReferenceLine, geometry: ReferenceLineGeometry): LayoutRowVersion<ReferenceLine> =
+    fun save(asset: LayoutTrackNumber, geometry: ReferenceLineGeometry): LayoutRowVersion<LayoutTrackNumber> =
         testService.save(testService.updateContext(asset, context), geometry)
-
-    fun saveTrackNumber(asset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
-        testService.save(testService.updateContext(asset, context))
 
     inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>): Oid<T> =
         testService.generateOid(id, context.branch)
@@ -554,8 +537,11 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun saveWithOid(asset: LayoutSwitch): Pair<IntId<LayoutSwitch>, Oid<LayoutSwitch>> =
         save(asset).id.let { id -> id to generateOid(id) }
 
-    fun saveWithOid(asset: LayoutTrackNumber): Pair<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>> =
-        saveTrackNumber(asset).id.let { id -> id to generateOid(id) }
+    fun saveWithOid(
+        asset: LayoutTrackNumber,
+        geometry: ReferenceLineGeometry = TmpReferenceLineGeometry.empty,
+    ): Pair<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>> =
+        save(asset, geometry).id.let { id -> id to generateOid(id) }
 
     fun saveWithOid(asset: OperationalPoint): Pair<IntId<OperationalPoint>, Oid<OperationalPoint>> =
         save(asset).id.let { id -> id to generateOid(id) }
@@ -580,7 +566,8 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         return when (withNewContext) {
             // Also copy geometry for polyline assets
             is LocationTrack -> save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LocationTrack>))
-            is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getGeometryVersionOrThrow()))
+            is LayoutTrackNumber ->
+                save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LayoutTrackNumber>))
             else -> save(withNewContext)
         }
             as LayoutRowVersion<T>
@@ -605,7 +592,8 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         return when (withNewContext) {
             // Also move geometry for polyline assets
             is LocationTrack -> save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LocationTrack>))
-            is ReferenceLine -> save(withNewContext, alignmentDao.fetch(withNewContext.getGeometryVersionOrThrow()))
+            is LayoutTrackNumber ->
+                save(withNewContext, alignmentDao.fetch(rowVersion as LayoutRowVersion<LayoutTrackNumber>))
             else -> save(withNewContext)
         }
             as LayoutRowVersion<T>
@@ -617,23 +605,22 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         vararg assets: Pair<LocationTrack, LocationTrackGeometry>
     ): List<LayoutRowVersion<LocationTrack>> = assets.map(::saveLocationTrack)
 
-    fun saveManyReferenceLines(
-        vararg assets: Pair<ReferenceLine, ReferenceLineGeometry>
-    ): List<LayoutRowVersion<ReferenceLine>> = assets.map(::saveReferenceLine)
+    fun saveManyTrackNumbers(
+        vararg assets: Pair<LayoutTrackNumber, ReferenceLineGeometry>
+    ): List<LayoutRowVersion<LayoutTrackNumber>> = assets.map(::saveTrackNumber)
 
     fun <T : LayoutAsset<T>> saveAndFetch(asset: T): T = getReader(asset).fetch(save(asset))
 
-    fun saveAndFetchReferenceLine(
-        assetAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>
-    ): Pair<ReferenceLine, ReferenceLineGeometry> = saveAndFetch(assetAndGeometry.first, assetAndGeometry.second)
+    fun saveAndFetchTrackNumber(
+        assetAndGeometry: Pair<LayoutTrackNumber, ReferenceLineGeometry>
+    ): Pair<LayoutTrackNumber, ReferenceLineGeometry> = saveAndFetch(assetAndGeometry.first, assetAndGeometry.second)
 
     fun saveAndFetch(
-        asset: ReferenceLine,
+        asset: LayoutTrackNumber,
         geometry: ReferenceLineGeometry,
-    ): Pair<ReferenceLine, ReferenceLineGeometry> {
-        val geometryVersion = alignmentDao.insert(geometry)
-        val referenceLineVersion = referenceLineDao.save(asset.copy(geometryVersion = geometryVersion))
-        return referenceLineDao.fetch(referenceLineVersion) to alignmentDao.fetch(geometryVersion)
+    ): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
+        val version = testService.save(testService.updateContext(asset, context), geometry)
+        return trackNumberDao.fetch(version) to alignmentDao.fetch(version)
     }
 
     fun saveAndFetchLocationTrack(
@@ -648,49 +635,37 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         locationTrackDao.save(asset, geometry).let { v -> locationTrackDao.fetch(v) to alignmentDao.fetch(v) }
 
     fun createLayoutTrackNumber(
-        trackNumber: TrackNumber = testService.getUnusedTrackNumber()
-    ): LayoutRowVersion<LayoutTrackNumber> = save(trackNumber(trackNumber))
+        trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
+        geometry: ReferenceLineGeometry = referenceLineGeometry(),
+        startAddress: TrackMeter = TrackMeter.ZERO,
+    ): LayoutRowVersion<LayoutTrackNumber> = save(trackNumber(trackNumber, startAddress = startAddress), geometry)
 
-    fun createLayoutTrackNumberWithOid(oid: Oid<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
-        return save(trackNumber(testService.getUnusedTrackNumber())).also { trackNumber ->
-            trackNumberDao.insertExternalId(trackNumber.id, context.branch, oid)
-        }
-    }
-
-    fun createAndFetchLayoutTrackNumber(): LayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber())
+    fun createAndFetchLayoutTrackNumber(
+        trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
+        geometry: ReferenceLineGeometry = referenceLineGeometry(),
+        startAddress: TrackMeter = TrackMeter.ZERO,
+    ): LayoutTrackNumber = trackNumberDao.fetch(createLayoutTrackNumber(trackNumber, geometry, startAddress))
 
     fun createLocationTrack(geometry: LocationTrackGeometry): LayoutRowVersion<LocationTrack> {
-        return save(locationTrack(createLayoutTrackNumber().id), geometry)
+        return save(locationTrack(this@TestLayoutContext.createLayoutTrackNumber().id), geometry)
     }
 
     fun createLocationTrackWithReferenceLine(
         geometry: LocationTrackGeometry,
         trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
     ): LayoutRowVersion<LocationTrack> {
-        val trackNumberId = createTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber).id
+        val trackNumberId = createLayoutTrackNumber(trackNumber, referenceLineGeometry(geometry.segments)).id
         return save(locationTrack(trackNumberId), geometry)
     }
 
-    fun createTrackNumberAndReferenceLine(
-        referenceLineGeometry: ReferenceLineGeometry = referenceLineGeometry(),
-        trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
-        startAddress: TrackMeter = TrackMeter.ZERO,
-    ): LayoutRowVersion<LayoutTrackNumber> =
-        createLayoutTrackNumber(trackNumber).also { tnResponse ->
-            save(referenceLine(trackNumberId = tnResponse.id, startAddress = startAddress), referenceLineGeometry)
-        }
-
     fun createLayoutTrackNumbers(count: Int): List<LayoutRowVersion<LayoutTrackNumber>> =
-        (1..count).map { createLayoutTrackNumber() }
+        (1..count).map { this@TestLayoutContext.createLayoutTrackNumber() }
 
     fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): LayoutTrackNumber {
         val version =
             trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull() ?: save(trackNumber(trackNumber))
         return trackNumberDao.fetch(version)
     }
-
-    fun createTrackNumberAndId(): Pair<TrackNumber, IntId<LayoutTrackNumber>> =
-        createAndFetchLayoutTrackNumber().let { tn -> tn.number to tn.id as IntId }
 
     fun createSwitch(
         stateCategory: LayoutStateCategory = EXISTING,
@@ -727,7 +702,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
                 .id
         val innerTrackIds = alignmentJointPositions.map { jointPositions ->
             save(
-                    locationTrack(createLayoutTrackNumber().id),
+                    locationTrack(this@TestLayoutContext.createLayoutTrackNumber().id),
                     trackGeometry(
                         combineEdges(
                             jointPositions.zipWithNext().map { (from, to) ->

@@ -61,14 +61,14 @@ function getAlignments(
         return Promise.resolve([]);
     } else if (hoveredOverItem.type === 'REFERENCE_LINE') {
         return getSelectedReferenceLineMapAlignmentByTiles(
-            changeTimes,
+            changeTimes.layoutTrackNumber,
             mapTiles,
             layoutContext,
             hoveredOverItem.id,
         );
     } else {
         return getSelectedLocationTrackMapAlignmentByTiles(
-            changeTimes,
+            changeTimes.layoutLocationTrack,
             mapTiles,
             layoutContext,
             hoveredOverItem.id,

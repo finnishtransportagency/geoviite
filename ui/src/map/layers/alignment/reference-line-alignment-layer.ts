@@ -18,7 +18,7 @@ import {
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
-import { ReferenceLineId } from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
@@ -74,17 +74,21 @@ export function createReferenceLineAlignmentLayer(
         isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
     );
 
-    function updateShownReferenceLines(referenceLineIds: ReferenceLineId[]) {
-        const compare = referenceLineIds.sort().join();
+    function updateShownReferenceLines(trackNumberIds: LayoutTrackNumberId[]) {
+        const compare = trackNumberIds.sort().join();
 
         if (compare !== shownReferenceLinesCompare) {
             shownReferenceLinesCompare = compare;
-            onViewContentChanged({ referenceLines: referenceLineIds });
+            onViewContentChanged({ trackNumbers: trackNumberIds });
         }
     }
 
     const dataPromise: Promise<ReferenceLineAlignmentDataHolder[]> =
-        getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
+        getReferenceLineMapAlignmentsByTiles(
+            changeTimes.layoutTrackNumber,
+            mapTiles,
+            layoutContext,
+        );
 
     const createFeatures = (referenceLines: ReferenceLineAlignmentDataHolder[]) =>
         createReferenceLineFeatures(referenceLines, selection, false);
@@ -106,11 +110,7 @@ export function createReferenceLineAlignmentLayer(
         const trackNumberIds = deduplicate(
             referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),
         );
-
-        return {
-            referenceLines: referenceLines.map((r) => r.header.id),
-            trackNumbers: trackNumberIds,
-        };
+        return { trackNumbers: trackNumberIds };
     };
 
     return {

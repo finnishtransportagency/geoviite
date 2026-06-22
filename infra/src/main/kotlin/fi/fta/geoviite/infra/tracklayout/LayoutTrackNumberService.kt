@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateSystem
@@ -20,6 +21,7 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.map.toPolygon
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
@@ -28,9 +30,9 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.stream.Collectors
-import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.data"
 
@@ -42,28 +44,26 @@ enum class KmLengthsLocationPrecision {
 @GeoviiteService
 class LayoutTrackNumberService(
     dao: LayoutTrackNumberDao,
-    private val referenceLineService: ReferenceLineService,
     private val geocodingService: GeocodingService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
     private val locationTrackService: LocationTrackService,
-) : LayoutAssetService<LayoutTrackNumber, NoParams, LayoutTrackNumberDao>(dao) {
+    private val alignmentDao: LayoutAlignmentDao,
+) : LayoutAssetService<LayoutTrackNumber, ReferenceLineGeometry, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> {
-        val draftSaveResponse =
-            saveDraft(
-                branch,
-                LayoutTrackNumber(
-                    number = saveRequest.number,
-                    description = saveRequest.description,
-                    state = saveRequest.state,
-                    contextData = LayoutContextData.newDraft(branch, dao.createId()),
-                ),
-            )
-        referenceLineService.addTrackNumberReferenceLine(branch, draftSaveResponse.id, saveRequest.startAddress)
-        return draftSaveResponse
-    }
+    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> =
+        saveDraftInternal(
+            branch,
+            LayoutTrackNumber(
+                number = saveRequest.number,
+                description = saveRequest.description,
+                state = saveRequest.state,
+                startAddress = saveRequest.startAddress,
+                contextData = LayoutContextData.newDraft(branch, dao.createId()),
+            ),
+            TmpReferenceLineGeometry.empty,
+        )
 
     @Transactional
     fun update(
@@ -71,18 +71,132 @@ class LayoutTrackNumberService(
         id: IntId<LayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
     ): LayoutRowVersion<LayoutTrackNumber> {
-        val original = dao.getOrThrow(branch.draft, id)
-        val draftSaveResponse =
-            saveDraft(
-                branch,
-                original.copy(
-                    number = saveRequest.number,
-                    description = saveRequest.description,
-                    state = saveRequest.state,
-                ),
-            )
-        referenceLineService.updateTrackNumberReferenceLine(branch, id, saveRequest.startAddress)
-        return draftSaveResponse
+        val (original, geometry) = getWithGeometryInternalOrThrow(branch.draft, id)
+        return saveDraftInternal(
+            branch,
+            original.copy(
+                number = saveRequest.number,
+                description = saveRequest.description,
+                state = saveRequest.state,
+                startAddress = saveRequest.startAddress,
+            ),
+            geometry,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getWithGeometry(
+        layoutContext: LayoutContext,
+        id: IntId<LayoutTrackNumber>,
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry>? {
+        return dao.fetchVersion(layoutContext, id)?.let(::getWithGeometryInternal)
+    }
+
+    @Transactional(readOnly = true)
+    fun getWithGeometryOrThrow(
+        layoutContext: LayoutContext,
+        id: IntId<LayoutTrackNumber>,
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> {
+        return getWithGeometryInternal(dao.fetchVersionOrThrow(layoutContext, id))
+    }
+
+    @Transactional(readOnly = true)
+    fun getWithGeometry(
+        version: LayoutRowVersion<LayoutTrackNumber>
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> {
+        return getWithGeometryInternal(version)
+    }
+
+    @Transactional(readOnly = true)
+    fun getManyWithGeometries(
+        layoutContext: LayoutContext,
+        ids: List<IntId<LayoutTrackNumber>>,
+    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> {
+        return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
+    }
+
+    @Transactional(readOnly = true)
+    fun getManyWithGeometries(
+        versions: List<LayoutRowVersion<LayoutTrackNumber>>
+    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> {
+        return dao.fetchMany(versions).let(::associateWithGeometries)
+    }
+
+    fun listNonLinked(branch: LayoutBranch): List<LayoutTrackNumber> {
+        return dao.fetchVersionsNonLinked(branch.draft).let(dao::fetchMany)
+    }
+
+    fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LayoutTrackNumber> {
+        return dao.fetchVersionsNear(layoutContext, bbox, includeDeleted = false).let(dao::fetchMany)
+    }
+
+    @Transactional(readOnly = true)
+    fun listWithGeometries(
+        layoutContext: LayoutContext,
+        includeDeleted: Boolean = false,
+        boundingBox: BoundingBox? = null,
+    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> {
+        return (if (boundingBox == null) {
+                dao.list(layoutContext, includeDeleted)
+            } else {
+                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted).let(dao::fetchMany)
+            })
+            .let { list -> filterByBoundingBox(list, boundingBox) }
+            .let(::associateWithGeometries)
+    }
+
+    @Transactional(readOnly = true)
+    fun getStartAndEnd(context: LayoutContext, id: IntId<LayoutTrackNumber>): AlignmentStartAndEnd<LayoutTrackNumber>? {
+        return getWithGeometry(context, id)?.let { (_, geometry) ->
+            val geocodingContext = geocodingService.getGeocodingContext(context, id)
+            AlignmentStartAndEnd.of(id, geometry, geocodingContext)
+        }
+    }
+
+    private fun getWithGeometryInternalOrThrow(
+        layoutContext: LayoutContext,
+        id: IntId<LayoutTrackNumber>,
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> {
+        return getWithGeometryInternal(dao.fetchVersionOrThrow(layoutContext, id))
+    }
+
+    private fun getWithGeometryInternal(
+        layoutContext: LayoutContext,
+        id: IntId<LayoutTrackNumber>,
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry>? {
+        return dao.fetchVersion(layoutContext, id)?.let { v -> getWithGeometryInternal(v) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getOfficialWithGeometryAtMoment(
+        branch: LayoutBranch,
+        id: IntId<LayoutTrackNumber>,
+        moment: Instant,
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry>? {
+        return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithGeometryInternal)
+    }
+
+    @Transactional(readOnly = true)
+    fun listOfficialWithGeometryAtMoment(
+        branch: LayoutBranch,
+        moment: Instant,
+        includeDeleted: Boolean = false,
+    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> {
+        return dao.fetchAllOfficialVersionsAtMoment(branch, moment).let(::getManyWithGeometries).let { list ->
+            if (includeDeleted) list else list.filter { (track, _) -> track.exists }
+        }
+    }
+
+    private fun getWithGeometryInternal(
+        version: LayoutRowVersion<LayoutTrackNumber>
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> = dao.fetch(version) to alignmentDao.fetch(version)
+
+    private fun associateWithGeometries(
+        lines: List<LayoutTrackNumber>
+    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> {
+        // This is a little convoluted to avoid extra passes of transaction annotation handling in alignmentDao.fetch
+        val geometries = alignmentDao.fetchMany(lines.map(LayoutTrackNumber::getVersionOrThrow))
+        return lines.map { line -> line to geometries.getValue(line.getVersionOrThrow()) }
     }
 
     @Transactional
@@ -144,12 +258,11 @@ class LayoutTrackNumberService(
     ): String {
         val kmLengths = getKmLengths(layoutContext, trackNumberId) ?: emptyList()
 
-        val filteredKmLengths =
-            kmLengths.filter { kmPost ->
-                val start = startKmNumber ?: kmLengths.first().kmNumber
-                val end = endKmNumber ?: kmLengths.last().kmNumber
-                kmPost.kmNumber in start..end
-            }
+        val filteredKmLengths = kmLengths.filter { kmPost ->
+            val start = startKmNumber ?: kmLengths.first().kmNumber
+            val end = endKmNumber ?: kmLengths.last().kmNumber
+            kmPost.kmNumber in start..end
+        }
 
         return asCsvFile(
             filteredKmLengths,
@@ -187,7 +300,7 @@ class LayoutTrackNumberService(
         endKm: KmNumber?,
         bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
     ): Polygon? {
-        val geometry = referenceLineService.getByTrackNumberWithGeometry(layoutContext, trackNumberId)?.second
+        val geometry = getWithGeometry(layoutContext, trackNumberId)?.second
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
 
         return if (
@@ -216,23 +329,25 @@ class LayoutTrackNumberService(
         id: IntId<LayoutTrackNumber>,
         noUpdateLocationTracks: Set<IntId<LocationTrack>>,
     ): LayoutRowVersion<LayoutTrackNumber> {
-        referenceLineService.deleteDraftByTrackNumberId(branch, id)
         return super.deleteDraft(branch, id).also { v ->
             locationTrackService.updateDependencies(branch, noUpdateLocationTracks, trackNumberId = v.id)
         }
     }
 
     @Transactional
-    fun saveDraft(branch: LayoutBranch, draftAsset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
-        saveDraftInternal(branch, draftAsset, NoParams.instance)
+    fun saveDraft(
+        branch: LayoutBranch,
+        draftAsset: LayoutTrackNumber,
+        params: ReferenceLineGeometry,
+    ): LayoutRowVersion<LayoutTrackNumber> = saveDraftInternal(branch, draftAsset, params)
 
     @Transactional
     override fun saveDraftInternal(
         branch: LayoutBranch,
         draftAsset: LayoutTrackNumber,
-        params: NoParams,
+        params: ReferenceLineGeometry,
     ): LayoutRowVersion<LayoutTrackNumber> =
-        super.saveDraftInternal(branch, draftAsset, NoParams.instance).also { v ->
+        super.saveDraftInternal(branch, draftAsset, params).also { v ->
             locationTrackService.updateDependencies(branch, trackNumberId = v.id, noUpdateLocationTracks = setOf())
         }
 }
@@ -358,3 +473,6 @@ private fun getCropMRange(
         )
     }
 }
+
+fun filterByBoundingBox(list: List<LayoutTrackNumber>, boundingBox: BoundingBox?): List<LayoutTrackNumber> =
+    if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) } else list

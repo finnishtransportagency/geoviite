@@ -20,23 +20,22 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 sealed interface GeocodingContextCacheKey
 
 data class LayoutGeocodingContextCacheKey(
-    val trackNumberId: IntId<LayoutTrackNumber>,
     val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
-    val referenceLineVersion: LayoutRowVersion<ReferenceLine>,
     val kmPostVersions: List<LayoutRowVersion<LayoutKmPost>>,
 ) : GeocodingContextCacheKey {
+    val trackNumberId: IntId<LayoutTrackNumber>
+        get() = trackNumberVersion.id
+
     init {
         kmPostVersions.forEachIndexed { index, version ->
             kmPostVersions.getOrNull(index + 1)?.also { next ->
@@ -58,7 +57,6 @@ data class GeometryGeocodingContextCacheKey(val trackNumber: TrackNumber, val pl
 @GeoviiteService
 class GeocodingCacheService(
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val kmPostDao: LayoutKmPostDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val planLayoutService: PlanLayoutService,
@@ -88,12 +86,11 @@ class GeocodingCacheService(
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
     fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): ValidatedGeocodingContext<ReferenceLineM>? {
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
-        val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
-        val geometry = alignmentDao.fetch(referenceLine.getGeometryVersionOrThrow())
+        val geometry = alignmentDao.fetch(key.trackNumberVersion)
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || geometry.segments.isEmpty()) return null
         val kmPosts = kmPostDao.fetchMany(key.kmPostVersions).sortedBy { post -> post.kmNumber }
-        return GeocodingContext.create(trackNumber.number, referenceLine.startAddress, geometry, kmPosts)
+        return GeocodingContext.create(trackNumber.number, trackNumber.startAddress, geometry, kmPosts)
     }
 
     @Transactional(readOnly = true)

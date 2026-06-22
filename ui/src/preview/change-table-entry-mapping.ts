@@ -4,7 +4,6 @@ import {
     Operation,
     OperationalPointPublicationCandidate,
     PublicationGroup,
-    ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
@@ -15,14 +14,12 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { KmNumber, TrackNumber } from 'common/common-model';
 import i18n from 'i18next';
 
 type PublicationId =
     | LayoutTrackNumberId
-    | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
     | LayoutKmPostId
@@ -43,7 +40,6 @@ const changeTableEntryCommonFields = (
     candidate:
         | LocationTrackPublicationCandidate
         | TrackNumberPublicationCandidate
-        | ReferenceLinePublicationCandidate
         | SwitchPublicationCandidate
         | KmPostPublicationCandidate
         | OperationalPointPublicationCandidate,
@@ -85,19 +81,6 @@ export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublicatio
     name: trackNumber.number,
     trackNumbers: [trackNumber.number],
 });
-
-export const referenceLineToChangeTableEntry = (
-    referenceLine: ReferenceLinePublicationCandidate,
-    trackNumbers: LayoutTrackNumber[],
-) => {
-    const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
-    return {
-        ...changeTableEntryCommonFields(referenceLine),
-        uiName: getReferenceLineUiName(referenceLine.name),
-        name: referenceLine.name,
-        trackNumbers: [trackNumber ? trackNumber.number : ''],
-    };
-};
 
 export const locationTrackToChangeTableEntry = (
     locationTrack: LocationTrackPublicationCandidate,

@@ -32,8 +32,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
 
         val tnVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
         val op1Address = TrackMeter("0000+0020.000")
@@ -133,8 +133,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
 
         val tnVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
         val op1Address = TrackMeter("0000+0010.000")
@@ -146,7 +146,9 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         val track1 =
             mainOfficialContext.save(
                 locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1.id, op2.id)),
-                trackGeometry(edge(segments = listOf(segment(Point(5.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))),
+                trackGeometry(
+                    edge(segments = listOf(segment(Point(5.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))
+                ),
             )
 
         // Track 2 connects OP2 and OP3 directly (no switches)
@@ -198,8 +200,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks returns correct links when the track doesn't cover the whole way`() {
         val tnVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
             )
         val op1Version = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
         val op1Address = TrackMeter("0000+0020.000")
@@ -290,8 +292,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks does not produce links for OLP-type operational points`() {
         val tnVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
         val olp =
@@ -329,8 +331,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks returns correct links when filtering by operational point id`() {
         val tnVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
         val op1Address = TrackMeter("0000+0010.000")
@@ -433,8 +435,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks handles tracks referencing deleted operational points`() {
         val tnVersion =
-            mainOfficialContext.createTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
         val deletedOp =

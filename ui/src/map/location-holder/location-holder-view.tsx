@@ -8,8 +8,7 @@ import { useDebouncedState, useLoader } from 'utils/react-utils';
 import { getAddress } from 'common/geocoding-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
-import { getTrackNumberById } from 'track-layout/layout-track-number-api';
-import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
+import { getTrackNumber } from 'track-layout/layout-track-number-api';
 import { first } from 'utils/array-utils';
 
 type LocationHolderProps = {
@@ -40,11 +39,9 @@ async function getReferenceLineHoverLocation(
     layoutContext: LayoutContext,
     coordinate: Point,
 ): Promise<HoverLocation> {
-    return getTrackNumberReferenceLine(trackNumberId, layoutContext).then((line) => {
-        if (line) {
-            return getTrackNumberById(line.trackNumberId, layoutContext).then((trackNumber) =>
-                getHoverLocation(trackNumber?.number, trackNumber?.id, layoutContext, coordinate),
-            );
+    return getTrackNumber(trackNumberId, layoutContext).then((tn) => {
+        if (tn) {
+            return getHoverLocation(tn.number, tn.id, layoutContext, coordinate);
         } else {
             return emptyHoveredLocation(coordinate);
         }

@@ -62,7 +62,7 @@ export function createLocationTrackSelectedAlignmentLayer(
     const alignmentPromise: Promise<AlignmentDataHolder[]> =
         selectedTrack && !splittingIsActive
             ? getSelectedLocationTrackMapAlignmentByTiles(
-                  changeTimes,
+                  changeTimes.layoutLocationTrack,
                   mapTiles,
                   layoutContext,
                   selectedTrack,

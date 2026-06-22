@@ -14,13 +14,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import java.time.Duration
-import java.time.Instant
-import java.util.concurrent.atomic.AtomicBoolean
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 @GeoviiteService
 class CachePreloadService(
@@ -29,7 +28,6 @@ class CachePreloadService(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val layoutKmPostDao: LayoutKmPostDao,
     private val switchDao: LayoutSwitchDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val geometryDao: GeometryDao,
@@ -65,9 +63,9 @@ class CachePreloadService(
         get() = preloadInProgressInternal.get()
 
     fun loadLayoutCache() {
-        listOf(layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao)
-            .parallelStream()
-            .forEach { dao -> refreshCache(dao) }
+        listOf(layoutTrackNumberDao, locationTrackDao, switchDao, layoutKmPostDao).parallelStream().forEach { dao ->
+            refreshCache(dao)
+        }
     }
 
     fun loadPlanHeaderCache() {
@@ -76,7 +74,7 @@ class CachePreloadService(
 
     fun loadAlignmentCache() {
         refreshCache("SegmentGeometries", alignmentDao::preloadSegmentGeometries)
-        refreshCache("Alignment", alignmentDao::preloadAlignmentCache)
+        refreshCache("ReferenceLineGeometry", alignmentDao::preloadReferenceLineGeometries)
         refreshCache("Node", alignmentDao::preloadNodes)
         refreshCache("Edge", alignmentDao::preloadEdges)
         refreshCache("LocationTrackGeometry", alignmentDao::preloadLocationTrackGeometries)

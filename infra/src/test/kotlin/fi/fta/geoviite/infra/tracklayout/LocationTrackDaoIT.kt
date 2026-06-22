@@ -19,9 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.random.Random
-import kotlin.test.assertContains
-import kotlin.test.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -30,6 +27,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.random.Random
+import kotlin.test.assertContains
+import kotlin.test.assertFalse
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -676,7 +676,10 @@ constructor(
         )
         assertEquals(
             listOf(officialTrackVersion),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.official,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
         )
     }
 

@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -27,15 +26,15 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
-import java.math.BigDecimal
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -45,7 +44,6 @@ constructor(
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
     private val locationTrackDao: LocationTrackDao,
-    private val alignmentDao: LayoutAlignmentDao,
     private val webClient: LocalHostWebClient,
 ) : SeleniumTest() {
 
@@ -76,7 +74,8 @@ constructor(
 
     @Test
     fun `List layout vertical geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber).id
         val goodPlan = insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
 
@@ -98,7 +97,8 @@ constructor(
 
     @Test
     fun `List entire track vertical geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber).id
         val goodPlan = insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
 

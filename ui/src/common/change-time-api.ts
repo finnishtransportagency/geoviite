@@ -45,14 +45,6 @@ export function updateLocationTrackChangeTime(): Promise<TimeStamp> {
     );
 }
 
-export function updateReferenceLineChangeTime(): Promise<TimeStamp> {
-    return updateChangeTime(
-        `${CHANGES_API}/reference-lines`,
-        delegates.setLayoutReferenceLineChangeTime,
-        getChangeTimes().layoutReferenceLine,
-    );
-}
-
 export function updateSwitchChangeTime(): Promise<TimeStamp> {
     return updateChangeTime(
         `${CHANGES_API}/switches`,
@@ -146,6 +138,5 @@ export const geocodingChangeTime = (changeTimes: ChangeTimes) =>
     getMaxTimestamp(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutTrackNumber,
-        changeTimes.layoutReferenceLine,
         changeTimes.layoutKmPost,
     );

@@ -26,7 +26,6 @@ import {
     LocationTrackPublicationCandidate,
     OperationalPointPublicationCandidate,
     PublicationCandidate,
-    ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
@@ -39,12 +38,10 @@ import {
     createBaseReferenceLineFeatures,
     createCandidateLocationTrackFeatures,
     createCandidatePointFeatures,
-    createCandidateReferenceLineFeatures,
     createCandidateTrackNumberFeatures,
     getSwitchLocation,
     LocationTrackCandidateAndAlignment,
     PublicationCandidateFeatureType,
-    ReferenceLineCandidateAndAlignment,
     TrackNumberCandidateAndAlignment,
 } from 'map/layers/utils/publication-candidate-highlight-utils';
 import { LayoutKmPost, LayoutSwitch, OperationalPoint } from 'track-layout/track-layout-model';
@@ -82,19 +79,14 @@ export function createPublicationCandidateLayer(
     );
     const trackNumberIds = trackNumberCandidates.map((c) => c.id);
 
-    const referenceLineCandidates = publicationCandidates.filter(
-        (c) => c.type === DraftChangeType.REFERENCE_LINE,
-    );
-    const referenceLineIds = referenceLineCandidates.map((c) => c.id);
-
     const candidateReferenceLineAlignmentPromise = getReferenceLineMapAlignmentsByTiles(
-        changeTimes,
+        changeTimes.layoutTrackNumber,
         mapTiles,
         layoutContext,
     ).then((rlAlignments) => {
-        const rlCandidates = rlAlignments
+        return rlAlignments
             .map((alignment) => {
-                const candidate = referenceLineCandidates.find((c) => c.id === alignment.header.id);
+                const candidate = trackNumberCandidates.find((c) => c.id === alignment.header.id);
                 return candidate
                     ? {
                           alignment: alignment,
@@ -103,21 +95,6 @@ export function createPublicationCandidateLayer(
                     : undefined;
             })
             .filter(filterNotEmpty);
-        const tnCandidates = rlAlignments
-            .map((alignment) => {
-                const candidate = trackNumberCandidates.find(
-                    (c) => c.id === alignment.header.trackNumberId,
-                );
-                return candidate
-                    ? {
-                          alignment: alignment,
-                          publishCandidate: candidate,
-                      }
-                    : undefined;
-            })
-            .filter(filterNotEmpty);
-
-        return { candidateTrackNumbers: tnCandidates, candidateReferenceLines: rlCandidates };
     });
 
     const candidateLocationTrackAlignmentPromise = getLocationTrackMapAlignmentsByTiles(
@@ -165,22 +142,25 @@ export function createPublicationCandidateLayer(
             : Promise.resolve([]);
 
     const baseReferenceLineLineAlignmentsPromise =
-        referenceLineCandidates.length > 0
-            ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, targetLayoutContext).then(
-                  (alignments) =>
-                      alignments
-                          .map((alignment) => {
-                              const publishCandidate = referenceLineCandidates.find(
-                                  (c) => c.id === alignment.header.id,
-                              );
-                              return publishCandidate
-                                  ? {
-                                        alignment,
-                                        publishCandidate,
-                                    }
-                                  : undefined;
-                          })
-                          .filter(filterNotEmpty),
+        trackNumberCandidates.length > 0
+            ? getReferenceLineMapAlignmentsByTiles(
+                  changeTimes.layoutTrackNumber,
+                  mapTiles,
+                  targetLayoutContext,
+              ).then((alignments) =>
+                  alignments
+                      .map((alignment) => {
+                          const publishCandidate = trackNumberCandidates.find(
+                              (c) => c.id === alignment.header.id,
+                          );
+                          return publishCandidate
+                              ? {
+                                    alignment,
+                                    publishCandidate,
+                                }
+                              : undefined;
+                      })
+                      .filter(filterNotEmpty),
               )
             : Promise.resolve([]);
     const switchCandidates = publicationCandidates.filter((c) => c.type === DraftChangeType.SWITCH);
@@ -210,33 +190,23 @@ export function createPublicationCandidateLayer(
 
     const createFeatures = (data: {
         candidateLocationTracks: LocationTrackCandidateAndAlignment[];
-        candidateReferenceLines: ReferenceLineCandidateAndAlignment[];
         candidateTrackNumbers: TrackNumberCandidateAndAlignment[];
         baseLocationTracks: LocationTrackCandidateAndAlignment[];
-        baseReferenceLines: ReferenceLineCandidateAndAlignment[];
+        baseTrackNumbers: TrackNumberCandidateAndAlignment[];
         baseSwitches: LayoutSwitch[];
         baseKmPosts: LayoutKmPost[];
         baseOperationalPoints: OperationalPoint[];
         switchStructures: SwitchStructure[];
     }) => {
-        const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) => {
-            return locationTrackIds.includes(c.alignment.header.id);
-        });
-        const filteredReferenceLineCandidates = data.candidateReferenceLines.filter((c) => {
-            return referenceLineIds.includes(c.alignment.header.id);
-        });
-        const filteredTrackNumberCandidates = data.candidateTrackNumbers.filter(
-            (c) =>
-                c.alignment.header.trackNumberId !== undefined &&
-                trackNumberIds.includes(c.alignment.header.trackNumberId),
+        const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) =>
+            locationTrackIds.includes(c.alignment.header.id),
+        );
+        const filteredTrackNumberCandidates = data.candidateTrackNumbers.filter((c) =>
+            trackNumberIds.includes(c.alignment.header.id),
         );
 
         const candidateLocationTrackAlignmentFeatures = createCandidateLocationTrackFeatures(
             filteredLocationTrackCandidates,
-            metersPerPixel,
-        );
-        const candidateReferenceLineAlignmentFeatures = createCandidateReferenceLineFeatures(
-            filteredReferenceLineCandidates,
             metersPerPixel,
         );
         const candidateTrackNumberAlignmentFeatures = createCandidateTrackNumberFeatures(
@@ -283,16 +253,11 @@ export function createPublicationCandidateLayer(
                 ),
             )
             .filter(filterNotEmpty);
-        const baseReferenceLineFeatures: Feature<LineString | OlPoint>[] = data.baseReferenceLines
+        const baseTrackNumberFeatures: Feature<LineString | OlPoint>[] = data.baseTrackNumbers
             .flatMap(({ alignment, publishCandidate }) => {
-                const tnCandidate = trackNumberCandidates.find(
-                    (tn) => tn.id === publishCandidate.trackNumberId,
-                );
-
                 return createBaseReferenceLineFeatures(
                     publishCandidate,
                     alignment,
-                    tnCandidate,
                     showEndPointTicks,
                     metersPerPixel,
                 );
@@ -301,13 +266,12 @@ export function createPublicationCandidateLayer(
 
         return [
             ...candidateLocationTrackAlignmentFeatures,
-            ...candidateReferenceLineAlignmentFeatures,
             ...candidateTrackNumberAlignmentFeatures,
             ...candidateSwitchFeatures,
             ...candidateKmPostFeatures,
             ...candidateOperationalPointFeatures,
             ...baseLocationTrackFeatures,
-            ...baseReferenceLineFeatures,
+            ...baseTrackNumberFeatures,
         ];
     };
 
@@ -323,23 +287,19 @@ export function createPublicationCandidateLayer(
     ]).then(
         ([
             candidateLocationTracks,
-            candidateTrackNumbersAndReferenceLines,
+            candidateTrackNumbers,
             baseLocationTracks,
-            baseReferenceLines,
+            baseTrackNumbers,
             baseSwitches,
             baseKmPosts,
             baseOperationalPoints,
             switchStructures,
         ]) => {
-            const { candidateTrackNumbers, candidateReferenceLines } =
-                candidateTrackNumbersAndReferenceLines;
-
             return {
                 candidateLocationTracks,
                 candidateTrackNumbers,
-                candidateReferenceLines,
                 baseLocationTracks,
-                baseReferenceLines,
+                baseTrackNumbers,
                 baseSwitches,
                 baseKmPosts,
                 baseOperationalPoints,
@@ -362,11 +322,6 @@ export function createPublicationCandidateLayer(
                     CandidateDataProperties.LOCATION_TRACK,
                 );
 
-            const referenceLinePublicationCandidates =
-                findByPropertyName<ReferenceLinePublicationCandidate>(
-                    CandidateDataProperties.REFERENCE_LINE,
-                );
-
             const trackNumberPublicationCandidates =
                 findByPropertyName<TrackNumberPublicationCandidate>(
                     CandidateDataProperties.TRACK_NUMBER,
@@ -387,7 +342,6 @@ export function createPublicationCandidateLayer(
 
             return {
                 locationTrackPublicationCandidates,
-                referenceLinePublicationCandidates,
                 trackNumberPublicationCandidates,
                 switchPublicationCandidates,
                 kmPostPublicationCandidates,

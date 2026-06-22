@@ -16,7 +16,6 @@ import {
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { PublishedAsset } from 'publication/publication-api';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { PublicationDisplayMode } from 'publication/table/publication-table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
@@ -27,7 +26,6 @@ type PublicationTableRowProps = {
     detailsVisibleToggle: (id: PublicationId) => void;
     displaySinglePublication: (id: PublicationId) => void;
     displayItemHistory: (item: SearchItemValue<SearchItemType>) => void;
-    allLayoutTrackNumbers: LayoutTrackNumber[];
 } & PublicationTableItem;
 
 type PublicationTableMessageProps = {
@@ -52,28 +50,10 @@ const PublicationTableMessage: React.FC<PublicationTableMessageProps> = ({
     }
 };
 
-const getTrackNumberForReferenceLine = (
-    asset: PublishedAsset,
-    trackNumbers: LayoutTrackNumber[],
-): SearchItemValue<SearchItemType> | undefined => {
-    if (asset.type !== 'REFERENCE_LINE') {
-        return undefined;
-    } else {
-        const trackNumber = trackNumbers.find((tn) => tn.id === asset.asset.trackNumberId);
-
-        return trackNumber ? { trackNumber, type: SearchItemType.TRACK_NUMBER } : undefined;
-    }
-};
-
-const assetToSearchItem = (
-    asset: PublishedAsset,
-    trackNumbers: LayoutTrackNumber[],
-): SearchItemValue<SearchItemType> | undefined => {
+const assetToSearchItem = (asset: PublishedAsset): SearchItemValue<SearchItemType> | undefined => {
     switch (asset.type) {
         case 'TRACK_NUMBER':
             return { trackNumber: asset.asset, type: SearchItemType.TRACK_NUMBER };
-        case 'REFERENCE_LINE':
-            return getTrackNumberForReferenceLine(asset, trackNumbers);
         case 'LOCATION_TRACK':
             return { locationTrack: asset.asset, type: SearchItemType.LOCATION_TRACK };
         case 'SWITCH':
@@ -95,7 +75,6 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     trackNumbers,
     changedKmNumbers,
     operation,
-    allLayoutTrackNumbers,
     publicationTime,
     publicationUser,
     message,
@@ -113,7 +92,7 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
         detailsVisible && styles['publication-table__row--details-are-visible'],
     );
 
-    const assetAsSearchItem = assetToSearchItem(asset, allLayoutTrackNumbers);
+    const assetAsSearchItem = assetToSearchItem(asset);
     const displaySingleItem =
         assetAsSearchItem === undefined
             ? undefined

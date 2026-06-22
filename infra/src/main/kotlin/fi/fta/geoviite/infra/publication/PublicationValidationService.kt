@@ -28,8 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,7 +41,6 @@ constructor(
     private val geocodingService: GeocodingService,
     private val kmPostDao: LayoutKmPostDao,
     private val locationTrackDao: LocationTrackDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchDao: LayoutSwitchDao,
     private val operationalPointDao: OperationalPointDao,
@@ -68,7 +65,7 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun validateTrackNumbersAndReferenceLines(
+    fun validateTrackNumbers(
         branch: LayoutBranch,
         state: PublicationState,
         trackNumberIds: List<IntId<LayoutTrackNumber>>,
@@ -85,24 +82,17 @@ constructor(
                         locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext),
                         kmPosts = kmPostDao.fetchCandidateVersions(target.candidateContext),
                         trackNumbers = trackNumberDao.fetchCandidateVersions(target.candidateContext),
-                        referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
                     )
 
                 PublicationState.OFFICIAL -> createValidationContext(target)
             }
-        validationContext.preloadTrackNumberAndReferenceLineVersions(trackNumberIds)
+        validationContext.preloadTrackNumberVersions(trackNumberIds)
         validationContext.preloadTrackNumbersByNumber(trackNumberIds)
         validationContext.preloadKmPostsByTrackNumbers(trackNumberIds)
         validationContext.preloadLocationTracksByTrackNumbers(trackNumberIds)
 
-        return trackNumberIds.mapNotNull { id ->
-            val trackNumberIssues = validateTrackNumber(id, validationContext)
-            val referenceLineId = validationContext.getReferenceLineIdByTrackNumber(id)
-            val referenceLineIssues = referenceLineId?.let { rlId -> validateReferenceLine(rlId, validationContext) }
-            if (trackNumberIssues != null || referenceLineIssues != null) {
-                val allIssues = ((trackNumberIssues ?: emptyList()) + (referenceLineIssues ?: emptyList())).distinct()
-                ValidatedAsset(id, allIssues)
-            } else null
+        return trackNumberIds.map { id ->
+            ValidatedAsset(id, validateTrackNumber(id, validationContext))
         }
     }
 
@@ -124,7 +114,6 @@ constructor(
                         locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext),
                         kmPosts = kmPostDao.fetchCandidateVersions(target.candidateContext),
                         trackNumbers = trackNumberDao.fetchCandidateVersions(target.candidateContext),
-                        referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
                         operationalPoints = operationalPointDao.fetchCandidateVersions(target.candidateContext),
                     )
 
@@ -133,14 +122,12 @@ constructor(
         validationContext.preloadLocationTrackVersions(trackIds)
         validationContext.preloadLocationTracksByName(trackIds)
         validationContext.preloadTrackDuplicates(trackIds)
-        validationContext.preloadAssociatedTrackNumberAndReferenceLineVersions(trackIds = trackIds)
+        validationContext.preloadAssociatedTrackNumberVersions(trackIds = trackIds)
         val linkedSwitchIds = trackIds.flatMap(validationContext::getPotentiallyAffectedSwitchIds).distinct()
         validationContext.preloadSwitchVersions(linkedSwitchIds)
         validationContext.preloadSwitchTrackLinks(linkedSwitchIds)
 
-        return trackIds.mapNotNull { id ->
-            validateLocationTrack(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
-        }
+        return trackIds.map { id -> ValidatedAsset(id, validateLocationTrack(id, validationContext)) }
     }
 
     @Transactional(readOnly = true)
@@ -188,14 +175,13 @@ constructor(
                         target = target,
                         kmPosts = kmPostDao.fetchCandidateVersions(target.candidateContext),
                         trackNumbers = trackNumberDao.fetchCandidateVersions(target.candidateContext),
-                        referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
                     )
 
                 PublicationState.OFFICIAL -> createValidationContext(target)
             }
 
         validationContext.preloadKmPostVersions(kmPostIds)
-        validationContext.preloadTrackNumberAndReferenceLineVersions(
+        validationContext.preloadTrackNumberVersions(
             validationContext.collectAssociatedTrackNumberIds(kmPostIds = kmPostIds)
         )
 
@@ -232,16 +218,13 @@ constructor(
         validationContext.preloadLocationTracksByOperationalPoints(ids)
         validationContext.preloadSwitchesByOperationalPoints(ids)
 
-        return ids.mapNotNull { id ->
-            validateOperationalPoint(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
-        }
+        return ids.map { id -> ValidatedAsset(id, validateOperationalPoint(id, validationContext)) }
     }
 
     private fun createValidationContext(
         target: LayoutContextTransition,
         trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = emptyList(),
         locationTracks: List<LayoutRowVersion<LocationTrack>> = emptyList(),
-        referenceLines: List<LayoutRowVersion<ReferenceLine>> = emptyList(),
         switches: List<LayoutRowVersion<LayoutSwitch>> = emptyList(),
         kmPosts: List<LayoutRowVersion<LayoutKmPost>> = emptyList(),
         operationalPoints: List<LayoutRowVersion<OperationalPoint>> = emptyList(),
@@ -251,7 +234,6 @@ constructor(
                 target,
                 trackNumbers,
                 locationTracks,
-                referenceLines,
                 switches,
                 kmPosts,
                 operationalPoints,
@@ -263,7 +245,6 @@ constructor(
     private fun createValidationContext(publicationSet: ValidationVersions): ValidationContext =
         ValidationContext(
             trackNumberDao = trackNumberDao,
-            referenceLineDao = referenceLineDao,
             kmPostDao = kmPostDao,
             locationTrackDao = locationTrackDao,
             switchDao = switchDao,
@@ -304,27 +285,20 @@ constructor(
             trackNumbers =
                 candidates.trackNumbers.map { candidate ->
                     val trackNumberSplitIssues = administrativeChangeIssues.trackNumbers[candidate.id] ?: emptyList()
-                    val validationIssues = validateTrackNumber(candidate.id, validationContext) ?: emptyList()
+                    val validationIssues = validateTrackNumber(candidate.id, validationContext)
                     candidate.copy(issues = trackNumberSplitIssues + validationIssues)
-                },
-            referenceLines =
-                candidates.referenceLines.map { candidate ->
-                    val referenceLineSplitIssues =
-                        administrativeChangeIssues.referenceLines[candidate.id] ?: emptyList()
-                    val validationIssues = validateReferenceLine(candidate.id, validationContext) ?: emptyList()
-                    candidate.copy(issues = referenceLineSplitIssues + validationIssues)
                 },
             locationTracks =
                 candidates.locationTracks.map { candidate ->
                     val locationTrackSplitIssues =
                         administrativeChangeIssues.locationTracks[candidate.id] ?: emptyList()
-                    val validationIssues = validateLocationTrack(candidate.id, validationContext) ?: emptyList()
+                    val validationIssues = validateLocationTrack(candidate.id, validationContext)
                     candidate.copy(issues = validationIssues + locationTrackSplitIssues)
                 },
             switches =
                 candidates.switches.map { candidate ->
                     val switchSplitIssues = administrativeChangeIssues.switches[candidate.id] ?: emptyList()
-                    val validationIssues = validateSwitch(candidate.id, validationContext) ?: emptyList()
+                    val validationIssues = validateSwitch(candidate.id, validationContext)
                     candidate.copy(issues = validationIssues + switchSplitIssues)
                 },
             kmPosts =
@@ -335,7 +309,7 @@ constructor(
                 },
             operationalPoints =
                 candidates.operationalPoints.map { candidate ->
-                    candidate.copy(issues = validateOperationalPoint(candidate.id, validationContext) ?: emptyList())
+                    candidate.copy(issues = validateOperationalPoint(candidate.id, validationContext))
                 },
         )
     }
@@ -348,22 +322,19 @@ constructor(
             .also(::assertNoSplitErrors)
 
         versions.trackNumbers.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateTrackNumber(version.id, validationContext)))
+            assertNoErrors(version, validateTrackNumber(version.id, validationContext))
         }
         versions.kmPosts.forEach { version ->
             assertNoErrors(version, requireNotNull(validateKmPost(version.id, validationContext)))
         }
-        versions.referenceLines.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateReferenceLine(version.id, validationContext)))
-        }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateLocationTrack(version.id, validationContext)))
+            assertNoErrors(version, validateLocationTrack(version.id, validationContext))
         }
         versions.switches.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateSwitch(version.id, validationContext)))
+            assertNoErrors(version, validateSwitch(version.id, validationContext))
         }
         versions.operationalPoints.forEach { version ->
-            assertNoErrors(version, requireNotNull(validateOperationalPoint(version.id, validationContext)))
+            assertNoErrors(version, validateOperationalPoint(version.id, validationContext))
         }
     }
 
@@ -396,31 +367,32 @@ constructor(
     private fun validateTrackNumber(
         id: IntId<LayoutTrackNumber>,
         validationContext: ValidationContext,
-    ): List<LayoutValidationIssue>? {
-        val trackNumber = validationContext.getTrackNumber(id)
+    ): List<LayoutValidationIssue> {
+        val trackNumberWithGeometry = validationContext.getTrackNumberWithGeometry(id)
         val trackNumberLivenessType = validationContext.getTrackNumberLivenessType(id)
         val kmPosts = validationContext.getKmPostsByTrackNumber(id)
-        val referenceLine = validationContext.getReferenceLineByTrackNumber(id)
         val locationTracks = validationContext.getLocationTracksByTrackNumber(id)
 
-        val incomingReferencesIssues =
-            validateReferencesToTrackNumber(trackNumberLivenessType, referenceLine, kmPosts, locationTracks)
+        val incomingReferencesIssues = validateReferencesToTrackNumber(trackNumberLivenessType, kmPosts, locationTracks)
 
-        if (trackNumber == null) {
+        if (trackNumberWithGeometry == null) {
             return incomingReferencesIssues
         } else {
-            val outgoingReferencesIssues =
-                if (trackNumber.referenceLineId == null)
-                    listOf(validationError("$VALIDATION_TRACK_NUMBER.reference-line.not-published"))
-                else
-                    validateReferencesFromTrackNumber(
-                        trackNumber,
-                        validationContext.getReferenceLineLiveness(trackNumber.referenceLineId),
-                    )
+            val (trackNumber, geometry) = trackNumberWithGeometry
+            val alignmentIssues = if (trackNumber.exists) validateReferenceLineGeometry(geometry) else listOf()
             val geocodingIssues =
-                if (trackNumber.exists && referenceLine != null) {
-                    val geocodingContextCacheKey = validationContext.getGeocodingContextCacheKey(id)
-                    validateGeocodingContext(geocodingContextCacheKey, VALIDATION_TRACK_NUMBER, trackNumber.number)
+                if (trackNumber.exists && geometry.segments.isNotEmpty()) {
+                    val contextKey = validationContext.getGeocodingContextCacheKey(id)
+                    val contextIssues =
+                        validateGeocodingContext(contextKey, VALIDATION_TRACK_NUMBER, trackNumber.number)
+                    val addressIssues =
+                        contextKey?.let { key ->
+                            val locationTracks = validationContext.getLocationTracksByTrackNumber(id)
+                            locationTracks.flatMap { track ->
+                                validateAddressPoints(trackNumber, key, track, VALIDATION_REFERENCE_LINE)
+                            }
+                        } ?: listOf()
+                    contextIssues + addressIssues
                 } else {
                     listOf()
                 }
@@ -430,7 +402,7 @@ constructor(
                     duplicates = validationContext.getTrackNumbersByNumber(trackNumber.number),
                     validationTargetType = validationContext.target.validationTargetType,
                 )
-            return incomingReferencesIssues + outgoingReferencesIssues + geocodingIssues + duplicateNameIssues
+            return incomingReferencesIssues + alignmentIssues + geocodingIssues + duplicateNameIssues
         }
     }
 
@@ -438,14 +410,13 @@ constructor(
         context.getKmPost(id)?.let { kmPost ->
             val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
             val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getCandidateTrackNumber))?.number
-            val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
 
             val referenceIssues =
                 if (kmPost.trackNumberId == null) listOf()
                 else validateKmPostReferences(kmPost, context.getTrackNumberLiveness(kmPost.trackNumberId))
 
             val geocodingIssues =
-                if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
+                if (kmPost.exists && trackNumber?.exists == true && trackNumber.segmentCount > 0) {
                     validateGeocodingContext(
                         context.getGeocodingContextCacheKey(kmPost.trackNumberId),
                         VALIDATION_KM_POST,
@@ -523,56 +494,10 @@ constructor(
         }
     }
 
-    private fun validateReferenceLine(
-        id: IntId<ReferenceLine>,
-        validationContext: ValidationContext,
-    ): List<LayoutValidationIssue>? {
-        val referenceLineWithAlignment = validationContext.getReferenceLineWithAlignment(id)
-        val incomingReferenceIssues =
-            validateReferencesToReferenceLine(
-                validationContext.getTrackNumberIdByReferenceLine(id)?.let(validationContext::getTrackNumber),
-                validationContext.getReferenceLineLivenessType(id),
-            )
-        return if (referenceLineWithAlignment == null) incomingReferenceIssues
-        else {
-            val (referenceLine, alignment) = referenceLineWithAlignment
-            val trackNumber = validationContext.getTrackNumber(referenceLine.trackNumberId)
-            val outgoingReferenceIssues =
-                validateReferencesFromReferenceLine(
-                    trackNumberLiveness = validationContext.getTrackNumberLiveness(referenceLine.trackNumberId)
-                )
-            val alignmentIssues =
-                if (trackNumber?.exists == true) {
-                    validateReferenceLineGeometry(alignment)
-                } else {
-                    listOf()
-                }
-            val geocodingIssues: List<LayoutValidationIssue> =
-                if (trackNumber?.exists == true) {
-                    val contextKey = validationContext.getGeocodingContextCacheKey(referenceLine.trackNumberId)
-                    val contextIssues =
-                        validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE, trackNumber.number)
-                    val addressIssues =
-                        contextKey?.let { key ->
-                            val locationTracks =
-                                validationContext.getLocationTracksByTrackNumber(referenceLine.trackNumberId)
-                            locationTracks.flatMap { track ->
-                                validateAddressPoints(trackNumber, key, track, VALIDATION_REFERENCE_LINE)
-                            }
-                        } ?: listOf()
-                    contextIssues + addressIssues
-                } else {
-                    listOf()
-                }
-
-            return incomingReferenceIssues + outgoingReferenceIssues + alignmentIssues + geocodingIssues
-        }
-    }
-
     private fun validateLocationTrack(
         id: IntId<LocationTrack>,
         validationContext: ValidationContext,
-    ): List<LayoutValidationIssue>? {
+    ): List<LayoutValidationIssue> {
         val trackLivenessType = validationContext.getLocationTrackLivenessType(id)
         val trackAndGeometry = validationContext.getLocationTrackWithGeometry(id)
         // cancelling a track's creation can cause switches to become disconnected
@@ -648,7 +573,11 @@ constructor(
                 } else listOf()
             val geocodingIssues =
                 if (track.exists && trackNumber != null && geometry.isNotEmpty) {
-                    validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
+                    val geocodingContext =
+                        if (trackNumber.exists && trackNumber.segmentCount > 0)
+                            validationContext.getGeocodingContextCacheKey(track.trackNumberId)
+                        else null
+                    geocodingContext?.let { key ->
                         validateAddressPoints(trackNumber, key, track, VALIDATION_LOCATION_TRACK)
                     } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
                 } else listOf()
@@ -691,7 +620,7 @@ constructor(
     private fun validateOperationalPoint(
         id: IntId<OperationalPoint>,
         validationContext: ValidationContext,
-    ): List<LayoutValidationIssue>? {
+    ): List<LayoutValidationIssue> {
         val operationalPoint = validationContext.getOperationalPoint(id)
         val switches = validationContext.getSwitchesByOperationalPoint(id)
         val locationTracks = validationContext.getLocationTracksByOperationalPoint(id)

@@ -14,14 +14,14 @@ import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -35,7 +35,6 @@ constructor(
     private val publicationTestSupportService: PublicationTestSupportService,
     private val trackNumberService: LayoutTrackNumberService,
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
@@ -53,8 +52,7 @@ constructor(
         val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.save(trackNumber())
-        designDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry)
+        val trackNumber = designDraftContext.save(trackNumber(), referenceLineGeometry)
         designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
@@ -79,7 +77,6 @@ constructor(
         assertNotEquals(latestPublication.map { it.id }, afterUpdate.map { it.id })
         val details = publicationLogService.getPublicationDetails(afterUpdate[0].id)
         assertEquals(listOf(), details.trackNumbers)
-        assertEquals(listOf(), details.referenceLines)
         assertEquals(listOf(), details.locationTracks)
         assertEquals(listOf(), details.switches)
         assertEquals(listOf(), details.kmPosts)
@@ -114,8 +111,7 @@ constructor(
         val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.save(trackNumber())
-        val referenceLine = designDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry)
+        val trackNumber = designDraftContext.save(trackNumber(), referenceLineGeometry)
         val locationTrack = designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         val switch = designDraftContext.save(switch())
         val kmPost = designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
@@ -124,7 +120,6 @@ constructor(
             designBranch,
             publicationRequestIds(
                 trackNumbers = listOf(trackNumber.id),
-                referenceLines = listOf(referenceLine.id),
                 locationTracks = listOf(locationTrack.id),
                 switches = listOf(switch.id),
                 kmPosts = listOf(kmPost.id),
@@ -140,7 +135,6 @@ constructor(
         // Design delete should only contain design metadata change, no assets
         assertEquals(PublicationCause.LAYOUT_DESIGN_DELETE, designDeleteDetails.cause)
         assertEquals(0, designDeleteDetails.trackNumbers.size)
-        assertEquals(0, designDeleteDetails.referenceLines.size)
         assertEquals(0, designDeleteDetails.locationTracks.size)
         assertEquals(0, designDeleteDetails.switches.size)
         assertEquals(0, designDeleteDetails.kmPosts.size)
@@ -151,10 +145,6 @@ constructor(
         assertContainsSingleCancelledOfficialObject(
             designCancellationDetails.trackNumbers.map { it.version },
             trackNumberDao,
-        )
-        assertContainsSingleCancelledOfficialObject(
-            designCancellationDetails.referenceLines.map { it.version },
-            referenceLineDao,
         )
         assertContainsSingleCancelledOfficialObject(
             designCancellationDetails.locationTracks.map { it.version },
@@ -172,8 +162,7 @@ constructor(
         val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
-        val trackNumber = designDraftContext.save(trackNumber())
-        designDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry)
+        val trackNumber = designDraftContext.save(trackNumber(), referenceLineGeometry)
         designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
@@ -181,7 +170,6 @@ constructor(
         deleteDesign(designId)
 
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER))
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE))
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK))
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_SWITCH))
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_KM_POST))
@@ -194,8 +182,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
 
-        val trackNumber = mainOfficialContext.save(trackNumber()).id
-        mainOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry)
+        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry).id
         val switch =
             mainOfficialContext
                 .save(

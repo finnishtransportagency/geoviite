@@ -48,14 +48,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
@@ -136,15 +134,11 @@ fun locationTrack(
     return track to geometry
 }
 
-fun referenceLine(
-    trackNumber: IntId<LayoutTrackNumber>,
+fun referenceLineGeometryFromPoints(
     basePoint: Point,
     incrementPoints: List<Point>,
-    draft: Boolean,
-): Pair<ReferenceLine, ReferenceLineGeometry> {
-    val geometry = referenceLineGeometry(segmentsFromPointIncrementList(basePoint, incrementPoints))
-    val line = referenceLine(trackNumberId = trackNumber, geometry = geometry, draft = draft)
-    return line to geometry
+): ReferenceLineGeometry {
+    return referenceLineGeometry(segmentsFromPointIncrementList(basePoint, incrementPoints))
 }
 
 private fun segmentsFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): List<LayoutSegment> {

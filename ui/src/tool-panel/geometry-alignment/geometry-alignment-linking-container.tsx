@@ -8,10 +8,7 @@ import {
 } from 'track-layout/track-layout-slice';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import GeometryAlignmentInfobox from 'tool-panel/geometry-alignment/geometry-alignment-infobox';
-import {
-    useLocationTrack,
-    useTrackNumberReferenceLine,
-} from 'track-layout/track-layout-react-utils';
+import { useLocationTrack, useTrackNumber } from 'track-layout/track-layout-react-utils';
 import { GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 
 type GeometryAlignmentLinkingContainerProps = {
@@ -40,7 +37,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
         trackLayoutState.layoutContext,
         changeTimes.layoutLocationTrack,
     );
-    const referenceLine = useTrackNumberReferenceLine(
+    const trackNumber = useTrackNumber(
         selectedTrackNumberId,
         trackLayoutState.layoutContext,
         changeTimes.layoutTrackNumber,
@@ -52,7 +49,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             onUnselect={delegates.onUnselect}
             geometryAlignment={geometryAlignment}
             selectedLayoutLocationTrack={locationTrack}
-            selectedLayoutReferenceLine={referenceLine}
+            selectedLayoutTrackNumber={trackNumber}
             planId={planId}
             changeTimes={changeTimes}
             linkingState={trackLayoutState.linkingState}

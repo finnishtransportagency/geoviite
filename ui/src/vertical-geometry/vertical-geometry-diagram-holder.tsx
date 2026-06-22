@@ -123,7 +123,6 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
 
     const geocodingChangeTime = getMaxTimestamp(
         changeTimes.layoutTrackNumber,
-        changeTimes.layoutReferenceLine,
         changeTimes.layoutKmPost,
     );
 

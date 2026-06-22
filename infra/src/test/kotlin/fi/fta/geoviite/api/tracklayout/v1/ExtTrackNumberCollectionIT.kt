@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
@@ -48,17 +47,13 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val trackNumbers =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, trackNumberOid) =
-                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-                val referenceLineId =
-                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
-                Triple(trackNumberId, referenceLineId, trackNumberOid)
+                mainDraftContext.saveWithOid(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment),
+                )
             }
 
-        testDBService.publish(
-            trackNumbers = trackNumbers.map { (trackNumberId, _, _) -> trackNumberId },
-            referenceLines = trackNumbers.map { (_, referenceLineId, _) -> referenceLineId },
-        )
+        testDBService.publish(trackNumbers = trackNumbers.map { (trackNumberId, _) -> trackNumberId })
 
         val newestButEmptyPublication = testDBService.publish()
         val response = api.trackNumberCollection.get()
@@ -66,7 +61,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
         assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
         assertEquals(trackNumbers.size, response.ratanumerot.size)
         assertEquals(
-            trackNumbers.map { it.third.toString() }.toSet(),
+            trackNumbers.map { it.second.toString() }.toSet(),
             response.ratanumerot.map { it.ratanumero_oid }.toSet(),
         )
     }
@@ -77,38 +72,30 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val officialTrackNumbers =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, trackNumberOid) =
-                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-                val referenceLineId =
-                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
-                Triple(trackNumberId, referenceLineId, trackNumberOid)
+                mainDraftContext.saveWithOid(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment),
+                )
             }
 
-        val newestPublication =
-            testDBService.publish(
-                trackNumbers = officialTrackNumbers.map { it.first },
-                referenceLines = officialTrackNumbers.map { it.second },
-            )
+        val newestPublication = testDBService.publish(trackNumbers = officialTrackNumbers.map { it.first })
 
         val modifiedDescription = "this is a draft track number after publication ${newestPublication.uuid}"
-        officialTrackNumbers.forEach { (trackNumberId, _, _) ->
+        officialTrackNumbers.forEach { (trackNumberId, _) ->
             val trackNumber =
                 layoutTrackNumberService.get(MainLayoutContext.official, trackNumberId).let(::requireNotNull)
 
-            mainDraftContext.saveTrackNumber(
-                trackNumber.copy(description = TrackNumberDescription(modifiedDescription))
-            )
+            mainDraftContext.save(trackNumber.copy(description = TrackNumberDescription(modifiedDescription)))
         }
 
         // Also save an additional draft track
-        val (draftTrackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        mainDraftContext.save(referenceLine(draftTrackNumberId), referenceLineGeometry(segment))
+        mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), referenceLineGeometry(segment))
 
         val response = api.trackNumberCollection.get()
         assertEquals(newestPublication.uuid.toString(), response.rataverkon_versio)
         assertEquals(officialTrackNumbers.size, response.ratanumerot.size)
 
-        officialTrackNumbers.forEach { (trackNumberId, _, oid) ->
+        officialTrackNumbers.forEach { (trackNumberId, oid) ->
             val officialTrack =
                 layoutTrackNumberService.get(MainLayoutContext.official, trackNumberId).let(::requireNotNull)
 
@@ -127,15 +114,13 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val expectedAmountToPublications =
             listOf(1, 2, 3).map { totalAmountOfTrackNumbers ->
-                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-                val referenceLineId =
-                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
-
-                val publication =
-                    testDBService.publish(
-                        trackNumbers = listOf(trackNumberId),
-                        referenceLines = listOf(referenceLineId),
+                val (trackNumberId, _) =
+                    mainDraftContext.saveWithOid(
+                        trackNumber(testDBService.getUnusedTrackNumber()),
+                        referenceLineGeometry(segment),
                     )
+
+                val publication = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
                 totalAmountOfTrackNumbers to publication
             }
@@ -161,10 +146,13 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
 
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
-        testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response = api.trackNumberCollection.get("koordinaatisto" to epsgCode)
@@ -188,28 +176,24 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
         val allTrackNumbers =
             listOf(1, 2, 3, 4).map { _ ->
                 val (trackNumberId, oid) =
-                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-                val referenceLineId =
-                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+                    mainDraftContext.saveWithOid(
+                        trackNumber(testDBService.getUnusedTrackNumber()),
+                        referenceLineGeometry(segment),
+                    )
 
                 val trackNumber =
                     layoutTrackNumberService.get(MainLayoutContext.draft, trackNumberId).let(::requireNotNull)
 
-                Triple(oid, trackNumber, referenceLineId)
+                Pair(oid, trackNumber)
             }
 
         val initialPublication =
-            testDBService.publish(
-                trackNumbers = allTrackNumbers.map { (_, trackNumber, _) -> trackNumber.id as IntId },
-                referenceLines = allTrackNumbers.map { (_, _, referenceLineId) -> referenceLineId },
-            )
+            testDBService.publish(trackNumbers = allTrackNumbers.map { (_, trackNumber) -> trackNumber.id as IntId })
 
         val modifiedDescription = "modified description after publication ${initialPublication.uuid}"
         val modifiedTrackNumbers =
-            listOf(allTrackNumbers[1], allTrackNumbers[2]).map { (oid, trackNumber, _) ->
-                mainDraftContext.saveTrackNumber(
-                    trackNumber.copy(description = TrackNumberDescription(modifiedDescription))
-                )
+            listOf(allTrackNumbers[1], allTrackNumbers[2]).map { (oid, trackNumber) ->
+                mainDraftContext.save(trackNumber.copy(description = TrackNumberDescription(modifiedDescription)))
 
                 oid to trackNumber.id as IntId
             }
@@ -230,28 +214,22 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val trackNumbers =
             LayoutState.entries.map { _ ->
-                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-                val referenceLineId =
-                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+                val (trackNumberId, _) =
+                    mainDraftContext.saveWithOid(
+                        trackNumber(testDBService.getUnusedTrackNumber()),
+                        referenceLineGeometry(segment),
+                    )
 
-                val trackNumber =
-                    layoutTrackNumberService.get(MainLayoutContext.draft, trackNumberId).let(::requireNotNull)
-
-                trackNumber to referenceLineId
+                layoutTrackNumberService.get(MainLayoutContext.draft, trackNumberId).let(::requireNotNull)
             }
 
-        val initialPublication =
-            testDBService.publish(
-                trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId },
-                referenceLines = trackNumbers.map { (_, referenceLineId) -> referenceLineId },
-            )
+        val initialPublication = testDBService.publish(trackNumbers = trackNumbers.map { it.id as IntId })
 
-        trackNumbers
-            .map { (trackNumber, _) -> trackNumber }
-            .zip(LayoutState.entries)
-            .forEach { (trackNumber, newState) -> mainDraftContext.saveTrackNumber(trackNumber.copy(state = newState)) }
+        trackNumbers.zip(LayoutState.entries).forEach { (trackNumber, newState) ->
+            mainDraftContext.save(trackNumber.copy(state = newState))
+        }
 
-        testDBService.publish(trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId })
+        testDBService.publish(trackNumbers = trackNumbers.map { it.id as IntId })
 
         val response = api.trackNumberCollection.getModified("alkuversio" to initialPublication.uuid.toString())
 
@@ -264,11 +242,13 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
-        val publicationStart =
-            testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        val publicationStart = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         val modifiedDescription = "modified description after publication ${publicationStart.uuid}"
         layoutTrackNumberService.get(MainLayoutContext.official, trackNumberId).let(::requireNotNull).let { trackNumber
@@ -298,11 +278,13 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
     fun `Track number modification listing should use the newest track layout version if end version is not supplied`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
 
-        val publicationStart =
-            testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        val publicationStart = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         val modifiedDescription = "modified description after publication ${publicationStart.uuid}"
         layoutTrackNumberService.get(MainLayoutContext.official, trackNumberId).let(::requireNotNull).let { trackNumber
@@ -325,26 +307,27 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
     fun `Track number modifications listing lists track numbers with calculated changes`() {
         val segment = segment(Point(0.0, 0.0), Point(10.0, 0.0))
         val (trackNumberId1, trackNumberOid1) =
-            mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId1 = mainDraftContext.save(referenceLine(trackNumberId1), referenceLineGeometry(segment)).id
-        val (trackNumberId2, trackNumberOid2) =
-            mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId2 = mainDraftContext.save(referenceLine(trackNumberId2), referenceLineGeometry(segment)).id
-
-        val basePublication =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId1, trackNumberId2),
-                referenceLines = listOf(referenceLineId1, referenceLineId2),
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
             )
+        val (trackNumberId2, trackNumberOid2) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment),
+            )
+
+        val basePublication = testDBService.publish(trackNumbers = listOf(trackNumberId1, trackNumberId2))
+
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0000+0000.000", "0000+0010.000")
         api.trackNumberCollection.assertNoModificationSince(basePublication.uuid)
 
         initUser()
         mainDraftContext.save(
-            mainOfficialContext.fetch(referenceLineId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
+            mainOfficialContext.fetch(trackNumberId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
             referenceLineGeometry(segment),
         )
-        val rlPublication = testDBService.publish(referenceLines = listOf(referenceLineId1))
+        val rlPublication = testDBService.publish(trackNumbers = listOf(trackNumberId1))
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0001+0010.000", "0001+0020.000")
         api.trackNumberCollection.getModifiedBetween(basePublication.uuid, rlPublication.uuid).let { mods ->
             assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
@@ -379,15 +362,15 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
     @Test
     fun `Track number collection is filtered by track number name`() {
-        val (matchingId, matchingOid) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")))
-        val matchingRefId = mainDraftContext.save(referenceLine(matchingId), referenceLineGeometry(someSegment())).id
-        val (otherId, _) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("999 OTHER")))
-        val otherRefId = mainDraftContext.save(referenceLine(otherId), referenceLineGeometry(someSegment())).id
+        val (matchingId, matchingOid) =
+            mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")), referenceLineGeometry(someSegment()))
+        val (otherId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(TrackNumber("999 OTHER")),
+                referenceLineGeometry(someSegment()),
+            )
 
-        testDBService.publish(
-            trackNumbers = listOf(matchingId, otherId),
-            referenceLines = listOf(matchingRefId, otherRefId),
-        )
+        testDBService.publish(trackNumbers = listOf(matchingId, otherId))
 
         api.trackNumberCollection.get(TRACK_NUMBER to "001 MATCHING").also { response ->
             assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })
@@ -399,21 +382,21 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
 
     @Test
     fun `Track number change-list is filtered by track number name`() {
-        val (matchingId, matchingOid) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")))
-        val matchingRefId = mainDraftContext.save(referenceLine(matchingId), referenceLineGeometry(someSegment())).id
-        val (otherId, _) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("999 OTHER")))
-        val otherRefId = mainDraftContext.save(referenceLine(otherId), referenceLineGeometry(someSegment())).id
+        val (matchingId, matchingOid) =
+            mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")), referenceLineGeometry(someSegment()))
+        val (otherId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(TrackNumber("999 OTHER")),
+                referenceLineGeometry(someSegment()),
+            )
 
-        val fromPublication =
-            testDBService
-                .publish(trackNumbers = listOf(matchingId, otherId), referenceLines = listOf(matchingRefId, otherRefId))
-                .uuid
+        val fromPublication = testDBService.publish(trackNumbers = listOf(matchingId, otherId)).uuid
 
         layoutTrackNumberService.get(MainLayoutContext.official, matchingId).let(::requireNotNull).also { tn ->
-            mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed")))
+            mainDraftContext.save(tn.copy(description = TrackNumberDescription("changed")))
         }
         layoutTrackNumberService.get(MainLayoutContext.official, otherId).let(::requireNotNull).also { tn ->
-            mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed")))
+            mainDraftContext.save(tn.copy(description = TrackNumberDescription("changed")))
         }
 
         testDBService.publish(trackNumbers = listOf(matchingId, otherId))

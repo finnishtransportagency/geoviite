@@ -14,10 +14,6 @@ import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import java.time.ZoneOffset
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -26,6 +22,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -40,22 +40,30 @@ constructor(
     fun `Publication log date search works`() {
         testDBService.clearAllTables()
 
-        val someTrackNumberId = mainDraftContext.save(trackNumber(TrackNumber("Test track number"))).id
-        val someReferenceLine = HelsinkiTestData.westReferenceLine(someTrackNumberId, draft = true)
-        val someTrack = HelsinkiTestData.westMainLocationTrack(someTrackNumberId, draft = true)
+        val westTrackNumberId =
+            mainDraftContext
+                .save(
+                    trackNumber(TrackNumber("Test track number")),
+                    HelsinkiTestData.westReferenceLineGeometry(),
+                )
+                .id
+        val eastTrackNumberId =
+            mainDraftContext
+                .save(
+                    trackNumber(TrackNumber("Test track number 2")),
+                    HelsinkiTestData.eastReferenceLineGeometry(),
+                )
+                .id
+        val someTrack = HelsinkiTestData.westMainLocationTrack(westTrackNumberId, draft = true)
 
         val publicationRequests =
             listOf(
                 PublicationRequest(
-                    content = publicationRequestIds(trackNumbers = listOf(someTrackNumberId)),
+                    content = publicationRequestIds(trackNumbers = listOf(westTrackNumberId)),
                     message = PublicationMessage.of("some test publication 1"),
                 ),
                 PublicationRequest(
-                    content =
-                        publicationRequestIds(
-                            referenceLines =
-                                listOf(mainDraftContext.save(someReferenceLine.first, someReferenceLine.second).id)
-                        ),
+                    content = publicationRequestIds(trackNumbers = listOf(eastTrackNumberId)),
                     message = PublicationMessage.of("some test publication 2"),
                 ),
                 PublicationRequest(

@@ -7,6 +7,7 @@ import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geography.WGS_84_SRID
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -20,7 +21,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -28,10 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.someReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,6 +36,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -205,8 +205,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Location track filter should work`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         val tracksUnderTest =
             (0..3).map { _ ->
@@ -233,9 +232,9 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     @Test
     fun `Location track type filter should work`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+        val rlSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(rlSegments)).id
 
         val tracksUnderTest =
             listOf(
@@ -249,7 +248,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
                         mainOfficialContext
                             .saveAndFetch(
                                 locationTrack(trackNumberId, type = locationTrackType),
-                                trackGeometryOfSegments(segments),
+                                trackGeometryOfSegments(rlSegments),
                             )
                             .first
 
@@ -279,9 +278,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Request with matching track number but without any matching tracks should succeed but return error feature`() {
         // Valid track number which can be geocoded, but no location tracks use it.
         val trackNumber = testDBService.getUnusedTrackNumber()
-        mainOfficialContext.save(trackNumber(trackNumber)).also { tn ->
-            mainOfficialContext.save(referenceLine(tn.id), someReferenceLineGeometry()).id
-        }
+        mainOfficialContext.save(trackNumber(trackNumber), someReferenceLineGeometry())
 
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 0, ratanumero = trackNumber.toString())
@@ -299,11 +296,9 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     @Test
     fun `Request matching multiple track addresses should return coordinates for all of them`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val referenceLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+        val rlSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments), trackNumber)
-                .id
+            mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(rlSegments)).id
 
         val amountOfLocationTracks = 4
         val positionedTrackSegments =
@@ -336,11 +331,9 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     @Test
     fun `Request matching the address of some location tracks should succeed and return data only for the matches`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val refLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+        val rlSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext
-                .createTrackNumberAndReferenceLine(referenceLineGeometry(refLineSegments), trackNumber)
-                .id
+            mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(rlSegments)).id
 
         val tracksUnderTest =
             listOf(
@@ -376,8 +369,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val segments2 = listOf(segment(Point(0.0, 100.0), Point(1000.0, 100.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segments))
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segments2))
@@ -477,8 +469,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Basic request should default to return feature with basic and detailed data`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(
@@ -611,8 +602,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Response output can be set to only return detailed feature data`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
         val (track, _) =
             mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -648,8 +638,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Response output data setting combination works`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(
@@ -699,8 +688,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Invalid location track type should result in an error`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -729,8 +717,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Invalid location track name should result in an error`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -756,8 +743,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `Invalid track number should result in an error`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -782,8 +768,10 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `track number should not be deleted`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber, state = LayoutState.DELETED)).id
-        mainOfficialContext.saveReferenceLine(referenceLine(trackNumberId) to referenceLineGeometry(segments))
+        val trackNumberId =
+            mainOfficialContext
+                .save(trackNumber(trackNumber, state = LayoutState.DELETED), referenceLineGeometry(segments))
+                .id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -804,8 +792,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
     fun `location track should not be deleted`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(
@@ -839,9 +826,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
             (0..3).map { trackNumberIndex ->
                 val trackNumber = testDBService.getUnusedTrackNumber()
                 val trackNumberId =
-                    mainOfficialContext
-                        .createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber)
-                        .id
+                    mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
                 // different numbers of overlapping location tracks on each track number, including
                 // 0
@@ -889,8 +874,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(locationTrack(trackNumberId), trackGeometryOfSegments(segments))
@@ -920,8 +904,7 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val trackNumberId =
-            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber(trackNumber, referenceLineGeometry(segments)).id
 
         testOids.forEach { oid ->
             val (track, _) =
@@ -952,10 +935,9 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).also { trackNumber ->
-            mainOfficialContext.save(referenceLine(trackNumber.id), referenceLineGeometry(segments))
-            mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segments))
-        }
+        val tnId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
+        testDBService.saveOid(tnId, LayoutBranch.main, trackNumberOid)
+        mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
 
         val request =
             TestTrackAddressToCoordinateRequest(
@@ -980,9 +962,9 @@ constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locati
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         testOids.forEach { oid ->
-            val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
-            mainOfficialContext.save(referenceLine(trackNumber.id), referenceLineGeometry(segments))
-            mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segments))
+            val tnId = mainOfficialContext.createLayoutTrackNumber(geometry = referenceLineGeometry(segments)).id
+            testDBService.saveOid(tnId, LayoutBranch.main, oid)
+            mainOfficialContext.save(locationTrack(tnId), trackGeometryOfSegments(segments))
         }
 
         testOids.forEach { oid ->

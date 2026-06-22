@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 
@@ -27,7 +28,7 @@ class RatkoTestService(
         return transactional {
             trackNumberDao.insertExternalIdInExistingTransaction(
                 LayoutBranch.main,
-                trackNumberDao.save(trackNumber()).id,
+                trackNumberDao.save(trackNumber(), TmpReferenceLineGeometry.empty).id,
                 Oid(trackNumberOidForOperationalPoints),
             )
             ratkoOperationalPointDao.updateOperationalPoints(

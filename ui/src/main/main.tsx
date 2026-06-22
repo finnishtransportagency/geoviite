@@ -60,11 +60,7 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
                     />
                     <Route
                         path={'/publications/:publicationId'}
-                        element={
-                            <PublicationDetailsContainer
-                                layoutContext={officialMainLayoutContext()}
-                            />
-                        }
+                        element={<PublicationDetailsContainer />}
                     />
                     <Route
                         path="/track-layout"

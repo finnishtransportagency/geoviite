@@ -79,12 +79,11 @@ async function getLocationTrackSplitBadgeData(
         const startEndChangeTime = getMaxTimestamp(
             changeTimes.layoutLocationTrack,
             changeTimes.layoutTrackNumber,
-            changeTimes.layoutReferenceLine,
             changeTimes.layoutKmPost,
         );
         const [locationTracks, startAndEnd] = await Promise.all([
             getSelectedLocationTrackMapAlignmentByTiles(
-                changeTimes,
+                changeTimes.layoutLocationTrack,
                 mapTiles,
                 layoutContext,
                 splittingState.originLocationTrack.id,

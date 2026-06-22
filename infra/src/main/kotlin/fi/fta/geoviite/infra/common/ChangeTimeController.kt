@@ -1,24 +1,28 @@
 package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.aspects.GeoviiteController
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AUTH_BASIC
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.SplitService
-import fi.fta.geoviite.infra.tracklayout.*
-import java.time.Instant
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
+import java.time.Instant
 
 data class CollectedChangeTimes(
     val layoutTrackNumber: Instant,
     val layoutTrackNumberExtId: Instant,
     val layoutLocationTrack: Instant,
     val layoutLocationTrackExtId: Instant,
-    val layoutReferenceLine: Instant,
     val layoutSwitch: Instant,
     val layoutSwitchExtId: Instant,
     val layoutKmPost: Instant,
@@ -40,7 +44,6 @@ class ChangeTimeController(
     private val trackNumberService: LayoutTrackNumberService,
     private val kmPostService: LayoutKmPostService,
     private val locationTrackService: LocationTrackService,
-    private val referenceLineService: ReferenceLineService,
     private val publicationService: PublicationService,
     private val ratkoPushDao: RatkoPushDao,
     private val pvDocumentService: PVDocumentService,
@@ -58,7 +61,6 @@ class ChangeTimeController(
             layoutTrackNumberExtId = trackNumberService.getExternalIdChangeTime(),
             layoutLocationTrack = locationTrackService.getChangeTime(),
             layoutLocationTrackExtId = locationTrackService.getExternalIdChangeTime(),
-            layoutReferenceLine = referenceLineService.getChangeTime(),
             layoutKmPost = kmPostService.getChangeTime(),
             layoutSwitch = switchService.getChangeTime(),
             layoutSwitchExtId = switchService.getExternalIdChangeTime(),
@@ -84,12 +86,6 @@ class ChangeTimeController(
     @GetMapping("/location-tracks")
     fun getLayoutLocationTrackChangeTime(): Instant {
         return locationTrackService.getChangeTime()
-    }
-
-    @PreAuthorize(AUTH_BASIC)
-    @GetMapping("/reference-lines")
-    fun getLayoutReferenceLineChangeTime(): Instant {
-        return referenceLineService.getChangeTime()
     }
 
     @PreAuthorize(AUTH_BASIC)

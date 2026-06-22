@@ -11,15 +11,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
-import java.sql.ResultSet
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.sql.ResultSet
+import java.time.Instant
+import kotlin.reflect.KClass
 
 enum class FetchType {
     SINGLE,
@@ -49,12 +48,6 @@ enum class LayoutAssetTable(
         "layout.track_number_id",
         "track_number_in_layout_context",
         LayoutTrackNumber::class.java.simpleName,
-    ),
-    LAYOUT_ASSET_REFERENCE_LINE(
-        DbTable.LAYOUT_REFERENCE_LINE,
-        "layout.reference_line_id",
-        "reference_line_in_layout_context",
-        ReferenceLine::class.java.simpleName,
     ),
     LAYOUT_ASSET_LOCATION_TRACK(
         DbTable.LAYOUT_LOCATION_TRACK,

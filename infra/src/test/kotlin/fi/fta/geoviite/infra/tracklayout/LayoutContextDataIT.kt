@@ -29,8 +29,6 @@ constructor(
     private val kmPostDao: LayoutKmPostDao,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
-    private val referenceLineService: ReferenceLineService,
-    private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val trackNumberDao: LayoutTrackNumberDao,
 ) : DBTestBase() {
@@ -41,11 +39,11 @@ constructor(
     }
 
     @Test
-    fun draftAndOfficialReferenceLinesHaveSameOfficialId() {
-        val dbAlignment = insertAndVerifyLine(createReferenceLineAndAlignment(false))
-        val (dbDraft, _) = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbAlignment)))
+    fun draftAndOfficialTrackNumbersHaveSameOfficialId() {
+        val dbAlignment = insertAndVerifyTrackNumber(trackNumberAndGeometry(testDBService.getUnusedTrackNumber()))
+        val (dbDraft, _) = insertAndVerifyTrackNumber(alterLine(createAndVerifyDraftTrackNumber(dbAlignment)))
 
-        assertNotEquals(dbAlignment, dbDraft)
+        assertNotEquals(dbAlignment.first, dbDraft)
         assertEquals(dbAlignment.first.id, dbDraft.id)
         assertFalse(dbAlignment.first.isDraft)
         assertTrue(dbDraft.isDraft)
@@ -56,7 +54,7 @@ constructor(
         val dbTrackAndGeometry = insertAndVerifyTrack(createLocationTrackAndGeometry(false))
         val (dbDraft, _) = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbTrackAndGeometry)))
 
-        assertNotEquals(dbTrackAndGeometry, dbDraft)
+        assertNotEquals(dbTrackAndGeometry.first, dbDraft)
         assertEquals(dbTrackAndGeometry.first.id, dbDraft.id)
         assertFalse(dbTrackAndGeometry.first.isDraft)
         assertTrue(dbDraft.isDraft)
@@ -83,21 +81,6 @@ constructor(
         assertEquals(dbKmPost.id, dbDraft.id)
         assertFalse(dbKmPost.isDraft)
         assertTrue(dbDraft.isDraft)
-    }
-
-    @Test
-    fun draftReferenceLinesAreIncludedInDraftListingsOnly() {
-        val dbOfficial = insertAndVerifyLine(createReferenceLineAndAlignment(false))
-        val dbDraft = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbOfficial)))
-
-        val officials = referenceLineService.list(MainLayoutContext.official)
-        val drafts = referenceLineService.list(MainLayoutContext.draft)
-
-        assertFalse(officials.contains(dbDraft.first))
-        assertFalse(drafts.contains(dbOfficial.first))
-
-        assertTrue(officials.contains(dbOfficial.first))
-        assertTrue(drafts.contains(dbDraft.first))
     }
 
     @Test
@@ -147,16 +130,6 @@ constructor(
     }
 
     @Test
-    fun `reference line save is an upsert`() {
-        val (line, _) = insertAndVerifyLine(createReferenceLineAndAlignment(false))
-
-        val draft1 = referenceLineDao.save(asMainDraft(line))
-        val draft2 = referenceLineDao.save(asMainDraft(line))
-
-        assertEquals(draft2, referenceLineDao.fetchVersion(MainLayoutContext.draft, draft1.id))
-    }
-
-    @Test
     fun `location track save is an upsert`() {
         val (track, geometry) = insertAndVerifyTrack(createLocationTrackAndGeometry(false))
 
@@ -189,20 +162,14 @@ constructor(
 
     @Test
     fun `track number save is an upsert`() {
-        val trackNumber = insertAndVerify(trackNumber(testDBService.getUnusedTrackNumber(), draft = false))
+        val (trackNumber, geom) =
+            insertAndVerifyTrackNumber(trackNumberAndGeometry(testDBService.getUnusedTrackNumber(), someSegment()))
 
-        val draft1 = trackNumberDao.save(asMainDraft(trackNumber))
-        val draft2 = trackNumberDao.save(asMainDraft(trackNumber))
+        val draft1 = trackNumberDao.save(asMainDraft(trackNumber), geom)
+        val draft2 = trackNumberDao.save(asMainDraft(trackNumber), geom)
 
         assertEquals(draft2, trackNumberDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
-
-    private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, ReferenceLineGeometry> =
-        referenceLineAndGeometry(
-            mainOfficialContext.createLayoutTrackNumber().id,
-            segment(Point(10.0, 10.0), Point(11.0, 11.0)),
-            draft = draft,
-        )
 
     private fun createLocationTrackAndGeometry(draft: Boolean): Pair<LocationTrack, LocationTrackGeometry> =
         locationTrackAndGeometry(
@@ -211,18 +178,17 @@ constructor(
             draft = draft,
         )
 
-    private fun createAndVerifyDraftLine(
-        dbLineAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>
-    ): Pair<ReferenceLine, ReferenceLineGeometry> {
-        val (dbLine, dbGeometry) = dbLineAndGeometry
-        assertTrue(dbLine.id is IntId)
-        assertTrue(dbGeometry.id is IntId)
-        assertEquals(dbGeometry.id, dbLine.geometryVersion?.id)
-        assertFalse(dbLine.isDraft)
-        val draft = asMainDraft(dbLine)
+    private fun createAndVerifyDraftTrackNumber(
+        dbTnAndGeometry: Pair<LayoutTrackNumber, ReferenceLineGeometry>
+    ): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
+        val (dbTrackNumber, dbGeometry) = dbTnAndGeometry
+        assertTrue(dbTrackNumber.id is IntId)
+        assertTrue(dbGeometry.trackNumberId is IntId)
+        assertFalse(dbTrackNumber.isDraft)
+        val draft = asMainDraft(dbTrackNumber)
         assertTrue(draft.isDraft)
-        assertEquals(dbLine.id, draft.id)
-        assertMatches(dbLine, draft, contextMatch = false)
+        assertEquals(dbTrackNumber.id, draft.id)
+        assertMatches(dbTrackNumber, draft, contextMatch = false)
         return draft to dbGeometry
     }
 
@@ -260,7 +226,7 @@ constructor(
         return draft
     }
 
-    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, ReferenceLineGeometry>) =
+    private fun alterLine(lineAndAlignment: Pair<LayoutTrackNumber, ReferenceLineGeometry>) =
         lineAndAlignment.first.copy(startAddress = lineAndAlignment.first.startAddress + 10.0) to
             lineAndAlignment.second
 
@@ -271,23 +237,6 @@ constructor(
 
     private fun alter(kmPost: LayoutKmPost): LayoutKmPost =
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))
-
-    private fun insertAndVerifyLine(
-        lineAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>
-    ): Pair<ReferenceLine, ReferenceLineGeometry> {
-        val (line, geometry) = lineAndGeometry
-        assertEquals(DataType.TEMP, line.dataType)
-        val geometryVersion = alignmentDao.insert(geometry)
-        val lineWithAlignment = line.copy(geometryVersion = geometryVersion)
-        val lineResponse = referenceLineDao.save(lineWithAlignment)
-        val alignmentFromDb = alignmentDao.fetch(geometryVersion)
-        assertMatches(geometry, alignmentFromDb)
-        val lineFromDb = referenceLineDao.fetch(lineResponse)
-        assertEquals(DataType.STORED, lineFromDb.dataType)
-        assertEquals(lineResponse.id, lineFromDb.id)
-        assertMatches(lineWithAlignment, lineFromDb, contextMatch = false)
-        return lineFromDb to alignmentFromDb
-    }
 
     private fun insertAndVerifyTrack(
         trackAndGeometry: Pair<LocationTrack, LocationTrackGeometry>
@@ -324,13 +273,18 @@ constructor(
         return fromDb
     }
 
-    private fun insertAndVerify(trackNumber: LayoutTrackNumber): LayoutTrackNumber {
+    private fun insertAndVerifyTrackNumber(
+        trackNumberAndGeometry: Pair<LayoutTrackNumber, ReferenceLineGeometry>
+    ): Pair<LayoutTrackNumber, ReferenceLineGeometry> {
+        val (trackNumber, geometry) = trackNumberAndGeometry
         assertEquals(DataType.TEMP, trackNumber.dataType)
-        val response = trackNumberDao.save(trackNumber)
+        val response = trackNumberDao.save(trackNumber, geometry)
         val fromDb = trackNumberDao.fetch(response)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(trackNumber, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)
-        return fromDb
+        val geometryFromDb = alignmentDao.fetch(response)
+        assertMatches(geometry, geometryFromDb, false)
+        return fromDb to geometryFromDb
     }
 }

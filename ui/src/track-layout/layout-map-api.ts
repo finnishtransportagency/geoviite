@@ -10,7 +10,6 @@ import {
     LocationTrackState,
     LocationTrackType,
     MapAlignmentType,
-    ReferenceLineId,
 } from './track-layout-model';
 import { API_URI, getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
@@ -44,10 +43,10 @@ import {
     last,
     partitionBy,
 } from 'utils/array-utils';
-import { getMaxTimestamp } from 'utils/date-utils';
 import { getTrackNumbers } from './layout-track-number-api';
 import { directionBetweenPoints } from 'utils/math-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 export type LocationTrackAlignmentDataHolder = AlignmentDataHolder & {
     header: LocationTrackAlignmentHeader;
@@ -69,7 +68,7 @@ export type LocationTrackAlignmentHeader = LayoutAlignmentHeader & {
     state: LocationTrackState;
 };
 export type ReferenceLineAlignmentHeader = LayoutAlignmentHeader & {
-    id: ReferenceLineId;
+    id: LayoutTrackNumberId;
     state: LayoutState;
 };
 
@@ -80,7 +79,7 @@ type AlignmentHeaderIdAndType =
           alignmentType: 'LOCATION_TRACK';
       }
     | {
-          id: ReferenceLineId;
+          id: LayoutTrackNumberId;
           alignmentSource: 'LAYOUT';
           alignmentType: 'REFERENCE_LINE';
       }
@@ -112,7 +111,7 @@ export type GeometryAlignmentHeader = AlignmentHeader & {
 };
 
 export type AlignmentPolyLine = {
-    id: LocationTrackId | ReferenceLineId;
+    id: LocationTrackId | LayoutTrackNumberId;
     alignmentType: MapAlignmentType;
     points: AlignmentPoint[];
 };
@@ -153,7 +152,7 @@ function geocodingUri(layoutContext: LayoutContext): string {
     return `${GEOCODING_URI}/${contextInUri(layoutContext)}`;
 }
 
-function cacheKey(id: ReferenceLineId | LocationTrackId, layoutContext: LayoutContext) {
+function cacheKey(id: LayoutTrackNumberId | LocationTrackId, layoutContext: LayoutContext) {
     return `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 }
 
@@ -164,7 +163,12 @@ export async function getMapAlignmentsByTiles(
 ): Promise<AlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
-            getPolyLines(tile, changeTimes.layoutReferenceLine, layoutContext, 'ALL'),
+            getPolyLines(
+                tile,
+                getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutTrackNumber),
+                layoutContext,
+                'ALL',
+            ),
         ),
     ).then((p) => p.flat());
 
@@ -178,24 +182,24 @@ export async function getMapAlignmentsByTiles(
             MapAlignmentType.ReferenceLine,
             rlPolyLines,
             layoutContext,
-            changeTimes,
+            changeTimes.layoutTrackNumber,
         )),
         ...(await getAlignmentDataHolder(
             MapAlignmentType.LocationTrack,
             ltPolyLines,
             layoutContext,
-            changeTimes,
+            changeTimes.layoutLocationTrack,
         )),
     ];
 }
 
 export async function getSelectedReferenceLineMapAlignmentByTiles(
-    changeTimes: ChangeTimes,
+    changeTime: TimeStamp,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
 ): Promise<AlignmentDataHolder[]> {
-    return getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext).then(
+    return getReferenceLineMapAlignmentsByTiles(changeTime, mapTiles, layoutContext).then(
         (alignments) => {
             const alignment = alignments.find(
                 (a) =>
@@ -208,14 +212,10 @@ export async function getSelectedReferenceLineMapAlignmentByTiles(
 }
 
 export async function getReferenceLineMapAlignmentsByTiles(
-    changeTimes: ChangeTimes,
+    changeTime: TimeStamp,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
 ): Promise<ReferenceLineAlignmentDataHolder[]> {
-    const changeTime = getMaxTimestamp(
-        changeTimes.layoutReferenceLine,
-        changeTimes.layoutTrackNumber,
-    );
     const polyLines = await Promise.all(
         mapTiles.map((tile) => getPolyLines(tile, changeTime, layoutContext, 'REFERENCE_LINES')),
     ).then((p) => p.flat());
@@ -224,24 +224,21 @@ export async function getReferenceLineMapAlignmentsByTiles(
         MapAlignmentType.ReferenceLine,
         polyLines,
         layoutContext,
-        changeTimes,
+        changeTime,
     );
 }
 
 export async function getSelectedLocationTrackMapAlignmentByTiles(
-    changeTimes: ChangeTimes,
+    changeTime: TimeStamp,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
     locationTrackId: LocationTrackId,
 ): Promise<AlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
-            getLocationTrackPolyline(
-                locationTrackId,
-                tile,
-                changeTimes.layoutLocationTrack,
-                layoutContext,
-            ).then((r) => (r ? [r] : [])),
+            getLocationTrackPolyline(locationTrackId, tile, changeTime, layoutContext).then((r) =>
+                r ? [r] : [],
+            ),
         ),
     ).then((lines) => lines.flat());
 
@@ -249,7 +246,7 @@ export async function getSelectedLocationTrackMapAlignmentByTiles(
         MapAlignmentType.LocationTrack,
         polyLines,
         layoutContext,
-        changeTimes,
+        changeTime,
     );
 }
 
@@ -276,7 +273,7 @@ export async function getLocationTrackMapAlignmentsByTiles(
         MapAlignmentType.LocationTrack,
         polyLines,
         layoutContext,
-        changeTimes,
+        changeTimes.layoutLocationTrack,
     );
 }
 
@@ -290,16 +287,12 @@ async function getAlignmentDataHolder<M extends MapAlignmentType>(
     type: M,
     polyLines: AlignmentPolyLine[],
     layoutContext: LayoutContext,
-    changeTimes: ChangeTimes,
+    changeTime: TimeStamp,
 ): Promise<MapLayoutAlignmentDataHolder<M>[]> {
     const ids = deduplicate(polyLines.map((pl) => pl.id));
-    const headerChangeTime =
-        type === 'LOCATION_TRACK'
-            ? changeTimes.layoutLocationTrack
-            : getMaxTimestamp(changeTimes.layoutTrackNumber, changeTimes.layoutReferenceLine);
 
-    const headers = await getAlignmentHeaders(layoutContext, ids, type, headerChangeTime);
-    const trackNumbers = await getTrackNumbers(layoutContext, changeTimes.layoutTrackNumber);
+    const headers = await getAlignmentHeaders(layoutContext, ids, type, changeTime);
+    const trackNumbers = await getTrackNumbers(layoutContext, changeTime);
 
     return combine(headers, polyLines, trackNumbers) as MapLayoutAlignmentDataHolder<M>[];
 }
@@ -316,7 +309,7 @@ function combine(
         .map((header: AlignmentHeader) => {
             const polyLinePieces =
                 (header.alignmentType === 'REFERENCE_LINE'
-                    ? referenceLinePiecesMap.get(header.id as ReferenceLineId)
+                    ? referenceLinePiecesMap.get(header.id as LayoutTrackNumberId)
                     : locationTrackPiecesMap.get(header.id as LocationTrackId)) ?? [];
             return {
                 header: header,
@@ -332,10 +325,10 @@ function combine(
 }
 
 function indexPolylinesIntoMaps(polyLines: AlignmentPolyLine[]): {
-    referenceLinePiecesMap: Map<ReferenceLineId, AlignmentPoint[][]>;
+    referenceLinePiecesMap: Map<LayoutTrackNumberId, AlignmentPoint[][]>;
     locationTrackPiecesMap: Map<LocationTrackId, AlignmentPoint[][]>;
 } {
-    const referenceLinePiecesMap: Map<ReferenceLineId, AlignmentPoint[][]> = new Map();
+    const referenceLinePiecesMap: Map<LayoutTrackNumberId, AlignmentPoint[][]> = new Map();
     const locationTrackPiecesMap: Map<LocationTrackId, AlignmentPoint[][]> = new Map();
     for (const pl of polyLines) {
         switch (pl.alignmentType) {
@@ -350,7 +343,7 @@ function indexPolylinesIntoMaps(polyLines: AlignmentPolyLine[]): {
                 break;
             }
             case MapAlignmentType.ReferenceLine: {
-                const id = pl.id as ReferenceLineId;
+                const id = pl.id as LayoutTrackNumberId;
                 const elem = referenceLinePiecesMap.get(id);
                 if (elem === undefined) {
                     referenceLinePiecesMap.set(id, [pl.points]);
@@ -417,7 +410,7 @@ async function getAlignmentSectionsWithoutLinkingByTile(
 
 async function getAlignmentHeaders(
     layoutContext: LayoutContext,
-    ids: (ReferenceLineId | LocationTrackId)[],
+    ids: (LayoutTrackNumberId | LocationTrackId)[],
     type: MapAlignmentType,
     changeTime: TimeStamp,
 ): Promise<AlignmentHeader[]> {
@@ -439,7 +432,7 @@ async function getAlignmentHeaders(
 
 export async function getSegmentEnds(
     layoutContext: LayoutContext,
-    id: LocationTrackId | ReferenceLineId,
+    id: LocationTrackId | LayoutTrackNumberId,
     type: MapAlignmentType,
     changeTime: TimeStamp,
 ): Promise<number[]> {
@@ -451,7 +444,7 @@ export async function getSegmentEnds(
 }
 
 export async function getEndLinkPoints(
-    id: LocationTrackId | ReferenceLineId,
+    id: LocationTrackId | LayoutTrackNumberId,
     layoutContext: LayoutContext,
     type: MapAlignmentType,
     changeTime: TimeStamp,

@@ -28,24 +28,22 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @Service
@@ -58,8 +56,6 @@ constructor(
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
-    val referenceLineDao: ReferenceLineDao,
-    val referenceLineService: ReferenceLineService,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
     val locationTrackDao: LocationTrackDao,
@@ -79,7 +75,6 @@ constructor(
                 PublicationRequestIds(
                     it.trackNumbers.map(TrackNumberPublicationCandidate::id),
                     it.locationTracks.map(LocationTrackPublicationCandidate::id),
-                    it.referenceLines.map(ReferenceLinePublicationCandidate::id),
                     it.switches.map(SwitchPublicationCandidate::id),
                     it.kmPosts.map(KmPostPublicationCandidate::id),
                     it.operationalPoints.map(OperationalPointPublicationCandidate::id),
@@ -89,11 +84,13 @@ constructor(
     }
 
     fun simpleSplitSetup(sourceLocationTrackState: LocationTrackState = LocationTrackState.DELETED): SplitSetup {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(
-            referenceLine(trackNumberId),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumberId =
+            mainOfficialContext
+                .save(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                )
+                .id
 
         val origin = Point.zero()
         val splitPoint = Point(5.0, 0.0)
@@ -188,9 +185,6 @@ constructor(
         verifyPublished(layoutBranch, versions.trackNumbers, trackNumberDao) { draft, published ->
             assertMatches(draft, published, contextMatch = false)
         }
-        verifyPublished(layoutBranch, versions.referenceLines, referenceLineDao) { draft, published ->
-            assertMatches(draft, published, contextMatch = false)
-        }
         verifyPublished(layoutBranch, versions.kmPosts, kmPostDao) { draft, published ->
             assertMatches(draft, published, contextMatch = false)
         }
@@ -209,7 +203,6 @@ constructor(
 
     private fun verifyVersionsAreDrafts(branch: LayoutBranch, versions: ValidationVersions) {
         verifyVersionsAreDrafts(branch, trackNumberDao, versions.trackNumbers)
-        verifyVersionsAreDrafts(branch, referenceLineDao, versions.referenceLines)
         verifyVersionsAreDrafts(branch, locationTrackDao, versions.locationTracks)
         verifyVersionsAreDrafts(branch, switchDao, versions.switches)
         verifyVersionsAreDrafts(branch, kmPostDao, versions.kmPosts)
@@ -234,8 +227,9 @@ data class SplitSetup(
     val targetTracks: List<Pair<LayoutRowVersion<LocationTrack>, IntRange>>,
 ) {
 
-    val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> =
-        targetTracks.map { (track, range) -> track.id to range }
+    val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> = targetTracks.map { (track, range) ->
+        track.id to range
+    }
 
     val trackResponses = (listOf(sourceTrack) + targetTracks.map { it.first })
 
@@ -244,7 +238,6 @@ data class SplitSetup(
 
 fun verifyVersions(publicationRequestIds: PublicationRequestIds, validationVersions: ValidationVersions) {
     verifyVersions(publicationRequestIds.trackNumbers, validationVersions.trackNumbers)
-    verifyVersions(publicationRequestIds.referenceLines, validationVersions.referenceLines)
     verifyVersions(publicationRequestIds.kmPosts, validationVersions.kmPosts)
     verifyVersions(publicationRequestIds.locationTracks, validationVersions.locationTracks)
     verifyVersions(publicationRequestIds.switches, validationVersions.switches)
@@ -291,10 +284,6 @@ fun assertEqualsCalculatedChanges(calculatedChanges: CalculatedChanges, publicat
 
     calculatedChanges.directChanges.kmPostChanges.forEach { calculatedKmPostId ->
         assertTrue(publicationDetails.kmPosts.any { it.id == calculatedKmPostId })
-    }
-
-    calculatedChanges.directChanges.referenceLineChanges.forEach { calculatedReferenceLineId ->
-        assertTrue(publicationDetails.referenceLines.any { it.id == calculatedReferenceLineId })
     }
 
     trackNumberEquals(calculatedChanges.directChanges.trackNumberChanges, publicationDetails.trackNumbers)

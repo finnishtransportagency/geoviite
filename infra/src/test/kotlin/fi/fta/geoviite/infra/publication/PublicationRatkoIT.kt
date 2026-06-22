@@ -30,15 +30,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
-import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -70,8 +67,6 @@ constructor(
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
-    val referenceLineDao: ReferenceLineDao,
-    val referenceLineService: ReferenceLineService,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
     val locationTrackDao: LocationTrackDao,
@@ -117,13 +112,11 @@ constructor(
 
     @Test
     fun `external ids are fetched for calculated changes affecting assets not published in design`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         testDBService.generateOid(trackNumber, LayoutBranch.main)
-
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
         // split track with two km posts, so that moving the latter one even further doesn't affect
         // the first track km at all
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0)))
@@ -238,11 +231,10 @@ constructor(
 
     @Test
     fun `switch draft oid existence is checked upon publication`() {
-        val trackNumber = mainOfficialContext.save(trackNumber()).id
-        mainOfficialContext.save(
-            referenceLine(trackNumber),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val trackNumber =
+            mainOfficialContext
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
         val switch =
             mainDraftContext
                 .save(
@@ -298,10 +290,9 @@ constructor(
 
     @Test
     fun `editing several objects and finishing merging all to main leaves design empty`() {
-        val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val referenceLine =
+        val trackNumber =
             mainOfficialContext
-                .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val switch =
             mainOfficialContext
@@ -338,7 +329,6 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
         designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
-        designDraftContext.save(mainOfficialContext.fetch(referenceLine)!!)
         designDraftContext.saveLocationTrack(mainOfficialContext.fetchLocationTrackWithGeometry(locationTrack)!!)
         designDraftContext.save(mainOfficialContext.fetch(switch)!!)
         designDraftContext.save(mainOfficialContext.fetch(kmPost)!!)
@@ -346,7 +336,6 @@ constructor(
         val requestPublishAll =
             publicationRequest(
                 trackNumbers = listOf(trackNumber),
-                referenceLines = listOf(referenceLine),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
                 kmPosts = listOf(kmPost),
@@ -370,7 +359,6 @@ constructor(
         val mergeCompletionPublicationId = mergePublicationResult.publicationId.intValue + 1
 
         assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(trackNumber)!!.context)
-        assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(referenceLine)!!.context)
         assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(locationTrack)!!.context)
         assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(switch)!!.context)
         assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(kmPost)!!.context)
@@ -382,7 +370,6 @@ constructor(
             checkMergerCompletionOnPublication(mergeCompletionPublicationId, designBranch, table, id)
 
         checkMergerCompletion("track_number", trackNumber)
-        checkMergerCompletion("reference_line", referenceLine)
         checkMergerCompletion("location_track", locationTrack)
         checkMergerCompletion("switch", switch)
         checkMergerCompletion("km_post", kmPost)

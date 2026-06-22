@@ -22,7 +22,6 @@ import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edi
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
     refreshKmPostSelection,
@@ -244,13 +243,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 break;
 
             case SearchItemType.TRACK_NUMBER:
-                getTrackNumberReferenceLine(item.trackNumber.id, layoutContext).then(
-                    (referenceLine) => {
-                        if (referenceLine?.boundingBox) {
-                            showArea(referenceLine.boundingBox);
-                        }
-                    },
-                );
+                if (item.trackNumber?.boundingBox) {
+                    showArea(item.trackNumber.boundingBox);
+                }
 
                 onSelect({
                     trackNumbers: [item.trackNumber.id],

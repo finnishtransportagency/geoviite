@@ -27,7 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
-import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometryOfPoints
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -803,17 +803,11 @@ class GeocodingTest {
     fun switchPointsAreFetchedCorrectly() {
         val start = Point(385757.97, 6672279.26)
         val referenceLineGeometry = referenceLineGeometry(segment(start, start + Point(0.0, 100.0)))
-        val referenceLine =
-            referenceLine(
-                trackNumberId = IntId(1),
-                geometry = referenceLineGeometry,
-                startAddress = TrackMeter(10, 0),
-                draft = false,
-            )
+        val startAddress = TrackMeter(10, 0)
         val testContext =
             GeocodingContext.create(
                     trackNumber = trackNumber,
-                    startAddress = referenceLine.startAddress,
+                    startAddress = startAddress,
                     referenceLineGeometry = referenceLineGeometry,
                     kmPosts = listOf(),
                 )
@@ -889,7 +883,7 @@ class GeocodingTest {
 
     @Test
     fun `should throw an exception with empty reference line geometry`() {
-        val emptyGeometry = ReferenceLineGeometry(segments = emptyList())
+        val emptyGeometry = TmpReferenceLineGeometry.empty
 
         assertThrows<IllegalArgumentException>("Geocoding context was created with empty reference line") {
             GeocodingContext(
@@ -903,7 +897,7 @@ class GeocodingTest {
 
     @Test
     fun `should throw an exception when there are no reference points`() {
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         assertThrows<IllegalArgumentException>("Geocoding context was created without reference points") {
             GeocodingContext(
@@ -918,7 +912,7 @@ class GeocodingTest {
     @Test
     fun `should reject km posts without location`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val kmPost = kmPost(IntId(1), KmNumber(11), null, draft = false)
 
@@ -943,7 +937,7 @@ class GeocodingTest {
     @Test
     fun `should reject km posts that are before start address`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val kmPost = kmPost(IntId(1), KmNumber(10), kmPostGkLocation(5.0, 0.0), draft = false)
 
@@ -963,7 +957,7 @@ class GeocodingTest {
     @Test
     fun `should reject km posts that intersects before reference line`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(-5.0, 0.0), draft = false)
 
@@ -983,7 +977,7 @@ class GeocodingTest {
     @Test
     fun `should reject km posts that intersects after reference line`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(50.0, 0.0), draft = false)
 
@@ -1003,7 +997,7 @@ class GeocodingTest {
     @Test
     fun `should reject km posts that are too far from reference line`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(5000.0, 1100.0), draft = false)
 
@@ -1023,7 +1017,7 @@ class GeocodingTest {
     @Test
     fun `should reject km posts that are too far apart`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(40000.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(40000.0, 0.0)))
 
         val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(20000.0, 0.0), draft = false)
 
@@ -1042,7 +1036,7 @@ class GeocodingTest {
     @Test
     fun `should require start km to have sane length`() {
         val trackNumber = TrackNumber("T001")
-        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val kmPost = kmPost(IntId(1), KmNumber(1), kmPostGkLocation(15.0, 0.0), draft = false)
         val result =
             GeocodingContext.create(
@@ -1072,7 +1066,7 @@ class GeocodingTest {
 
     @Test
     fun `getTrackLocation simply fails if projection lines would be invalid`() {
-        val geometry = ReferenceLineGeometry(listOf(segment(Point(0.0, 0.0), Point(15000.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(15000.0, 0.0)))
         val result =
             GeocodingContext.create(
                 trackNumber = TrackNumber("001"),
@@ -1085,7 +1079,7 @@ class GeocodingTest {
 
     @Test
     fun `referenceLineAddresses is InvalidEndpoint if the end address would have invalid meters`() {
-        val geometry = ReferenceLineGeometry(listOf(segment(Point(0.0, 0.0), Point(15000.0, 0.0))))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(15000.0, 0.0)))
         val result =
             GeocodingContext.create(
                 trackNumber = TrackNumber("001"),

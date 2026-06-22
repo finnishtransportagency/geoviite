@@ -9,32 +9,36 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
-import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
 @Component
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    val alignmentDao: LayoutAlignmentDao,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) :
-    LayoutAssetDao<LayoutTrackNumber, NoParams>(
+    LayoutAssetDao<LayoutTrackNumber, ReferenceLineGeometry>(
         jdbcTemplateParam,
         LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
         cacheEnabled,
@@ -47,7 +51,8 @@ class LayoutTrackNumberDao(
     ),
     IExternallyIdentifiedLayoutAssetDao<LayoutTrackNumber> {
 
-    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = NoParams.instance
+    override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>): DbReferenceLineGeometry =
+        alignmentDao.fetch(rowVersion)
 
     override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LayoutTrackNumber>> {
         val sql =
@@ -115,9 +120,11 @@ class LayoutTrackNumberDao(
               tn.number,
               tn.description,
               tn.state,
-              -- Track number reference line identity never changes, so any instance whatsoever is fine
-              (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              tn.origin_design_id
+              tn.origin_design_id,
+              tn.start_address,
+              postgis.st_astext(tn.bounding_box) as bounding_box,
+              tn.segment_count,
+              tn.length
             from layout.track_number_version tn
               inner join lateral
                 (
@@ -153,9 +160,11 @@ class LayoutTrackNumberDao(
               tn.description,
               tn.state,
               tn.design_asset_state,
-              -- Track number reference line identity never changes, so any instance whatsoever is fine
-              (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-              tn.origin_design_id
+              tn.origin_design_id,
+              tn.start_address,
+              postgis.st_astext(tn.bounding_box) as bounding_box,
+              tn.segment_count,
+              tn.length
             from layout.track_number tn
             order by tn.id
             """
@@ -177,20 +186,23 @@ class LayoutTrackNumberDao(
             number = rs.getTrackNumber("number"),
             description = rs.getString("description").let(::TrackNumberDescription),
             state = rs.getEnum("state"),
-
-            // TODO: GVT-2935 This should be non-null but we have tests that produce broken data
-            // To fix this, we could use a similar model as LocationTrack+LocationTrackGeometry
-            // There, they are save always as one, all the way from DAO.save
-            referenceLineId = rs.getIntIdOrNull("reference_line_id"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
+            startAddress = rs.getTrackMeter("start_address"),
+            boundingBox = rs.getBboxOrNull("bounding_box"),
+            length = LineM(rs.getDouble("length")),
+            segmentCount = rs.getInt("segment_count"),
         )
 
     @Transactional
-    fun save(item: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> = save(item, NoParams.instance)
-
-    @Transactional
-    override fun save(item: LayoutTrackNumber, params: NoParams): LayoutRowVersion<LayoutTrackNumber> {
+    override fun save(item: LayoutTrackNumber, params: ReferenceLineGeometry): LayoutRowVersion<LayoutTrackNumber> {
         val id = item.id as? IntId ?: createId()
 
         // language=sql
@@ -204,7 +216,11 @@ class LayoutTrackNumberDao(
                                             draft,
                                             design_asset_state,
                                             design_id,
-                                            origin_design_id)
+                                            origin_design_id,
+                                            start_address,
+                                            bounding_box,
+                                            segment_count,
+                                            length)
               values
                 (:layout_context_id,
                  :id,
@@ -214,17 +230,25 @@ class LayoutTrackNumberDao(
                  :draft,
                  :design_asset_state::layout.design_asset_state,
                  :design_id,
-                 :origin_design_id)
+                 :origin_design_id,
+                 :start_address,
+                 postgis.st_polygonfromtext(:bounding_box, :layout_srid),
+                 :segment_count,
+                 :length)
               on conflict (id, layout_context_id) do update
                 set number = excluded.number,
                     description = excluded.description,
                     state = excluded.state,
                     design_asset_state = excluded.design_asset_state,
-                    origin_design_id = excluded.origin_design_id
+                    origin_design_id = excluded.origin_design_id,
+                    start_address = excluded.start_address,
+                    bounding_box = excluded.bounding_box,
+                    segment_count = excluded.segment_count,
+                    length = excluded.length
               returning id, design_id, draft, version;
             """
                 .trimIndent()
-        val params =
+        val sqlParams =
             mapOf(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
@@ -235,13 +259,20 @@ class LayoutTrackNumberDao(
                 "design_asset_state" to item.designAssetState?.name,
                 "design_id" to item.contextData.designId?.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
+                "start_address" to item.startAddress.toString(),
+                "bounding_box" to params.boundingBox?.polygonFromCorners?.toWkt(),
+                "layout_srid" to LAYOUT_SRID.code,
+                "segment_count" to params.segments.size,
+                "length" to params.length.distance,
             )
         jdbcTemplate.setUser()
-        val response: LayoutRowVersion<LayoutTrackNumber> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val response: LayoutRowVersion<LayoutTrackNumber>? =
+            jdbcTemplate.queryForObject(sql, sqlParams) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
+            }
+        requireNotNull(response) { "Failed to save TrackNumber: ${item.toLog()}" }
         logger.daoAccess(AccessType.INSERT, LayoutTrackNumber::class, response)
+        alignmentDao.saveReferenceLineGeometry(response, params)
         clearVersionCache()
         return response
     }
@@ -292,6 +323,68 @@ class LayoutTrackNumberDao(
     fun insertExternalId(id: IntId<LayoutTrackNumber>, branch: LayoutBranch, oid: Oid<LayoutTrackNumber>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    @Transactional(readOnly = true)
+    fun fetchVersionsNear(
+        layoutContext: LayoutContext,
+        bbox: BoundingBox,
+        includeDeleted: Boolean = false,
+    ): List<LayoutRowVersion<LayoutTrackNumber>> {
+        val sql =
+            """
+            select id, design_id, draft, version
+              from layout.track_number_in_layout_context(
+                      :publication_state::layout.publication_state, :design_id) track_number
+              where (:include_deleted or state != 'DELETED')
+                and exists(
+                  select *
+                    from layout.track_number_version_segment sv
+                      inner join layout.segment_geometry on segment_geometry.id = sv.geometry_id
+                    where sv.track_number_id = track_number.id
+                      and sv.track_layout_context_id = track_number.layout_context_id
+                      and sv.track_number_version = track_number.version
+                      and postgis.st_intersects(
+                        postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                        segment_geometry.bounding_box
+                      )
+                );
+            """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "x_min" to bbox.min.x,
+                "y_min" to bbox.min.y,
+                "x_max" to bbox.max.x,
+                "y_max" to bbox.max.y,
+                "layout_srid" to LAYOUT_SRID.code,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+                "include_deleted" to includeDeleted,
+            )
+
+        // GVT-3181 This query is poorly optimized when JDBC tries to prepare a plan for it.
+        // Force a custom plan to avoid the issue. Note: this must be in the same transaction as the query.
+        jdbcTemplate.setForceCustomPlan()
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
+    }
+
+    fun fetchVersionsNonLinked(context: LayoutContext): List<LayoutRowVersion<LayoutTrackNumber>> {
+        val sql =
+            """
+            select id, design_id, draft, version
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            where state != 'DELETED'
+              and segment_count = 0
+            """
+                .trimIndent()
+        val params = mapOf("publication_state" to context.state.name, "design_id" to context.branch.designId?.intValue)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
     }
 }
 

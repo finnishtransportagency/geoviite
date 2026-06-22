@@ -12,7 +12,6 @@ import {
     OperationalPointPublicationCandidate,
     PublicationCandidate,
     PublicationStage,
-    ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
@@ -33,7 +32,6 @@ import { Range, SwitchStructure } from 'common/common-model';
 
 export enum CandidateDataProperties {
     TRACK_NUMBER = 'track-number-candidate-data',
-    REFERENCE_LINE = 'reference-line-candidate-data',
     LOCATION_TRACK = 'location-track-candidate-data',
     SWITCH = 'switch-candidate-data',
     KM_POST = 'km-post-candidate-data',
@@ -51,21 +49,17 @@ export type LocationTrackCandidateAndAlignment = {
     publishCandidate: LocationTrackPublicationCandidate;
     alignment: LocationTrackAlignmentDataHolder;
 };
-export type ReferenceLineCandidateAndAlignment = {
-    publishCandidate: ReferenceLinePublicationCandidate;
-    alignment: ReferenceLineAlignmentDataHolder;
-};
+
 export type TrackNumberCandidateAndAlignment = {
     publishCandidate: TrackNumberPublicationCandidate;
     alignment: ReferenceLineAlignmentDataHolder;
 };
 
 export type LineStringFeatureChangeType =
-    | DraftChangeType.REFERENCE_LINE
     | DraftChangeType.LOCATION_TRACK
     | DraftChangeType.TRACK_NUMBER;
+
 export type CandidateLineStringFeature =
-    | ReferenceLinePublicationCandidate
     | LocationTrackPublicationCandidate
     | TrackNumberPublicationCandidate;
 
@@ -73,6 +67,7 @@ export type PointFeatureChangeType =
     | DraftChangeType.SWITCH
     | DraftChangeType.KM_POST
     | DraftChangeType.OPERATIONAL_POINT;
+
 export type CandidatePointFeature =
     | SwitchPublicationCandidate
     | KmPostPublicationCandidate
@@ -99,7 +94,6 @@ const DELETED_LOCATION_TRACK_Z_INDEX = DELETED_REFERENCE_LINE_Z_INDEX + 1;
 
 const DATA_PROPERTY_BY_CHANGE_TYPE = {
     [DraftChangeType.TRACK_NUMBER]: CandidateDataProperties.TRACK_NUMBER,
-    [DraftChangeType.REFERENCE_LINE]: CandidateDataProperties.REFERENCE_LINE,
     [DraftChangeType.LOCATION_TRACK]: CandidateDataProperties.LOCATION_TRACK,
     [DraftChangeType.SWITCH]: CandidateDataProperties.SWITCH,
     [DraftChangeType.KM_POST]: CandidateDataProperties.KM_POST,
@@ -107,9 +101,7 @@ const DATA_PROPERTY_BY_CHANGE_TYPE = {
 };
 
 const isLineStringType = (type: DraftChangeType): boolean =>
-    type === DraftChangeType.REFERENCE_LINE ||
-    type === DraftChangeType.LOCATION_TRACK ||
-    type === DraftChangeType.TRACK_NUMBER;
+    type === DraftChangeType.LOCATION_TRACK || type === DraftChangeType.TRACK_NUMBER;
 
 const findSubRange = (
     points: AlignmentPoint[],
@@ -303,8 +295,8 @@ export const createCandidateLocationTrackFeatures = (
         ),
     );
 
-export const createCandidateReferenceLineFeatures = (
-    candidates: ReferenceLineCandidateAndAlignment[],
+export const createCandidateTrackNumberFeatures = (
+    candidates: TrackNumberCandidateAndAlignment[],
     metersPerPixel: number,
 ): Feature<LineString>[] =>
     candidates.flatMap((candidate) =>
@@ -317,22 +309,8 @@ export const createCandidateReferenceLineFeatures = (
                 candidate.alignment.points,
                 candidate.publishCandidate,
                 metersPerPixel,
-                DraftChangeType.REFERENCE_LINE,
+                DraftChangeType.TRACK_NUMBER,
             ),
-        ),
-    );
-
-export const createCandidateTrackNumberFeatures = (
-    candidates: TrackNumberCandidateAndAlignment[],
-    metersPerPixel: number,
-): Feature<LineString>[] =>
-    candidates.flatMap((candidate) =>
-        createAlignmentLineStringFeature(
-            undefined,
-            candidate.alignment.points,
-            candidate.publishCandidate,
-            metersPerPixel,
-            DraftChangeType.TRACK_NUMBER,
         ),
     );
 
@@ -409,9 +387,8 @@ export const createBaseLocationTrackFeatures = (
 };
 
 export const createBaseReferenceLineFeatures = (
-    publishCandidate: ReferenceLinePublicationCandidate,
+    publishCandidate: TrackNumberPublicationCandidate,
     alignment: ReferenceLineAlignmentDataHolder,
-    trackNumberCandidate: TrackNumberPublicationCandidate | undefined,
     showEndPointTicks: boolean,
     metersPerPixel: number,
 ): Feature<LineString | OlPoint>[] => {
@@ -434,8 +411,7 @@ export const createBaseReferenceLineFeatures = (
     );
 
     highlightFeatures.forEach((f) => {
-        f.set(CandidateDataProperties.REFERENCE_LINE, publishCandidate);
-        if (trackNumberCandidate) f.set(CandidateDataProperties.TRACK_NUMBER, trackNumberCandidate);
+        f.set(CandidateDataProperties.TRACK_NUMBER, publishCandidate);
     });
     return [...lineFeatures, ...highlightFeatures];
 };

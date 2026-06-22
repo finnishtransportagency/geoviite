@@ -7,15 +7,8 @@ import React from 'react';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { PublicationId } from 'publication/publication-model';
-import { LayoutContext } from 'common/common-model';
 
-type PublicationDetailsContainerProps = {
-    layoutContext: LayoutContext;
-};
-
-export const PublicationDetailsContainer: React.FC<PublicationDetailsContainerProps> = ({
-    layoutContext,
-}) => {
+export const PublicationDetailsContainer: React.FC<object> = () => {
     const trackLayoutActionDelegates = React.useMemo(
         () => createDelegates(trackLayoutActionCreators),
         [],
@@ -37,7 +30,6 @@ export const PublicationDetailsContainer: React.FC<PublicationDetailsContainerPr
 
     return (
         <PublicationDetailsView
-            layoutContext={layoutContext}
             publication={publication}
             setSelectedPublicationId={trackLayoutActionDelegates.setSelectedPublicationId}
             changeTime={publicationChangeTime}

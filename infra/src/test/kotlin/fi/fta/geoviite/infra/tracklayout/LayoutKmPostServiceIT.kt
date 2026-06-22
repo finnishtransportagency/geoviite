@@ -7,13 +7,13 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -23,7 +23,6 @@ constructor(
     private val kmPostService: LayoutKmPostService,
     private val kmPostDao: LayoutKmPostDao,
     private val trackNumberService: LayoutTrackNumberService,
-    private val referenceLineService: ReferenceLineService,
 ) : DBTestBase() {
 
     @Test
@@ -164,14 +163,21 @@ constructor(
 
     @Test
     fun kmPostLengthMatchesTrackNumberService() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumberId, draft = true),
-            referenceLineGeometry(
-                segment(Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0))
-            ),
-        )
+        val trackNumberId =
+            mainDraftContext
+                .createLayoutTrackNumber(
+                    geometry =
+                        referenceLineGeometry(
+                            segment(
+                                Point(0.0, 0.0),
+                                Point(0.0, 5.0),
+                                Point(1.0, 10.0),
+                                Point(3.0, 15.0),
+                                Point(4.0, 20.0),
+                            )
+                        )
+                )
+                .id
         val kmPosts =
             listOf(
                 kmPost(trackNumberId, KmNumber(1), kmPostGkLocation(0.0, 3.0), draft = true),

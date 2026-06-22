@@ -164,7 +164,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         [
             layoutContext,
             changeTimes.geometryPlan,
-            changeTimes.layoutReferenceLine,
+            changeTimes.layoutTrackNumber,
             changeTimes.layoutLocationTrack,
             changeTimes.layoutSwitch,
             changeTimes.layoutKmPost,

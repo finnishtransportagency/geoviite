@@ -3,12 +3,10 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import exists
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.tracklayout.DesignState
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
@@ -17,7 +15,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLineGeometry
 import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
 import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
@@ -41,8 +39,6 @@ class UserRoleTestUI
 @Autowired
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val alignmentDao: LayoutAlignmentDao,
-    private val referenceLineDao: ReferenceLineDao,
     private val layoutDesignDao: LayoutDesignDao,
 ) : SeleniumTest() {
     @BeforeEach
@@ -53,10 +49,7 @@ constructor(
     @Test
     fun `Verify navigation works and views are available based on role`() {
         val trackNumber = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
-        val trackNumberId = trackNumberDao.save(trackNumber)
-        val (referenceLine, geometry) = westReferenceLine(trackNumberId.id)
-        val geometryVersion = alignmentDao.insert(geometry)
-        referenceLineDao.save(referenceLine.copy(geometryVersion = geometryVersion))
+        trackNumberDao.save(trackNumber, westReferenceLineGeometry())
 
         val designName = "test design"
         layoutDesignDao.insert(

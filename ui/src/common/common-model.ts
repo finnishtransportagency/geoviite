@@ -6,7 +6,6 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     OperationalPointId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { compare, filterUnique } from 'utils/array-utils';
 import i18next from 'i18next';
@@ -117,7 +116,6 @@ export type TrackMeter = {
 
 export type AssetId =
     | LayoutTrackNumberId
-    | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
     | LayoutKmPostId

@@ -1,8 +1,8 @@
 import {
     LayoutKmPostId,
     LayoutSwitchId,
+    LayoutTrackNumberId,
     LocationTrackId,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
     API_URI,
@@ -28,8 +28,8 @@ import {
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
     updatePlanChangeTime,
-    updateReferenceLineChangeTime,
     updateSwitchChangeTime,
+    updateTrackNumberChangeTime,
 } from 'common/change-time-api';
 import { LayoutBranch, LayoutContext, PublicationState, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
@@ -77,13 +77,13 @@ function linkingUri(
 export const linkGeometryWithReferenceLine = async (
     layoutBranch: LayoutBranch,
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<ReferenceLineId> => {
-    const response = await postNonNull<LinkingGeometryWithAlignmentParameters, ReferenceLineId>(
+): Promise<LayoutTrackNumberId> => {
+    const response = await postNonNull<LinkingGeometryWithAlignmentParameters, LayoutTrackNumberId>(
         linkingUri(layoutBranch, 'reference-lines', 'geometry'),
         parameters,
     );
 
-    await updateReferenceLineChangeTime();
+    await updateTrackNumberChangeTime();
 
     return response;
 };
@@ -105,13 +105,13 @@ export const linkGeometryWithLocationTrack = async (
 export const linkGeometryWithEmptyReferenceLine = async (
     layoutBranch: LayoutBranch,
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<ReferenceLineId> => {
+): Promise<LayoutTrackNumberId> => {
     const response = await postNonNull<
         LinkingGeometryWithEmptyAlignmentParameters,
-        ReferenceLineId
+        LayoutTrackNumberId
     >(linkingUri(layoutBranch, 'reference-lines', 'empty-geometry'), parameters);
 
-    await updateReferenceLineChangeTime();
+    await updateTrackNumberChangeTime();
 
     return response;
 };
@@ -132,14 +132,14 @@ export const linkGeometryWithEmptyLocationTrack = async (
 
 export async function updateReferenceLineGeometry(
     layoutBranch: LayoutBranch,
-    id: ReferenceLineId,
+    id: LayoutTrackNumberId,
     mRange: Range<number>,
-): Promise<ReferenceLineId | undefined> {
-    const result = await putNonNull<Range<number>, ReferenceLineId>(
+): Promise<LayoutTrackNumberId | undefined> {
+    const result = await putNonNull<Range<number>, LayoutTrackNumberId>(
         linkingUri(layoutBranch, 'reference-lines', 'geometry', id),
         mRange,
     );
-    await updateReferenceLineChangeTime();
+    await updateTrackNumberChangeTime();
     return result;
 }
 
@@ -171,7 +171,7 @@ export async function getPlanLinkStatus(
 ): Promise<GeometryPlanLinkStatus> {
     const changeTimes = getChangeTimes();
     const maxChangeTime = getMaxTimestamp(
-        changeTimes.layoutReferenceLine,
+        changeTimes.layoutTrackNumber,
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
         changeTimes.layoutKmPost,
@@ -190,7 +190,7 @@ export async function getPlanLinkStatuses(
 ): Promise<GeometryPlanLinkStatus[]> {
     const changeTimes = getChangeTimes();
     const maxChangeTime = getMaxTimestamp(
-        changeTimes.layoutReferenceLine,
+        changeTimes.layoutTrackNumber,
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
         changeTimes.layoutKmPost,

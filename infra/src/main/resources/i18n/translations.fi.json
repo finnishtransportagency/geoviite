@@ -1790,13 +1790,6 @@
         "layout": {
             "track-number": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
-                "reference-to-reference-line": {
-                    "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa",
-                    "cancelled": "Pituusmittauslinjan luomisen peruminen vaatii myös ratanumeron itsensä perumisen"
-                },
-                "reference-from-reference-line": {
-                    "cancelled": "Pituusmittauslinjan luominen pitää perua suunnitelmasta samalla kuin ratanumeron luominen."
-                },
                 "reference-from-location-track": {
                     "cancelled": "Suunnitelmassa on olemassa raiteita tällä ratanumerolla: {{referrers}}. Raiteet pitää siirtää eri ratanumerolle, tai niiden luominen perua, jotta tämän ratanumeron luomisen voi perua.",
                     "deleted": "Paikannuspohjassa on olemassaolevia raiteita tällä ratanumerolla: {{referrers}}. Raiteet pitää poistaa tai siirtää eri ratanumerolle, jotta tämän ratanumeron voi poistaa."
@@ -1821,14 +1814,6 @@
                 "duplicate-name-draft-in-main": "Ratanumerolla {{trackNumber}} on jo luotu luonnostilassa kilometri tunnuksella {{kmNumber}}."
             },
             "reference-line": {
-                "reference-to-track-number": {
-                    "not-published": "Pituusmittauslinjan ratanumeroo {{target}} ei ole mukana julkaisussa",
-                    "cancelled": "Pituusmittauslinja viittaa suunnitelmasta peruttuun ratanumeroon {{target}}"
-                },
-                "reference-from-track-number": {
-                    "cancelled": "Jotta pituusmittauslinjan luomisen suunnitelmasta voi perua, pitää perua myös ratanumeron luominen: {{referrers}}."
-                },
-                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "no-addresses": "Pituusmittauslinjalta ei voida laskea osoitteita raiteelle {{locationTrack}}",
                 "end-before-start": "Raiteen {{locationTrack}} loppupisteen osoite on ennen alkupisteen osoitetta",
                 "empty-segments": "Pituusmittauslinjalla ei ole geometriaa",
