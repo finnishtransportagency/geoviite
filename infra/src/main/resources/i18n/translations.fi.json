@@ -904,13 +904,13 @@
                 "show-more": "Näytä kaikki",
                 "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
-                "detach": "Irrota"
+                "detach": "Pura linkitys"
             },
             "detach-switch-links-dialog": {
-                "title": "Vaihteen linkityksen poistaminen raiteelta",
-                "message": "Haluatko irrottaa vaihteen {{switchName}} linkityksen raiteelta {{trackName}}?",
-                "detach-button": "Poista linkitys",
-                "success-toast": "Vaihde {{switchName}} irrotettu raiteelta {{trackName}}"
+                "title": "Vaihteen linkityksen purkaminen raiteelta",
+                "message": "Haluatko purkaa vaihteen {{switchName}} linkityksen raiteelta {{trackName}}?",
+                "detach-button": "Pura linkitys",
+                "success-toast": "Vaihteen {{switchName}} linkitys purettu raiteelta {{trackName}}"
             },
             "operational-point-links": {
                 "heading": "Raiteen toiminnalliset pisteet ({{count}})",
@@ -918,13 +918,13 @@
                 "show-more": "Näytä kaikki",
                 "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
-                "detach": "Irrota"
+                "detach": "Pura linkitys"
             },
             "detach-operational-point-links-dialog": {
-                "title": "Toiminnallisen pisteen linkityksen poistaminen raiteelta",
-                "message": "Haluatko irrottaa toiminnallisen pisteen {{operationalPointName}} linkityksen raiteelta {{trackName}}?",
-                "detach-button": "Poista linkitys",
-                "success-toast": "Toiminnallinen piste {{operationalPointName}} irrotettu raiteelta {{trackName}}"
+                "title": "Toiminnallisen pisteen linkityksen purkaminen raiteelta",
+                "message": "Haluatko purkaa toiminnallisen pisteen {{operationalPointName}} linkityksen raiteelta {{trackName}}?",
+                "detach-button": "Pura linkitys",
+                "success-toast": "Toiminnallisen pisteen {{operationalPointName}} linkitys purettu raiteelta {{trackName}}"
             },
             "topological-connectivity": "Topologinen kytkeytyminen",
             "start-switch": "Vaihde raiteen alussa",
@@ -2373,7 +2373,7 @@
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "switch-links-list": "Vaihde on kiinni seuraavilla raiteilla:",
         "switch-links-options": "Vaihde on irrotettava raiteilta, raiteet on poistettava tai vaihteen tilalle on linkitettävä toinen vaihde, jotta vaihteen poisto voidaan julkaista.",
-        "delete-switch-links": "Irrota vaihde raiteilta",
+        "delete-switch-links": "Pura vaihteen linkitys raiteilta",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
         "oid-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla OID:lla",
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
