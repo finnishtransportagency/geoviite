@@ -57,20 +57,19 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                         canSelectReferenceLine &&
                             'reference-lines-panel__reference-line--can-select',
                     );
-                    const trackNumber = trackNumbers?.find((tn) => tn.id === tn.id);
                     const status = () => {
                         if (disabled) return TrackNumberBadgeStatus.DISABLED;
                         else if (isSelected) return TrackNumberBadgeStatus.SELECTED;
                         else return undefined;
                     };
-                    return trackNumber ? (
+                    return (
                         <li
                             key={tn.id}
                             className={itemClassName}
                             onClick={() =>
                                 canSelectReferenceLine && onToggleTrackNumberSelection(tn.id)
                             }>
-                            <TrackNumberBadge trackNumber={trackNumber} status={status()} />
+                            <TrackNumberBadge trackNumber={tn} status={status()} />
                             <span
                                 className={
                                     disabled
@@ -80,8 +79,6 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                                 {t('reference-line')}
                             </span>
                         </li>
-                    ) : (
-                        <React.Fragment key={tn.id} />
                     );
                 })}
             </ol>
