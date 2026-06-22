@@ -62,7 +62,7 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
                     ParsingError(
                         if (e is HasLocalizedMessage) e.localizationKey
                         else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC),
-                        if (e is HasLocalizedMessage) e.localizationParams else localizationParams(),
+                        if (e is HasLocalizedMessage) e.localizationParams else null,
                     )
                 ),
             geometryPlan = null,
