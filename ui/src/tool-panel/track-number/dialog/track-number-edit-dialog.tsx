@@ -10,8 +10,8 @@ import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-
 import {
     getSaveDisabledReasons,
     useReferenceLineStartAndEnd,
-    useTrackNumber,
     useTrackNumbersIncludingDeleted,
+    useTrackNumberWithStatus,
 } from 'track-layout/track-layout-react-utils';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import {
@@ -40,6 +40,8 @@ import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common
 import { UnknownAction } from 'redux';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { isNil } from 'utils/type-utils';
+import { LoaderStatus } from 'utils/react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -62,6 +64,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     onClose,
     onSave,
 }: TrackNumberEditDialogContainerProps) => {
+    const trackNumberChangeTime = getChangeTimes().layoutTrackNumber;
     const layoutContext = draftLayoutContext(
         useTrackLayoutAppSelector((state) => state.layoutContext),
     );
@@ -69,9 +72,10 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     const [trackNumberId, setTrackNumberId] = React.useState<LayoutTrackNumberId | undefined>(
         editTrackNumberId,
     );
-    const hasOfficialTrackNumber = useTrackNumber(
+    const [officialTrackNumber, status] = useTrackNumberWithStatus(
         trackNumberId,
         officialLayoutContext(layoutContext),
+        trackNumberChangeTime,
     );
     if (trackNumbers !== undefined) {
         return (
@@ -79,7 +83,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
                 layoutContext={layoutContext}
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id === trackNumberId)}
                 trackNumbers={trackNumbers}
-                isNewDraft={!hasOfficialTrackNumber}
+                isNewDraft={status !== LoaderStatus.Ready && !officialTrackNumber}
                 onClose={onClose}
                 onSave={onSave}
                 onEditTrackNumber={setTrackNumberId}
