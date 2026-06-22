@@ -198,13 +198,11 @@ export function createPublicationCandidateLayer(
         baseOperationalPoints: OperationalPoint[];
         switchStructures: SwitchStructure[];
     }) => {
-        const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) => {
-            return locationTrackIds.includes(c.alignment.header.id);
-        });
-        const filteredTrackNumberCandidates = data.candidateTrackNumbers.filter(
-            (c) =>
-                c.alignment.header.trackNumberId !== undefined &&
-                trackNumberIds.includes(c.alignment.header.trackNumberId),
+        const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) =>
+            locationTrackIds.includes(c.alignment.header.id),
+        );
+        const filteredTrackNumberCandidates = data.candidateTrackNumbers.filter((c) =>
+            trackNumberIds.includes(c.alignment.header.id),
         );
 
         const candidateLocationTrackAlignmentFeatures = createCandidateLocationTrackFeatures(
