@@ -412,11 +412,20 @@ data class ExtAddressPointV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty(TRACK_ADDRESS) val trackAddress: String?,
 )
 
+@Schema(title = "Osoitepiste M-arvolla")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtMeasuredAddressPointV1(
+    val x: Double,
+    val y: Double,
+    @JsonProperty("osoitevali_m") val osoitevaliM: Double,
+    @Schema(type = "string", example = "0012+0123.456") @JsonProperty(TRACK_ADDRESS) val trackAddress: String?,
+)
+
 @Schema(title = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
-    @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
+    @JsonProperty("pisteet") val addressPoints: List<ExtMeasuredAddressPointV1>,
 )
 
 @Schema(title = "Muuttunut osoiteväli")
@@ -424,7 +433,7 @@ data class ExtModifiedCenterLineTrackIntervalV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
     @JsonProperty("muutostyyppi") val changeType: ExtGeometryChangeTypeV1,
-    @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
+    @JsonProperty("pisteet") val addressPoints: List<ExtMeasuredAddressPointV1>,
 )
 
 @Schema(

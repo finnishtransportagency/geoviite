@@ -115,7 +115,7 @@ fun assertIntervalMatches(
 }
 
 fun assertIntervalPointsMatch(
-    points: List<ExtTestAddressPointV1>,
+    points: List<ExtTestMeasuredAddressPointV1>,
     startAddress: String,
     endAddress: String,
     geometry: IAlignment<*>,
@@ -128,6 +128,9 @@ fun assertIntervalPointsMatch(
     assertEquals(start.y, points.first().y, COORDINATE_DELTA, getError("start y coordinate", start.y))
     assertEquals(end.x, points.last().x, COORDINATE_DELTA, getError("end x coordinate", end.x))
     assertEquals(end.y, points.last().y, COORDINATE_DELTA, getError("end y coordinate", end.y))
+    // The interval's m-values are reported relative to the interval start, so the offset back to geometry
+    // m-values is just the geometry m at the start point.
+    val startM = geometry.getClosestPoint(start)!!.first.m.distance
     var previousAddress: TrackMeter? = null
     points.forEachIndexed { i, p ->
         val point = Point(p.x, p.y)
@@ -137,6 +140,12 @@ fun assertIntervalPointsMatch(
             lineLength(point, pointOnLine),
             COORDINATE_DELTA,
             getError("point $i distance to line geometry", 0.0),
+        )
+        assertEquals(
+            pointOnLine.m.distance - startM,
+            p.osoitevali_m,
+            COORDINATE_DELTA,
+            getError("m-value", pointOnLine.m.distance - startM),
         )
         assertNotNull(p.rataosoite, getError("point should have an address at index $i", "not null"))
         previousAddress =

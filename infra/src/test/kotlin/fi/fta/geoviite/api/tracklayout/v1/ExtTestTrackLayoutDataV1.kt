@@ -14,6 +14,13 @@ data class ExtTestCoordinateV1(val x: Double, val y: Double)
 
 data class ExtTestAddressPointV1(override val x: Double, override val y: Double, val rataosoite: String?) : IPoint
 
+data class ExtTestMeasuredAddressPointV1(
+    override val x: Double,
+    override val y: Double,
+    val osoitevali_m: Double,
+    val rataosoite: String?,
+) : IPoint
+
 data class ExtTestLocationTrackV1(
     val sijaintiraide_oid: String,
     val sijaintiraidetunnus: String,
@@ -182,14 +189,14 @@ data class ExtTestErrorResponseV1(val virheviesti: String, val korrelaatiotunnus
 data class ExtTestGeometryIntervalV1(
     val alkuosoite: String,
     val loppuosoite: String,
-    val pisteet: List<ExtTestAddressPointV1>,
+    val pisteet: List<ExtTestMeasuredAddressPointV1>,
 )
 
 data class ExtTestModifiedGeometryIntervalV1(
     val alkuosoite: String,
     val loppuosoite: String,
     val muutostyyppi: String,
-    val pisteet: List<ExtTestAddressPointV1>,
+    val pisteet: List<ExtTestMeasuredAddressPointV1>,
 )
 
 data class ExtTestSwitchJointV1(val numero: Int, val sijainti: ExtTestCoordinateV1)
