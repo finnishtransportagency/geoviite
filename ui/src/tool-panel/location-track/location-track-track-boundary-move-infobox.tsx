@@ -1,4 +1,5 @@
 import {
+    BoundaryMoveDisabledReason,
     LayoutLocationTrack,
     LocationTrackId,
     SwitchJointId,
@@ -36,6 +37,7 @@ import {
 } from 'track-layout/track-boundary-move-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updateLocationTrackChangeTime } from 'common/change-time-api';
+import { TFunction } from 'i18next';
 
 type LocationTrackBoundaryMoveInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -113,6 +115,27 @@ function switchJointIdEquals(a: SwitchJointId, b: SwitchJointId): boolean {
     return a.switchId === b.switchId && a.jointNumber === b.jointNumber;
 }
 
+const boundaryMoveDisabledReasonTranslationKeys: Record<BoundaryMoveDisabledReason, string> = {
+    PART_OF_SPLIT: 'tool-panel.location-track.track-boundary-move.validation.part-of-split',
+    PART_OF_BOUNDARY_MOVE:
+        'tool-panel.location-track.track-boundary-move.validation.part-of-boundary-move',
+    TRACK_DRAFT_EXISTS:
+        'tool-panel.location-track.track-boundary-move.validation.track-draft-exists',
+    NO_GEOMETRY: 'tool-panel.location-track.no-geometry',
+    SWITCHES_PART_OF_SPLIT:
+        'tool-panel.location-track.track-boundary-move.validation.switches-part-of-split',
+};
+
+export const translatedBoundaryMoveDisabledReasons = (
+    reasons: BoundaryMoveDisabledReason[],
+    t: TFunction<'translation', undefined>,
+): string | undefined =>
+    reasons.length === 0
+        ? undefined
+        : reasons
+              .map((reason) => t(boundaryMoveDisabledReasonTranslationKeys[reason]))
+              .join('\n\n');
+
 function canSave(linkingState: ChangingTrackBoundary): boolean {
     const selectedTarget = linkingState.selectedTarget;
     const counterpart = linkingState.counterpart;
@@ -161,10 +184,16 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
 
     const selectCounterpart = (selectedTrack: LocationTrackId) => {
         const picked = counterpartOptions.find((o) => o.trackId === selectedTrack);
-        if (picked) {
+        if (picked && picked.disabledReasons.length === 0) {
             onSelectCounterpart(picked);
         }
     };
+
+    const counterpartDisabledReason = (track: LayoutLocationTrack): string | undefined =>
+        translatedBoundaryMoveDisabledReasons(
+            counterpartOptions.find((o) => o.trackId === track.id)?.disabledReasons ?? [],
+            t,
+        );
 
     const selectedTarget = linkingState.selectedTarget;
     const saveBoundaryMove = () => {
@@ -254,6 +283,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                             emptyMessage={t(
                                 'tool-panel.location-track.track-boundary-move.no-candidates',
                             )}
+                            getDisabledReason={counterpartDisabledReason}
                             onSelect={selectCounterpart}
                         />
 

@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType
 import fi.fta.geoviite.infra.tracklayout.EndpointSplitPoint
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -78,6 +79,7 @@ class SplitService(
     private val switchLibraryService: SwitchLibraryService,
     private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
+    private val trackBoundaryMoveDao: TrackBoundaryMoveDao,
 ) {
     fun getChangeTime(): Instant {
         return splitDao.fetchChangeTime()
@@ -588,6 +590,17 @@ class SplitService(
             throw SplitFailureException(
                 message = "Source track state is not IN_USE: id=${sourceTrack.id}",
                 localizedMessageKey = "source-track-state-not-in-use",
+            )
+        }
+
+        val sourceTrackInUnpublishedBoundaryMove =
+            trackBoundaryMoveDao.getUnpublished().any { move ->
+                move.branch == branch && move.containsLocationTrack(request.sourceTrackId)
+            }
+        if (sourceTrackInUnpublishedBoundaryMove) {
+            throw SplitFailureException(
+                message = "Source track is part of an unpublished track boundary move: id=${sourceTrack.id}",
+                localizedMessageKey = "source-track-in-unpublished-boundary-move",
             )
         }
 

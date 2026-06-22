@@ -4,10 +4,11 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.error.TrackBoundaryMoveFailureException
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.PublicationInDesign
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationInMain
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublicationValidationService
@@ -15,6 +16,7 @@ import fi.fta.geoviite.infra.publication.TrackBoundaryMovePublicationGroup
 import fi.fta.geoviite.infra.publication.publicationRequest
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveCounterpart
+import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDisabledReason
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDirection
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryOrientation
 import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
@@ -25,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -56,6 +59,9 @@ constructor(
     private val trackBoundaryMoveDao: TrackBoundaryMoveDao,
     private val publicationService: PublicationService,
     private val publicationValidationService: PublicationValidationService,
+    private val splitDao: SplitDao,
+    private val splitService: SplitService,
+    private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
     @BeforeEach
     fun setup() {
@@ -413,69 +419,218 @@ constructor(
     }
 
     @Test
-    fun `boundary moves on the same tracks in main and a design branch list and publish independently`() {
-        // The pair of tracks is published in main-official, so it is visible in both the main-draft and the
-        // design-draft context. Each context then gets its own boundary move on top of that shared official base. The
-        // two moves live in separate contexts and must list as candidates and publish without interfering.
+    fun `saving a boundary move in a design branch is an error`() {
         val setup = savePublishableConnectedTracks()
         val designBranch = testDBService.createDesignBranch()
-        testDBService.generateOid(setup.lengtheningTrack.id, designBranch)
-        testDBService.generateOid(setup.shorteningTrack.id, designBranch)
 
-        val affectedTrackIds = listOf(setup.shorteningTrack.id, setup.lengtheningTrack.id)
-
-        val mainBoundaryMoveId =
-            trackBoundaryMoveService.saveTrackBoundaryMove(
-                LayoutBranch.main,
-                shorteningTrackId = setup.shorteningTrack.id,
-                lengtheningTrackId = setup.lengtheningTrack.id,
-                upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
-                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
-            )
-
-        val designBoundaryMoveId =
-            trackBoundaryMoveService.saveTrackBoundaryMove(
-                designBranch,
-                shorteningTrackId = setup.shorteningTrack.id,
-                lengtheningTrackId = setup.lengtheningTrack.id,
-                upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
-                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
-            )
-
-        // Each context lists only its own boundary move's group on the affected tracks.
-        val mainCandidates = publicationService.collectPublicationCandidates(PublicationInMain)
-        mainCandidates.locationTracks
-            .filter { candidate -> candidate.id in affectedTrackIds }
-            .also { filtered -> assertEquals(2, filtered.size) }
-            .forEach { candidate ->
-                assertEquals(TrackBoundaryMovePublicationGroup(mainBoundaryMoveId), candidate.publicationGroup)
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    designBranch,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
             }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.branch-not-main"), exception.localizationKey)
+    }
 
-        val designCandidates = publicationService.collectPublicationCandidates(PublicationInDesign(designBranch))
-        designCandidates.locationTracks
-            .filter { candidate -> candidate.id in affectedTrackIds }
-            .also { filtered -> assertEquals(2, filtered.size) }
-            .forEach { candidate ->
-                assertEquals(TrackBoundaryMovePublicationGroup(designBoundaryMoveId), candidate.publicationGroup)
+    @Test
+    fun `track with unpublished changes cannot be part of a boundary move`() {
+        val setup = savePublishableConnectedTracks()
+        val (track, geometry) =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, setup.shorteningTrack.id)
+        locationTrackService.saveDraft(LayoutBranch.main, track, offsetGeometry(geometry, Point(0.0, 0.0)))
+
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
             }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.track-draft-exists"), exception.localizationKey)
+    }
 
-        // Publishing in each context pulls in only that context's boundary move and stamps its own publication.
-        val mainPublication =
-            publicationService.publishManualPublication(
-                LayoutBranch.main,
-                publicationRequest(locationTracks = affectedTrackIds),
+    @Test
+    fun `track with no geometry cannot be part of a boundary move`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val shorteningTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumber),
+                trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))),
             )
-        assertEquals(mainPublication.publicationId, trackBoundaryMoveDao.getOrThrow(mainBoundaryMoveId).publicationId)
-        assertEquals(null, trackBoundaryMoveDao.getOrThrow(designBoundaryMoveId).publicationId)
+        val emptyTrack = mainOfficialContext.save(locationTrack(trackNumber), TmpLocationTrackGeometry.empty)
 
-        val designPublication =
-            publicationService.publishManualPublication(
-                designBranch,
-                publicationRequest(locationTracks = affectedTrackIds),
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = shorteningTrack.id,
+                    lengtheningTrackId = emptyTrack.id,
+                    upToSwitchJoint = null,
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
+            }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.no-geometry"), exception.localizationKey)
+    }
+
+    @Test
+    fun `track that is part of an unpublished split cannot be part of a boundary move`() {
+        val setup = savePublishableConnectedTracks()
+        splitDao.saveSplit(setup.shorteningTrack, emptyList(), emptyList(), emptyList())
+
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
+            }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.track-part-of-split"), exception.localizationKey)
+    }
+
+    @Test
+    fun `track in a published but still unfinished split cannot be part of a boundary move`() {
+        // A split stays unfinished after publication until its bulk transfer is done, and must keep blocking boundary
+        // moves on its tracks for that whole time.
+        val setup = savePublishableConnectedTracks()
+        val splitId = splitDao.saveSplit(setup.lengtheningTrack, emptyList(), emptyList(), emptyList())
+        splitDao.updateSplit(splitId, publicationId = setup.publicationId)
+
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
+            }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.track-part-of-split"), exception.localizationKey)
+    }
+
+    @Test
+    fun `track that is part of an unpublished boundary move cannot be part of another boundary move`() {
+        val setup = savePublishableConnectedTracks()
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = setup.shorteningTrack.id,
+            lengtheningTrackId = setup.lengtheningTrack.id,
+            upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+            boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+        )
+
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = null,
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
+            }
+        assertEquals(
+            LocalizationKey.of("error.track-boundary-move.track-part-of-boundary-move"),
+            exception.localizationKey,
+        )
+    }
+
+    @Test
+    fun `track whose switch is part of an unpublished split cannot be part of a boundary move`() {
+        val setup = savePublishableConnectedTracks()
+        // A split on an unrelated track, but whose relinked switches include a switch on the shortening track.
+        val otherTrackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val otherTrack =
+            mainOfficialContext.save(
+                locationTrack(otherTrackNumber),
+                trackGeometry(edge(listOf(segment(Point(0.0, 100.0), Point(10.0, 100.0))))),
+            )
+        splitDao.saveSplit(otherTrack, emptyList(), listOf(setup.shorteningOnlySwitch), emptyList())
+
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = setup.shorteningTrack.id,
+                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+                    boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+                )
+            }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.switches-part-of-split"), exception.localizationKey)
+    }
+
+    @Test
+    fun `splitting a track that is part of an unpublished boundary move is an error`() {
+        val setup = savePublishableConnectedTracks()
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = setup.shorteningTrack.id,
+            lengtheningTrackId = setup.lengtheningTrack.id,
+            upToSwitchJoint = SwitchJointId(setup.shorteningOnlySwitch, JointNumber(1)),
+            boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+        )
+
+        val exception =
+            assertThrows<SplitFailureException> {
+                splitService.split(LayoutBranch.main, SplitRequest(setup.shorteningTrack.id, emptyList()))
+            }
+        assertEquals(
+            LocalizationKey.of("error.split.source-track-in-unpublished-boundary-move"),
+            exception.localizationKey,
+        )
+    }
+
+    @Test
+    fun `counterpart options flag counterparts with unpublished changes`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val headTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumber),
+                trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))),
+            )
+        val draftCounterpart =
+            mainDraftContext.save(
+                locationTrack(trackNumber),
+                trackGeometry(edge(listOf(segment(Point(10.5, 0.0), Point(20.0, 0.0))))),
+            )
+
+        assertEquals(
+            listOf(
+                BoundaryMoveCounterpart(
+                    trackId = draftCounterpart.id,
+                    orientation = BoundaryOrientation.HEAD_FIRST,
+                    connectingSwitchJoint = null,
+                    disabledReasons = listOf(BoundaryMoveDisabledReason.TRACK_DRAFT_EXISTS),
+                )
+            ),
+            trackBoundaryMoveService.getBoundaryMoveCounterpartOptions(LayoutBranch.main.draft, headTrack.id),
+        )
+    }
+
+    @Test
+    fun `counterpart options flag counterparts in unpublished splits and boundary moves`() {
+        val setup = savePublishableConnectedTracks()
+        splitDao.saveSplit(setup.shorteningTrack, emptyList(), emptyList(), emptyList())
+
+        val options =
+            trackBoundaryMoveService.getBoundaryMoveCounterpartOptions(
+                LayoutBranch.main.draft,
+                setup.lengtheningTrack.id,
             )
         assertEquals(
-            designPublication.publicationId,
-            trackBoundaryMoveDao.getOrThrow(designBoundaryMoveId).publicationId,
+            listOf(BoundaryMoveDisabledReason.PART_OF_SPLIT),
+            options.single { option -> option.trackId == setup.shorteningTrack.id }.disabledReasons,
         )
     }
 
@@ -785,6 +940,8 @@ constructor(
         val connectingSwitch: IntId<LayoutSwitch>,
         // switch2 is on the shortening track only; its joint 1 is a valid target to move the boundary to.
         val shorteningOnlySwitch: IntId<LayoutSwitch>,
+        // The publication that made the tracks official, when they were saved as publishable.
+        val publicationId: IntId<Publication>? = null,
     )
 
     // Two tracks meeting at switch1 joint 2, laid out as one physically continuous track. The lengthening track holds
@@ -870,18 +1027,20 @@ constructor(
         mainDraftContext.generateOid(lengtheningTrack.id)
         mainDraftContext.generateOid(shorteningTrack.id)
 
-        publicationService.publishManualPublication(
-            LayoutBranch.main,
-            publicationRequest(locationTracks = listOf(lengtheningTrack.id, shorteningTrack.id)),
-        )
+        val publicationResult =
+            publicationService.publishManualPublication(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = listOf(lengtheningTrack.id, shorteningTrack.id)),
+            )
 
         return ConnectedTracks(
-            lengtheningTrack = lengtheningTrack,
+            lengtheningTrack = locationTrackDao.fetchVersionOrThrow(LayoutBranch.main.official, lengtheningTrack.id),
             lengtheningGeometry = lengtheningGeometry,
-            shorteningTrack = shorteningTrack,
+            shorteningTrack = locationTrackDao.fetchVersionOrThrow(LayoutBranch.main.official, shorteningTrack.id),
             shorteningGeometry = shorteningGeometry,
             connectingSwitch = switch1,
             shorteningOnlySwitch = switch2,
+            publicationId = publicationResult.publicationId,
         )
     }
 

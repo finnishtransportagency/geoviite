@@ -42,6 +42,8 @@ import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
+import fi.fta.geoviite.infra.trackBoundaryMove.boundaryMoveDisabledReasons
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
@@ -65,6 +67,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
+    private val trackBoundaryMoveDao: TrackBoundaryMoveDao,
     private val operationalPointDao: OperationalPointDao,
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
@@ -511,6 +514,11 @@ class LocationTrackService(
                     else -> PartOfSplit.NONE
                 }
 
+            val unpublishedBoundaryMoves =
+                trackBoundaryMoveDao.getUnpublished().filter { move -> move.branch == layoutContext.branch }
+            val boundaryMoveDisabledReasons =
+                boundaryMoveDisabledReasons(track, geometry, allUnfinishedSplits, unpublishedBoundaryMoves)
+
             val switches =
                 geometry.trackSwitchLinks
                     .groupBy { link -> link.switchId }
@@ -556,6 +564,7 @@ class LocationTrackService(
                 duplicateOf,
                 duplicates,
                 partOfSplit,
+                boundaryMoveDisabledReasons,
                 startSplitPoint,
                 endSplitPoint,
                 switches,

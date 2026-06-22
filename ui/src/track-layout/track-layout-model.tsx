@@ -346,12 +346,20 @@ export function isPartOfUnfinishedSplit(partOfSplit: PartOfSplit | undefined): b
     return partOfSplit === 'UNFINISHED_SOURCE_TRACK' || partOfSplit === 'UNFINISHED_TARGET_TRACK';
 }
 
+export type BoundaryMoveDisabledReason =
+    | 'PART_OF_SPLIT'
+    | 'PART_OF_BOUNDARY_MOVE'
+    | 'TRACK_DRAFT_EXISTS'
+    | 'NO_GEOMETRY'
+    | 'SWITCHES_PART_OF_SPLIT';
+
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
     partOfSplit: PartOfSplit;
+    boundaryMoveDisabledReasons: BoundaryMoveDisabledReason[];
     switches: LocationTrackInfoboxSwitch[];
     operationalPoints: LocationTrackInfoboxOperationalPoint[];
 };
