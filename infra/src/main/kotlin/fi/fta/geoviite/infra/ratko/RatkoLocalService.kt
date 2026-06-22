@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.RatkoPushErrorResponse
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
@@ -13,8 +12,9 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import java.util.concurrent.atomic.AtomicReference
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
@@ -27,10 +27,23 @@ constructor(
     private val operationalPointDao: OperationalPointDao,
 ) {
 
-    @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
-    fun getRatkoOnlineStatus(): RatkoStatus {
-        return ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null)
+    private val logger = LoggerFactory.getLogger(this::class.java)
+    private val latestStatus = AtomicReference(RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null))
+
+    // Broad catch is intentional: keeps the scheduler alive regardless of what escapes getRatkoOnlineStatus()
+    @Suppress("TooGenericExceptionCaught")
+    fun refreshOnlineStatus() {
+        val status =
+            try {
+                ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(RatkoConnectionStatus.NOT_CONFIGURED, null)
+            } catch (e: Exception) {
+                logger.warn("Unexpected exception during Ratko health check", e)
+                RatkoStatus(RatkoConnectionStatus.OFFLINE, null)
+            }
+        latestStatus.set(status)
     }
+
+    fun getRatkoOnlineStatus(): RatkoStatus = latestStatus.get()
 
     @Transactional
     fun updateLayoutPointsFromIntegrationTable() {
