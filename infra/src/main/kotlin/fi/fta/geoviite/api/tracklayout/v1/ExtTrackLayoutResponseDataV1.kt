@@ -417,7 +417,9 @@ data class ExtAddressPointV1(
 data class ExtMeasuredAddressPointV1(
     val x: Double,
     val y: Double,
-    @JsonProperty("osoitevali_m") val osoitevaliM: Double,
+    @Schema(type = "number", description = "Etäisyys metreinä raidetta pitkin, tämän osoitevälin alkupisteestä lähtien")
+    @JsonProperty("osoitevali_m")
+    val osoitevaliM: Double,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty(TRACK_ADDRESS) val trackAddress: String?,
 )
 
