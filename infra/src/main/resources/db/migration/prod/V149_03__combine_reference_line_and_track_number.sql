@@ -685,18 +685,18 @@ alter table layout.track_number_version
 -- Add new segment table that relies on track number version instead of a separate alignment
 create table layout.track_number_version_segment
 (
-  track_number_id         int                    not null,
-  track_layout_context_id varchar                not null,
-  track_number_version    int                    not null,
-  segment_index           int                    not null,
-  start_m                 decimal(13, 6)         not null,
-  geometry_alignment_id   int                    null,
-  geometry_element_index  int                    null,
-  source_start_m          decimal(13, 6)         null,
-  source                  layout.geometry_source not null,
-  geometry_id             int                    not null,
-  primary key (track_number_id, track_layout_context_id, track_number_version, segment_index),
-  foreign key (track_number_id, track_layout_context_id, track_number_version) references layout.track_number_version (id, layout_context_id, version),
+  track_number_id                int                    not null,
+  track_number_layout_context_id varchar                not null,
+  track_number_version           int                    not null,
+  segment_index                  int                    not null,
+  start_m                        decimal(13, 6)         not null,
+  geometry_alignment_id          int                    null,
+  geometry_element_index         int                    null,
+  source_start_m                 decimal(13, 6)         null,
+  source                         layout.geometry_source not null,
+  geometry_id                    int                    not null,
+  primary key (track_number_id, track_number_layout_context_id, track_number_version, segment_index),
+  foreign key (track_number_id, track_number_layout_context_id, track_number_version) references layout.track_number_version (id, layout_context_id, version),
   foreign key (geometry_alignment_id) references geometry.alignment (id),
   foreign key (geometry_alignment_id, geometry_element_index) references geometry.element (alignment_id, element_index),
   foreign key (geometry_id) references layout.segment_geometry (id)
@@ -784,7 +784,7 @@ select
 
 -- Populate track_number_version_segment from segment_version via reference_line_version's alignment reference
 insert into layout.track_number_version_segment
-  (track_number_id, track_layout_context_id, track_number_version,
+  (track_number_id, track_number_layout_context_id, track_number_version,
    segment_index,
    start_m, source_start_m, source,
    geometry_alignment_id, geometry_element_index,

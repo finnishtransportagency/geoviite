@@ -1904,7 +1904,7 @@ constructor(
                   from layout.track_number_version tnv
                     inner join layout.track_number_version_segment sv
                                on sv.track_number_id = tnv.id
-                               and sv.track_layout_context_id = tnv.layout_context_id
+                               and sv.track_number_layout_context_id = tnv.layout_context_id
                                and sv.track_number_version = tnv.version
                     inner join geometry.alignment on alignment.id = sv.geometry_alignment_id
                     left join layout.track_number current

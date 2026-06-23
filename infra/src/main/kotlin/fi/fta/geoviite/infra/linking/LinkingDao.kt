@@ -91,7 +91,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                             and element.element_index = tnvs.geometry_element_index
                 left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) track_number
                           on track_number.id = tnvs.track_number_id
-                            and track_number.layout_context_id = tnvs.track_layout_context_id
+                            and track_number.layout_context_id = tnvs.track_number_layout_context_id
                             and track_number.version = tnvs.track_number_version
                             and track_number.state != 'DELETED'
               where geometry_alignment.plan_id in (:plan_ids)
