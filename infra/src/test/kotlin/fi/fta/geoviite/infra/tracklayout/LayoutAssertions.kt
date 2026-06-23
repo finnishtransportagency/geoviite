@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import org.junit.jupiter.api.Assertions.assertEquals
 import java.util.function.Supplier
 import kotlin.test.assertNull
+import org.junit.jupiter.api.Assertions.assertEquals
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -37,34 +37,48 @@ fun assertMatches(expected: LocationTrackGeometry, actual: LocationTrackGeometry
         assertEquals(expected, actual)
     } else {
         assertEquals(expected.edges.size, actual.edges.size)
-        expected.edges.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual.edges[index]) }
+        expected.edges.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual.edges[index], index) }
     }
 
-fun assertMatches(expected: LayoutEdge, actual: LayoutEdge, idMatch: Boolean = false) =
+fun assertMatches(expected: LayoutEdge, actual: LayoutEdge, edgeIndex: Int, idMatch: Boolean = false) {
+    val errorAt = { field: String -> { "match of $field at edge index $edgeIndex" } }
     if (idMatch) {
-        assertEquals(expected, actual)
+        assertEquals(expected, actual, errorAt("id"))
     } else {
-        assertMatches(expected.startNode, actual.startNode)
-        assertMatches(expected.endNode, actual.endNode)
-        assertEquals(expected.length, actual.length, LENGTH_DELTA)
-        assertEquals(expected.segments.size, actual.segments.size)
-        expected.segments.forEachIndexed { index, expectedSegment ->
-            assertMatches(expectedSegment, actual.segments[index], idMatch)
+        assertMatches(expected.startNode, actual.startNode, edgeIndex, EdgeEnd.START)
+        assertMatches(expected.endNode, actual.endNode, edgeIndex, EdgeEnd.END)
+        assertEquals(expected.length, actual.length, LENGTH_DELTA, errorAt("length"))
+        assertEquals(expected.segments.size, actual.segments.size, errorAt("segments.size"))
+        expected.segments.forEachIndexed { segmentIndex, expectedSegment ->
+            assertMatches(expectedSegment, actual.segments[segmentIndex], edgeIndex, segmentIndex, idMatch)
         }
         expected.segmentMValues.forEachIndexed { index, m ->
-            assertEquals(m.min, actual.segmentMValues[index].min, LENGTH_DELTA)
-            assertEquals(m.max, actual.segmentMValues[index].max, LENGTH_DELTA)
+            assertEquals(m.min, actual.segmentMValues[index].min, LENGTH_DELTA) { "segment $index start m" }
+            assertEquals(m.max, actual.segmentMValues[index].max, LENGTH_DELTA) { "segment $index end m" }
         }
     }
+}
 
-fun assertMatches(expected: NodeConnection, actual: NodeConnection, idMatch: Boolean = false) {
+enum class EdgeEnd {
+    START,
+    END,
+}
+
+fun assertMatches(
+    expected: NodeConnection,
+    actual: NodeConnection,
+    edgeIndex: Int,
+    edgeEnd: EdgeEnd,
+    idMatch: Boolean = false,
+) {
+    val errorAt = { field: String -> { "node connection match of $field at edge index $edgeIndex, edge end $edgeEnd" } }
     if (idMatch) {
-        assertEquals(expected, actual)
+        assertEquals(expected, actual, errorAt("idMatch"))
     } else {
-        assertEquals(expected.type, actual.type)
+        assertEquals(expected.type, actual.type, errorAt("type"))
         if (expected.type == LayoutNodeType.SWITCH) {
-            assertEquals(expected.switchIn, actual.switchIn)
-            assertEquals(expected.switchOut, actual.switchOut)
+            assertEquals(expected.switchIn, actual.switchIn, errorAt("switchIn"))
+            assertEquals(expected.switchOut, actual.switchOut, errorAt("switchOut"))
         }
     }
 }
@@ -76,7 +90,7 @@ fun assertMatches(expected: ReferenceLineGeometry, actual: ReferenceLineGeometry
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
     assertEquals(expected.segments.size, actual.segments.size)
     expected.segments.forEachIndexed { index, expectedSegment ->
-        assertMatches(expectedSegment, actual.segments[index], idMatch)
+        assertMatches(expectedSegment, actual.segments[index], edgeIndex = null, index, idMatch)
     }
     expected.segmentMValues.forEachIndexed { index, m ->
         assertEquals(m.min, actual.segmentMValues[index].min, LENGTH_DELTA)
@@ -84,17 +98,32 @@ fun assertMatches(expected: ReferenceLineGeometry, actual: ReferenceLineGeometry
     }
 }
 
-fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boolean = false) {
+fun assertMatches(
+    expected: LayoutSegment,
+    actual: LayoutSegment,
+    edgeIndex: Int?,
+    segmentIndex: Int,
+    idMatch: Boolean = false,
+) {
     val expectedWithSameFloats = expected.copy(geometry = actual.geometry)
-    if (idMatch) {
-        assertEquals(expectedWithSameFloats, actual)
-    } else {
-        assertEquals(expectedWithSameFloats, actual.copy(sourceId = expected.sourceId))
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
+    val errorAt = { field: String ->
+        {
+            "segment match of $field at ${if (edgeIndex != null) "edge index $edgeIndex" else ""} segment index $segmentIndex"
+        }
     }
-    assertEquals(expected.length, actual.length, LENGTH_DELTA)
-    assertEquals(expected.segmentPoints.size, actual.segmentPoints.size)
-    assertEquals(expected.resolution, actual.resolution)
+    if (idMatch) {
+        assertEquals(expectedWithSameFloats, actual, errorAt("idMatch"))
+    } else {
+        assertEquals(
+            expectedWithSameFloats,
+            actual.copy(sourceId = expected.sourceId),
+            errorAt("sameFloats+copied sourceId"),
+        )
+        assertEquals(expected.sourceId != null, actual.sourceId != null, errorAt("sourceId nullness"))
+    }
+    assertEquals(expected.length, actual.length, LENGTH_DELTA, errorAt("length"))
+    assertEquals(expected.segmentPoints.size, actual.segmentPoints.size, errorAt("segmentPoints.size"))
+    assertEquals(expected.resolution, actual.resolution, errorAt("resolution"))
     expected.segmentPoints.forEachIndexed { index, point -> assertMatches(point, actual.segmentPoints[index]) }
 }
 

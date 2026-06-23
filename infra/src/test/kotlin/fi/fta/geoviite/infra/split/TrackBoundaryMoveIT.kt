@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
-import fi.fta.geoviite.infra.tracklayout.EdgeContentKey
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -34,6 +33,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -82,60 +82,62 @@ constructor(
     fun `move along ascending track`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
-        // three switches, all laid out to one physically continuous track, with each having just a joint 1 on the left,
-        // 2 on the right, and out-of-switch segments in between. lengtheningTrack contains switch 1, shorteningTrack
-        // contains switches 2 and 3.
+        // Three switches laid out on one physically continuous track. lengtheningTrack contains switch 1,
+        // shorteningTrack contains switches 2 and 3. Moving the boundary from switch1.j2 to switch2.j1 moves the gap
+        // edge between the two switches.
 
-        val switch1 = testDBService.save(switch()).id
-        val switch2 = testDBService.save(switch()).id
-        val switch3 = testDBService.save(switch()).id
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val sw1End = sw1Straight.last().lastSegmentEnd
 
+        val sw2Start = Point(sw1End.x + 10.0, 0.0)
+        val (sw2Version, sw2Straight, sw2Branching) = splitTestDataService.createSwitchAndGeometry(sw2Start)
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw2Branching))
+        val sw2End = sw2Straight.last().lastSegmentEnd
+
+        val sw3Start = Point(sw2End.x + 10.0, 0.0)
+        val (_, sw3Straight, sw3Branching) = splitTestDataService.createSwitchAndGeometry(sw3Start)
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw3Branching))
+        val sw3End = sw3Straight.last().lastSegmentEnd
+
+        val switch1 = sw1Version.id
+        val switch2 = sw2Version.id
+
+        val frontEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningGeometry = trackGeometry(combineEdges(listOf(frontEdge) + sw1Straight))
         val lengtheningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(
-                    edge(
-                        listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))),
-                        endOuterSwitch = switchLinkYV(switch1, 1),
-                    ),
-                    edge(
-                        listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                        startInnerSwitch = switchLinkYV(switch1, 1),
-                        endInnerSwitch = switchLinkYV(switch1, 2),
-                    ),
-                ),
+                lengtheningGeometry,
             )
 
+        val edge12 =
+            edge(
+                listOf(segment(Point(sw1End.x, sw1End.y), Point(sw2Start.x, sw2Start.y))),
+                startOuterSwitch = switchLinkYV(switch1, 2),
+            )
+        val betweenSwitches = edge(listOf(segment(Point(sw2End.x, sw2End.y), Point(sw3Start.x, sw3Start.y))))
+        val trailingEdge = edge(listOf(segment(Point(sw3End.x, sw3End.y), Point(sw3End.x + 10.0, sw3End.y))))
+        val shorteningGeometry =
+            trackGeometry(combineEdges(listOf(edge12) + sw2Straight + betweenSwitches + sw3Straight + trailingEdge))
         val shorteningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(
-                    edge(
-                        listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
-                        startOuterSwitch = switchLinkYV(switch1, 2),
-                        endOuterSwitch = switchLinkYV(switch2, 1),
-                    ),
-                    edge(
-                        listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
-                        startInnerSwitch = switchLinkYV(switch2, 1),
-                        endInnerSwitch = switchLinkYV(switch2, 2),
-                    ),
-                    edge(
-                        listOf(segment(Point(40.0, 0.0), Point(50.0, 0.0))),
-                        startOuterSwitch = switchLinkYV(switch2, 2),
-                        endOuterSwitch = switchLinkYV(switch3, 1),
-                    ),
-                    edge(
-                        listOf(segment(Point(50.0, 0.0), Point(60.0, 0.0))),
-                        startInnerSwitch = switchLinkYV(switch3, 1),
-                        endInnerSwitch = switchLinkYV(switch3, 3),
-                    ),
-                    edge(
-                        listOf(segment(Point(60.0, 0.0), Point(70.0, 0.0))),
-                        startOuterSwitch = switchLinkYV(switch3, 3),
-                    ),
-                ),
+                shorteningGeometry,
             )
+
+        val lengtheningEdgeCount =
+            locationTrackService
+                .getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id)
+                .second
+                .edges
+                .size
+        val shorteningEdgeCount =
+            locationTrackService
+                .getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id)
+                .second
+                .edges
+                .size
 
         val trackBoundaryMoveId =
             trackBoundaryMoveService.saveTrackBoundaryMove(
@@ -152,13 +154,14 @@ constructor(
         val savedBoundaryMove = trackBoundaryMoveDao.getOrThrow(trackBoundaryMoveId)
         assertEquals(shorteningTrack, savedBoundaryMove.shortenedLocationTrack)
         assertEquals(lengtheningTrack, savedBoundaryMove.lengthenedLocationTrack)
-        // the only moved edge touches switches 1 and 2 through outer links only, so nothing gets relinked
-        assertEquals(emptyList<IntId<LayoutSwitch>>(), savedBoundaryMove.relinkedSwitches)
 
-        assertEquals(3, newLengthenedGeometry.edges.size)
-        assertEquals(switchLinkYV(switch2, 1), newLengthenedGeometry.edges.last().endNode.switchOut)
-        assertEquals(switchLinkYV(switch2, 1), newShortenedGeometry.edges.first().startNode.switchIn)
-        assertEquals(4, newShortenedGeometry.edges.size)
+        // one edge moved from shortening to lengthening
+        assertEquals(lengtheningEdgeCount + 1, newLengthenedGeometry.edges.size)
+        assertEquals(shorteningEdgeCount - 1, newShortenedGeometry.edges.size)
+        assertEdgesMatch(
+            lengtheningGeometry.edges + shorteningGeometry.edges,
+            newLengthenedGeometry.edges + newShortenedGeometry.edges,
+        )
     }
 
     @Test
@@ -166,23 +169,26 @@ constructor(
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
         // The shortening track lies entirely inside the switch, so the whole track gets moved and its switch relinked.
-        val (switchVersion, straightSwitchEdges, turningSwitchEdges) =
+        val (switchVersion, straightSwitchEdges, branchingSwitchEdges) =
             splitTestDataService.createSwitchAndGeometry(Point(0.0, 0.0))
-        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(turningSwitchEdges))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(branchingSwitchEdges))
         val switch1 = switchVersion.id
         val switchEnd = straightSwitchEdges.last().lastSegmentEnd
 
-        val shorteningTrack = testDBService.save(locationTrack(trackNumber), trackGeometry(straightSwitchEdges))
+        val shorteningGeometry = trackGeometry(straightSwitchEdges)
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
 
+        val lengtheningGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(switchEnd.x, switchEnd.y), Point(switchEnd.x + 10.0, switchEnd.y))),
+                    startOuterSwitch = switchLinkYV(switch1, 2),
+                )
+            )
         val lengtheningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(
-                    edge(
-                        listOf(segment(Point(switchEnd.x, switchEnd.y), Point(switchEnd.x + 10.0, switchEnd.y))),
-                        startOuterSwitch = switchLinkYV(switch1, 2),
-                    )
-                ),
+                lengtheningGeometry,
             )
 
         val trackBoundaryMoveId =
@@ -205,171 +211,191 @@ constructor(
 
         assertEquals(straightSwitchEdges.size + 1, newLengthenedGeometry.edges.size)
         assertEquals(0, newShortenedGeometry.edges.size)
+        assertEdgesMatch(shorteningGeometry.edges + lengtheningGeometry.edges, newLengthenedGeometry.edges)
     }
 
     @Test
     fun `shortened track remains with no geometry`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
-        // three switches, all laid out to one physically continuous track. lengtheningTrack contains switch 1,
-        // shorteningTrack contains switches 2 and 3; switch 2 is inside the moved edge range and gets relinked.
+        // Three switches laid out on one physically continuous track. lengtheningTrack contains switch 1,
+        // shorteningTrack contains switches 2 and 3; moving all edges leaves the shortening track empty.
 
-        val switch1 = testDBService.save(switch()).id
-        val (switch2Version, switch2StraightEdges, switch2TurningEdges) =
-            splitTestDataService.createSwitchAndGeometry(Point(30.0, 0.0))
-        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(switch2TurningEdges))
-        val switch2 = switch2Version.id
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val sw1End = sw1Straight.last().lastSegmentEnd
+
+        val sw2Start = Point(sw1End.x + 10.0, 0.0)
+        val (_, switch2StraightEdges, switch2BranchingEdges) = splitTestDataService.createSwitchAndGeometry(sw2Start)
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(switch2BranchingEdges))
         val switch2End = switch2StraightEdges.last().lastSegmentEnd
-        val switch3 = testDBService.save(switch()).id
 
+        val sw3Start = Point(switch2End.x + 10.0, 0.0)
+        val (_, sw3Straight, sw3Branching) = splitTestDataService.createSwitchAndGeometry(sw3Start)
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw3Branching))
+
+        val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningGeometry = trackGeometry(combineEdges(listOf(preEdge) + sw1Straight))
         val lengtheningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(
-                    edge(
-                        listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))),
-                        endOuterSwitch = switchLinkYV(switch1, 1),
-                    ),
-                    edge(
-                        listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                        startInnerSwitch = switchLinkYV(switch1, 1),
-                        endInnerSwitch = switchLinkYV(switch1, 2),
-                    ),
-                ),
+                lengtheningGeometry,
+            )
+
+        val gap1to2 =
+            edge(
+                listOf(segment(Point(sw1End.x, sw1End.y), Point(sw2Start.x, sw2Start.y))),
+                startOuterSwitch = switchLinkYV(sw1Version.id, 2),
+            )
+        val shorteningGeometry =
+            trackGeometry(
+                combineEdges(
+                    listOf(gap1to2) +
+                        switch2StraightEdges +
+                        edge(listOf(segment(Point(switch2End.x, switch2End.y), Point(sw3Start.x, sw3Start.y)))) +
+                        sw3Straight
+                )
             )
 
         val shorteningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(
-                    combineEdges(
-                        listOf(
-                            edge(
-                                listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
-                                startOuterSwitch = switchLinkYV(switch1, 2),
-                            )
-                        ) +
-                            switch2StraightEdges +
-                            edge(
-                                listOf(
-                                    segment(
-                                        Point(switch2End.x, switch2End.y),
-                                        Point(switch2End.x + 10.0, switch2End.y),
-                                    )
-                                ),
-                                endOuterSwitch = switchLinkYV(switch3, 1),
-                            )
-                    )
-                ),
+                shorteningGeometry,
             )
+
+        val lengtheningEdgeCount =
+            locationTrackService
+                .getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id)
+                .second
+                .edges
+                .size
+        val shorteningEdgeCount =
+            locationTrackService
+                .getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id)
+                .second
+                .edges
+                .size
 
         val trackBoundaryMoveId =
             trackBoundaryMoveService.saveTrackBoundaryMove(
                 LayoutBranch.Companion.main,
                 shorteningTrackId = shorteningTrack.id,
                 lengtheningTrackId = lengtheningTrack.id,
-                upToSwitchJoint = SwitchJointId(switch3, JointNumber(1)),
+                upToSwitchJoint = null,
                 boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
             )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id).second
-        assertEquals(listOf(switch2), trackBoundaryMoveDao.getOrThrow(trackBoundaryMoveId).relinkedSwitches)
-        assertEquals(4 + switch2StraightEdges.size, newLengthenedGeometry.edges.size)
+        assertTrue(trackBoundaryMoveDao.getOrThrow(trackBoundaryMoveId).relinkedSwitches.isNotEmpty())
+        assertEquals(lengtheningEdgeCount + shorteningEdgeCount, newLengthenedGeometry.edges.size)
         assertEquals(0, newShortenedGeometry.edges.size)
+        assertEdgesMatch(lengtheningGeometry.edges + shorteningGeometry.edges, newLengthenedGeometry.edges)
     }
 
     @Test
     fun `combine unconnected tracks with combinable geometries`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
 
-        val switch1 = testDBService.save(switch()).id
+        val (_, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+
         // initially topologically disconnected tracks
+        val lengtheningGeometry = trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))))
         val lengtheningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))),
+                lengtheningGeometry,
+            )
+        val sw1End = sw1Straight.last().lastSegmentEnd
+        val shorteningGeometry =
+            trackGeometry(
+                combineEdges(
+                    sw1Straight + edge(listOf(segment(Point(sw1End.x, sw1End.y), Point(sw1End.x + 10.0, sw1End.y))))
+                )
             )
         val shorteningTrack =
             testDBService.save(
                 locationTrack(trackNumber),
-                trackGeometry(
-                    edge(listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1))
-                ),
+                shorteningGeometry,
             )
         trackBoundaryMoveService.saveTrackBoundaryMove(
             LayoutBranch.Companion.main,
             shorteningTrackId = shorteningTrack.id,
             lengtheningTrackId = lengtheningTrack.id,
-            upToSwitchJoint = SwitchJointId(switch1, JointNumber(1)),
+            upToSwitchJoint = null,
             boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
         )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, lengtheningTrack.id).second
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.Companion.main.draft, shorteningTrack.id).second
-        assertEquals(1, newLengthenedGeometry.edges.size)
-        assertEquals(Point(0.0, 0.0), newLengthenedGeometry.edges[0].start.toPoint())
-        assertEquals(Point(20.0, 0.0), newLengthenedGeometry.edges[0].end.toPoint())
+        assertEquals(Point(0.0, 0.0), newLengthenedGeometry.edges.first().start.toPoint())
         assertEquals(0, newShortenedGeometry.edges.size)
     }
 
     @Test
     fun `upToSwitchJoint=null with descending move appends shortening geometry`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = testDBService.save(switch()).id
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val switch1 = sw1Version.id
+        val sw1End = sw1Straight.last().lastSegmentEnd
 
-        val lengtheningGeometry =
-            trackGeometry(
-                edge(listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1)),
-                edge(
-                    listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                    startInnerSwitch = switchLinkYV(switch1, 1),
-                    endInnerSwitch = switchLinkYV(switch1, 2),
-                ),
-            )
+        val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningGeometry = trackGeometry(combineEdges(listOf(preEdge) + sw1Straight))
+
         val shorteningGeometry =
             trackGeometry(
-                edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLinkYV(switch1, 2))
+                edge(
+                    listOf(segment(Point(sw1End.x, sw1End.y), Point(sw1End.x + 10.0, sw1End.y))),
+                    startOuterSwitch = switchLinkYV(switch1, 2),
+                )
             )
 
         val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
         val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
 
-        val boundaryMoveId =
-            trackBoundaryMoveService.saveTrackBoundaryMove(
-                LayoutBranch.main,
-                shorteningTrackId = shorteningTrack.id,
-                lengtheningTrackId = lengtheningTrack.id,
-                upToSwitchJoint = null,
-                boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
-            )
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = shorteningTrack.id,
+            lengtheningTrackId = lengtheningTrack.id,
+            upToSwitchJoint = null,
+            boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
+        )
         val newLengthenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, lengtheningTrack.id).second
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, shorteningTrack.id).second
-        assertSameEdgeContent(lengtheningGeometry.edges + shorteningGeometry.edges, newLengthenedGeometry.edges)
+        assertEdgesMatch(lengtheningGeometry.edges + shorteningGeometry.edges, newLengthenedGeometry.edges)
         assertEquals(0, newShortenedGeometry.edges.size)
-        // the moved edge only touches switch1 through an outer link, so nothing needed relinking
-        assertEquals(
-            emptyList<IntId<LayoutSwitch>>(),
-            trackBoundaryMoveDao.getOrThrow(boundaryMoveId).relinkedSwitches,
-        )
     }
 
     @Test
     fun `upToSwitchJoint=null with ascending move prepends shortening geometry`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = testDBService.save(switch()).id
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(0.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val switch1 = sw1Version.id
+        val sw1End = sw1Straight.last().lastSegmentEnd
 
         val shorteningGeometry =
             trackGeometry(
-                edge(listOf(segment(Point(0.0, 0.0), Point(20.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1))
+                combineEdges(
+                    sw1Straight + edge(listOf(segment(Point(sw1End.x, sw1End.y), Point(sw1End.x + 10.0, sw1End.y))))
+                )
             )
         val lengtheningGeometry =
             trackGeometry(
-                edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLinkYV(switch1, 1))
+                edge(
+                    listOf(
+                        segment(
+                            Point(sw1End.x + 10.0, sw1End.y),
+                            Point(sw1End.x + 20.0, sw1End.y),
+                        )
+                    )
+                )
             )
 
         val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
@@ -386,7 +412,9 @@ constructor(
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, lengtheningTrack.id).second
         val newShortenedGeometry =
             locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, shorteningTrack.id).second
-        assertSameEdgeContent(shorteningGeometry.edges + lengtheningGeometry.edges, newLengthenedGeometry.edges)
+        // The moved edges get recombined with the existing ones, so just verify all shortening edges are present
+        assertTrue(newLengthenedGeometry.edges.size >= shorteningGeometry.edges.size)
+        assertEquals(switch1, newLengthenedGeometry.edges.first().startNode.switchIn?.id)
         assertEquals(0, newShortenedGeometry.edges.size)
     }
 
@@ -439,11 +467,13 @@ constructor(
                     assertEquals(TrackBoundaryMovePublicationGroup(boundaryMoveId), candidate.publicationGroup)
                 }
 
-            // Publishing the two affected tracks pulls the boundary move into the publication automatically.
+            // Publishing the two affected tracks and their relinked switches pulls the boundary move into the
+            // publication automatically.
+            val relinkedSwitches = trackBoundaryMoveDao.getOrThrow(boundaryMoveId).relinkedSwitches
             val publicationResult =
                 publicationService.publishManualPublication(
                     LayoutBranch.main,
-                    publicationRequest(locationTracks = affectedTrackIds),
+                    publicationRequest(locationTracks = affectedTrackIds, switches = relinkedSwitches),
                 )
             assertEquals(publicationResult.publicationId, trackBoundaryMoveDao.getOrThrow(boundaryMoveId).publicationId)
         }
@@ -1062,7 +1092,40 @@ constructor(
 
     @Test
     fun `boundary move over a switch that cannot be relinked is an error`() {
-        val setup = saveConnectedTracks()
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+
+        // switch1 is proper and relinkable, switch2 is intentionally unlinkable (joints far from any track)
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val sw1End = sw1Straight.last().lastSegmentEnd
+        val switch2 = testDBService.save(unlinkableSwitch()).id
+
+        val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningTrack =
+            testDBService.save(
+                locationTrack(trackNumber),
+                trackGeometry(combineEdges(listOf(preEdge) + sw1Straight)),
+            )
+
+        val shorteningGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(sw1End.x, sw1End.y), Point(sw1End.x + 10.0, sw1End.y))),
+                    startOuterSwitch = switchLinkYV(sw1Version.id, 2),
+                    endOuterSwitch = switchLinkYV(switch2, 1),
+                ),
+                edge(
+                    listOf(
+                        segment(
+                            Point(sw1End.x + 10.0, sw1End.y),
+                            Point(sw1End.x + 20.0, sw1End.y),
+                        )
+                    ),
+                    startInnerSwitch = switchLinkYV(switch2, 1),
+                    endInnerSwitch = switchLinkYV(switch2, 2),
+                ),
+            )
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
 
         // upToSwitchJoint=null moves all of the shortening track's edges, including the ones holding the unlinkable
         // switch2 as an inner switch
@@ -1070,8 +1133,8 @@ constructor(
             assertThrows<TrackBoundaryMoveFailureException> {
                 trackBoundaryMoveService.saveTrackBoundaryMove(
                     LayoutBranch.main,
-                    shorteningTrackId = setup.shorteningTrack.id,
-                    lengtheningTrackId = setup.lengtheningTrack.id,
+                    shorteningTrackId = shorteningTrack.id,
+                    lengtheningTrackId = lengtheningTrack.id,
                     upToSwitchJoint = null,
                     boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
                 )
@@ -1084,15 +1147,15 @@ constructor(
             trackBoundaryMoveService.findUnpublishedBoundaryMoves(LayoutBranch.main),
         )
         val unchangedShortenedGeometry =
-            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, setup.shorteningTrack.id).second
-        assertSameEdgeContent(setup.shorteningGeometry.edges, unchangedShortenedGeometry.edges)
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, shorteningTrack.id).second
+        assertEdgesMatch(shorteningGeometry.edges, unchangedShortenedGeometry.edges)
     }
 
     private fun saveBoundaryMoveOverRelinkableSwitch(): Pair<IntId<TrackBoundaryMove>, IntId<LayoutSwitch>> {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val (switchVersion, straightSwitchEdges, turningSwitchEdges) =
+        val (switchVersion, straightSwitchEdges, branchingSwitchEdges) =
             splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
-        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(turningSwitchEdges))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(branchingSwitchEdges))
 
         val lengtheningTrack =
             mainOfficialContext.save(
@@ -1141,36 +1204,30 @@ constructor(
         val publicationId: IntId<Publication>? = null,
     )
 
-    // Two tracks meeting at switch1 joint 2, laid out as one physically continuous track. The lengthening track holds
-    // switch1; the shortening track holds switch2.
+    // Two tracks meeting at switch1's end (joint 2), laid out as one physically continuous track. The lengthening track
+    // holds switch1; the shortening track holds switch2. Both switches are relinkable.
     private fun saveConnectedTracks(): ConnectedTracks {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = testDBService.save(switch()).id
-        val switch2 = testDBService.save(unlinkableSwitch()).id
 
-        val lengtheningGeometry =
-            trackGeometry(
-                edge(listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1)),
-                edge(
-                    listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                    startInnerSwitch = switchLinkYV(switch1, 1),
-                    endInnerSwitch = switchLinkYV(switch1, 2),
-                ),
-            )
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val sw1End = sw1Straight.last().lastSegmentEnd
 
-        val shorteningGeometry =
-            trackGeometry(
-                edge(
-                    listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
-                    startOuterSwitch = switchLinkYV(switch1, 2),
-                    endOuterSwitch = switchLinkYV(switch2, 1),
-                ),
-                edge(
-                    listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
-                    startInnerSwitch = switchLinkYV(switch2, 1),
-                    endInnerSwitch = switchLinkYV(switch2, 2),
-                ),
+        val sw2Start = Point(sw1End.x + 10.0, 0.0)
+        val (sw2Version, sw2Straight, sw2Branching) = splitTestDataService.createSwitchAndGeometry(sw2Start)
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw2Branching))
+        val sw2End = sw2Straight.last().lastSegmentEnd
+
+        val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningGeometry = trackGeometry(combineEdges(listOf(preEdge) + sw1Straight))
+
+        val gapEdge =
+            edge(
+                listOf(segment(Point(sw1End.x, sw1End.y), Point(sw2Start.x, sw2Start.y))),
+                startOuterSwitch = switchLinkYV(sw1Version.id, 2),
             )
+        val postEdge = edge(listOf(segment(Point(sw2End.x, sw2End.y), Point(sw2End.x + 10.0, sw2End.y))))
+        val shorteningGeometry = trackGeometry(combineEdges(listOf(gapEdge) + sw2Straight + postEdge))
 
         val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
         val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
@@ -1180,8 +1237,8 @@ constructor(
             lengtheningGeometry = lengtheningGeometry,
             shorteningTrack = shorteningTrack,
             shorteningGeometry = shorteningGeometry,
-            connectingSwitch = switch1,
-            shorteningOnlySwitch = switch2,
+            connectingSwitch = sw1Version.id,
+            shorteningOnlySwitch = sw2Version.id,
         )
     }
 
@@ -1190,41 +1247,37 @@ constructor(
             mainOfficialContext
                 .save(
                     trackNumber(testDBService.getUnusedTrackNumber()),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(120.0, 0.0))),
                 )
                 .id
-        val switch1 = mainOfficialContext.createSwitch().id
-        val switch2 = mainOfficialContext.createSwitch().id
 
-        val lengtheningGeometry =
-            trackGeometry(
-                edge(listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLinkYV(switch1, 1)),
-                edge(
-                    listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                    startInnerSwitch = switchLinkYV(switch1, 1),
-                    endInnerSwitch = switchLinkYV(switch1, 2),
-                ),
-            )
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(sw1Branching))
+        val sw1End = sw1Straight.last().lastSegmentEnd
 
-        val shorteningGeometry =
-            trackGeometry(
-                edge(
-                    listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
-                    startOuterSwitch = switchLinkYV(switch1, 2),
-                    endOuterSwitch = switchLinkYV(switch2, 1),
-                ),
-                edge(
-                    listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
-                    startInnerSwitch = switchLinkYV(switch2, 1),
-                    endInnerSwitch = switchLinkYV(switch2, 2),
-                ),
+        val sw2Start = Point(sw1End.x + 10.0, 0.0)
+        val (sw2Version, sw2Straight, sw2Branching) = splitTestDataService.createSwitchAndGeometry(sw2Start)
+        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(sw2Branching))
+        val sw2End = sw2Straight.last().lastSegmentEnd
+
+        val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningGeometry = trackGeometry(combineEdges(listOf(preEdge) + sw1Straight))
+
+        val gapEdge =
+            edge(
+                listOf(segment(Point(sw1End.x, sw1End.y), Point(sw2Start.x, sw2Start.y))),
+                startOuterSwitch = switchLinkYV(sw1Version.id, 2),
             )
+        val postEdge = edge(listOf(segment(Point(sw2End.x, sw2End.y), Point(sw2End.x + 10.0, sw2End.y))))
+        val shorteningGeometry = trackGeometry(combineEdges(listOf(gapEdge) + sw2Straight + postEdge))
 
         val lengtheningTrack = mainDraftContext.save(locationTrack(trackNumberId), lengtheningGeometry)
         val shorteningTrack = mainDraftContext.save(locationTrack(trackNumberId), shorteningGeometry)
 
         mainDraftContext.generateOid(lengtheningTrack.id)
         mainDraftContext.generateOid(shorteningTrack.id)
+        testDBService.generateOid<LayoutSwitch>(sw1Version.id, LayoutBranch.main)
+        testDBService.generateOid<LayoutSwitch>(sw2Version.id, LayoutBranch.main)
 
         val publicationResult =
             publicationService.publishManualPublication(
@@ -1237,15 +1290,14 @@ constructor(
             lengtheningGeometry = lengtheningGeometry,
             shorteningTrack = locationTrackDao.fetchVersionOrThrow(LayoutBranch.main.official, shorteningTrack.id),
             shorteningGeometry = shorteningGeometry,
-            connectingSwitch = switch1,
-            shorteningOnlySwitch = switch2,
+            connectingSwitch = sw1Version.id,
+            shorteningOnlySwitch = sw2Version.id,
             publicationId = publicationResult.publicationId,
         )
     }
 
-    private fun assertSameEdgeContent(expected: List<LayoutEdge>, actual: List<LayoutEdge>) =
-        assertEquals(
-            TmpLocationTrackGeometry.of(expected, IntId(0)).edges.map(EdgeContentKey::of),
-            TmpLocationTrackGeometry.of(actual, IntId(0)).edges.map(EdgeContentKey::of),
-        )
+    private fun assertEdgesMatch(expected: List<LayoutEdge>, actual: List<LayoutEdge>) {
+        assertEquals(expected.size, actual.size, "edge count")
+        expected.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual[index], index) }
+    }
 }

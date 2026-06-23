@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -38,7 +39,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -213,7 +213,7 @@ constructor(
         val sourceEdges = source.edges.subList(response.edgeIndices.first, response.edgeIndices.last + 1)
 
         assertEquals(sourceEdges.size, geometry.edges.size)
-        sourceEdges.forEachIndexed { i, sourceEdge -> assertMatches(sourceEdge, geometry.edges[i]) }
+        sourceEdges.forEachIndexed { i, sourceEdge -> assertMatches(sourceEdge, geometry.edges[i], i) }
     }
 
     private fun assertTransferTargetTrack(request: SplitRequestTarget, response: SplitTarget) {
