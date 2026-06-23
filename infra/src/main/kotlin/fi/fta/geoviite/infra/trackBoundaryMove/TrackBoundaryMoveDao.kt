@@ -7,9 +7,11 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutBranch
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
@@ -32,6 +34,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
         shortenedLocationTrack: LayoutRowVersion<LocationTrack>,
         edgeRange: IntRange,
         lengthenedLocationTrack: LayoutRowVersion<LocationTrack>,
+        relinkedSwitches: Collection<IntId<LayoutSwitch>>,
     ): IntId<TrackBoundaryMove> {
         val sql =
             """
@@ -81,8 +84,27 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
                 ?: error(
                     "Failed to save track boundary move: shortened=$shortenedLocationTrack lengthened=$lengthenedLocationTrack"
                 )
+        saveRelinkedSwitches(id, relinkedSwitches)
         logger.daoAccess(AccessType.INSERT, TrackBoundaryMove::class, id)
         return id
+    }
+
+    private fun saveRelinkedSwitches(
+        moveId: IntId<TrackBoundaryMove>,
+        relinkedSwitches: Collection<IntId<LayoutSwitch>>,
+    ) {
+        val sql =
+            """
+            insert into publication.track_boundary_move_relinked_switch(track_boundary_move_id, switch_id)
+            values (:moveId, :switchId)
+            """
+                .trimIndent()
+
+        val params = relinkedSwitches.map { switchId ->
+            mapOf("moveId" to moveId.intValue, "switchId" to switchId.intValue)
+        }
+
+        jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
 
     fun get(id: IntId<TrackBoundaryMove>): TrackBoundaryMove? {
@@ -100,7 +122,10 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
               lengthened_location_track_id,
               lengthened_location_track_version,
               lengthened_location_track_layout_context_id,
-              publication_id
+              publication_id,
+              (select coalesce(array_agg(relinked_switch.switch_id), '{}')
+               from publication.track_boundary_move_relinked_switch relinked_switch
+               where relinked_switch.track_boundary_move_id = track_boundary_move.id) as relinked_switch_ids
             from publication.track_boundary_move
             where id = :id
             """
@@ -127,7 +152,10 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
               lengthened_location_track_id,
               lengthened_location_track_version,
               lengthened_location_track_layout_context_id,
-              publication_id
+              publication_id,
+              (select coalesce(array_agg(relinked_switch.switch_id), '{}')
+               from publication.track_boundary_move_relinked_switch relinked_switch
+               where relinked_switch.track_boundary_move_id = track_boundary_move.id) as relinked_switch_ids
             from publication.track_boundary_move
             where publication_id is null
             """
@@ -179,6 +207,7 @@ private fun getTrackBoundaryMove(rs: ResultSet) =
                 "lengthened_location_track_layout_context_id",
                 "lengthened_location_track_version",
             ),
+        relinkedSwitches = rs.getIntIdArray("relinked_switch_ids"),
         publicationId = rs.getIntIdOrNull("publication_id"),
         branch = rs.getLayoutBranch("design_id"),
     )

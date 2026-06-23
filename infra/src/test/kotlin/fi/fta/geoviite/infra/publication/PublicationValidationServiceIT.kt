@@ -107,7 +107,12 @@ constructor(
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
-        publicationTestSupportService.cleanupPublicationTables()
+        testDBService.clearPublicationTables()
+        testDBService.clearLayoutTables()
+        testDBService.deleteFromTables(
+            "layout",
+            "operational_point_id",
+        )
     }
 
     @Test

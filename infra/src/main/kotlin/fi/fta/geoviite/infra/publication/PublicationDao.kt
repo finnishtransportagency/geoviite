@@ -261,6 +261,17 @@ class PublicationDao(
                         on split_relinked_switches.split_id = split.id
                 where split.publication_id is null
                 group by split.id
+            ),
+            track_boundary_moves as (
+                select
+                    track_boundary_move.id as track_boundary_move_id,
+                    array_agg(move_relinked_switches.switch_id) as move_relinked_switch_ids
+                from publication.track_boundary_move
+                    inner join publication.track_boundary_move_relinked_switch move_relinked_switches
+                        on move_relinked_switches.track_boundary_move_id = track_boundary_move.id
+                where track_boundary_move.publication_id is null
+                  and track_boundary_move.design_id is not distinct from :candidate_design_id
+                group by track_boundary_move.id
             )
             select
               candidate_switch.id,
@@ -288,9 +299,14 @@ class PublicationDao(
               -- We should not have such cases, but they're not actually blocked either!
               (
                 select min(splits.split_id)
-                  from splits 
+                  from splits
                   where candidate_switch.id = any(splits.split_relinked_switch_ids)
-              ) as split_id
+              ) as split_id,
+              (
+                select track_boundary_moves.track_boundary_move_id
+                  from track_boundary_moves
+                  where candidate_switch.id = any(track_boundary_moves.move_relinked_switch_ids)
+              ) as track_boundary_move_id
             from layout.switch candidate_switch
               left join common.switch_structure on candidate_switch.switch_structure_id = switch_structure.id
               left join layout.switch_version_joint joint_version
@@ -320,7 +336,10 @@ class PublicationDao(
                     trackNumberIds = rs.getIntIdArray("track_numbers"),
                     location = rs.getPointOrNull("point_x", "point_y"),
                     designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
-                    publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublicationGroup),
+                    publicationGroup =
+                        rs.getIntIdOrNull<Split>("split_id")?.let(::SplitPublicationGroup)
+                            ?: rs.getIntIdOrNull<TrackBoundaryMove>("track_boundary_move_id")
+                                ?.let(::TrackBoundaryMovePublicationGroup),
                 )
             }
         logger.daoAccess(FETCH, SwitchPublicationCandidate::class, candidates.map(SwitchPublicationCandidate::id))

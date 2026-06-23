@@ -222,6 +222,8 @@ class TestDBService(
                     "switch_location_tracks",
                     "track_number",
                     "track_number_km",
+                    "track_boundary_move_relinked_switch",
+                    "track_boundary_move_relinked_switch_version",
                     "track_boundary_move",
                     "track_boundary_move_version",
                 ),

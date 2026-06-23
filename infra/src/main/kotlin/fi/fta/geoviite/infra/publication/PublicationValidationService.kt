@@ -273,6 +273,7 @@ constructor(
             trackBoundaryMoveService.fetchPublicationVersions(
                 branch = candidates.transition.candidateBranch,
                 locationTracks = candidates.locationTracks.map { it.id },
+                switches = candidates.switches.map { it.id },
             )
         val versions = candidates.getValidationVersions(candidates.transition, splitVersions, boundaryMoveVersions)
 

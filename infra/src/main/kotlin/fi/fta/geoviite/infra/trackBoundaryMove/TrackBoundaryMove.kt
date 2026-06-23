@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.split.AdministrativeChange
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 
@@ -28,6 +29,7 @@ data class TrackBoundaryMove(
     val shortenedLocationTrack: LayoutRowVersion<LocationTrack>,
     val edgeRange: IntRange,
     val lengthenedLocationTrack: LayoutRowVersion<LocationTrack>,
+    val relinkedSwitches: List<IntId<LayoutSwitch>>,
     val publicationId: IntId<Publication>?,
 ) : AdministrativeChange {
     val id = version.id
@@ -35,7 +37,7 @@ data class TrackBoundaryMove(
     override fun containsLocationTrack(id: IntId<LocationTrack>) =
         shortenedLocationTrack.id == id || lengthenedLocationTrack.id == id
 
-    override fun containsSwitch(id: IntId<LayoutSwitch>) = false
+    override fun containsSwitch(id: IntId<LayoutSwitch>) = relinkedSwitches.contains(id)
 
     val locationTracks
         get() = listOf(shortenedLocationTrack, lengthenedLocationTrack)
@@ -56,6 +58,7 @@ enum class BoundaryMoveDisabledReason {
     TRACK_DRAFT_EXISTS,
     NO_GEOMETRY,
     SWITCHES_PART_OF_SPLIT,
+    ON_DIFFERENT_TRACK_NUMBER,
 }
 
 fun boundaryMoveDisabledReasons(
@@ -63,6 +66,7 @@ fun boundaryMoveDisabledReasons(
     geometry: LocationTrackGeometry,
     unfinishedSplits: List<Split>,
     unpublishedBoundaryMoves: List<TrackBoundaryMove>,
+    expectedTrackNumberId: IntId<LayoutTrackNumber>,
 ): List<BoundaryMoveDisabledReason> {
     val trackId = track.id as IntId
     val unpublishedSplits = unfinishedSplits.filter { split -> split.publicationId == null }
@@ -78,6 +82,7 @@ fun boundaryMoveDisabledReasons(
         BoundaryMoveDisabledReason.SWITCHES_PART_OF_SPLIT.takeIf {
             geometry.switchIds.any { switchId -> unpublishedSplits.any { split -> split.containsSwitch(switchId) } }
         },
+        BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER.takeIf { track.trackNumberId != expectedTrackNumberId },
     )
 }
 
