@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -138,10 +139,12 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     open val table: LayoutAssetTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
-) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T, SaveParams> {
+) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T, SaveParams>, ManualCacheStatsProvider {
 
     protected val cache: Cache<LayoutRowVersion<T>, T> =
-        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).recordStats().build()
+
+    override fun cacheStats() = mapOf("layout-asset-${table.name.lowercase().replace('_', '-')}" to cache.stats())
 
     @Volatile private var versionCacheChangeTime: Instant = Instant.EPOCH
     private val versionCacheByContext = ConcurrentHashMap<LayoutContext, List<CachedLayoutVersion<T>>>()

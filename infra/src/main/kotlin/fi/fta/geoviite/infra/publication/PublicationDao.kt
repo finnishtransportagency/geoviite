@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.assertMainBranch
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
@@ -101,18 +102,16 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
-class PublicationDao(
-    jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    val alignmentDao: LayoutAlignmentDao,
-) : DaoBase(jdbcTemplateParam) {
+class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignmentDao: LayoutAlignmentDao) :
+    DaoBase(jdbcTemplateParam), ManualCacheStatsProvider {
 
     fun fetchTrackNumberPublicationCandidates(
         transition: LayoutContextTransition
@@ -1928,7 +1927,9 @@ class PublicationDao(
     }
 
     private val publishedLocationTracksCache: Cache<IntId<Publication>, PublishedItemListing<PublishedLocationTrack>> =
-        Caffeine.newBuilder().maximumSize(500).expireAfterAccess(staticDataCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(500).expireAfterAccess(staticDataCacheDuration).recordStats().build()
+
+    override fun cacheStats() = mapOf("publication-location-tracks" to publishedLocationTracksCache.stats())
 
     fun fetchPublishedLocationTracks(
         publicationIds: Set<IntId<Publication>>
@@ -1975,8 +1976,7 @@ class PublicationDao(
                         name = AlignmentName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers =
-                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->

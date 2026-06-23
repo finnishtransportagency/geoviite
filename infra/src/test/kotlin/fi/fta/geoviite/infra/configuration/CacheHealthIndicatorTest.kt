@@ -16,7 +16,7 @@ class CacheHealthIndicatorTest {
         manager.registerCustomCache("foo", Caffeine.newBuilder().recordStats().build())
         manager.registerCustomCache("bar", Caffeine.newBuilder().recordStats().build())
 
-        val health = CacheHealthIndicator(manager).health()
+        val health = CacheHealthIndicator(manager, emptyList()).health()
 
         assertEquals(Status.UP, health.status)
 
@@ -32,8 +32,30 @@ class CacheHealthIndicatorTest {
     }
 
     @Test
+    fun `manual cache provider stats appear in health details alongside spring-managed caches`() {
+        val manager = CaffeineCacheManager()
+        manager.registerCustomCache("spring-cache", Caffeine.newBuilder().recordStats().build())
+
+        val manualCache = Caffeine.newBuilder().recordStats().build<String, String>()
+        val provider = ManualCacheStatsProvider { mapOf("manual-cache" to manualCache.stats()) }
+
+        val health = CacheHealthIndicator(manager, listOf(provider)).health()
+
+        assertEquals(Status.UP, health.status)
+        val details = health.details
+        assertNotNull(details["spring-cache"]) { "expected 'spring-cache' in health details" }
+        assertNotNull(details["manual-cache"]) { "expected 'manual-cache' in health details" }
+
+        @Suppress("UNCHECKED_CAST")
+        val manualStats = details["manual-cache"] as Map<String, Any>
+        assertNotNull(manualStats["hitRate"])
+        assertNotNull(manualStats["loadCount"])
+        assertNotNull(manualStats["evictionCount"])
+    }
+
+    @Test
     fun `status is UP with caching disabled marker when NoOpCacheManager is used`() {
-        val health = CacheHealthIndicator(NoOpCacheManager()).health()
+        val health = CacheHealthIndicator(NoOpCacheManager(), emptyList()).health()
 
         assertEquals(Status.UP, health.status)
         assertEquals("disabled", health.details["caching"])

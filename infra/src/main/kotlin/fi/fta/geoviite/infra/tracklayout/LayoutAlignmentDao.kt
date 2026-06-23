@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.calculateDistance
@@ -46,14 +47,14 @@ import fi.fta.geoviite.infra.util.getPoint3DMOrNull
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -70,22 +71,42 @@ data class MapSegmentProfileInfo<T, M : AlignmentM<M>>(
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
-) : DaoBase(jdbcTemplateParam) {
+) : DaoBase(jdbcTemplateParam), ManualCacheStatsProvider {
 
     private val nodesCache: Cache<IntId<LayoutNode>, DbLayoutNode> =
-        Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).recordStats().build()
 
     private val edgesCache: Cache<IntId<LayoutEdge>, DbLayoutEdge> =
-        Caffeine.newBuilder().maximumSize(EDGE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(EDGE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).recordStats().build()
 
     private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> =
-        Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(ALIGNMENT_CACHE_SIZE)
+            .expireAfterAccess(layoutCacheDuration)
+            .recordStats()
+            .build()
 
     private val referenceLineGeometryCache: Cache<LayoutRowVersion<LayoutTrackNumber>, DbReferenceLineGeometry> =
-        Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(ALIGNMENT_CACHE_SIZE)
+            .expireAfterAccess(layoutCacheDuration)
+            .recordStats()
+            .build()
 
     private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> =
-        Caffeine.newBuilder().maximumSize(GEOMETRY_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(GEOMETRY_CACHE_SIZE)
+            .expireAfterAccess(layoutCacheDuration)
+            .recordStats()
+            .build()
+
+    override fun cacheStats() = mapOf(
+        "layout-alignment-nodes" to nodesCache.stats(),
+        "layout-alignment-edges" to edgesCache.stats(),
+        "layout-alignment-location-track-geometry" to locationTrackGeometryCache.stats(),
+        "layout-alignment-reference-line-geometry" to referenceLineGeometryCache.stats(),
+        "layout-alignment-segment-geometry" to segmentGeometryCache.stats(),
+    )
 
     fun getNode(id: IntId<LayoutNode>): DbLayoutNode = requireNotNull(getNodes(listOf(id))[id])
 
@@ -509,11 +530,9 @@ class LayoutAlignmentDao(
     ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> = versions.associateWith(this::fetch)
 
     private fun fetchInternal(version: LayoutRowVersion<LayoutTrackNumber>): DbReferenceLineGeometry =
-        DbReferenceLineGeometry(
-                segments = fetchReferenceLineSegments(version),
-                trackNumberVersion = version,
-            )
-            .also { logger.daoAccess(AccessType.FETCH, ReferenceLineGeometry::class, version) }
+        DbReferenceLineGeometry(segments = fetchReferenceLineSegments(version), trackNumberVersion = version).also {
+            logger.daoAccess(AccessType.FETCH, ReferenceLineGeometry::class, version)
+        }
 
     fun preloadReferenceLineGeometries(): Int {
         val sql =
