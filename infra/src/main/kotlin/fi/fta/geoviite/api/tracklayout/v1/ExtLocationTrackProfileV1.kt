@@ -43,8 +43,10 @@ data class ExtProfilePviPointV1(
     @JsonProperty(CURVED_SECTION_START) val curvedSectionStart: ExtProfileCurvedSectionEndpointV1,
     @JsonProperty(INTERSECTION_POINT) val intersectionPoint: ExtProfileIntersectionPointV1,
     @JsonProperty(CURVED_SECTION_END) val curvedSectionEnd: ExtProfileCurvedSectionEndpointV1,
-    @JsonProperty(ROUNDING_RADIUS) val roundingRadius: BigDecimal,
-    @JsonProperty(TANGENT) val tangent: BigDecimal,
+    @Schema(description = "Pyöristyksen säde etumerkillä: Negatiivinen säde kääntyy alaspäin, positiivinen ylöspäin")
+    @JsonProperty(ROUNDING_RADIUS)
+    val roundingRadius: BigDecimal,
+    @Schema(description = "Tangenttipisteiden etäisyys taitepisteestä") @JsonProperty(TANGENT) val tangent: BigDecimal,
     @JsonProperty(LINEAR_SECTION_BACKWARD) val linearSectionBackward: ExtProfileLinearSectionV1,
     @JsonProperty(LINEAR_SECTION_FORWARD) val linearSectionForward: ExtProfileLinearSectionV1,
     @JsonProperty(STATION_VALUES) val stationValues: ExtProfileStationValuesV1,
@@ -57,33 +59,69 @@ data class ExtProfilePviPointV1(
 @Schema(title = "Pyöristyksen alku-/loppupiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileCurvedSectionEndpointV1(
-    @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
-    @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
-    @JsonProperty(GRADIENT) val gradient: BigDecimal?,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
+    @Schema(description = "Raiteen korkeus tangenttipisteen kohdalla suunnitelman pystykoordinaattijärjestelmässä")
+    @JsonProperty(HEIGHT_ORIGINAL)
+    val heightOriginal: BigDecimal,
+    @Schema(description = "Raiteen korkeus tangenttipisteen kohdalla")
+    @JsonProperty(HEIGHT_N2000)
+    val heightN2000: BigDecimal?,
+    @Schema(description = "Pituuskaltevuus desimaalilukuna (kulmakerroin), etumerkillä")
+    @JsonProperty(GRADIENT)
+    val gradient: BigDecimal?,
+    @Schema(description = "Sijainti paikannuspohjassa")
+    @JsonProperty(COORDINATE_LOCATION)
+    val location: ExtAddressPointV1?,
 )
 
 @Schema(title = "Taitepiste (leikkauspiste)")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileIntersectionPointV1(
-    @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
-    @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1,
+    @Schema(
+        description =
+            "Taitepisteen korkeus (huom. ei raiteen korkeus taitepisteen kohdalla) suunnitelman pystykoordinaattijärjestelmässä"
+    )
+    @JsonProperty(HEIGHT_ORIGINAL)
+    val heightOriginal: BigDecimal,
+    @Schema(description = "Taitepisteen korkeus (huom. ei raiteen korkeus taitepisteen kohdalla)")
+    @JsonProperty(HEIGHT_N2000)
+    val heightN2000: BigDecimal?,
+    @Schema(description = "Sijainti paikannuspohjassa")
+    @JsonProperty(COORDINATE_LOCATION)
+    val location: ExtAddressPointV1,
 )
 
 @Schema(title = "Kaltevuusjakso")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileLinearSectionV1(
-    @JsonProperty(SECTION_LENGTH) val length: BigDecimal?,
-    @JsonProperty(LINEAR_PART_LENGTH) val linearPartLength: BigDecimal?,
+    @Schema(
+        description =
+            "Etäisyys pystygeometriaprofiilin päätyyn, tai seuraavaan taitepisteeseen, suunnitelman pystygeometriassa"
+    )
+    @JsonProperty(SECTION_LENGTH)
+    val length: BigDecimal?,
+    @Schema(description = "Kaltevuusjakson suoran osuuden pituus suunnitelman pystygeometriassa")
+    @JsonProperty(LINEAR_PART_LENGTH)
+    val linearPartLength: BigDecimal?,
 )
 
 @Schema(title = "Paaluluku")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileStationValuesV1(
-    @JsonProperty(INTERVAL_START) val start: BigDecimal?,
-    @JsonProperty(INTERSECTION_POINT) val intersectionPoint: BigDecimal?,
-    @JsonProperty(INTERVAL_END) val end: BigDecimal?,
+    @Schema(
+        description = "Paaluluku paikannuspohjan raiteella. Raiteen ulkopuolelle osuvan pisteen paaluluku jää tyhjäksi."
+    )
+    @JsonProperty(INTERVAL_START)
+    val start: BigDecimal?,
+    @Schema(
+        description = "Paaluluku paikannuspohjan raiteella. Raiteen ulkopuolelle osuvan pisteen paaluluku jää tyhjäksi."
+    )
+    @JsonProperty(INTERSECTION_POINT)
+    val intersectionPoint: BigDecimal?,
+    @Schema(
+        description = "Paaluluku paikannuspohjan raiteella. Raiteen ulkopuolelle osuvan pisteen paaluluku jää tyhjäksi."
+    )
+    @JsonProperty(INTERVAL_END)
+    val end: BigDecimal?,
 )
 
 @Schema(title = "Huomio")
