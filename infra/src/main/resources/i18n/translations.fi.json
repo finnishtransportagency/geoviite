@@ -2373,7 +2373,7 @@
         "structure-change-unlink": "Vaihdetyyppiä muutettaessa vaihteeseen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tyyppi palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
-        "switch-links-list": "Vaihde on linkitetty seuraavilla raiteilla:",
+        "switch-links-list": "Vaihde on linkitetty seuraaville raiteille:",
         "switch-links-options": "Vaihteen linkitys on purettava raiteilta, raiteet on poistettava tai vaihteen tilalle on linkitettävä toinen vaihde, jotta vaihteen poisto voidaan julkaista.",
         "delete-switch-links": "Pura vaihteen linkitys raiteilta",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
