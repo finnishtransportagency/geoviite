@@ -9,6 +9,10 @@ import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.geography.FIN_GK25_SRID
 import fi.fta.geoviite.infra.geography.WGS_84_SRID
 import fi.fta.geoviite.infra.geography.kkjSrids
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -50,6 +54,20 @@ class ExtSridV1Test {
     }
 
     @Test
+    fun `all supported coordinate systems have working round-trip transformations`() {
+        // A point in the Helsinki area in LAYOUT_SRID (ETRS89/TM35FIN)
+        val original = Point(385123.0, 6672351.0)
+        val tolerance = 0.01 // 10 mm — accommodates floating-point noise in degree-based (WGS84/ETRS89) round-trips
+
+        ExtSridV1.SUPPORTED.forEach { srid ->
+            val transformed = transformNonKKJCoordinate(LAYOUT_SRID, srid, original)
+            val roundTripped = transformNonKKJCoordinate(srid, LAYOUT_SRID, transformed)
+            assertEquals(original.x, roundTripped.x, tolerance, "Round-trip x failed for $srid")
+            assertEquals(original.y, roundTripped.y, tolerance, "Round-trip y failed for $srid")
+        }
+    }
+
+    @Test
     fun `malformed SRID string is rejected`() {
         assertThrows<InputValidationException> { ExtSridV1("BOGUS") }
     }
@@ -59,3 +77,4 @@ class ExtSridV1Test {
         assertThrows<InputValidationException> { ExtSridV1("EPSG:99999") }
     }
 }
+
