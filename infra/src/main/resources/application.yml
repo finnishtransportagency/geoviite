@@ -140,6 +140,15 @@ server:
     mime-types: application/json,text/plain,text/csv
     min-response-size: 1KB
 
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 springdoc:
   api-docs:
     enabled: false

@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -36,9 +37,15 @@ class AddressPointsCache(
     val locationTrackDao: LocationTrackDao,
     val geocodingDao: GeocodingDao,
     val geocodingCacheService: GeocodingCacheService,
-) {
+) : ManualCacheStatsProvider {
     private val cache: Cache<AddressPointCacheKey, Optional<AddressPointsResult<LocationTrackM>>> =
-        Caffeine.newBuilder().maximumSize(ADDRESS_POINT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(ADDRESS_POINT_CACHE_SIZE)
+            .expireAfterAccess(layoutCacheDuration)
+            .recordStats()
+            .build()
+
+    override fun cacheStats() = mapOf("address-points" to cache.stats())
 
     @Transactional(readOnly = true)
     fun getAddressPointCacheKey(

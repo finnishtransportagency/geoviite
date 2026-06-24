@@ -51,6 +51,8 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
             manager.registerCustomCache(CACHE_GVT_COORDINATE_SYSTEMS, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_ANY_COORDINATE_SYSTEMS, cache(1000, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_FEATURE_TYPES, cache(1, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_COMMON_SWITCH_OWNER, cache(1, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_COMMON_LOCATION_TRACK_OWNER, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, cache(2, staticDataCacheDuration))
 
             manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(1000, layoutCacheDuration))

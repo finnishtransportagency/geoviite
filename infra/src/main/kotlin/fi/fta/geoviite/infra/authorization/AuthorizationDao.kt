@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.authorization
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -21,7 +22,7 @@ const val AUTHORIZATION_ROLE_CACHE_SIZE = 100L
 class AuthorizationDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
-) : DaoBase(jdbcTemplateParam) {
+) : DaoBase(jdbcTemplateParam), ManualCacheStatsProvider {
 
     // Caffeine cache does not store null values, but they should also not be re-fetched
     // => Codes are stored as optionals.
@@ -29,13 +30,20 @@ class AuthorizationDao(
         Caffeine.newBuilder()
             .maximumSize(AUTHORIZATION_ROLE_CACHE_SIZE)
             .expireAfterAccess(staticDataCacheDuration)
+            .recordStats()
             .build()
 
     private val userGroupCache: Cache<AuthCode, Optional<Role>> =
         Caffeine.newBuilder()
             .maximumSize(AUTHORIZATION_ROLE_CACHE_SIZE)
             .expireAfterAccess(staticDataCacheDuration)
+            .recordStats()
             .build()
+
+    override fun cacheStats() = mapOf(
+        "authorization-role-code" to roleCodeCache.stats(),
+        "authorization-user-group" to userGroupCache.stats(),
+    )
 
     fun getRolesByRoleCodes(roleCodes: List<AuthCode>): List<Role> {
         return roleCodes.mapNotNull { roleCode -> getRoleByRoleCode(roleCode = roleCode) }

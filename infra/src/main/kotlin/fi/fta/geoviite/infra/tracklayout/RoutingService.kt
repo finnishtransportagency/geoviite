@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import com.github.benmanes.caffeine.cache.stats.CacheStats
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -22,11 +24,13 @@ class RoutingService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val publicationDao: PublicationDao,
-) {
+) : ManualCacheStatsProvider {
     data class GraphCacheKey(val context: LayoutContext, val changeTime: Instant)
 
     private val graphCache: Cache<GraphCacheKey, RoutingGraph> =
-        Caffeine.newBuilder().maximumSize(20).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(20).expireAfterAccess(layoutCacheDuration).recordStats().build()
+
+    override fun cacheStats() = mapOf("routing-graph" to graphCache.stats())
 
     fun getClosestTrackPoint(context: LayoutContext, location: Point, maxDistance: Double): ClosestTrackPoint? =
         locationTrackSpatialCache.get(context).getClosestTrack(location, maxDistance)?.let { hit ->

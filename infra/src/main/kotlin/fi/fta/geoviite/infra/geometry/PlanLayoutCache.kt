@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.CoordinateSystemDao
@@ -49,7 +50,7 @@ class PlanLayoutCache(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val switchLibraryService: SwitchLibraryService,
     private val coodinateSystemDao: CoordinateSystemDao,
-) {
+) : ManualCacheStatsProvider {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val validHeightTriangulationArea by lazy {
@@ -59,7 +60,13 @@ class PlanLayoutCache(
     }
 
     private val cache: Cache<PlanLayoutCacheKey, Pair<GeometryPlanLayout?, TransformationError?>> =
-        Caffeine.newBuilder().maximumSize(GEOMETRY_PLAN_CACHE_SIZE).expireAfterAccess(planCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(GEOMETRY_PLAN_CACHE_SIZE)
+            .expireAfterAccess(planCacheDuration)
+            .recordStats()
+            .build()
+
+    override fun cacheStats() = mapOf("plan-layout" to cache.stats())
 
     fun getPlanLayout(
         planVersion: RowVersion<GeometryPlan>,

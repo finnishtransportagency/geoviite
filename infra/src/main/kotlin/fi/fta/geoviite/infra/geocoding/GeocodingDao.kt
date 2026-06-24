@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -19,14 +20,14 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.queryNotNull
 import fi.fta.geoviite.infra.util.queryOptional
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
@@ -36,7 +37,7 @@ class GeocodingDao(
     val switchDao: LayoutSwitchDao,
     val alignmentDao: LayoutAlignmentDao,
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-) : DaoBase(jdbcTemplateParam) {
+) : DaoBase(jdbcTemplateParam), ManualCacheStatsProvider {
 
     private data class MomentCacheKey(
         val branch: LayoutBranch,
@@ -45,7 +46,9 @@ class GeocodingDao(
     )
 
     private val momentCacheKeyCache: Cache<MomentCacheKey, Optional<LayoutGeocodingContextCacheKey>> =
-        Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(layoutCacheDuration).recordStats().build()
+
+    override fun cacheStats() = mapOf("geocoding-moment-key" to momentCacheKeyCache.stats())
 
     fun listLayoutGeocodingContextCacheKeys(layoutContext: LayoutContext): List<LayoutGeocodingContextCacheKey> =
         getLayoutGeocodingContextCacheKeysInternal(layoutContext, null)

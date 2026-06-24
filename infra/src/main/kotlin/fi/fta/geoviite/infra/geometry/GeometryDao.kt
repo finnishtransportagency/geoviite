@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_SWITCH
+import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
@@ -73,15 +74,15 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -90,6 +91,7 @@ enum class VerticalIntersectionType {
 
 const val PLAN_HEADER_CACHE_SIZE = 10000L
 
+@Suppress("TooManyFunctions", "LargeClass")
 @Transactional(readOnly = true)
 @Component
 class GeometryDao
@@ -97,10 +99,16 @@ class GeometryDao
 constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) : DaoBase(jdbcTemplateParam) {
+) : DaoBase(jdbcTemplateParam), ManualCacheStatsProvider {
 
     private val headerCache: Cache<RowVersion<GeometryPlan>, GeometryPlanHeader> =
-        Caffeine.newBuilder().maximumSize(PLAN_HEADER_CACHE_SIZE).expireAfterAccess(planCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(PLAN_HEADER_CACHE_SIZE)
+            .expireAfterAccess(planCacheDuration)
+            .recordStats()
+            .build()
+
+    override fun cacheStats() = mapOf("geometry-plan-header" to headerCache.stats())
 
     @Transactional
     fun insertPlan(
