@@ -67,6 +67,7 @@ data class MapSegmentProfileInfo<T, M : AlignmentM<M>>(
     val hasProfile: Boolean,
 )
 
+@Suppress("TooManyFunctions")
 @Component
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,

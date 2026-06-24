@@ -134,6 +134,7 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
 interface ILayoutAssetDao<T : LayoutAsset<T>, SaveParams> : LayoutAssetReader<T>, LayoutAssetWriter<T, SaveParams>
 
+@Suppress("TooManyFunctions")
 abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     open val table: LayoutAssetTable,

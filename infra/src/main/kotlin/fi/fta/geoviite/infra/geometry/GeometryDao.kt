@@ -91,6 +91,7 @@ enum class VerticalIntersectionType {
 
 const val PLAN_HEADER_CACHE_SIZE = 10000L
 
+@Suppress("TooManyFunctions", "LargeClass")
 @Transactional(readOnly = true)
 @Component
 class GeometryDao

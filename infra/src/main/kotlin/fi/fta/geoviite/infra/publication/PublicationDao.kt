@@ -108,7 +108,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 @Transactional(readOnly = true)
 @Component
 class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignmentDao: LayoutAlignmentDao) :
