@@ -474,6 +474,7 @@ constructor(
 
     @Test
     fun `Ext api asset endpoints should return HTTP 400 if the coordinate system is unsupported`() {
+        val dummyOid = someOid<Nothing>().toString()
         val unsupportedCoordinateSystems =
             kkjSrids.map { it.toString() } +
                 listOf(
@@ -484,11 +485,11 @@ constructor(
                 )
 
         unsupportedCoordinateSystems.forEach { srid ->
-            errorTests.forEach { (create, apiCall) ->
-                apiCall(create().toString(), arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            errorTests.forEach { (_, apiCall) ->
+                apiCall(dummyOid, arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
             }
-            modificationErrorTests.forEach { (create, apiCall) ->
-                apiCall(create().toString(), arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            modificationErrorTests.forEach { (_, apiCall) ->
+                apiCall(dummyOid, arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
             }
             collectionErrorTests.forEach { apiCall ->
                 apiCall(arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
@@ -500,7 +501,6 @@ constructor(
     }
 
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
-        initUser()
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, oid) =
             mainDraftContext.saveWithOid(
@@ -514,7 +514,6 @@ constructor(
     }
 
     private fun setupValidTrackNumberCollection(): Publication {
-        initUser()
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
         val trackNumberIds =
@@ -528,7 +527,6 @@ constructor(
     }
 
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
-        initUser()
         val plan =
             testDBService.savePlan(
                 plan(
@@ -562,7 +560,6 @@ constructor(
     }
 
     private fun setupValidLocationTrackCollection(): Publication {
-        initUser()
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
         val (trackNumberId, _) =
@@ -585,7 +582,6 @@ constructor(
     }
 
     private fun setupValidSwitch(): Oid<LayoutSwitch> {
-        initUser()
         val structure = switchStructureYV60_300_1_9()
         val joint1 = switchJoint(1, Point(0.0, 0.0))
         val joint2 = switchJoint(2, Point(100.0, 0.0))
@@ -597,7 +593,6 @@ constructor(
     }
 
     private fun setupValidSwitchCollection(): Publication {
-        initUser()
         val structure = switchStructureYV60_300_1_9()
 
         val ids =
@@ -611,7 +606,6 @@ constructor(
     }
 
     private fun setupValidOperationalPoint(): Oid<OperationalPoint> {
-        initUser()
         val opId =
             mainDraftContext
                 .save(operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5)))
@@ -624,7 +618,6 @@ constructor(
     }
 
     private fun setupValidOperationalPointCollection(): Publication {
-        initUser()
         val ops =
             listOf(1, 2, 3).map { idx ->
                 mainDraftContext
