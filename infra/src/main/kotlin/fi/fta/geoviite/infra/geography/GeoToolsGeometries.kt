@@ -210,6 +210,8 @@ data class GeotoolsTransformation(override val sourceSrid: Srid, override val ta
     private val math: MathTransform =
         try {
             CRS.findMathTransform(sourceCrs, targetCrs)
+        } catch (e: UnsupportedSridException) {
+            throw e
         } catch (e: Exception) {
             throw UnsupportedSridException(targetSrid, e)
         }
