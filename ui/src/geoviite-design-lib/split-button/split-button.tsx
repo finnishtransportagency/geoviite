@@ -8,12 +8,14 @@ type SplitButtonProps = {
     'menuItems': MenuOption[];
     'children'?: React.ReactNode;
     'qa-id'?: string;
+    'menuDisabled'?: boolean;
 } & ButtonProps;
 
 export const SplitButton = function ({
     menuItems,
     children,
     'qa-id': qaId,
+    menuDisabled,
     ...buttonProps
 }: SplitButtonProps) {
     const ref = React.useRef<HTMLSpanElement>(null);
@@ -30,7 +32,7 @@ export const SplitButton = function ({
                 size={buttonProps.size}
                 variant={buttonProps.variant}
                 qa-id={`${qaId}-menu`}
-                disabled={buttonProps.disabled}
+                disabled={menuDisabled ?? buttonProps.disabled}
             />
             {menuOpen && (
                 <Menu

@@ -55,9 +55,8 @@ import { EDIT_LAYOUT } from 'user/user-model';
 import { getSplitPointName } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 import { translatedBoundaryMoveDisabledReasons } from 'tool-panel/location-track/location-track-track-boundary-move-infobox';
 import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
-import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
+import { menuOption } from 'vayla-design-lib/menu/menu';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
-import { EnvRestricted } from 'environment/env-restricted';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -258,9 +257,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [startingSplitting, setStartingSplitting] = React.useState<boolean>(false);
-    const [modifyTrackBoundariesMenuOpen, setModifyTrackBoundariesMenuOpen] =
-        React.useState<boolean>(false);
-    const modifyButtonRef = React.useRef<HTMLDivElement>(null);
+
 
     React.useEffect(() => {
         setCanUpdate(
@@ -435,64 +432,22 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     };
 
     const modifyStartOrEndButton = (
-        <EnvRestricted
-            restrictTo={'dev'}
-            fallback={
-                <Button
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SMALL}
-                    qa-id="modify-start-or-end"
-                    title={getModifyStartOrEndDisabledReasonTranslated()}
-                    disabled={shorteningDisabled}
-                    onClick={() => {
-                        getEndLinkPoints(
-                            locationTrack.id,
-                            layoutContext,
-                            MapAlignmentType.LocationTrack,
-                            changeTimes.layoutLocationTrack,
-                        ).then(onStartLocationTrackGeometryChange);
-                    }}>
-                    {t('tool-panel.location-track.modify-start-or-end')}
-                </Button>
-            }>
-            <Button
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.SMALL}
-                qa-id="modify-start-or-end"
-                title={
-                    shorteningDisabled && trackBoundaryMoveDisabled
-                        ? getModifyStartOrEndDisabledReasonTranslated()
-                        : undefined
-                }
-                disabled={shorteningDisabled && trackBoundaryMoveDisabled}
-                onClick={() => setModifyTrackBoundariesMenuOpen(true)}>
-                {t('tool-panel.location-track.modify-start-or-end')}
-            </Button>
-        </EnvRestricted>
-    );
-
-    const modifyTrackBoundariesMenu = () => (
-        <Menu
-            anchorElementRef={modifyButtonRef}
-            onClickOutside={() => setModifyTrackBoundariesMenuOpen(false)}
-            onClose={() => setModifyTrackBoundariesMenuOpen(false)}
-            items={[
-                menuOption(
-                    () => {
-                        getEndLinkPoints(
-                            locationTrack.id,
-                            layoutContext,
-                            MapAlignmentType.LocationTrack,
-                            changeTimes.layoutLocationTrack,
-                        ).then(onStartLocationTrackGeometryChange);
-                    },
-                    t('tool-panel.location-track.shorten-track-start-or-end'),
-                    'shorten-track-start-or-end',
-                    shorteningDisabled,
-                    'CLOSE_AFTER_SELECT',
-                    undefined,
-                    getModifyStartOrEndDisabledReasonTranslated(),
-                ),
+        <SplitButton
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SMALL}
+            qa-id="modify-start-or-end"
+            title={getModifyStartOrEndDisabledReasonTranslated()}
+            disabled={shorteningDisabled}
+            menuDisabled={trackBoundaryMoveDisabled}
+            onClick={() => {
+                getEndLinkPoints(
+                    locationTrack.id,
+                    layoutContext,
+                    MapAlignmentType.LocationTrack,
+                    changeTimes.layoutLocationTrack,
+                ).then(onStartLocationTrackGeometryChange);
+            }}
+            menuItems={[
                 menuOption(
                     () => onStartTrackBoundaryMove(locationTrack.id),
                     t('tool-panel.location-track.move-track-boundary'),
@@ -502,8 +457,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     undefined,
                     getTrackBoundaryMoveDisabledReasonsTranslated(),
                 ),
-            ]}
-        />
+            ]}>
+            {t('tool-panel.location-track.shorten-track-start-or-end')}
+        </SplitButton>
     );
 
     return (
@@ -551,9 +507,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         </InfoboxContentSpread>
                                     )}
                                     <InfoboxButtons>
-                                        <div ref={modifyButtonRef}>{modifyStartOrEndButton}</div>
-                                        {modifyTrackBoundariesMenuOpen &&
-                                            modifyTrackBoundariesMenu()}
+                                        {modifyStartOrEndButton}
                                     </InfoboxButtons>
                                 </PrivilegeRequired>
                             )}
