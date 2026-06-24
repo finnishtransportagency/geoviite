@@ -5,7 +5,7 @@
     display: grid;
     margin-bottom: 12px;
     row-gap: 4px;
-    grid-template-columns: max-content max-content auto 70px;
+    grid-template-columns: max-content max-content auto max-content;
     grid-column-gap: 4px;
 
     &__caption {
