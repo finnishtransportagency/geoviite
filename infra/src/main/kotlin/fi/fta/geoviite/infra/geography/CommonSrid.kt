@@ -2,10 +2,11 @@ package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.common.Srid
 
-val WGS_84_SRID = Srid(4326)
+val WGS_84_SRID = Srid(4326) // Common global coordinate system (degrees)
 
-val ETRS89_SRID = Srid(4258)
-val ETRS89_TM35FIN_SRID = Srid(3067)
+val ETRS89_SRID = Srid(4258) // Common European coordinate system (degrees)
+val ETRS89_TM35FIN_SRID = Srid(3067) // Finnish national coordinate system, standard axis order (E,N) — used as layout SRID
+val ETRS89_TM35FIN_NE_SRID = Srid(5048) // Same projection as ETRS89_TM35FIN_SRID, but axes are swapped (N,E)
 
 val FIN_GK19_SRID = Srid(3873)
 val FIN_GK20_SRID = Srid(3874)
@@ -35,6 +36,37 @@ val gkFinSrids =
         FIN_GK29_SRID,
         FIN_GK30_SRID,
         FIN_GK31_SRID,
+    )
+
+// Legacy ETRS-GK-FIN series (EPSG:3126–3138), superseded by GK-FIN (EPSG:3873–3885) above
+val ETRS_GK19_FIN_SRID = Srid(3126)
+val ETRS_GK20_FIN_SRID = Srid(3127)
+val ETRS_GK21_FIN_SRID = Srid(3128)
+val ETRS_GK22_FIN_SRID = Srid(3129)
+val ETRS_GK23_FIN_SRID = Srid(3130)
+val ETRS_GK24_FIN_SRID = Srid(3131)
+val ETRS_GK25_FIN_SRID = Srid(3132)
+val ETRS_GK26_FIN_SRID = Srid(3133)
+val ETRS_GK27_FIN_SRID = Srid(3134)
+val ETRS_GK28_FIN_SRID = Srid(3135)
+val ETRS_GK29_FIN_SRID = Srid(3136)
+val ETRS_GK30_FIN_SRID = Srid(3137)
+val ETRS_GK31_FIN_SRID = Srid(3138)
+val etrsGkFinSrids =
+    setOf(
+        ETRS_GK19_FIN_SRID,
+        ETRS_GK20_FIN_SRID,
+        ETRS_GK21_FIN_SRID,
+        ETRS_GK22_FIN_SRID,
+        ETRS_GK23_FIN_SRID,
+        ETRS_GK24_FIN_SRID,
+        ETRS_GK25_FIN_SRID,
+        ETRS_GK26_FIN_SRID,
+        ETRS_GK27_FIN_SRID,
+        ETRS_GK28_FIN_SRID,
+        ETRS_GK29_FIN_SRID,
+        ETRS_GK30_FIN_SRID,
+        ETRS_GK31_FIN_SRID,
     )
 
 val KKJ0_SRID = Srid(3386)

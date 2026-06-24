@@ -13,8 +13,13 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.UnsupportedSridException
+import fi.fta.geoviite.infra.geography.ETRS89_SRID
+import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_NE_SRID
+import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.geography.GeometryPoint
-import fi.fta.geoviite.infra.geography.isKKJ
+import fi.fta.geoviite.infra.geography.WGS_84_SRID
+import fi.fta.geoviite.infra.geography.etrsGkFinSrids
+import fi.fta.geoviite.infra.geography.gkFinSrids
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
@@ -441,14 +446,52 @@ data class ExtModifiedCenterLineTrackIntervalV1(
 @Schema(
     description = "Koordinaattijärjestelmän EPSG-koodi",
     type = "string",
-    format = "epsg-code",
-    pattern = "^EPSG:\\d{4,5}$",
-    example = "EPSG:3067",
+    allowableValues =
+        [
+            "EPSG:3067", // ETRS-TM35FIN (layout default)
+            "EPSG:5048", // ETRS-TM35FIN(N,E) — same as 3067, axes swapped
+            "EPSG:4258", // ETRS89
+            "EPSG:4326", // WGS84
+            "EPSG:3873",
+            "EPSG:3874",
+            "EPSG:3875",
+            "EPSG:3876", // GK19–GK22FIN
+            "EPSG:3877",
+            "EPSG:3878",
+            "EPSG:3879",
+            "EPSG:3880", // GK23–GK26FIN
+            "EPSG:3881",
+            "EPSG:3882",
+            "EPSG:3883",
+            "EPSG:3884",
+            "EPSG:3885", // GK27–GK31FIN
+            "EPSG:3126",
+            "EPSG:3127",
+            "EPSG:3128",
+            "EPSG:3129", // ETRS-GK19–GK22FIN (legacy)
+            "EPSG:3130",
+            "EPSG:3131",
+            "EPSG:3132",
+            "EPSG:3133", // ETRS-GK23–GK26FIN (legacy)
+            "EPSG:3134",
+            "EPSG:3135",
+            "EPSG:3136",
+            "EPSG:3137",
+            "EPSG:3138", // ETRS-GK27–GK31FIN (legacy)
+        ],
+    defaultValue = "EPSG:3067",
 )
 data class ExtSridV1(val value: Srid) {
 
+    companion object {
+        val SUPPORTED: Set<Srid> =
+            setOf(ETRS89_TM35FIN_SRID, ETRS89_TM35FIN_NE_SRID, ETRS89_SRID, WGS_84_SRID) +
+                gkFinSrids +
+                etrsGkFinSrids
+    }
+
     init {
-        if (isKKJ(value)) throw UnsupportedSridException(value)
+        if (value !in SUPPORTED) throw UnsupportedSridException(value)
     }
 
     @JsonValue override fun toString() = value.toString()
