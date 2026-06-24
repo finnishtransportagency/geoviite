@@ -2,15 +2,17 @@ package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.error.UnsupportedSridException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -145,5 +147,11 @@ constructor(private val transformationService: CoordinateTransformationService) 
         // Expected values are from paikkatietoikkuna
         Assertions.assertEquals(5426728.7305, transformedPoint.x, 0.001)
         Assertions.assertEquals(6978302.5687, transformedPoint.y, 0.001)
+    }
+
+    @Test
+    fun `Getting transformation to untransformable SRID throws UnsupportedSridException`() {
+        // SRID 2390 is a valid SRID but has no transform path from TM35FIN
+        assertThrows<UnsupportedSridException> { transformationService.getTransformation(LAYOUT_SRID, Srid(2390)) }
     }
 }

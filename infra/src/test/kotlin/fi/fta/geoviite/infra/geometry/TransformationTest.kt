@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.error.UnsupportedSridException
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.KKJ2_SRID
 import fi.fta.geoviite.infra.geography.geotoolsTransformation
@@ -12,10 +14,10 @@ import fi.fta.geoviite.infra.ratko.model.RATKO_SRID
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.lengthPoints
 import fi.fta.geoviite.infra.tracklayout.toPointList
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertEquals
 
 class TransformationTest {
 
@@ -77,6 +79,12 @@ class TransformationTest {
     @Test
     fun `Creating LAYOUT_SRID to RATKO_SRID transformation works without triangulation network`() {
         assertDoesNotThrow { geotoolsTransformation(LAYOUT_SRID, RATKO_SRID) }
+    }
+
+    @Test
+    fun `Creating transformation to untransformable SRID throws UnsupportedSridException`() {
+        // SRID 2390 is a valid SRID, but has no mathematical transform path from TM35FIN (EPSG:3067)
+        assertThrows<UnsupportedSridException> { geotoolsTransformation(LAYOUT_SRID, Srid(2390)) }
     }
 }
 
