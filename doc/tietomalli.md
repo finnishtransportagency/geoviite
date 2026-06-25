@@ -314,8 +314,9 @@ merkittävä, mutta se muodostaa metatiedoiltaan (erityisesti tämä lähdetieto
 classDiagram
     LayoutSegment *-- "1" SegmentGeometry
     SegmentGeometry *-- SegmentPoint
-    LayoutTrackNumber *-- "n" LayoutSegment
+    LayoutTrackNumber *-- "1" ReferenceLineGeometry
     LayoutTrackNumber <-- "n" LayoutKmPost
+    ReferenceLineGeometry *-- "n" LayoutSegment
     LayoutSegment --> "0..1" GeometryElement
 
     class LayoutTrackNumber {
@@ -327,6 +328,8 @@ classDiagram
         segmentCount: Int
         length: Decimal
         boundingBox: Polygon
+    }
+    class ReferenceLineGeometry {
     }
     class LayoutKmPost {
         kmNumber: KmNumber
