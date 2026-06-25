@@ -5,7 +5,8 @@ const val FRAME_CONVERTER_TAG_TRACK_ADDRESS_TO_COORDINATE = "Rataosoitteesta koo
 
 const val FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM =
     "Koordinaatisto, jossa syöte- ja tuloskoordinaatit käsitellään (oletus EPSG:3067, eli ETRS-TM35FIN). <br />" +
-        "Sallitut arvot ovat EPSG-tunnuksia, esim. EPSG:4326."
+        "Sallitut arvot ovat EPSG-tunnuksia, esim. EPSG:4326. <br />" +
+        "Sallitut koordinaattijärjestelmät on listattu parametrin sallituissa arvoissa."
 
 const val FRAME_CONVERTER_OPENAPI_X = "Koordinaatti X annetussa koordinaatistossa."
 

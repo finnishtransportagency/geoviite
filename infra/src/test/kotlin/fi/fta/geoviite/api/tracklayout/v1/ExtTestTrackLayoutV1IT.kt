@@ -481,6 +481,7 @@ constructor(
                     "EPSG:1023", // Out of allowed SRID range
                     "EPSG:32768", // Out of allowed SRID range
                     "BOGUS", // Malformed
+                    "EPSG:2390", // Valid SRID with no transform path from TM35FIN
                 )
 
         unsupportedCoordinateSystems.forEach { srid ->

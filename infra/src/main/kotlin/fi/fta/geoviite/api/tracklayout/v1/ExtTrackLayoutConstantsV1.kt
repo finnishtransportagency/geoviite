@@ -103,7 +103,9 @@ const val EXT_OPENAPI_SWITCH_OID_DESCRIPTION = "Vaihteen OID-tunnus."
 const val EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION = "Ratanumeron OID-tunnus."
 
 const val EXT_OPENAPI_COORDINATE_SYSTEM =
-    "Hyödynnettävän koordinaattijärjestelmän EPSG-tunnus. Oletuksena käytetään paikannuspohjan koordinaatistoa EPSG:3067 (ETRS-TM35FIN)."
+    "Hyödynnettävän koordinaattijärjestelmän EPSG-tunnus. " +
+        "Oletuksena käytetään paikannuspohjan koordinaatistoa EPSG:3067 (ETRS-TM35FIN). " +
+        "Sallitut koordinaattijärjestelmät on listattu parametrin sallituissa arvoissa."
 
 const val EXT_OPENAPI_RESOLUTION =
     "Palautettavien osoitepisteiden metriväli. Oletuksena osoitepisteet palautetaan yhden metrin välein."
