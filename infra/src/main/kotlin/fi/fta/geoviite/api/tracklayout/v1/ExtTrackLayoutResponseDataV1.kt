@@ -485,9 +485,7 @@ data class ExtSridV1(val value: Srid) {
 
     companion object {
         val SUPPORTED: Set<Srid> =
-            setOf(ETRS89_TM35FIN_SRID, ETRS89_TM35FIN_NE_SRID, ETRS89_SRID, WGS_84_SRID) +
-                gkFinSrids +
-                etrsGkFinSrids
+            setOf(ETRS89_TM35FIN_SRID, ETRS89_TM35FIN_NE_SRID, ETRS89_SRID, WGS_84_SRID) + gkFinSrids + etrsGkFinSrids
     }
 
     init {

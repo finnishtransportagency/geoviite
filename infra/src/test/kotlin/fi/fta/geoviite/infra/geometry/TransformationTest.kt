@@ -14,10 +14,10 @@ import fi.fta.geoviite.infra.ratko.model.RATKO_SRID
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.lengthPoints
 import fi.fta.geoviite.infra.tracklayout.toPointList
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import kotlin.test.assertEquals
 
 class TransformationTest {
 

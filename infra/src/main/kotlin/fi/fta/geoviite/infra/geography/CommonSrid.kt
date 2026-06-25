@@ -5,7 +5,8 @@ import fi.fta.geoviite.infra.common.Srid
 val WGS_84_SRID = Srid(4326) // Common global coordinate system (degrees)
 
 val ETRS89_SRID = Srid(4258) // Common European coordinate system (degrees)
-val ETRS89_TM35FIN_SRID = Srid(3067) // Finnish national coordinate system, standard axis order (E,N) — used as layout SRID
+val ETRS89_TM35FIN_SRID =
+    Srid(3067) // Finnish national coordinate system, standard axis order (E,N) — used as layout SRID
 val ETRS89_TM35FIN_NE_SRID = Srid(5048) // Same projection as ETRS89_TM35FIN_SRID, but axes are swapped (N,E)
 
 val FIN_GK19_SRID = Srid(3873)
