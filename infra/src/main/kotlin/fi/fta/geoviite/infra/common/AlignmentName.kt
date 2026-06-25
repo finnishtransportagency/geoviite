@@ -10,7 +10,7 @@ const val ALLOWED_ALIGNMENT_NAME_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-_/!?()"
 data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<AlignmentName>, CharSequence by value {
 
-    companion object {
+    companion object { 
         val allowedLength = 1..150
         val sanitizer = StringSanitizer(AlignmentName::class, ALLOWED_ALIGNMENT_NAME_CHARACTERS, allowedLength)
 
