@@ -116,13 +116,14 @@ class TrackBoundaryMoveService(
         shorteningTrackGeometry: LocationTrackGeometry,
         movedEdgeRange: IntRange,
     ): List<IntId<LayoutSwitch>> {
-        val movedInnerSwitches =
+        val movedSwitches =
             shorteningTrackGeometry.edges
                 .slice(movedEdgeRange)
-                .flatMap { edge -> listOfNotNull(edge.startNode.switchIn?.id, edge.endNode.switchIn?.id) }
+                .flatMap { edge -> edge.startNode.switches + edge.endNode.switches }
+                .map { it.id }
                 .toSet()
-        if (movedInnerSwitches.isEmpty()) return emptyList()
-        val relinkingResults = switchLinkingService.relinkTrack(layoutBranch, lengtheningTrackId, movedInnerSwitches)
+        if (movedSwitches.isEmpty()) return emptyList()
+        val relinkingResults = switchLinkingService.relinkTrack(layoutBranch, lengtheningTrackId, movedSwitches)
         val failedSwitches =
             relinkingResults
                 .filter { result -> result.outcome != TrackSwitchRelinkingResultType.RELINKED }

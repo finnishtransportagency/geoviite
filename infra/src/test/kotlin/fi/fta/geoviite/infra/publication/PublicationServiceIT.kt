@@ -30,6 +30,7 @@ import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.trackBoundaryMove.BoundaryMoveDirection
 import fi.fta.geoviite.infra.trackBoundaryMove.SwitchJointId
@@ -67,6 +68,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.asDesignDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -87,6 +89,7 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -100,7 +103,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -124,6 +126,7 @@ constructor(
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
     val splitService: SplitService,
+    val splitTestDataService: SplitTestDataService,
     val trackBoundaryMoveService: TrackBoundaryMoveService,
     val trackBoundaryMoveDao: TrackBoundaryMoveDao,
     val layoutDesignDao: LayoutDesignDao,
@@ -729,7 +732,10 @@ constructor(
 
         publicationService.revertPublicationCandidates(
             LayoutBranch.main,
-            publicationRequestIds(locationTracks = listOf(setup.shorteningTrackId, setup.lengtheningTrackId)),
+            publicationRequestIds(
+                locationTracks = listOf(setup.shorteningTrackId, setup.lengtheningTrackId),
+                switches = setup.switchIds,
+            ),
         )
 
         assertNull(trackBoundaryMoveDao.get(setup.boundaryMoveId))
@@ -739,6 +745,7 @@ constructor(
         val shorteningTrackId: IntId<LocationTrack>,
         val lengtheningTrackId: IntId<LocationTrack>,
         val boundaryMoveId: IntId<TrackBoundaryMove>,
+        val switchIds: List<IntId<LayoutSwitch>>,
     )
 
     /*
@@ -746,45 +753,29 @@ constructor(
      */
     private fun saveTrackBoundaryMoveSetup(): TrackBoundaryMoveSetup {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = mainDraftContext.createSwitch().id
-        val switch2 = mainDraftContext.createSwitch().id
 
-        val lengtheningTrack =
-            mainDraftContext
-                .save(
-                    locationTrack(trackNumber),
-                    trackGeometry(
-                        edge(
-                            listOf(segment(Point(0.01, 0.0), Point(10.0, 0.0))),
-                            endOuterSwitch = switchLinkYV(switch1, 1),
-                        ),
-                        edge(
-                            listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
-                            startInnerSwitch = switchLinkYV(switch1, 1),
-                            endInnerSwitch = switchLinkYV(switch1, 2),
-                        ),
-                    ),
-                )
-                .id
+        val (sw1Version, sw1Straight, sw1Turning) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Turning))
+        val sw1End = sw1Straight.last().lastSegmentEnd
 
-        val shorteningTrack =
-            mainDraftContext
-                .save(
-                    locationTrack(trackNumber),
-                    trackGeometry(
-                        edge(
-                            listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))),
-                            startOuterSwitch = switchLinkYV(switch1, 2),
-                            endOuterSwitch = switchLinkYV(switch2, 1),
-                        ),
-                        edge(
-                            listOf(segment(Point(30.0, 0.0), Point(40.0, 0.0))),
-                            startInnerSwitch = switchLinkYV(switch2, 1),
-                            endInnerSwitch = switchLinkYV(switch2, 2),
-                        ),
-                    ),
-                )
-                .id
+        val sw2Start = Point(sw1End.x + 10.0, 0.0)
+        val (sw2Version, sw2Straight, sw2Turning) = splitTestDataService.createSwitchAndGeometry(sw2Start)
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw2Turning))
+        val sw2End = sw2Straight.last().lastSegmentEnd
+
+        val frontEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val lengtheningGeometry = trackGeometry(combineEdges(listOf(frontEdge) + sw1Straight))
+
+        val edge12 =
+            edge(
+                listOf(segment(Point(sw1End.x, sw1End.y), Point(sw2Start.x, sw2Start.y))),
+                startOuterSwitch = switchLinkYV(sw1Version.id, 2),
+            )
+        val trailingEdge = edge(listOf(segment(Point(sw2End.x, sw2End.y), Point(sw2End.x + 10.0, sw2End.y))))
+        val shorteningGeometry = trackGeometry(combineEdges(listOf(edge12) + sw2Straight + trailingEdge))
+
+        val lengtheningTrack = mainDraftContext.save(locationTrack(trackNumber), lengtheningGeometry).id
+        val shorteningTrack = mainDraftContext.save(locationTrack(trackNumber), shorteningGeometry).id
 
         testDBService.publish(locationTracks = listOf(lengtheningTrack, shorteningTrack))
 
@@ -793,7 +784,7 @@ constructor(
                 LayoutBranch.main,
                 shorteningTrackId = shorteningTrack,
                 lengtheningTrackId = lengtheningTrack,
-                upToSwitchJoint = SwitchJointId(switch2, JointNumber(1)),
+                upToSwitchJoint = SwitchJointId(sw2Version.id, JointNumber(1)),
                 boundaryMoveDirection = BoundaryMoveDirection.DESCENDING,
             )
 
@@ -801,6 +792,7 @@ constructor(
             shorteningTrackId = shorteningTrack,
             lengtheningTrackId = lengtheningTrack,
             boundaryMoveId = boundaryMoveId,
+            switchIds = listOf(sw1Version.id, sw2Version.id),
         )
     }
 

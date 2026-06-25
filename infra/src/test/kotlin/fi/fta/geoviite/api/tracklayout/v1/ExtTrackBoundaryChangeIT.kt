@@ -250,10 +250,16 @@ constructor(
         val (shorteningId, shorteningOid) =
             mainDraftContext.saveWithOid(locationTrack(tnId, name = "ShorteningTrack"), shorteningTrackGeom)
 
+        val (branchingId) =
+            mainDraftContext.saveWithOid(
+                locationTrack(tnId, name = "branching track"),
+                trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(150.0, -2.0))),
+            )
+
         val basePublication =
             testDBService.publish(
                 trackNumbers = listOf(tnId),
-                locationTracks = listOf(shorteningId, lengtheningId),
+                locationTracks = listOf(shorteningId, lengtheningId, branchingId),
                 switches = listOf(switch1Id, switch2Id),
             )
 
