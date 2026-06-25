@@ -169,7 +169,6 @@ classDiagram
     class LocationTrack
     class LayoutSwitch
     class LayoutKmPost
-    class ReferenceLine
     class OperationalPoint
     
     LayoutAsset --> LayoutDesign
@@ -178,7 +177,6 @@ classDiagram
     LocationTrack --|> LayoutAsset
     LayoutSwitch --|> LayoutAsset
     LayoutKmPost --|> LayoutAsset
-    ReferenceLine --|> LayoutAsset
     OperationalPoint --|> LayoutAsset
 ```
 

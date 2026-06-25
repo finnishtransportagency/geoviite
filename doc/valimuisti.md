@@ -52,7 +52,7 @@ yksilöi [Layout konteksti](./paikannuspohjan_kontekstit.md). Välimuistin kanna
 
 Versioita voidaan myös koostaa jos välimuistin avaimeen tarvitaan useamman käsitteen yhdistelmä. Näin on tehty
 esimerkiksi [geokoodauskonteksteilla](./geokoodaus.md#geokoodauskonteksti-geocodingcontext), jonka sisältö riippuu
-ratanumerosta, sen pituusmittauslinjasta ja kilometripylväistä. Vasta noiden kaikkien versioiden yhdistelmä on riittävä
+ratanumerosta ja sen kilometripylväistä. Vasta noiden kaikkien versioiden yhdistelmä on riittävä
 yksilöimään koko geokoodauskontekstin, joten välimuistin avaimen on sisällettävä ne kaikki. Kun välimuistin avain on
 haettu, sen viittaamat oliot on edelleen nopea hakea kontekstin luomista varten esilämmitetyistä käsitekohtaisista
 välimuisteista avaimen sisältämillä versioilla. Luontiin sisältyy kuitenkin myös ei-triviaali määrä laskentaa, joten

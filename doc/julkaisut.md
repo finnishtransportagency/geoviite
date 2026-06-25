@@ -33,10 +33,6 @@ classDiagram
         id: Int
         version: Int
     }
-    class ReferenceLine {
-        id: Int
-        version: Int
-    }
     class KmPost {
         id: Int
         version: Int
@@ -44,7 +40,6 @@ classDiagram
     Publication <-- LocationTrack
     Publication <-- Switch
     Publication <-- TrackNumber
-    Publication <-- ReferenceLine
     Publication <-- KmPost
 ```
 
