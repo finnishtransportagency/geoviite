@@ -21,9 +21,9 @@ rakentajassa). Tärkeimpiä näistä ovat:
     - Tekstikenttien sallitut merkit ja pituudet
     - Numeeristen arvojen oikeat arvovälit
     - Enumeraatioiden sallitut arvot
-- Raiteen / pituusmittauslinjan keskilinjageometrian sisäinen eheys
-    - Keskilinjat ja pituusmittauslinjat ovat jatkuvia, eli viiva on ehjä eikä pisteiden välistä puutu mitään
-    - Keskilinjat ja pituusmittauslinjat eivät voi tehdä yli 90 asteen kulmia 2 pistevälin välillä
+- Raiteen / ratanumeron (pituusmittauslinjan) keskilinjageometrian sisäinen eheys
+    - Keskilinjat ovat jatkuvia, eli viiva on ehjä eikä pisteiden välistä puutu mitään
+    - Keskilinjat eivät voi tehdä yli 90 asteen kulmia 2 pistevälin välillä
     - Geometria koostuu segmenteistä, joista kukin sisältää vähintään 2 toisistaan eroavaa pistettä (viiva ei ole
       pistemäinen)
     - Segmenttien sisällä sama piste ei voi toistua
@@ -73,20 +73,14 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
 
 #### Ratanumero
 
-- Ratanumerolla on oltava pituusmittauslinja
-- Ratanumeron tunnus on uniikki (ei saman nimisiä ratanumeroita)
-- Ratanumeron geokoodauskonteksti on validi (kts. Geokoodauskonteksti)
-
-#### Pituusmittauslinja
-
-- Pituusmittauslinjalla on ratanumero
-- Pituusmittauslinjalla on ei-tyhjä keskilinjageometria
+- Ratanumerolla on ei-tyhjä pituusmittauslinjan geometria
     - Huom. sisäinen validius oliokohtaisessa validoinnissa varmistaa että ei-tyhjä geometria on jatkuva jne (kts. yllä)
+- Ratanumeron tunnus on uniikki (ei saman nimisiä ratanumeroita)
 - Ratanumeron geokoodauskonteksti on validi (kts. Geokoodauskonteksti)
 
 #### Tasakilometripiste
 
-- Tasakilometripisteellä on oltava ratanumero ja pituusmittauslinja
+- Tasakilometripisteellä on oltava ratanumero
 - Tasakilometripisteellä on sijainti jos se ei ole poistettu
 - Tasakilometripisteen numero on uniikki ratanumerolla (jos piste ei ole poistettu)
 - Ratanumeron geokoodauskonteksti on validi (kts. Geokoodauskonteksti)
@@ -155,7 +149,7 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
 #### Geokoodauskonteksti
 
 Geokoodauskonteksti (kts. [Geokoodaus](geokoodaus.md)) validoidaan kokonaisuutena aina kun kontekstiin kuuluvat asiat
-muuttuvat: ratanumero, pituusmittauslinja, tasakilometripisteet
+muuttuvat: ratanumero ja sen pituusmittauslinjan geometria sekä tasakilometripisteet.
 
 - Tasakilometripisteet ovat km-tunnuksen mukaisessa järjestyksessä
 - Kilometrit eivät ole liian pitkiä, eli tasakilometripisteiden väli ei ole liian pitkä (osoitteen esityksessä metreille
