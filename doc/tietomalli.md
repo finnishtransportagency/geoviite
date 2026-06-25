@@ -287,8 +287,8 @@ sinällään ole erityisen kiinnostava käyttäjän kannalta, mutta se kertoo ti
 lähdesuunnitelman josta se on linkitetty. Segmenttien jaottelu on siis pituuden puolesta mielivaltainen, mutta kukin
 segmentti on metatiedoiltaan yhtenevä geometrian pätkä.
 
-Segmenttigeometrioiden tallennuksessa on optimointi, joka varmistaa että itse pisteviivana tallennettava geometria (
-linestring) tallennetaan vain kerran vaikka se olisi useammalla segmentillä. Tämä perustuu geometriataulun uniikkiin
+Segmenttigeometrioiden tallennuksessa on optimointi, joka varmistaa että itse pisteviivana tallennettava geometria
+(linestring) tallennetaan vain kerran vaikka se olisi useammalla segmentillä. Tämä perustuu geometriataulun uniikkiin
 hash-avaimeen ja tapahtuu automaattisesti kun geometria tallennetaan. Tässä on kuitenkin se hyödyllinen ominaisuus että
 jos tallennetun segmentin geometryId on sama kuin toisella segmentillä, ne voidaan tietää identtisiksi ilman tarvetta
 vertailla pisteitä.
@@ -303,8 +303,8 @@ kuvattu tarkemmin yllä, kts. [Segmenttigeometriat](#segmenttigeometriat).
 Lisäksi ratanumeroon liittyy keskeisesti sen tasakilometripisteet. Ratanumeron, pituusmittauslinjan geometrian ja
 tasakilometripisteiden yhdistelmästä muodostuu paikannuspohjaan ja ratanumeron rataosoitteiston viitekehys, eli
 Geoviitteen termistössä geokoodauskonteksti. Sen avulla voidaan laskea (geokoodata) ratanumeroon liittyvälle sijainnille
-rataosoite (rata, km, metrit). Vastaavasti ratanumerolle sidotulle rataosoitteelle voidaan laskea sijainti (
-koordinaatti) joko pituusmittauslinjalla tai jollain ratanumeroon sidotulla raiteella.
+rataosoite (rata, km, metrit). Vastaavasti ratanumerolle sidotulle rataosoitteelle voidaan laskea sijainti
+(koordinaatti) joko pituusmittauslinjalla tai jollain ratanumeroon sidotulla raiteella.
 
 Koska pituusmittauslinjan geometria muodostuu linkittämällä suunnitelmista, sen koostavat pätkät (segmentit) viittaavat
 lähdesuunnitelman keskilinjan elementtiin josta se on muodostettu. Yksittäinen segmentti ei muutoin ole erityisen
