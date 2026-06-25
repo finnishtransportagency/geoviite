@@ -69,6 +69,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -80,7 +81,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -109,10 +109,7 @@ constructor(
     fun cleanup() {
         testDBService.clearPublicationTables()
         testDBService.clearLayoutTables()
-        testDBService.deleteFromTables(
-            "layout",
-            "operational_point_id",
-        )
+        testDBService.deleteFromTables("layout", "operational_point_id")
     }
 
     @Test
@@ -1049,10 +1046,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf(
-                    "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
-                    "switch" to "TV123",
-                ),
+                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
             ),
         )
     }
@@ -1660,10 +1654,7 @@ constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val trackNumber =
             designOfficialContext
-                .save(
-                    trackNumber(),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-                )
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometry).id
@@ -1671,10 +1662,7 @@ constructor(
         val validated =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
-                publicationRequestIds(
-                    trackNumbers = listOf(trackNumber),
-                    locationTracks = listOf(locationTrack),
-                ),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), locationTracks = listOf(locationTrack)),
             )
         assertEquals(
             listOf("validation.layout.location-track.reference-to-track-number.cancelled"),
@@ -1689,10 +1677,7 @@ constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val trackNumber =
             designOfficialContext
-                .save(
-                    trackNumber(),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-                )
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val mainLocationTrack = designOfficialContext.save(locationTrack(trackNumber), trackGeometry).id
@@ -1731,10 +1716,7 @@ constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val trackNumber =
             designOfficialContext
-                .save(
-                    trackNumber(),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
-                )
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))))
                 .id
 
         val switchName = "TST V0001"
@@ -1876,16 +1858,10 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
         val trackNumber =
             mainOfficialContext
-                .save(
-                    trackNumber(),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-                )
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
-        publicationTestSupportService.publish(
-            designBranch,
-            publicationRequestIds(trackNumbers = listOf(trackNumber)),
-        )
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
         trackNumberService.cancel(designBranch, trackNumber)
         designDraftContext.save(designOfficialContext.fetch(trackNumber)!!)
         val validateTrackNumber =
@@ -1911,10 +1887,7 @@ constructor(
         val trackNumberNumber = trackNumber()
         val trackNumber =
             designOfficialContext
-                .save(
-                    trackNumberNumber,
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-                )
+                .save(trackNumberNumber, referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 0.0))).id
         designDraftContext.save(designOfficialContext.fetch(kmPost)!!)
@@ -1932,10 +1905,7 @@ constructor(
         val validateBoth =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
-                publicationRequestIds(
-                    trackNumbers = listOf(trackNumber),
-                    kmPosts = listOf(kmPost),
-                ),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), kmPosts = listOf(kmPost)),
             )
         assertEquals(
             listOf(
@@ -1978,10 +1948,7 @@ constructor(
         val trackNumberNumber = trackNumber()
         val trackNumber =
             designOfficialContext
-                .save(
-                    trackNumberNumber,
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-                )
+                .save(trackNumberNumber, referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 0.0))).id
         designDraftContext.save(designOfficialContext.fetch(kmPost)!!.copy(state = LayoutState.DELETED))
@@ -2000,10 +1967,7 @@ constructor(
         val validateBoth =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
-                publicationRequestIds(
-                    trackNumbers = listOf(trackNumber),
-                    kmPosts = listOf(kmPost),
-                ),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), kmPosts = listOf(kmPost)),
             )
 
         assertEquals(
@@ -2035,10 +1999,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
         val trackNumber =
             designOfficialContext
-                .save(
-                    trackNumber(),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
-                )
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))))
                 .id
         val switchName = "some switch"
         val switch =
@@ -2046,8 +2007,7 @@ constructor(
                 .save(
                     switch(
                         name = switchName,
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
                     )
                 )
                 .id
@@ -2197,8 +2157,7 @@ constructor(
                 .save(
                     switch(
                         name = "impossiboru switch name",
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 0.0), null)),
                     )
                 )
                 .id
@@ -2592,13 +2551,7 @@ constructor(
                         location = Point(5.0, 5.0),
                         uicCode = "123",
                         polygon =
-                            Polygon(
-                                Point(0.0, 0.0),
-                                Point(5.0, 0.0),
-                                Point(5.0, 5.0),
-                                Point(0.0, 5.0),
-                                Point(0.0, 0.0),
-                            ),
+                            Polygon(Point(0.0, 0.0), Point(5.0, 0.0), Point(5.0, 5.0), Point(0.0, 5.0), Point(0.0, 0.0)),
                     )
                 )
                 .id

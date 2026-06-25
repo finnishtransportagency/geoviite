@@ -22,19 +22,19 @@ class CacheHealthIndicator(
         val details = buildMap {
             cacheManager.cacheNames.forEach { name ->
                 val nativeCache = (cacheManager.getCache(name) as? CaffeineCache)?.nativeCache
-                put(name, if (nativeCache != null) nativeCache.stats().toDetailMap() else mapOf("stats" to "unavailable"))
+                put(
+                    name,
+                    if (nativeCache != null) nativeCache.stats().toDetailMap() else mapOf("stats" to "unavailable"),
+                )
             }
-            manualCacheStatsProviders.flatMap { it.cacheStats().entries }.forEach { (name, stats) ->
-                put(name, stats.toDetailMap())
-            }
+            manualCacheStatsProviders
+                .flatMap { it.cacheStats().entries }
+                .forEach { (name, stats) -> put(name, stats.toDetailMap()) }
         }
 
         return Health.up().withDetails(details).build()
     }
 }
 
-private fun CacheStats.toDetailMap() = mapOf(
-    "hitRate" to hitRate(),
-    "loadCount" to loadCount(),
-    "evictionCount" to evictionCount(),
-)
+private fun CacheStats.toDetailMap() =
+    mapOf("hitRate" to hitRate(), "loadCount" to loadCount(), "evictionCount" to evictionCount())

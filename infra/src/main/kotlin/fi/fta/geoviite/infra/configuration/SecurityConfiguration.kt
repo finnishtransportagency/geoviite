@@ -43,10 +43,7 @@ class SecurityConfiguration {
                     // Block direct access to internal SpringDoc api-docs paths. These are only
                     // meant to be reached via server-side forwards from SwaggerController, which
                     // are not matched here (FORWARD dispatch type is excluded).
-                    .requestMatchers(
-                        directRequestMatcher("/swagger-ui/**"),
-                        directRequestMatcher("/v3/api-docs/**"),
-                    )
+                    .requestMatchers(directRequestMatcher("/swagger-ui/**"), directRequestMatcher("/v3/api-docs/**"))
                     .denyAll()
                     // Browser-facing openapi forwarding paths for geoviite.
                     .requestMatchers(OPENAPI_GEOVIITE_PATH, OPENAPI_GEOVIITE_DEV_PATH)

@@ -38,7 +38,7 @@ class OperationalPointController(
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/draft/externally-changed")
     fun getExternallyChangedOperationalPointIds(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch
     ): List<IntId<OperationalPoint>> {
         val context = LayoutContext.of(layoutBranch, PublicationState.DRAFT)
         return operationalPointService.getExternallyChangedOperationalPointIds(context)

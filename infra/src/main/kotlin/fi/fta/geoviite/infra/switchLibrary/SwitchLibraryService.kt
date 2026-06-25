@@ -50,10 +50,9 @@ class SwitchLibraryService(
     fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructureData>) {
         val existingSwitchStructures = switchStructureDao.fetchSwitchStructures()
         existingSwitchStructures.forEach { existingSwitchStructure ->
-            val existsInNewSet =
-                newSwitchStructures.any { newSwitchStructure ->
-                    newSwitchStructure.type == existingSwitchStructure.type
-                }
+            val existsInNewSet = newSwitchStructures.any { newSwitchStructure ->
+                newSwitchStructure.type == existingSwitchStructure.type
+            }
             if (!existsInNewSet) {
                 switchStructureDao.delete(existingSwitchStructure.id)
             }

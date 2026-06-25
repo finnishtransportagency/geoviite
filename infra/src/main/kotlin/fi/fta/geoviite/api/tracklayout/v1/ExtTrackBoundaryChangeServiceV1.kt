@@ -145,11 +145,10 @@ constructor(
         val getTrackOid = { id: DomainId<LocationTrack> -> locationTrackOids[id]?.oid ?: throwOidNotFound(branch, id) }
 
         val sourceTracks: Map<LayoutRowVersion<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
-            locationTrackService
-                .getManyWithGeometries(moves.map { it.shortenedTrackVersion }.distinct())
-                .associateBy { it.first.getVersionOrThrow() }
-        val targetTracks =
-            locationTrackDao.fetchManyByVersion(moves.map { it.lengthenedTrackVersion })
+            locationTrackService.getManyWithGeometries(moves.map { it.shortenedTrackVersion }.distinct()).associateBy {
+                it.first.getVersionOrThrow()
+            }
+        val targetTracks = locationTrackDao.fetchManyByVersion(moves.map { it.lengthenedTrackVersion })
 
         val geocodingContexts = geocodingService.getLazyGeocodingContextsByMoments(branch)
 

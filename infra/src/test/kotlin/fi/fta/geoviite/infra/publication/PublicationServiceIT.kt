@@ -884,10 +884,7 @@ constructor(
     @Test
     fun `Publication rejects duplicate track number names`() {
         val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
-        trackNumberDao.save(
-            trackNumber(number = TrackNumber("TN"), draft = false),
-            geom,
-        )
+        trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = false), geom)
         val draftTrackNumberId = trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = true), geom).id
 
         val exception =
@@ -1181,10 +1178,7 @@ constructor(
     fun `create linked switch in design and publish`() {
         val trackNumber =
             mainOfficialContext
-                .save(
-                    trackNumber(),
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
-                )
+                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
                 .id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         val testDraftContext = testDBService.testContext(testBranch, DRAFT)
@@ -1854,13 +1848,7 @@ constructor(
         assertPublicationResults(null, initialPublishResult)
 
         val mainUpdatedResult =
-            touchAsDraftAndPublish(
-                LayoutBranch.main,
-                listOf(tn.id),
-                listOf(kmp.id),
-                listOf(sw.id),
-                listOf(lt.id),
-            )
+            touchAsDraftAndPublish(LayoutBranch.main, listOf(tn.id), listOf(kmp.id), listOf(sw.id), listOf(lt.id))
         assertPublicationResults(initialPublishResult, mainUpdatedResult)
 
         val designBranch = testDBService.createDesignBranch()
@@ -1868,23 +1856,11 @@ constructor(
         testDBService.generateOid(sw.id, designBranch)
         testDBService.generateOid(lt.id, designBranch)
         val designCreatedResult =
-            touchAsDraftAndPublish(
-                designBranch,
-                listOf(tn.id),
-                listOf(kmp.id),
-                listOf(sw.id),
-                listOf(lt.id),
-            )
+            touchAsDraftAndPublish(designBranch, listOf(tn.id), listOf(kmp.id), listOf(sw.id), listOf(lt.id))
         assertPublicationResults(mainUpdatedResult, designCreatedResult)
 
         val designUpdatedResult =
-            touchAsDraftAndPublish(
-                designBranch,
-                listOf(tn.id),
-                listOf(kmp.id),
-                listOf(sw.id),
-                listOf(lt.id),
-            )
+            touchAsDraftAndPublish(designBranch, listOf(tn.id), listOf(kmp.id), listOf(sw.id), listOf(lt.id))
         assertPublicationResults(designCreatedResult, designUpdatedResult)
     }
 
@@ -2101,10 +2077,7 @@ constructor(
     ) =
         publicationService.publishManualPublication(
             layoutBranch,
-            PublicationRequest(
-                publicationRequestIds(trackNumbers, locationTracks, switches, kmPosts),
-                message,
-            ),
+            PublicationRequest(publicationRequestIds(trackNumbers, locationTracks, switches, kmPosts), message),
         )
 
     data class PublicationGroupTestData(

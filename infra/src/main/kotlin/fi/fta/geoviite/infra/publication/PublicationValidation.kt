@@ -613,13 +613,7 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(
-                switch.id as IntId,
-                structure,
-                existingTracks,
-                switch.name,
-                validatingTrack,
-            ),
+            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
         )
         .flatten()
 }

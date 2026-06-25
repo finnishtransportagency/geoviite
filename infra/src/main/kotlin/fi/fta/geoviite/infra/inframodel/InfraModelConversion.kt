@@ -544,10 +544,9 @@ fun collectGeometrySwitches(
     switchTypeNameAliases: Map<String, String>,
     alignmentGroups: List<InfraModelAlignmentGroup>,
 ): Map<SwitchKey, GeometrySwitch> {
-    val tempSwitchAndJoints: List<TempSwitchAndJoints> =
-        alignmentGroups.flatMap { group ->
-            group.alignments.flatMap { alignment -> getInfraModelSwitches(alignment, group.state) }
-        }
+    val tempSwitchAndJoints: List<TempSwitchAndJoints> = alignmentGroups.flatMap { group ->
+        group.alignments.flatMap { alignment -> getInfraModelSwitches(alignment, group.state) }
+    }
 
     return tempSwitchAndJoints
         // Switches have no proper id -> group individual pieces by a composite key of name + other
@@ -568,11 +567,10 @@ fun collectGeometrySwitches(
                     if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false
                 }
             val switchTypeHand = verifySameField("Switch hand", xmlSwitches, TempSwitch::hand, TempSwitch::name)
-            val fullSwitchTypeName =
-                switchTypeHand.let { hand ->
-                    if (hand == SwitchHand.NONE || !switchTypeRequiresHandedness) switchTypeName
-                    else "$switchTypeName-${hand.abbreviation}"
-                }
+            val fullSwitchTypeName = switchTypeHand.let { hand ->
+                if (hand == SwitchHand.NONE || !switchTypeRequiresHandedness) switchTypeName
+                else "$switchTypeName-${hand.abbreviation}"
+            }
 
             val switchType = SwitchType.tryParse(fullSwitchTypeName)
             val switchStructure = switchType?.let { type -> switchStructuresByType[type] }
@@ -635,11 +633,10 @@ fun toGeometrySwitchJoints(originalElements: List<TempSwitchElement>): TempSwitc
     // Unify representations: Repeating joint-numbers mean that the same element has been split ->
     // resolve as 0
     val sortedElements = originalElements.sortedBy { element -> element.elementIndex }
-    val elements: List<TempSwitchElement> =
-        sortedElements.mapIndexed { index, element ->
-            val prevNumber = sortedElements.getOrNull(index - 1)?.jointNumber
-            if (prevNumber == element.jointNumber) element.copy(jointNumber = 0) else element
-        }
+    val elements: List<TempSwitchElement> = sortedElements.mapIndexed { index, element ->
+        val prevNumber = sortedElements.getOrNull(index - 1)?.jointNumber
+        if (prevNumber == element.jointNumber) element.copy(jointNumber = 0) else element
+    }
 
     val switch = elements.first().switch
 

@@ -52,10 +52,7 @@ class RatkoLocalServiceTest {
         val service = serviceWithClient(client)
         service.refreshOnlineStatus()
 
-        assertEquals(
-            RatkoClient.RatkoStatus(RatkoConnectionStatus.OFFLINE, null),
-            service.getRatkoOnlineStatus(),
-        )
+        assertEquals(RatkoClient.RatkoStatus(RatkoConnectionStatus.OFFLINE, null), service.getRatkoOnlineStatus())
     }
 
     @Test
@@ -69,9 +66,6 @@ class RatkoLocalServiceTest {
         service.refreshOnlineStatus()
         service.refreshOnlineStatus()
 
-        assertEquals(
-            RatkoClient.RatkoStatus(RatkoConnectionStatus.OFFLINE, null),
-            service.getRatkoOnlineStatus(),
-        )
+        assertEquals(RatkoClient.RatkoStatus(RatkoConnectionStatus.OFFLINE, null), service.getRatkoOnlineStatus())
     }
 }

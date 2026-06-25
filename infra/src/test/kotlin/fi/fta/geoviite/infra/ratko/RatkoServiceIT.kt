@@ -122,6 +122,12 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -131,12 +137,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -2628,9 +2628,7 @@ constructor(
 
         fakeRatko.respondsWithMalformedBodyForRouteNumberCreation(trackNumberOid.toString())
 
-        runCatching {
-            publishAndPush(trackNumbers = listOf(trackNumberId))
-        }
+        runCatching { publishAndPush(trackNumbers = listOf(trackNumberId)) }
 
         val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
         assertIs<RatkoPushGeneralError>(error)
@@ -2661,9 +2659,7 @@ constructor(
 
         fakeRatko.rejectsRouteNumberCreationWithError(trackNumberOid.toString(), "TN_ERROR", "Track number push failed")
 
-        runCatching {
-            publishAndPush(trackNumbers = listOf(trackNumberId))
-        }
+        runCatching { publishAndPush(trackNumbers = listOf(trackNumberId)) }
 
         val (error, _) = assertNotNull(ratkoPushDao.getCurrentRatkoPushError())
         assertIs<RatkoPushAssetError<*>>(error)

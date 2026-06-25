@@ -134,10 +134,7 @@ fun locationTrack(
     return track to geometry
 }
 
-fun referenceLineGeometryFromPoints(
-    basePoint: Point,
-    incrementPoints: List<Point>,
-): ReferenceLineGeometry {
+fun referenceLineGeometryFromPoints(basePoint: Point, incrementPoints: List<Point>): ReferenceLineGeometry {
     return referenceLineGeometry(segmentsFromPointIncrementList(basePoint, incrementPoints))
 }
 

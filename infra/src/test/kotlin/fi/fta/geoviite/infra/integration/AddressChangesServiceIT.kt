@@ -44,16 +44,16 @@ import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -295,20 +295,14 @@ constructor(
                     Point(100.0, 100.0) to TrackMeter(2, 1),
                     Point(100.0, 200.0) to TrackMeter(2, 101),
                 ),
-                createEmptyAddresses(
-                    Point(100.0, 100.0) to TrackMeter(2, 1),
-                    Point(100.0, 200.0) to TrackMeter(2, 101),
-                ),
+                createEmptyAddresses(Point(100.0, 100.0) to TrackMeter(2, 1), Point(100.0, 200.0) to TrackMeter(2, 101)),
             ),
         )
         assertEquals(
             setOf(KmNumber(3)),
             resolveChangedGeometryKilometers(
                 createAddresses(Point(100.0, 100.0) to TrackMeter(3, 1), Point(100.0, 200.0) to TrackMeter(3, 101)),
-                createEmptyAddresses(
-                    Point(100.0, 100.0) to TrackMeter(3, 1),
-                    Point(100.0, 200.0) to TrackMeter(3, 101),
-                ),
+                createEmptyAddresses(Point(100.0, 100.0) to TrackMeter(3, 1), Point(100.0, 200.0) to TrackMeter(3, 101)),
             ),
         )
         assertEquals(

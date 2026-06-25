@@ -107,10 +107,7 @@ data class AlignmentPolyLine<T, M : AlignmentM<M>>(
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
 
-fun toAlignmentHeader(
-    trackNumber: LayoutTrackNumber,
-    geometry: ReferenceLineGeometry?,
-) =
+fun toAlignmentHeader(trackNumber: LayoutTrackNumber, geometry: ReferenceLineGeometry?) =
     ReferenceLineHeader(
         version = trackNumber.getVersionOrThrow(),
         name = AlignmentName(trackNumber.number.toString()),

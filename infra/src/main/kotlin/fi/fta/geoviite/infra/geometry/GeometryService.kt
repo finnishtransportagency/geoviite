@@ -618,13 +618,12 @@ constructor(
                 .zipWithNext { a, b -> a.alignment == b.alignment }
                 .mapIndexedNotNull { i, equals -> if (equals) null else i }
 
-        val alignmentBoundaryAddresses =
-            alignmentLinkEndSegmentIndices.flatMap { i ->
-                listOf(
-                    GeometryAlignmentBoundaryPoint(geometry.segmentMValues[i].max, i),
-                    GeometryAlignmentBoundaryPoint(geometry.segmentMValues[i + 1].min, i + 1),
-                )
-            }
+        val alignmentBoundaryAddresses = alignmentLinkEndSegmentIndices.flatMap { i ->
+            listOf(
+                GeometryAlignmentBoundaryPoint(geometry.segmentMValues[i].max, i),
+                GeometryAlignmentBoundaryPoint(geometry.segmentMValues[i + 1].min, i + 1),
+            )
+        }
 
         val kmTicks =
             collectTrackMeterTicks(

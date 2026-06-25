@@ -101,19 +101,17 @@ fun Logger.serviceCall(method: String, params: List<Pair<String, *>>) {
     if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(params))
 }
 
-fun paramsToLog(vararg params: Pair<String, *>): List<String> =
-    params.map { p ->
-        "${p.first}=${p.second?.let { obj ->
+fun paramsToLog(vararg params: Pair<String, *>): List<String> = params.map { p ->
+    "${p.first}=${p.second?.let { obj ->
             formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
         }}"
-    }
+}
 
-fun paramsToLog(params: List<Pair<String, *>>): List<String> =
-    params.map { p ->
-        "${p.first}=${p.second?.let { obj ->
+fun paramsToLog(params: List<Pair<String, *>>): List<String> = params.map { p ->
+    "${p.first}=${p.second?.let { obj ->
             formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
         }}"
-    }
+}
 
 fun returnValueToLog(returnValue: Any?): String {
     return formatForLog(if (returnValue is Loggable) returnValue.toLog() else returnValue.toString(), 1000)

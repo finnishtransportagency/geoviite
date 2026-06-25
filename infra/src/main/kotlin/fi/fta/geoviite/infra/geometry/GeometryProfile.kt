@@ -40,13 +40,14 @@ data class GeometryProfile(val name: PlanElementName, val elements: List<Vertica
             distance.distance >= elements.last().point.x -> elements.last().point.y
             else -> {
                 val x = distance.distance
-                val segment = binarySearchSegment(segments, x)
-                    ?: throw IllegalArgumentException(
-                        "Requested point outside profile segments: " +
-                            "$distance <> " +
-                            "[${elements.first().point.x} to ${elements.last().point.x}] => " +
-                            "${segments.map { s -> "${s.start.x}-${s.end.x}" }}"
-                    )
+                val segment =
+                    binarySearchSegment(segments, x)
+                        ?: throw IllegalArgumentException(
+                            "Requested point outside profile segments: " +
+                                "$distance <> " +
+                                "[${elements.first().point.x} to ${elements.last().point.x}] => " +
+                                "${segments.map { s -> "${s.start.x}-${s.end.x}" }}"
+                        )
                 segment.getYValueAt(x)
             }
         }
@@ -253,11 +254,10 @@ fun halfAngleOfPviPoint(deltaX: Double, deltaY: Double): Double =
         else if (deltaY > 0.0) atan(deltaX / deltaY) else PI / 2.0 + abs(atan(deltaY / deltaX))
     )
 
-fun checkHalfAngle(halfAngle: Double) =
-    halfAngle.also { angle ->
-        require(angle > 0.0) { "VI half-angle component should be positive: angle=$angle" }
-        require(angle < PI) { "VI half-angle component should under PI: angle=$angle" }
-    }
+fun checkHalfAngle(halfAngle: Double) = halfAngle.also { angle ->
+    require(angle > 0.0) { "VI half-angle component should be positive: angle=$angle" }
+    require(angle < PI) { "VI half-angle component should under PI: angle=$angle" }
+}
 
 fun lengthFromPviToTangent(leftHalfAngle: Double, rightHalfAngle: Double, radius: Double): Double {
     val halfAngleOfAlfa = (leftHalfAngle + rightHalfAngle) / 2

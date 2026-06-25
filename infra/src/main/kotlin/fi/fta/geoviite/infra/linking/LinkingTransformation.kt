@@ -140,19 +140,18 @@ private fun tryCreateLinkedReferenceLineGeometry(
         )
     }
 
-private fun validateSegments(newSegments: List<LayoutSegment>) =
-    newSegments.forEachIndexed { index, segment ->
-        newSegments.getOrNull(index - 1)?.let { previous ->
-            val diff = angleDiffRads(previous.endDirection, segment.startDirection)
-            if (diff > PI / 2)
-                throw LinkingFailureException(
-                    message =
-                        "Linked geometry has over 90 degree angles between segments: " +
-                            "segments=${index-1}-$index prevEnd=${previous.endDirection} next=${segment.endDirection} angle=${radsToDegrees(diff)} point=${segment.segmentStart}",
-                    localizedMessageKey = "segments-sharp-angle",
-                )
-        }
+private fun validateSegments(newSegments: List<LayoutSegment>) = newSegments.forEachIndexed { index, segment ->
+    newSegments.getOrNull(index - 1)?.let { previous ->
+        val diff = angleDiffRads(previous.endDirection, segment.startDirection)
+        if (diff > PI / 2)
+            throw LinkingFailureException(
+                message =
+                    "Linked geometry has over 90 degree angles between segments: " +
+                        "segments=${index-1}-$index prevEnd=${previous.endDirection} next=${segment.endDirection} angle=${radsToDegrees(diff)} point=${segment.segmentStart}",
+                localizedMessageKey = "segments-sharp-angle",
+            )
     }
+}
 
 fun splice(
     geometry: ReferenceLineGeometry,
@@ -205,21 +204,20 @@ fun <M : AlignmentM<M>> slice(
     segmentsWithM: List<Pair<ISegment, Range<LineM<M>>>>,
     mRange: Range<LineM<M>>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
-): List<LayoutSegment> =
-    segmentsWithM.mapNotNull { (segment, segmentM) ->
-        if (segmentM.max - snapDistance <= mRange.min || segmentM.min + snapDistance >= mRange.max) {
-            null
-        } else if (segmentM.min >= mRange.min - snapDistance && segmentM.max <= mRange.max + snapDistance) {
-            toLayoutSegment(segment)
-        } else {
-            val range =
-                Range<LineM<SegmentM>>(
-                    LineM(max(mRange.min.distance - segmentM.min.distance, 0.0)),
-                    LineM(min(mRange.max.distance - segmentM.min.distance, segment.length)),
-                )
-            toLayoutSegment(segment).slice(segmentMRange = range, snapDistance = snapDistance)
-        }
+): List<LayoutSegment> = segmentsWithM.mapNotNull { (segment, segmentM) ->
+    if (segmentM.max - snapDistance <= mRange.min || segmentM.min + snapDistance >= mRange.max) {
+        null
+    } else if (segmentM.min >= mRange.min - snapDistance && segmentM.max <= mRange.max + snapDistance) {
+        toLayoutSegment(segment)
+    } else {
+        val range =
+            Range<LineM<SegmentM>>(
+                LineM(max(mRange.min.distance - segmentM.min.distance, 0.0)),
+                LineM(min(mRange.max.distance - segmentM.min.distance, segment.length)),
+            )
+        toLayoutSegment(segment).slice(segmentMRange = range, snapDistance = snapDistance)
     }
+}
 
 fun slice(
     geometry: LocationTrackGeometry,

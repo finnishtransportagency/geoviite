@@ -14,6 +14,10 @@ import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.setUser
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -22,10 +26,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
-import java.time.ZoneOffset
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -42,17 +42,11 @@ constructor(
 
         val westTrackNumberId =
             mainDraftContext
-                .save(
-                    trackNumber(TrackNumber("Test track number")),
-                    HelsinkiTestData.westReferenceLineGeometry(),
-                )
+                .save(trackNumber(TrackNumber("Test track number")), HelsinkiTestData.westReferenceLineGeometry())
                 .id
         val eastTrackNumberId =
             mainDraftContext
-                .save(
-                    trackNumber(TrackNumber("Test track number 2")),
-                    HelsinkiTestData.eastReferenceLineGeometry(),
-                )
+                .save(trackNumber(TrackNumber("Test track number 2")), HelsinkiTestData.eastReferenceLineGeometry())
                 .id
         val someTrack = HelsinkiTestData.westMainLocationTrack(westTrackNumberId, draft = true)
 

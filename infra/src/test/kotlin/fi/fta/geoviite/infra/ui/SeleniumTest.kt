@@ -8,13 +8,13 @@ import fi.fta.geoviite.infra.ui.util.SHOW_BROWSER
 import fi.fta.geoviite.infra.ui.util.browser
 import fi.fta.geoviite.infra.ui.util.openBrowser
 import fi.fta.geoviite.infra.ui.util.openRemoteBrowser
+import java.util.*
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.context.ActiveProfiles
-import java.util.*
 
 /**
  * To run UI test with visible browser:

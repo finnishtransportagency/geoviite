@@ -82,8 +82,9 @@ constructor(
             collectOriginallyLinkedLocationTracks(branch, requests.map { it.layoutSwitchId })
         val newlyMatchedByRequestIndex =
             collectNewlyMatchedLocationTracks(fitGrids, originallyLinkedByRequestIndex, branch)
-        val originalSwitches =
-            requests.map { request -> switchDao.fetch(switchDao.fetchVersion(branch.draft, request.layoutSwitchId)!!) }
+        val originalSwitches = requests.map { request ->
+            switchDao.fetch(switchDao.fetchVersion(branch.draft, request.layoutSwitchId)!!)
+        }
         val switchStructures = originalSwitches.map { switchLibraryService.getSwitchStructure(it.switchStructureId) }
 
         return fitGrids
@@ -126,15 +127,12 @@ constructor(
         originallyLinkedByRequestIndex: List<Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>>,
         branch: LayoutBranch,
     ): List<Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>> {
-        val matchedLocationTracksByRequestIndex =
-            fitGrids.map { grid ->
-                grid
-                    .keys()
-                    .flatMap { fit ->
-                        fit.joints.flatMap { joint -> joint.matches.map { match -> match.locationTrackId } }
-                    }
-                    .toSet()
-            }
+        val matchedLocationTracksByRequestIndex = fitGrids.map { grid ->
+            grid
+                .keys()
+                .flatMap { fit -> fit.joints.flatMap { joint -> joint.matches.map { match -> match.locationTrackId } } }
+                .toSet()
+        }
         return processFlattened(
                 matchedLocationTracksByRequestIndex.zip(originallyLinkedByRequestIndex) { matched, original ->
                     matched.minus(original.keys).toList()
@@ -170,14 +168,14 @@ constructor(
                     .joinToString(", ")
             "expected to find a switch for every ID in replacement request, but none were found for $notFound"
         }
-        val switchStructures =
-            originalSwitches.map { switch -> switchLibraryService.getSwitchStructure(switch.switchStructureId) }
-        val alignmentsNearRequests =
-            requests.map { request ->
-                locationTrackCache.getWithinBoundingBox(request.points.bounds + TRACK_SEARCH_AREA_SIZE).sortedBy {
-                    (it.first.id as IntId).intValue
-                }
+        val switchStructures = originalSwitches.map { switch ->
+            switchLibraryService.getSwitchStructure(switch.switchStructureId)
+        }
+        val alignmentsNearRequests = requests.map { request ->
+            locationTrackCache.getWithinBoundingBox(request.points.bounds + TRACK_SEARCH_AREA_SIZE).sortedBy {
+                (it.first.id as IntId).intValue
             }
+        }
         return requests
             .mapIndexed { i, r -> i to r }
             .parallelStream()
@@ -308,7 +306,7 @@ constructor(
     }
 
     @Transactional
-    fun  relinkTrack(
+    fun relinkTrack(
         branch: LayoutBranch,
         trackId: IntId<LocationTrack>,
         restrictToSwitches: Set<IntId<LayoutSwitch>>? = null,
@@ -326,18 +324,10 @@ constructor(
         val changedLocationTracks: MutableMap<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
             mutableMapOf()
 
-        val relinkingResults =
-            originalSwitches.mapIndexedNotNull { index, (switchId, originalSwitch) ->
-                val originallyLinked = originallyLinkedLocationTracksByIndex[index]
-                relinkOneSwitchOnTrack(
-                    branch,
-                    trackId,
-                    originalSwitch,
-                    switchId,
-                    originallyLinked,
-                    changedLocationTracks,
-                )
-            }
+        val relinkingResults = originalSwitches.mapIndexedNotNull { index, (switchId, originalSwitch) ->
+            val originallyLinked = originallyLinkedLocationTracksByIndex[index]
+            relinkOneSwitchOnTrack(branch, trackId, originalSwitch, switchId, originallyLinked, changedLocationTracks)
+        }
         saveLocationTrackChanges(
             branch,
             changedLocationTracks.values.toList(),

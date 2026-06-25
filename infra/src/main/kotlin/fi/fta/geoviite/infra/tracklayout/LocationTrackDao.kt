@@ -653,20 +653,18 @@ class LocationTrackDao(
                 )
             }
 
-        val byTrackNumber =
-            trackNumberIds.associateWith { trackNumberId ->
-                rows.filter { it.trackNumberId == trackNumberId }.map { it.version }
-            }
-        val byOperationalPoint =
-            operationalPointIds.associateWith { operationalPointId ->
-                rows.filter { it.operationalPointIds.contains(operationalPointId) }.map { it.version }
-            }
-        val byDuplicateOfLocationTrack =
-            duplicateOfLocationTrackIds.associateWith { duplicateOfLocationTrackId ->
-                rows.filter { it.duplicateOfLocationTrackId == duplicateOfLocationTrackId }.map { it.version }
-            }
-        val bySwitch =
-            switchIds.associateWith { switchId -> rows.filter { it.switchIds.contains(switchId) }.map { it.version } }
+        val byTrackNumber = trackNumberIds.associateWith { trackNumberId ->
+            rows.filter { it.trackNumberId == trackNumberId }.map { it.version }
+        }
+        val byOperationalPoint = operationalPointIds.associateWith { operationalPointId ->
+            rows.filter { it.operationalPointIds.contains(operationalPointId) }.map { it.version }
+        }
+        val byDuplicateOfLocationTrack = duplicateOfLocationTrackIds.associateWith { duplicateOfLocationTrackId ->
+            rows.filter { it.duplicateOfLocationTrackId == duplicateOfLocationTrackId }.map { it.version }
+        }
+        val bySwitch = switchIds.associateWith { switchId ->
+            rows.filter { it.switchIds.contains(switchId) }.map { it.version }
+        }
 
         return LocationTrackVersionsForValidation(
                 byTrackNumber = byTrackNumber,

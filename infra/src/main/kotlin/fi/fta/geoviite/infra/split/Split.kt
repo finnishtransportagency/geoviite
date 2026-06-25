@@ -87,13 +87,15 @@ data class Split(
     @JsonIgnore
     val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
 
-    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
-        targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
+    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean = targetLocationTracks.any { tlt ->
+        tlt.locationTrackId == trackId
+    }
 
     override fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
 
-    fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
-        targetLocationTracks.find { track -> track.locationTrackId == trackId }
+    fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? = targetLocationTracks.find { track ->
+        track.locationTrackId == trackId
+    }
 
     override fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }

@@ -151,8 +151,7 @@ fun moveAlignmentPoints(
                 val newPoints =
                     segment.segmentPoints.mapNotNull { point ->
                         moveFunc(point.toAlignmentPoint(m.min))?.let { newPoint ->
-                            val segmentM =
-                                prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: LineM<SegmentM>(0.0)
+                            val segmentM = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: LineM<SegmentM>(0.0)
                             point.copy(x = newPoint.x, y = newPoint.y, m = segmentM.castToDifferentM()).also { p ->
                                 prevPoint = p
                             }

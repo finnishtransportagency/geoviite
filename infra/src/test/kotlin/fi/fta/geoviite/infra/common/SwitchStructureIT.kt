@@ -164,8 +164,9 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
     @Test
     fun `Should produce different hashcode when switch structures are modified`() {
         val firstSet = switchStructures
-        val modifiedSet =
-            firstSet.mapIndexed { index, struct -> struct.takeIf { index > 0 } ?: modifyStructure(struct) }
+        val modifiedSet = firstSet.mapIndexed { index, struct ->
+            struct.takeIf { index > 0 } ?: modifyStructure(struct)
+        }
         assertNotEquals(firstSet, modifiedSet)
     }
 

@@ -22,8 +22,9 @@ data class GeometrySwitch(
     val joints: List<GeometrySwitchJoint>,
     val id: DomainId<GeometrySwitch> = StringId(),
 ) : Loggable {
-    fun getJoint(location: Point, delta: Double): GeometrySwitchJoint? =
-        joints.find { j -> j.location.isSame(location, delta) }
+    fun getJoint(location: Point, delta: Double): GeometrySwitchJoint? = joints.find { j ->
+        j.location.isSame(location, delta)
+    }
 
     fun getJoint(number: JointNumber): GeometrySwitchJoint? = joints.find { j -> j.number == number }
 

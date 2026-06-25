@@ -282,11 +282,13 @@ class ValidationContext(
         publicationSet.containsSplit(split.id)
     }
 
-    fun getPublicationTrackBoundaryMoves(): List<TrackBoundaryMove> =
-        allUnpublishedTrackBoundaryMoves.filter { move -> publicationSet.containsTrackBoundaryMove(move.id) }
+    fun getPublicationTrackBoundaryMoves(): List<TrackBoundaryMove> = allUnpublishedTrackBoundaryMoves.filter { move ->
+        publicationSet.containsTrackBoundaryMove(move.id)
+    }
 
-    fun getUnfinishedSplits(): List<Split> =
-        allUnfinishedSplits.filter { split -> split.publicationId != null || publicationSet.containsSplit(split.id) }
+    fun getUnfinishedSplits(): List<Split> = allUnfinishedSplits.filter { split ->
+        split.publicationId != null || publicationSet.containsSplit(split.id)
+    }
 
     fun isLocationTrackSourceOfAnyFinishedSplit(id: IntId<LocationTrack>): Boolean =
         splitService.isLocationTrackSourceOfAnyFinishedSplit(target.candidateBranch, id)

@@ -14,6 +14,8 @@ import fi.fta.geoviite.infra.ui.util.javaScriptExecutor
 import getElementIfExists
 import getElementWhenExists
 import getNonNullAttribute
+import java.time.Instant
+import kotlin.math.roundToInt
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
@@ -21,8 +23,6 @@ import tryWait
 import waitUntilExists
 import waitUntilNotExist
 import waitUntilNotNull
-import java.time.Instant
-import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 

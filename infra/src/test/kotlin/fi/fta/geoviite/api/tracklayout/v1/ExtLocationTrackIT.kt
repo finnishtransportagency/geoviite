@@ -58,10 +58,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (track, geometry) = locationTrackService.getWithGeometry(trackVersion)
 
         val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackVersion.id),
-            )
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackVersion.id))
 
         val modifiedDescription = "modified description after publication=${publication1.uuid}"
         mainDraftContext.save(track.copy(description = FreeText(modifiedDescription)), geometry)
@@ -83,11 +80,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-        val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val publication2 = testDBService.publish()
 
@@ -132,10 +125,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response = api.locationTracks.get(oid, "koordinaatisto" to epsgCode)
@@ -161,11 +151,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val (trackId, oid) = mainDraftContext.saveWithOid(locationTrack(trackNumberId), geometry)
 
-        val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         api.locationTrackGeometry.get(oid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
@@ -217,10 +203,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         Resolution.entries
             .map { it.meters }
@@ -257,10 +240,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         Resolution.entries
             .map { it.meters }
@@ -297,10 +277,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 Triple(trackOid, trackId, state)
             }
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = tracks.map { (_, id, _) -> id },
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = tracks.map { (_, id, _) -> id })
 
         tracks.forEach { (oid, _, state) ->
             val response = api.locationTracks.get(oid)
@@ -364,11 +341,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
         val (trackId, trackOid) = mainDraftContext.saveWithOid(locationTrack(tnId), trackGeom)
 
-        val basePublication =
-            testDBService.publish(
-                trackNumbers = listOf(tnId),
-                locationTracks = listOf(trackId),
-            )
+        val basePublication = testDBService.publish(trackNumbers = listOf(tnId), locationTracks = listOf(trackId))
         assertEquals("0000+0020.000", getExtLocationTrack(trackOid).alkusijainti?.rataosoite)
         api.locationTracks.assertNoModificationSince(trackOid, basePublication.uuid)
 
@@ -410,11 +383,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-        val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         api.locationTrackGeometry.get(oid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
@@ -441,11 +410,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
 
         val trackGeom = trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(90.0, 0.0)))
         val (trackId, trackOid) = mainDraftContext.saveWithOid(locationTrack(tnId), trackGeom)
-        val initPublication =
-            testDBService.publish(
-                trackNumbers = listOf(tnId),
-                locationTracks = listOf(trackId),
-            )
+        val initPublication = testDBService.publish(trackNumbers = listOf(tnId), locationTracks = listOf(trackId))
         val startWithAddress = ExtTestAddressPointV1(10.0, 0.0, "0000+0010.000")
         val startWithoutAddress = ExtTestAddressPointV1(10.0, 0.0, null)
         val endWithAddress = ExtTestAddressPointV1(90.0, 0.0, "0000+0090.000")
@@ -603,11 +568,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
         val (trackId, oid) = mainDraftContext.saveWithOid(locationTrack(tnId), trackGeom)
 
-        val basePub =
-            testDBService.publish(
-                trackNumbers = listOf(tnId),
-                locationTracks = listOf(trackId),
-            )
+        val basePub = testDBService.publish(trackNumbers = listOf(tnId), locationTracks = listOf(trackId))
         api.locationTrackGeometry.get(oid).osoitevali!!.also { interval ->
             assertEquals("0000+0020.000", interval.alkuosoite)
             assertEquals("0000+0040.000", interval.loppuosoite)

@@ -120,7 +120,9 @@ private fun creteGraphNodes(edges: List<GraphEdgeData>): Map<IntId<LayoutNode>, 
         .associateBy { it.id }
 
 private fun createGraphEdges(edges: List<GraphEdgeData>): Map<DomainId<LayoutEdge>, LayoutGraphEdge> =
-    edges.associate { e -> e.id to LayoutGraphEdge(e) }
+    edges.associate { e ->
+        e.id to LayoutGraphEdge(e)
+    }
 
 data class LayoutGraphEdge(
     val id: DomainId<LayoutEdge>,

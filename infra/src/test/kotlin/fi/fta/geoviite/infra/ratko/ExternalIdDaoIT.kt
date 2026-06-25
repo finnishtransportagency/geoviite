@@ -17,10 +17,7 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
 
     @Test
     fun `Multiple external ids can be found`() {
-        val testOids =
-            (1..2).map {
-                mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-            }
+        val testOids = (1..2).map { mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())) }
 
         testOids
             .map { (_, oid) -> oid }
@@ -30,10 +27,7 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
 
     @Test
     fun `External ids can be found one-by-one`() {
-        val testOids =
-            (1..2).map {
-                mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-            }
+        val testOids = (1..2).map { mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())) }
 
         testOids.forEach { (id, oid) -> assertEquals(id, trackNumberDao.getByExternalId(oid)?.id) }
     }
@@ -42,9 +36,7 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
     fun `External ids which are not found are returned as nulls when searching for multiple oids`() {
         val notExistingOid = Oid<LayoutTrackNumber>("999.888.777")
         val testOids =
-            (1..2).map {
-                mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())).second
-            }
+            (1..2).map { mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())).second }
 
         val oidResult = trackNumberDao.getByExternalIds(mainOfficialContext.context, testOids + listOf(notExistingOid))
         assertEquals(3, oidResult.size)

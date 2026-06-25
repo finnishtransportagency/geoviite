@@ -478,9 +478,7 @@ constructor(
                 targetRequest(switch1.id, "part2"),
                 targetRequest(switch2.id, "part3"),
             )
-        assertThrows<SplitFailureException> {
-            splitService.split(LayoutBranch.main, request)
-        }
+        assertThrows<SplitFailureException> { splitService.split(LayoutBranch.main, request) }
     }
 
     @Test

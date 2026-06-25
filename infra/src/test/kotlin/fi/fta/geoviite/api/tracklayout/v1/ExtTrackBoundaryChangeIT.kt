@@ -58,10 +58,11 @@ constructor(
     @Test
     fun `LocationTrack split shows up a boundary change`() {
         val tn = testDBService.getUnusedTrackNumber()
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(
-            trackNumber(tn),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0))),
-        )
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(tn),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0))),
+            )
         val structureId = switchStructureYV60_300_1_9().id
         val switch1Joints = listOf(switchJoint(1, Point(200.0, 0.0)), switchJoint(2, Point(210.0, 10.0)))
         val switch1Id = mainDraftContext.save(switch(structureId, switch1Joints)).id
@@ -200,10 +201,11 @@ constructor(
     @Test
     fun `Track boundary change shows up with vaihtumiskohdan_siirto type`() {
         val tn = testDBService.getUnusedTrackNumber()
-        val (tnId, tnOid) = mainDraftContext.saveWithOid(
-            trackNumber(tn),
-            referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0))),
-        )
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(tn),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0))),
+            )
 
         // Switch1 at 100: current boundary between tracks
         // Switch2 at 200: new boundary point (on shortening track)

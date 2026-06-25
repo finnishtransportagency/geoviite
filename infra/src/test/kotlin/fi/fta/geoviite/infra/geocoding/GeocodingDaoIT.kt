@@ -82,10 +82,7 @@ constructor(
             draftKey,
             geocodingDao.getLayoutGeocodingContextCacheKey(
                 tnId,
-                validationVersions(
-                    trackNumbers = listOf(tnDraft),
-                    kmPosts = listOf(kmPost1Draft, kmPost2OnlyDraft),
-                ),
+                validationVersions(trackNumbers = listOf(tnDraft), kmPosts = listOf(kmPost1Draft, kmPost2OnlyDraft)),
             ),
         )
 
@@ -146,10 +143,7 @@ constructor(
 
         val designKeyV1 =
             geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
-                assertEquals(
-                    geocodingContextCacheKey(tnDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1),
-                    key,
-                )
+                assertEquals(geocodingContextCacheKey(tnDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1), key)
             }
 
         // --- Version 2
@@ -172,18 +166,12 @@ constructor(
 
         val mainKeyV2 =
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
-                assertEquals(
-                    geocodingContextCacheKey(tnMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2),
-                    key,
-                )
+                assertEquals(geocodingContextCacheKey(tnMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2), key)
             }
 
         val designKeyV2 =
             geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
-                assertEquals(
-                    geocodingContextCacheKey(tnDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2),
-                    key,
-                )
+                assertEquals(geocodingContextCacheKey(tnDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2), key)
             }
 
         // --- Version 3
@@ -199,17 +187,11 @@ constructor(
 
         val mainKeyV3 =
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
-                assertEquals(
-                    geocodingContextCacheKey(tnMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
-                    key,
-                )
+                assertEquals(geocodingContextCacheKey(tnMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2), key)
             }
         val designKeyV3 =
             geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
-                assertEquals(
-                    geocodingContextCacheKey(tnDesignV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
-                    key,
-                )
+                assertEquals(geocodingContextCacheKey(tnDesignV2, kmp1MainV2, kmp3MainV3, kmp4MainV2), key)
             }
 
         // Verify fetching each key with time

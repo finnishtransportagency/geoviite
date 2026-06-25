@@ -14,7 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 
 @ActiveProfiles("dev", "test", "ext-api", "ext-api-dev-swagger")
 @SpringBootTest(classes = [InfraApplication::class])

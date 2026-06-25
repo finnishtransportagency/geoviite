@@ -11,8 +11,9 @@ import org.slf4j.LoggerFactory
 
 private val logger: Logger = LoggerFactory.getLogger("BROWSER")
 
-fun assertStringContains(expectedList: List<String>, actual: String) =
-    expectedList.forEach { expected -> kotlin.test.assertContains(actual, expected) }
+fun assertStringContains(expectedList: List<String>, actual: String) = expectedList.forEach { expected ->
+    kotlin.test.assertContains(actual, expected)
+}
 
 fun assertZeroErrorToasts() {
     val toasts =

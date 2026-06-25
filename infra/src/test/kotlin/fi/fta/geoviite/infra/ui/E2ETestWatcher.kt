@@ -4,11 +4,11 @@ import fi.fta.geoviite.infra.ui.util.SHOW_BROWSER
 import fi.fta.geoviite.infra.ui.util.closeBrowser
 import fi.fta.geoviite.infra.ui.util.printBrowserLogs
 import fi.fta.geoviite.infra.ui.util.takeScreenShot
+import java.lang.reflect.Method
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.TestWatcher
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.reflect.Method
 
 class E2ETestWatcher : TestWatcher {
 

@@ -91,9 +91,7 @@ constructor(
         validationContext.preloadKmPostsByTrackNumbers(trackNumberIds)
         validationContext.preloadLocationTracksByTrackNumbers(trackNumberIds)
 
-        return trackNumberIds.map { id ->
-            ValidatedAsset(id, validateTrackNumber(id, validationContext))
-        }
+        return trackNumberIds.map { id -> ValidatedAsset(id, validateTrackNumber(id, validationContext)) }
     }
 
     @Transactional(readOnly = true)
@@ -331,9 +329,7 @@ constructor(
         versions.locationTracks.forEach { version ->
             assertNoErrors(version, validateLocationTrack(version.id, validationContext))
         }
-        versions.switches.forEach { version ->
-            assertNoErrors(version, validateSwitch(version.id, validationContext))
-        }
+        versions.switches.forEach { version -> assertNoErrors(version, validateSwitch(version.id, validationContext)) }
         versions.operationalPoints.forEach { version ->
             assertNoErrors(version, validateOperationalPoint(version.id, validationContext))
         }

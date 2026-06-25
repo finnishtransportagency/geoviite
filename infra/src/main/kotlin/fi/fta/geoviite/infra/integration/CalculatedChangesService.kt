@@ -49,9 +49,9 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.transaction.annotation.Transactional
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,

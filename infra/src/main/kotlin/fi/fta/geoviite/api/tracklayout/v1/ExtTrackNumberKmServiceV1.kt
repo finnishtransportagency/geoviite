@@ -83,10 +83,9 @@ constructor(
             }
         val trackNumberIds = trackNumbers.map { trackNumber -> trackNumber.id as IntId }
         val trackNumberExtIds = trackNumberDao.fetchExternalIds(branch, trackNumberIds)
-        val geocodingContexts =
-            trackNumbers.associate {
-                it.id to geocodingService.getGeocodingContextAtMoment(branch, it.id as IntId, moment)
-            }
+        val geocodingContexts = trackNumbers.associate {
+            it.id to geocodingService.getGeocodingContextAtMoment(branch, it.id as IntId, moment)
+        }
         return ExtTrackKmsCollectionResponseV1(
             trackLayoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),

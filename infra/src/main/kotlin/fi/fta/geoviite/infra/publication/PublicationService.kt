@@ -45,12 +45,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -180,7 +180,11 @@ constructor(
         val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
         val trackBoundaryMoves =
-            trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, locationTrackIds.toList(), requestIds.switches)
+            trackBoundaryMoveService.findUnpublishedBoundaryMoves(
+                branch,
+                locationTrackIds.toList(),
+                requestIds.switches,
+            )
         val trackBoundaryMoveTracks = trackBoundaryMoves.flatMap { s -> s.locationTracks.map { it.id } }.distinct()
         val trackBoundaryMoveSwitches = trackBoundaryMoves.flatMap { move -> move.relinkedSwitches }.distinct()
 
@@ -216,7 +220,8 @@ constructor(
             splitService.deleteSplit(split.id)
         }
 
-        trackBoundaryMoveService.findUnpublishedBoundaryMoves(branch, toDelete.locationTracks, toDelete.switches)
+        trackBoundaryMoveService
+            .findUnpublishedBoundaryMoves(branch, toDelete.locationTracks, toDelete.switches)
             .forEach { trackBoundaryMove ->
                 val shortenedTrackIncluded =
                     toDelete.locationTracks.contains(trackBoundaryMove.shortenedLocationTrack.id)

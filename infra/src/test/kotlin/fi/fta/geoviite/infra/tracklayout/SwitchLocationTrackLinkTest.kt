@@ -336,5 +336,6 @@ fun switchSplitPoint(switchId: Int, joint: Int): SwitchSplitPoint {
     return SwitchSplitPoint(emptyPoint(), null, IntId(switchId), JointNumber(joint))
 }
 
-fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<SplitPoint> =
-    switchToJoint.map { (id, joint) -> SwitchSplitPoint(emptyPoint(), null, IntId(id), JointNumber(joint)) }
+fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<SplitPoint> = switchToJoint.map { (id, joint) ->
+    SwitchSplitPoint(emptyPoint(), null, IntId(id), JointNumber(joint))
+}

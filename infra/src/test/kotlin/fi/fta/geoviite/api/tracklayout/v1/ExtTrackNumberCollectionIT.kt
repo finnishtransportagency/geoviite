@@ -365,10 +365,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
         val (matchingId, matchingOid) =
             mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")), referenceLineGeometry(someSegment()))
         val (otherId, _) =
-            mainDraftContext.saveWithOid(
-                trackNumber(TrackNumber("999 OTHER")),
-                referenceLineGeometry(someSegment()),
-            )
+            mainDraftContext.saveWithOid(trackNumber(TrackNumber("999 OTHER")), referenceLineGeometry(someSegment()))
 
         testDBService.publish(trackNumbers = listOf(matchingId, otherId))
 
@@ -385,10 +382,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
         val (matchingId, matchingOid) =
             mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")), referenceLineGeometry(someSegment()))
         val (otherId, _) =
-            mainDraftContext.saveWithOid(
-                trackNumber(TrackNumber("999 OTHER")),
-                referenceLineGeometry(someSegment()),
-            )
+            mainDraftContext.saveWithOid(trackNumber(TrackNumber("999 OTHER")), referenceLineGeometry(someSegment()))
 
         val fromPublication = testDBService.publish(trackNumbers = listOf(matchingId, otherId)).uuid
 

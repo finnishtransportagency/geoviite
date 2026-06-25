@@ -58,34 +58,32 @@ internal fun validateAdministrativeChangeContent(
             emptyList()
         }
 
-    val splitContentErrors =
-        publicationSplits.flatMap { split ->
-            val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
-            val containsTargets =
-                split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
-            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
-            listOfNotNull(
-                    validate(containsSource && containsTargets, ERROR) {
-                        "$VALIDATION_SPLIT.split-missing-location-tracks"
-                    },
-                    validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
-                )
-                .map { e -> split to e }
-        }
+    val splitContentErrors = publicationSplits.flatMap { split ->
+        val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
+        val containsTargets =
+            split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
+        val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
+        listOfNotNull(
+                validate(containsSource && containsTargets, ERROR) {
+                    "$VALIDATION_SPLIT.split-missing-location-tracks"
+                },
+                validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
+            )
+            .map { e -> split to e }
+    }
 
-    val boundaryMoveContentErrors =
-        publicationTrackBoundaryMoves.flatMap { move ->
-            val containsShortened = trackVersions.any { it.id == move.shortenedLocationTrack.id }
-            val containsLengthened = trackVersions.any { it.id == move.lengthenedLocationTrack.id }
-            val containsSwitches = move.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
-            listOfNotNull(
-                    validate(containsShortened && containsLengthened, ERROR) {
-                        "$VALIDATION_BOUNDARY_MOVE.missing-location-tracks"
-                    },
-                    validate(containsSwitches, ERROR) { "$VALIDATION_BOUNDARY_MOVE.missing-switches" },
-                )
-                .map { e -> move to e }
-        }
+    val boundaryMoveContentErrors = publicationTrackBoundaryMoves.flatMap { move ->
+        val containsShortened = trackVersions.any { it.id == move.shortenedLocationTrack.id }
+        val containsLengthened = trackVersions.any { it.id == move.lengthenedLocationTrack.id }
+        val containsSwitches = move.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
+        listOfNotNull(
+                validate(containsShortened && containsLengthened, ERROR) {
+                    "$VALIDATION_BOUNDARY_MOVE.missing-location-tracks"
+                },
+                validate(containsSwitches, ERROR) { "$VALIDATION_BOUNDARY_MOVE.missing-switches" },
+            )
+            .map { e -> move to e }
+    }
 
     return listOf(multipleChangesStagedErrors, splitContentErrors, boundaryMoveContentErrors).flatten()
 }

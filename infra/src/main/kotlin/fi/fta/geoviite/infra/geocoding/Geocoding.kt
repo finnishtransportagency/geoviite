@@ -440,16 +440,15 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         private fun <M : GeocodingAlignmentM<M>> createKms(
             kmReferencePoints: List<KmReferencePoint<M>>,
             referenceLineGeometry: IAlignment<M>,
-        ): List<GeocodingKm<M>> =
-            kmReferencePoints.mapIndexed { index, prev ->
-                val next = kmReferencePoints.getOrNull(index + 1)
-                GeocodingKm(
-                    prev.km,
-                    prev.meter,
-                    Range(prev.referenceLineM, next?.referenceLineM ?: referenceLineGeometry.length),
-                    index == kmReferencePoints.lastIndex,
-                )
-            }
+        ): List<GeocodingKm<M>> = kmReferencePoints.mapIndexed { index, prev ->
+            val next = kmReferencePoints.getOrNull(index + 1)
+            GeocodingKm(
+                prev.km,
+                prev.meter,
+                Range(prev.referenceLineM, next?.referenceLineM ?: referenceLineGeometry.length),
+                index == kmReferencePoints.lastIndex,
+            )
+        }
 
         private fun validateKmPosts(
             kmPosts: List<LayoutKmPost>,
@@ -978,18 +977,17 @@ private fun <M : GeocodingAlignmentM<M>> createProjectionLines(
     }
 
     var edgeIndex = 0
-    val midProjections =
-        kms.flatMap { km ->
-            km.getMetersSequence(resolution).map { meter ->
-                val referenceLineM = km.referenceLineM.min + meter.toDouble() - km.startMeters.toDouble()
-                while (edgeIndex < edges.lastIndex && edges[edgeIndex].endM < referenceLineM) {
-                    edgeIndex++
-                }
-                val edge = edges[edgeIndex]
-                val address = TrackMeter(km.kmNumber, meter)
-                ProjectionLine(address, edge.crossSectionAt(referenceLineM), referenceLineM, edge.referenceDirection)
+    val midProjections = kms.flatMap { km ->
+        km.getMetersSequence(resolution).map { meter ->
+            val referenceLineM = km.referenceLineM.min + meter.toDouble() - km.startMeters.toDouble()
+            while (edgeIndex < edges.lastIndex && edges[edgeIndex].endM < referenceLineM) {
+                edgeIndex++
             }
+            val edge = edges[edgeIndex]
+            val address = TrackMeter(km.kmNumber, meter)
+            ProjectionLine(address, edge.crossSectionAt(referenceLineM), referenceLineM, edge.referenceDirection)
         }
+    }
 
     return listOf(
             listOfNotNull(createStartProjectionIfNeeded(kms, edges, resolution)),
@@ -1008,12 +1006,11 @@ private fun <M : GeocodingAlignmentM<M>> validateProjectionLines(
     val distanceRange = (resolution.meters.toDouble() - distanceDelta)..(resolution.meters.toDouble() + distanceDelta)
     return lines.filterIndexed { index, line ->
         val previous = lines.getOrNull(index - 1)
-        val distanceApprox =
-            previous?.let { prev ->
-                if (prev.address.kmNumber == line.address.kmNumber) {
-                    lineLength(prev.projection.start, line.projection.start)
-                } else null
-            }
+        val distanceApprox = previous?.let { prev ->
+            if (prev.address.kmNumber == line.address.kmNumber) {
+                lineLength(prev.projection.start, line.projection.start)
+            } else null
+        }
         val angleDiff = previous?.let { prev -> angleDiffRads(prev.projection.angle, line.projection.angle) }
         val isStartOrEndProjection = index == 1 || index == lines.lastIndex
         if (distanceApprox != null && distanceApprox !in distanceRange && !isStartOrEndProjection) {

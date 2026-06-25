@@ -81,15 +81,14 @@ constructor(val switchStructureDao: SwitchStructureDao, val geometryDao: Geometr
         }
 
         fun save(): GeometryPlan {
-            val builtAlignments =
-                alignments.map { build ->
-                    createGeometryAlignment(
-                        alignmentName = build.name,
-                        basePoint = DEFAULT_BASE_POINT + build.firstPoint,
-                        incrementPoints = build.incrementPoints,
-                        switchData = build.switchData,
-                    )
-                }
+            val builtAlignments = alignments.map { build ->
+                createGeometryAlignment(
+                    alignmentName = build.name,
+                    basePoint = DEFAULT_BASE_POINT + build.firstPoint,
+                    incrementPoints = build.incrementPoints,
+                    switchData = build.switchData,
+                )
+            }
             return saveAndRefetchGeometryPlan(
                 plan(
                     trackNumber,

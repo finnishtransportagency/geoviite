@@ -43,12 +43,11 @@ class TransactionConfigurationIT @Autowired constructor(val transactionTestServi
 
     @Test
     fun transactionSeesOwnChanges() {
-        val allValues =
-            transactionTestService.run {
-                insert("test 1")
-                insert("test 2")
-                fetchAll()
-            }
+        val allValues = transactionTestService.run {
+            insert("test 1")
+            insert("test 2")
+            fetchAll()
+        }
         assertEquals(allValues, listOf(1 to "test 1", 2 to "test 2"))
     }
 
