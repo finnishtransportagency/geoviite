@@ -35,13 +35,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 

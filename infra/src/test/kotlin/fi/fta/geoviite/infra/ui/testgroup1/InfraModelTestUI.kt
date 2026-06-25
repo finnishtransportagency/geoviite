@@ -80,8 +80,9 @@ class InfraModelTestUI : SeleniumTest() {
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
 
-        val uploadedPlanRow =
-            infraModelRowsAfterUpload.getItemWhenMatches { r -> r.projectName == "TEST_Clothoid_and_parabola" }
+        val uploadedPlanRow = infraModelRowsAfterUpload.getItemWhenMatches { r ->
+            r.projectName == "TEST_Clothoid_and_parabola"
+        }
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.fileName)
 

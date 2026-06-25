@@ -37,10 +37,8 @@ import waitUntilNotExist
 @SpringBootTest
 class UserRoleTestUI
 @Autowired
-constructor(
-    private val trackNumberDao: LayoutTrackNumberDao,
-    private val layoutDesignDao: LayoutDesignDao,
-) : SeleniumTest() {
+constructor(private val trackNumberDao: LayoutTrackNumberDao, private val layoutDesignDao: LayoutDesignDao) :
+    SeleniumTest() {
     @BeforeEach
     fun beforeEach() {
         testDBService.clearAllTables()

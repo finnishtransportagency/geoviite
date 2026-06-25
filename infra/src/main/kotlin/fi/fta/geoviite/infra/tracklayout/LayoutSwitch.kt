@@ -55,8 +55,9 @@ data class LayoutSwitch(
     fun getJoint(location: AlignmentPoint<LocationTrackM>, delta: Double): LayoutSwitchJoint? =
         getJoint(Point(location.x, location.y), delta)
 
-    fun getJoint(location: Point, delta: Double): LayoutSwitchJoint? =
-        joints.find { j -> j.location.isSame(location, delta) }
+    fun getJoint(location: Point, delta: Double): LayoutSwitchJoint? = joints.find { j ->
+        j.location.isSame(location, delta)
+    }
 
     fun getJoint(number: JointNumber): LayoutSwitchJoint? = joints.find { j -> j.number == number }
 

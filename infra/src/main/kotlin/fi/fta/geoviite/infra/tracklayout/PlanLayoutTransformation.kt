@@ -277,14 +277,13 @@ fun toSegmentGeometryPoint(
     verticalCoordinateSystem: VerticalCoordinateSystem?,
 ): SegmentPoint {
     // Profile station values are alignment m-values calculated from given station-start
-    val heightValue =
-        verticalCoordinateSystem?.let { vcs ->
-            if (vcs == VerticalCoordinateSystem.N43) null
-            else
-                profile?.getHeightAt(LineM(alignmentStartStation + segmentStart + mValue))?.let { value ->
-                    transformHeightValue(value, point, heightTriangles, vcs)
-                }
-        }
+    val heightValue = verticalCoordinateSystem?.let { vcs ->
+        if (vcs == VerticalCoordinateSystem.N43) null
+        else
+            profile?.getHeightAt(LineM(alignmentStartStation + segmentStart + mValue))?.let { value ->
+                transformHeightValue(value, point, heightTriangles, vcs)
+            }
+    }
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment
     // station-start)
     val cantValue = cant?.getCantValue(segmentStart + mValue)

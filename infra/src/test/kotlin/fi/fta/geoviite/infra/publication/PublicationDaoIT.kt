@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -496,8 +496,6 @@ constructor(
 
     @Test
     fun `getPublications throws NoSuchEntityException for nonexistent publication id`() {
-        assertThrows(NoSuchEntityException::class.java) {
-            publicationDao.getPublications(setOf(IntId(-1)))
-        }
+        assertThrows(NoSuchEntityException::class.java) { publicationDao.getPublications(setOf(IntId(-1))) }
     }
 }

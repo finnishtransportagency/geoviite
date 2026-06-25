@@ -147,11 +147,11 @@ fun cutFromStart(
     val newEdges =
         geometry.edgesWithM.mapNotNull { (edge, range) ->
             if (cutPosition <= range.min)
-            // is fully included
-            edge
+                // is fully included
+                edge
             else if (cutPosition >= range.max)
-            // is fully excluded
-            null
+                // is fully excluded
+                null
             else {
                 // is partly included
                 // TODO GVT-3172 This is an actual M-type confusion
@@ -180,11 +180,11 @@ fun cutFromEnd(
     val newEdges =
         geometry.edgesWithM.mapNotNull { (edge, range) ->
             if (cutPosition <= range.min)
-            // is fully included
-            edge
+                // is fully included
+                edge
             else if (cutPosition >= range.max)
-            // is fully excluded
-            null
+                // is fully excluded
+                null
             else {
                 // is partly included
                 val newSegments = splitSegments(edge.segmentsWithM, cutPosition.castToDifferentM()).first
@@ -274,15 +274,14 @@ fun fittedSwitch(
     vararg matches: FittedSwitchJointMatch,
 ): FittedSwitch {
     val matchesByJointNumber = matches.groupBy({ match -> match.switchJoint.number }, { match -> match })
-    val fittedJoints =
-        matchesByJointNumber.map { (jointNumber, matches) ->
-            FittedSwitchJoint(
-                number = jointNumber,
-                location = switchStructure.getJointLocation(jointNumber) + jointTranslation,
-                locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
-                matches = matches,
-            )
-        }
+    val fittedJoints = matchesByJointNumber.map { (jointNumber, matches) ->
+        FittedSwitchJoint(
+            number = jointNumber,
+            location = switchStructure.getJointLocation(jointNumber) + jointTranslation,
+            locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED,
+            matches = matches,
+        )
+    }
     return FittedSwitch(asSwitchStructure(switchStructure), fittedJoints)
 }
 

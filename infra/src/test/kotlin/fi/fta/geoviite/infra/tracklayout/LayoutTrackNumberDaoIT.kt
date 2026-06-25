@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -25,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -369,10 +369,7 @@ constructor(
 
         assertEquals(
             listOf(existingMainAndNearby),
-            trackNumberDao.fetchVersionsNear(
-                mainOfficialContext.context,
-                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
-            ),
+            trackNumberDao.fetchVersionsNear(mainOfficialContext.context, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
         )
         assertEquals(
             listOf(existingMainButDistant),

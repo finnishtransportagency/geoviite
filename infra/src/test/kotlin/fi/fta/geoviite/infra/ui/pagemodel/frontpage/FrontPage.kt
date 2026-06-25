@@ -7,14 +7,14 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenClickable
-import org.openqa.selenium.By
-import org.openqa.selenium.support.pagefactory.ByChained
-import waitUntilExists
-import waitUntilNotExist
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import org.openqa.selenium.By
+import org.openqa.selenium.support.pagefactory.ByChained
+import waitUntilExists
+import waitUntilNotExist
 
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 

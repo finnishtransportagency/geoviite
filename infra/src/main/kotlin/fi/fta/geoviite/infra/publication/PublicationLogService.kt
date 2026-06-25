@@ -50,12 +50,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -550,11 +550,7 @@ constructor(
                 DISTANCE_CHANGE_THRESHOLD,
                 ::roundTo1Decimal,
                 PropKey("length"),
-                getLengthChangedRemarkOrNull(
-                    translation,
-                    trackNumberChanges.length.old,
-                    trackNumberChanges.length.new,
-                ),
+                getLengthChangedRemarkOrNull(translation, trackNumberChanges.length.old, trackNumberChanges.length.new),
             ),
             compareChange(
                 { !pointsAreSame(trackNumberChanges.startPoint.old, trackNumberChanges.startPoint.new) },
@@ -574,11 +570,7 @@ constructor(
                 trackNumberChanges.endPoint.new,
                 ::formatLocation,
                 PropKey("end-location"),
-                getPointMovedRemarkOrNull(
-                    translation,
-                    trackNumberChanges.endPoint.old,
-                    trackNumberChanges.endPoint.new,
-                ),
+                getPointMovedRemarkOrNull(translation, trackNumberChanges.endPoint.old, trackNumberChanges.endPoint.new),
             ),
             if (changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
@@ -860,8 +852,7 @@ constructor(
             compareChangeValues(
                 changes.rinfType,
                 { rinfType ->
-                    if (rinfType == null) null
-                    else translation.t("enum.OperationalPointRinfType.${rinfType.type.name}")
+                    if (rinfType == null) null else translation.t("enum.OperationalPointRinfType.${rinfType.type.name}")
                 },
                 PropKey("rinf-type"),
             ),
@@ -882,12 +873,7 @@ constructor(
                 ::formatLocation,
                 PropKey("location"),
                 remark =
-                    getPointMovedRemarkOrNull(
-                        translation,
-                        changes.location.old,
-                        changes.location.new,
-                        "moved-x-meters",
-                    ),
+                    getPointMovedRemarkOrNull(translation, changes.location.old, changes.location.new, "moved-x-meters"),
             ),
             compareChangeValues(changes.state, { it }, PropKey("state"), enumLocalizationKey = "OperationalPointState"),
         )
@@ -1097,11 +1083,7 @@ constructor(
         val publicationTrackNumberChanges =
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.TRACK_NUMBER)) {
                 mapOf()
-            } else
-                publicationDao.fetchPublicationTrackNumberChanges(
-                    publication.layoutBranch.branch,
-                    publication.id,
-                )
+            } else publicationDao.fetchPublicationTrackNumberChanges(publication.layoutBranch.branch, publication.id)
         val publicationKmPostChanges =
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.KM_POST)) mapOf()
             else publicationDao.fetchPublicationKmPostChanges(publication.id)

@@ -418,11 +418,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
         // Use km-posts to reset address calculation, as otherwise any change would change the geometry until the end
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(2), gkLocation = kmPostGkLocation(15.0, 0.0))).id
         val kmp2Id = mainDraftContext.save(kmPost(tnId, KmNumber(3), gkLocation = kmPostGkLocation(65.0, 0.0))).id
-        val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(tnId),
-                kmPosts = listOf(kmp1Id, kmp2Id),
-            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(tnId), kmPosts = listOf(kmp1Id, kmp2Id))
 
         api.trackNumberGeometry.get(tnOid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
@@ -550,11 +546,7 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(2), gkLocation = kmPostGkLocation(15.0, 0.0))).id
         val kmp2Id = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(65.0, 0.0))).id
 
-        val basePub =
-            testDBService.publish(
-                trackNumbers = listOf(tnId),
-                kmPosts = listOf(kmp1Id, kmp2Id),
-            )
+        val basePub = testDBService.publish(trackNumbers = listOf(tnId), kmPosts = listOf(kmp1Id, kmp2Id))
         api.trackNumberGeometry.get(tnOid).osoitevali!!.also { interval ->
             assertEquals("0001+0100.000", interval.alkuosoite)
             assertEquals("0004+0035.000", interval.loppuosoite)

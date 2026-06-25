@@ -83,10 +83,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -399,11 +399,7 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> saveOid(id: IntId<T>, branch: LayoutBranch, oid: Oid<T>) {
         when (T::class) {
             LayoutTrackNumber::class ->
-                trackNumberDao.insertExternalId(
-                    id as IntId<LayoutTrackNumber>,
-                    branch,
-                    oid as Oid<LayoutTrackNumber>,
-                )
+                trackNumberDao.insertExternalId(id as IntId<LayoutTrackNumber>, branch, oid as Oid<LayoutTrackNumber>)
             LocationTrack::class ->
                 locationTrackDao.insertExternalId(id as IntId<LocationTrack>, branch, oid as Oid<LocationTrack>)
             LayoutSwitch::class ->

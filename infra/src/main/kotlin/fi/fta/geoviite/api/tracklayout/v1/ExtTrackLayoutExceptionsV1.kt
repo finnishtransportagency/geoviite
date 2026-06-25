@@ -8,8 +8,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import org.springframework.http.HttpStatus
 import java.time.Instant
+import org.springframework.http.HttpStatus
 
 class ExtOidNotFoundExceptionV1(
     message: String,

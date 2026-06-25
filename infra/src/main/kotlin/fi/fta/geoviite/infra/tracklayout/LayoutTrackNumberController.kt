@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.FILENAME_DATE_FORMATTER
 import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
+import java.time.Instant
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -38,7 +39,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import java.time.Instant
 
 @GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(

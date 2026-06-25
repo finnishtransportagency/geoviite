@@ -101,13 +101,14 @@ class LayoutAlignmentDao(
             .recordStats()
             .build()
 
-    override fun cacheStats() = mapOf(
-        "layout-alignment-nodes" to nodesCache.stats(),
-        "layout-alignment-edges" to edgesCache.stats(),
-        "layout-alignment-location-track-geometry" to locationTrackGeometryCache.stats(),
-        "layout-alignment-reference-line-geometry" to referenceLineGeometryCache.stats(),
-        "layout-alignment-segment-geometry" to segmentGeometryCache.stats(),
-    )
+    override fun cacheStats() =
+        mapOf(
+            "layout-alignment-nodes" to nodesCache.stats(),
+            "layout-alignment-edges" to edgesCache.stats(),
+            "layout-alignment-location-track-geometry" to locationTrackGeometryCache.stats(),
+            "layout-alignment-reference-line-geometry" to referenceLineGeometryCache.stats(),
+            "layout-alignment-segment-geometry" to segmentGeometryCache.stats(),
+        )
 
     fun getNode(id: IntId<LayoutNode>): DbLayoutNode = requireNotNull(getNodes(listOf(id))[id])
 

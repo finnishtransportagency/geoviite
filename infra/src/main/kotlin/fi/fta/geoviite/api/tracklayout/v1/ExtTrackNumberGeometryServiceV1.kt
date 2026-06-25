@@ -124,9 +124,7 @@ constructor(
                     trackInterval =
                         // Address points are null for example in case when the user provided
                         // address filter is outside the track boundaries.
-                        filteredAddressPoints?.let { addressPoints ->
-                            toExtInterval(addressPoints, coordinateSystem)
-                        },
+                        filteredAddressPoints?.let { addressPoints -> toExtInterval(addressPoints, coordinateSystem) },
                 )
             }
     }

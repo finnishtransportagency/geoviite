@@ -28,6 +28,9 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
+import java.math.BigDecimal
+import kotlin.random.Random
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -36,9 +39,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.random.Random
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest

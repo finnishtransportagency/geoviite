@@ -13,10 +13,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import java.time.Instant
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
-import java.time.Instant
 
 data class CollectedChangeTimes(
     val layoutTrackNumber: Instant,

@@ -52,6 +52,7 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -63,7 +64,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -108,11 +108,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
 
         // Publication 1: track with plan-linked profile
-        val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         // Publication 2: empty publish — no changes to the track
         val publication2 = testDBService.publish()
@@ -220,11 +216,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
                 locationTrack(trackNumberId),
                 trackGeometryOfElements(plan.alignments[0].elements),
             )
-        val publication =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val response = api.locationTrackProfile.get(oid)
         assertProfileResponseTopLevel(response, oid, publication.uuid)
@@ -307,10 +299,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
@@ -338,10 +327,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
@@ -368,10 +354,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
@@ -411,10 +394,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val addressRange = api.locationTrackProfile.get(oid).osoitevali
         assertEquals("0000+0000.000", addressRange.alku, "Address range should start at track start")
@@ -489,10 +469,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
                     segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 0.0),
                 ),
             )
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         // Plan1 curve at station 300 → track address 0+300. Plan2 curve at station 300 → track address 800+300=1100.
         val pviAddresses =
@@ -582,10 +559,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
                     segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 0.0),
                 ),
             )
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         // Plan1 curve at station 490 → track address ~490. Plan2 curve at station 510 → track address ~510.
         // Both curves describe overlapping profile near the connection point.
@@ -646,10 +620,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
             )
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(refLineSegment))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val addressRange = api.locationTrackProfile.get(oid).osoitevali
         assertNotNull(addressRange.alku, "Address range start should be present for existing track")
@@ -690,11 +661,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements1)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements1))
-        val publication1 =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         // Publication 2: re-link the same track to a different plan with modified profile
         val plan2 =
@@ -873,10 +840,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
         val location = pviPoint.taite.sijainti!!
@@ -936,10 +900,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         val trackNumberId = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
         val pviLayout = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Pvi)

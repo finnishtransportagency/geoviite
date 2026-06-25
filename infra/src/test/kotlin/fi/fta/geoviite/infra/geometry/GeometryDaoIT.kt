@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
+import kotlin.test.assertContains
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -21,8 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertNotNull
 
 const val TEST_NAME_PREFIX = "GEOM_DAO_IT_"
 
@@ -250,8 +250,6 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
 
     @Test
     fun `getPlanFiles throws NoSuchEntityException for nonexistent plan id`() {
-        assertThrows(NoSuchEntityException::class.java) {
-            geometryDao.getPlanFiles(listOf(IntId(-1)))
-        }
+        assertThrows(NoSuchEntityException::class.java) { geometryDao.getPlanFiles(listOf(IntId(-1))) }
     }
 }

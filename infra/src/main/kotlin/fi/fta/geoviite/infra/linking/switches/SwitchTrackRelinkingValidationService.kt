@@ -156,8 +156,9 @@ constructor(
 
 // some validation logic depends on draftness state, so we need to pre-draft tracks for online
 // validation
-private fun draft(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>) =
-    tracks.map { (track, geometry) -> asDraft(track.branch, track) to geometry }
+private fun draft(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>) = tracks.map { (track, geometry) ->
+    asDraft(track.branch, track) to geometry
+}
 
 private fun currentSwitchLocationsAsSwitchPlacingRequests(
     switchIds: List<IntId<LayoutSwitch>>,

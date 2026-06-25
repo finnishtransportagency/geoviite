@@ -1231,18 +1231,17 @@ fun assertJointsOnSequentialEdges(
     joints: List<Int>,
 ) {
     val (locationTrack, geometry) = assertTrackAndGeometry(tracks, locationTrackId)
-    val nodeIndexes =
-        joints.map { joint ->
-            val nodeIndex =
-                geometry.trackSwitchLinks.indexOfFirst { link ->
-                    link.switchId == switchId && link.jointNumber.intValue == joint
-                }
-            assertTrue(
-                nodeIndex != -1,
-                "Location track ${locationTrack.name} nodes do not contain switch $switchId with joint $joint",
-            )
-            nodeIndex
-        }
+    val nodeIndexes = joints.map { joint ->
+        val nodeIndex =
+            geometry.trackSwitchLinks.indexOfFirst { link ->
+                link.switchId == switchId && link.jointNumber.intValue == joint
+            }
+        assertTrue(
+            nodeIndex != -1,
+            "Location track ${locationTrack.name} nodes do not contain switch $switchId with joint $joint",
+        )
+        nodeIndex
+    }
     val isContinuous = nodeIndexes.zipWithNext { index1, index2 -> index1 + 1 == index2 }.all { it }
     assertTrue(isContinuous, "Joints $joints are not in continuous edges, node indexes: $nodeIndexes")
 }

@@ -1,5 +1,8 @@
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.browser
+import java.time.Duration
+import java.time.Instant
+import java.util.regex.Pattern
 import org.openqa.selenium.By
 import org.openqa.selenium.NoSuchElementException
 import org.openqa.selenium.StaleElementReferenceException
@@ -18,9 +21,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLoca
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.time.Duration
-import java.time.Instant
-import java.util.regex.Pattern
 
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
 

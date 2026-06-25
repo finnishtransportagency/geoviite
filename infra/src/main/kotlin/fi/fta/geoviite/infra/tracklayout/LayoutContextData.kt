@@ -95,14 +95,13 @@ sealed class LayoutContextData<T : LayoutAsset<T>> : LayoutContextAware<T> {
     open val originBranch: LayoutBranch?
         get() = null
 
-    protected fun requireStoredRowVersion() =
-        layoutAssetId.let { current ->
-            if (current is StoredAssetId) current.version
-            else
-                error(
-                    "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
-                )
-        }
+    protected fun requireStoredRowVersion() = layoutAssetId.let { current ->
+        if (current is StoredAssetId) current.version
+        else
+            error(
+                "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
+            )
+    }
 
     companion object {
         fun <T : LayoutAsset<T>> new(context: LayoutContext, id: IntId<T>?): LayoutContextData<T> =

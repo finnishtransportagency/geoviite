@@ -11,8 +11,9 @@ data class MultiPoint(val points: List<Point>) {
         require(points.isNotEmpty()) { "Cannot create empty ${MultiPoint::class.simpleName}" }
     }
 
-    fun isWithinDistance(target: IPoint, distance: Double): Boolean =
-        points.any { p -> lineLength(target, p) <= distance }
+    fun isWithinDistance(target: IPoint, distance: Double): Boolean = points.any { p ->
+        lineLength(target, p) <= distance
+    }
 
     fun toWkt(): String = create2DMultiPoint(points)
 }

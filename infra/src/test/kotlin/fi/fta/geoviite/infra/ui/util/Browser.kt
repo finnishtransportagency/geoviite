@@ -1,6 +1,13 @@
 package fi.fta.geoviite.infra.ui.util
 
 import defaultWait
+import java.io.File
+import java.net.URL
+import java.time.Duration
+import java.time.Instant
+import java.util.*
+import java.util.concurrent.atomic.AtomicReference
+import java.util.logging.Level
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
 import org.openqa.selenium.By
@@ -22,13 +29,6 @@ import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.net.URL
-import java.time.Duration
-import java.time.Instant
-import java.util.*
-import java.util.concurrent.atomic.AtomicReference
-import java.util.logging.Level
 
 const val DEV_DEBUG = false
 const val SHOW_BROWSER = false // NOTE! Do not push "true" to remote repository

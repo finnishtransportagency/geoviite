@@ -23,12 +23,9 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 
     fun doGet(url: String, expectedStatus: HttpStatus, dispatcherType: DispatcherType): String {
         return doGet(
-            MockMvcRequestBuilders.get(url)
-                .with { request ->
-                    request.apply { this.dispatcherType = dispatcherType }
-                },
+            MockMvcRequestBuilders.get(url).with { request -> request.apply { this.dispatcherType = dispatcherType } },
             expectedStatus,
-            )
+        )
     }
 
     fun doGet(requestBuilder: RequestBuilder, expectedStatus: HttpStatus): String {

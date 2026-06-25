@@ -40,10 +40,8 @@ class AuthorizationDao(
             .recordStats()
             .build()
 
-    override fun cacheStats() = mapOf(
-        "authorization-role-code" to roleCodeCache.stats(),
-        "authorization-user-group" to userGroupCache.stats(),
-    )
+    override fun cacheStats() =
+        mapOf("authorization-role-code" to roleCodeCache.stats(), "authorization-user-group" to userGroupCache.stats())
 
     fun getRolesByRoleCodes(roleCodes: List<AuthCode>): List<Role> {
         return roleCodes.mapNotNull { roleCode -> getRoleByRoleCode(roleCode = roleCode) }

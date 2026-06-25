@@ -54,11 +54,13 @@ private fun <M : AlignmentM<M>> findDiffAddresses(
     return differences
 }
 
-private fun findFirstIndexAfterKm(list: List<AddressPoint<*>>, kmNumber: KmNumber) =
-    list.indexOfFirst { point -> point.address.kmNumber > kmNumber }
+private fun findFirstIndexAfterKm(list: List<AddressPoint<*>>, kmNumber: KmNumber) = list.indexOfFirst { point ->
+    point.address.kmNumber > kmNumber
+}
 
-private fun findFirstIndexForKm(list: List<AddressPoint<*>>, kmNumber: KmNumber?) =
-    kmNumber?.let { km -> list.indexOfFirst { point -> point.address.kmNumber == km } }
+private fun findFirstIndexForKm(list: List<AddressPoint<*>>, kmNumber: KmNumber?) = kmNumber?.let { km ->
+    list.indexOfFirst { point -> point.address.kmNumber == km }
+}
 
 data class AddressChanges(
     val changedKmNumbers: Set<KmNumber>,

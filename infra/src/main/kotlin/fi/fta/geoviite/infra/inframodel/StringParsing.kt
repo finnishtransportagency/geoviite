@@ -30,8 +30,9 @@ fun parseInt(name: String, value: String): Int = parseMandatory(name, value, Str
 
 fun splitStringOnSpaces(string: String): List<String> = string.trim().split(Regex(FIELD_DATA_SEPARATOR))
 
-inline fun <reified T : Enum<T>> parseOptionalEnum(name: String, value: String?): T? =
-    value?.let { v -> if (isMissingEnum(v)) null else parseEnum<T>(name, v) }
+inline fun <reified T : Enum<T>> parseOptionalEnum(name: String, value: String?): T? = value?.let { v ->
+    if (isMissingEnum(v)) null else parseEnum<T>(name, v)
+}
 
 inline fun <reified T : Enum<T>> parseEnum(name: String, value: String): T {
     return parseMandatory(name, value.uppercase(), ::enumValueOf)

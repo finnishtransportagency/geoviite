@@ -24,8 +24,7 @@ class CacheHealthIndicatorTest {
         assertNotNull(details["foo"]) { "expected 'foo' cache in health details" }
         assertNotNull(details["bar"]) { "expected 'bar' cache in health details" }
 
-        @Suppress("UNCHECKED_CAST")
-        val fooStats = details["foo"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST") val fooStats = details["foo"] as Map<String, Any>
         assertNotNull(fooStats["hitRate"])
         assertNotNull(fooStats["loadCount"])
         assertNotNull(fooStats["evictionCount"])
@@ -46,8 +45,7 @@ class CacheHealthIndicatorTest {
         assertNotNull(details["spring-cache"]) { "expected 'spring-cache' in health details" }
         assertNotNull(details["manual-cache"]) { "expected 'manual-cache' in health details" }
 
-        @Suppress("UNCHECKED_CAST")
-        val manualStats = details["manual-cache"] as Map<String, Any>
+        @Suppress("UNCHECKED_CAST") val manualStats = details["manual-cache"] as Map<String, Any>
         assertNotNull(manualStats["hitRate"])
         assertNotNull(manualStats["loadCount"])
         assertNotNull(manualStats["evictionCount"])

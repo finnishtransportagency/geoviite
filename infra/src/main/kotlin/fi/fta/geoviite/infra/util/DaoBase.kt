@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 enum class FetchType {
     SINGLE,

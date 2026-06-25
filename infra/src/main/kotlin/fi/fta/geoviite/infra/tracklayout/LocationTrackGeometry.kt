@@ -692,11 +692,13 @@ sealed class LayoutNode {
 
     fun get(port: NodePortType) = if (port == A) portA else portB
 
-    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean =
-        ports.any { port -> (port as? SwitchLink)?.id == switchId }
+    fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = ports.any { port ->
+        (port as? SwitchLink)?.id == switchId
+    }
 
-    fun containsJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean =
-        ports.any { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
+    fun containsJoint(switchId: IntId<LayoutSwitch>, joint: JointNumber): Boolean = ports.any { port ->
+        (port as? SwitchLink)?.matches(switchId, joint) ?: false
+    }
 
     fun containsBoundary(boundary: TrackBoundary): Boolean = ports.any { port -> port == boundary }
 
@@ -1101,12 +1103,12 @@ private fun replaceEdges(
     edgesToReplace: List<LayoutEdge>,
     newEdges: List<LayoutEdge>,
 ): List<LayoutEdge> {
-    val replaceStartIndex =
-        originalEdges.indexOfFirst { originalEdge ->
-            originalEdge.startNode.node == edgesToReplace.first().startNode.node
-        }
-    val replaceEndIndex =
-        originalEdges.indexOfLast { originalEdge -> originalEdge.endNode.node == edgesToReplace.last().endNode.node }
+    val replaceStartIndex = originalEdges.indexOfFirst { originalEdge ->
+        originalEdge.startNode.node == edgesToReplace.first().startNode.node
+    }
+    val replaceEndIndex = originalEdges.indexOfLast { originalEdge ->
+        originalEdge.endNode.node == edgesToReplace.last().endNode.node
+    }
     require(replaceStartIndex != -1 && replaceEndIndex != -1) { "Cannot replace non existing edges" }
     val newAllEdges =
         originalEdges.subList(0, replaceStartIndex) +

@@ -513,13 +513,12 @@ inline fun <reified T> verifyNotNull(
         "Value was null: type=${T::class.simpleName} column1=$column1 column2=$column2"
     }
 
-inline fun <reified T> verifyType(value: Any?): T =
-    value.let { v ->
-        require(v is T) {
-            "Value is of unexpected type: expected=${T::class.simpleName} actual=${v?.javaClass?.simpleName} value=${v}"
-        }
-        v
+inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
+    require(v is T) {
+        "Value is of unexpected type: expected=${T::class.simpleName} actual=${v?.javaClass?.simpleName} value=${v}"
     }
+    v
+}
 
 fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
     idName: String,

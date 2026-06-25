@@ -105,11 +105,7 @@ constructor(
 
         val frontEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val lengtheningGeometry = trackGeometry(combineEdges(listOf(frontEdge) + sw1Straight))
-        val lengtheningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                lengtheningGeometry,
-            )
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
 
         val edge12 =
             edge(
@@ -120,11 +116,7 @@ constructor(
         val trailingEdge = edge(listOf(segment(Point(sw3End.x, sw3End.y), Point(sw3End.x + 10.0, sw3End.y))))
         val shorteningGeometry =
             trackGeometry(combineEdges(listOf(edge12) + sw2Straight + betweenSwitches + sw3Straight + trailingEdge))
-        val shorteningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                shorteningGeometry,
-            )
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
 
         val lengtheningEdgeCount =
             locationTrackService
@@ -185,11 +177,7 @@ constructor(
                     startOuterSwitch = switchLinkYV(switch1, 2),
                 )
             )
-        val lengtheningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                lengtheningGeometry,
-            )
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
 
         val trackBoundaryMoveId =
             trackBoundaryMoveService.saveTrackBoundaryMove(
@@ -236,11 +224,7 @@ constructor(
 
         val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val lengtheningGeometry = trackGeometry(combineEdges(listOf(preEdge) + sw1Straight))
-        val lengtheningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                lengtheningGeometry,
-            )
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
 
         val gap1to2 =
             edge(
@@ -257,11 +241,7 @@ constructor(
                 )
             )
 
-        val shorteningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                shorteningGeometry,
-            )
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
 
         val lengtheningEdgeCount =
             locationTrackService
@@ -303,11 +283,7 @@ constructor(
 
         // initially topologically disconnected tracks
         val lengtheningGeometry = trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))))
-        val lengtheningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                lengtheningGeometry,
-            )
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
         val sw1End = sw1Straight.last().lastSegmentEnd
         val shorteningGeometry =
             trackGeometry(
@@ -315,11 +291,7 @@ constructor(
                     sw1Straight + edge(listOf(segment(Point(sw1End.x, sw1End.y), Point(sw1End.x + 10.0, sw1End.y))))
                 )
             )
-        val shorteningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                shorteningGeometry,
-            )
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
         trackBoundaryMoveService.saveTrackBoundaryMove(
             LayoutBranch.Companion.main,
             shorteningTrackId = shorteningTrack.id,
@@ -387,16 +359,7 @@ constructor(
                 )
             )
         val lengtheningGeometry =
-            trackGeometry(
-                edge(
-                    listOf(
-                        segment(
-                            Point(sw1End.x + 10.0, sw1End.y),
-                            Point(sw1End.x + 20.0, sw1End.y),
-                        )
-                    )
-                )
-            )
+            trackGeometry(edge(listOf(segment(Point(sw1End.x + 10.0, sw1End.y), Point(sw1End.x + 20.0, sw1End.y)))))
 
         val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
         val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
@@ -1102,10 +1065,7 @@ constructor(
 
         val preEdge = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val lengtheningTrack =
-            testDBService.save(
-                locationTrack(trackNumber),
-                trackGeometry(combineEdges(listOf(preEdge) + sw1Straight)),
-            )
+            testDBService.save(locationTrack(trackNumber), trackGeometry(combineEdges(listOf(preEdge) + sw1Straight)))
 
         val shorteningGeometry =
             trackGeometry(
@@ -1115,12 +1075,7 @@ constructor(
                     endOuterSwitch = switchLinkYV(switch2, 1),
                 ),
                 edge(
-                    listOf(
-                        segment(
-                            Point(sw1End.x + 10.0, sw1End.y),
-                            Point(sw1End.x + 20.0, sw1End.y),
-                        )
-                    ),
+                    listOf(segment(Point(sw1End.x + 10.0, sw1End.y), Point(sw1End.x + 20.0, sw1End.y))),
                     startInnerSwitch = switchLinkYV(switch2, 1),
                     endInnerSwitch = switchLinkYV(switch2, 2),
                 ),

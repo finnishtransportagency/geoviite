@@ -279,25 +279,24 @@ fun validateSwitches(
                 } else null
             }
             .toSet()
-    val duplicateErrors =
-        duplicateNames.map { name -> SwitchDefinitionError("duplicate-name", OBSERVATION_MAJOR, name) }
-    val switchErrors =
-        switches.flatMap { switch ->
-            validateSwitch(
-                switch,
-                switch.switchStructureId?.let(switchStructures::get),
-                alignments.mapNotNull { a -> collectAlignmentSwitchJoints(switch.id, a) },
-            )
-        }
+    val duplicateErrors = duplicateNames.map { name ->
+        SwitchDefinitionError("duplicate-name", OBSERVATION_MAJOR, name)
+    }
+    val switchErrors = switches.flatMap { switch ->
+        validateSwitch(
+            switch,
+            switch.switchStructureId?.let(switchStructures::get),
+            alignments.mapNotNull { a -> collectAlignmentSwitchJoints(switch.id, a) },
+        )
+    }
     return duplicateErrors + switchErrors
 }
 
 fun validateKmPosts(kmPosts: List<GeometryKmPost>): List<GeometryValidationIssue> {
-    val singularKmPostsValidations =
-        kmPosts.flatMapIndexed { i, p ->
-            // Don't validate 1st km-post as it's just a 0-point with different data
-            if (i > 0) validateKmPost(p) else listOf()
-        }
+    val singularKmPostsValidations = kmPosts.flatMapIndexed { i, p ->
+        // Don't validate 1st km-post as it's just a 0-point with different data
+        if (i > 0) validateKmPost(p) else listOf()
+    }
 
     return singularKmPostsValidations + validateKmPostCollection(kmPosts)
 }
@@ -336,8 +335,9 @@ fun validateKmPost(post: GeometryKmPost) =
     )
 
 fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<GeometryValidationIssue> {
-    val referenceLineAlignments =
-        alignments.filter { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }
+    val referenceLineAlignments = alignments.filter { alignment ->
+        alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE
+    }
     return listOfNotNull(
         validate(referenceLineAlignments.isNotEmpty()) {
             CollectionIssue("no-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
@@ -809,13 +809,12 @@ fun validateSwitchGeometry(switch: GeometrySwitch, switchStructure: SwitchStruct
             validate(joints.size <= 1) { SwitchDefinitionError("location-difference", OBSERVATION_MAJOR, switch.name) }
         )
     } else {
-        val locationPairs =
-            joints.mapNotNull { joint ->
-                switchStructure.joints
-                    .find { structureJoint -> structureJoint.number == joint.number }
-                    ?.let { structureJoint -> transformSwitchPoint(positionTransformation, structureJoint.location) }
-                    ?.let { calculatedLocation -> joint.location to calculatedLocation }
-            }
+        val locationPairs = joints.mapNotNull { joint ->
+            switchStructure.joints
+                .find { structureJoint -> structureJoint.number == joint.number }
+                ?.let { structureJoint -> transformSwitchPoint(positionTransformation, structureJoint.location) }
+                ?.let { calculatedLocation -> joint.location to calculatedLocation }
+        }
         listOfNotNull(
             validate(locationPairs.all { (loc, calc) -> loc.isSame(calc, ACCURATE_JOINT_LOCATION_DELTA) }) {
                 val isIncorrect = locationPairs.any { (loc, calc) -> !loc.isSame(calc, JOINT_LOCATION_DELTA) }

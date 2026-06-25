@@ -185,10 +185,9 @@ class PublicationValidationTest {
     @Test
     fun switchValidationCatchesLocationMismatch() {
         val (switch, alignments) = switchAndMatchingAlignments(IntId(0), structure, draft = true)
-        val broken =
-            alignments.mapIndexed { index, (track, geometry) ->
-                if (index == 0) track to offsetGeometry(geometry, Point(5.0, 0.0)) else track to geometry
-            }
+        val broken = alignments.mapIndexed { index, (track, geometry) ->
+            if (index == 0) track to offsetGeometry(geometry, Point(5.0, 0.0)) else track to geometry
+        }
         assertSwitchSegmentStructureError(
             hasError = false,
             switch = switch,
@@ -332,9 +331,7 @@ class PublicationValidationTest {
             validateAddressPoints(trackNumber(draft = true), locationTrack(trackNumberId = IntId(1), draft = true), "")
             // Alignment at slight angle to reference line -> should be OK
             {
-                context.getAddressPoints(
-                    referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0)))
-                )
+                context.getAddressPoints(referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0))))
             },
         )
     }
@@ -349,15 +346,15 @@ class PublicationValidationTest {
         val geocode = {
             context.getAddressPoints(
                 referenceLineGeometry(
-                        segment(
-                            Point(0.0, 10.0),
-                            Point(0.0, 20.0),
-                            Point(10.0, 40.0),
-                            Point(30.0, 60.0),
-                            Point(50.0, 70.0), // Over 45 degree diff to reference line -> should fail
-                            Point(70.0, 90.0),
-                        )
+                    segment(
+                        Point(0.0, 10.0),
+                        Point(0.0, 20.0),
+                        Point(10.0, 40.0),
+                        Point(30.0, 60.0),
+                        Point(50.0, 70.0), // Over 45 degree diff to reference line -> should fail
+                        Point(70.0, 90.0),
                     )
+                )
             )
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.stretched-meters")
@@ -374,8 +371,8 @@ class PublicationValidationTest {
         val geocode = {
             context.getAddressPoints(
                 referenceLineGeometry(
-                        segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0))
-                    )
+                    segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0))
+                )
             )
         }
         assertSingleAddressPointErrorRangeDescription(geocode, "0000+0000..0000+0050, 0000+0060..0000+0110")
@@ -395,9 +392,7 @@ class PublicationValidationTest {
             )
         val geocode = {
             //  alignment goes straight up at offset -> should get non-continuous points
-            context.getAddressPoints(
-                referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0)))
-            )
+            context.getAddressPoints(referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0))))
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
     }
@@ -409,11 +404,7 @@ class PublicationValidationTest {
 
         val sharpAngleTrack = to3DMPoints<SegmentM>(listOf(Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 0.0)))
 
-        val geocode = {
-            context.getAddressPoints(
-                referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack)))
-            )
-        }
+        val geocode = { context.getAddressPoints(referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack)))) }
 
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
         // the correct error range is hard to calculate because it depends on how lines get
@@ -1490,13 +1481,7 @@ class PublicationValidationTest {
         trackNumber: LayoutTrackNumber,
         locationTrack: LocationTrack,
         error: String,
-    ) =
-        assertTrackNumberReferenceError(
-            hasError,
-            trackNumber,
-            error,
-            locationTracks = listOf(locationTrack),
-        )
+    ) = assertTrackNumberReferenceError(hasError, trackNumber, error, locationTracks = listOf(locationTrack))
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,

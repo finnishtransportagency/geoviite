@@ -30,6 +30,10 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.someTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import java.math.BigDecimal
+import java.util.*
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -39,10 +43,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 

@@ -75,16 +75,16 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -213,10 +213,7 @@ constructor(
         val thisAndPreviousPublication =
             publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val changes =
-            publicationDao.fetchPublicationTrackNumberChanges(
-                LayoutBranch.main,
-                thisAndPreviousPublication.first().id,
-            )
+            publicationDao.fetchPublicationTrackNumberChanges(LayoutBranch.main, thisAndPreviousPublication.first().id)
 
         val diff =
             publicationLogService.diffTrackNumber(
@@ -305,10 +302,7 @@ constructor(
         val thisAndPreviousPublication =
             publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val changes =
-            publicationDao.fetchPublicationTrackNumberChanges(
-                LayoutBranch.main,
-                thisAndPreviousPublication.first().id,
-            )
+            publicationDao.fetchPublicationTrackNumberChanges(LayoutBranch.main, thisAndPreviousPublication.first().id)
         val updatedTrackNumber = trackNumberService.getOrThrow(MainLayoutContext.official, idOfUpdated)
 
         val diff =
@@ -539,13 +533,7 @@ constructor(
                 MainLayoutContext.draft,
                 kmPostService.insertKmPost(
                     LayoutBranch.main,
-                    LayoutKmPostSaveRequest(
-                        KmNumber(0),
-                        LayoutState.IN_USE,
-                        trackNumberId,
-                        gkLocation,
-                        sourceId = null,
-                    ),
+                    LayoutKmPostSaveRequest(KmNumber(0), LayoutState.IN_USE, trackNumberId, gkLocation, sourceId = null),
                 ),
             )
         publish(
@@ -1445,13 +1433,7 @@ constructor(
                     uicCode = UicCode("321"),
                     location = Point(25.0, 20.0),
                     polygon =
-                        Polygon(
-                            Point(0.0, 0.0),
-                            Point(40.0, 0.0),
-                            Point(40.0, 40.0),
-                            Point(0.0, 40.0),
-                            Point(0.0, 0.0),
-                        ),
+                        Polygon(Point(0.0, 0.0), Point(40.0, 0.0), Point(40.0, 40.0), Point(0.0, 40.0), Point(0.0, 0.0)),
                 )
         )
         publish(publicationService, operationalPoints = listOf(operationalPointId))
@@ -1477,7 +1459,11 @@ constructor(
                     null,
                 ),
                 PublicationChange(PropKey("uic-code"), ChangeValue(UicCode("123"), UicCode("321")), null),
-                PublicationChange(PropKey("rinf-type"), ChangeValue("Asema (koodi 10)", "Asema (pieni) (koodi 20)"), null),
+                PublicationChange(
+                    PropKey("rinf-type"),
+                    ChangeValue("Asema (koodi 10)", "Asema (pieni) (koodi 20)"),
+                    null,
+                ),
                 PublicationChange(PropKey("polygon"), ChangeValue(null, null), remark = "Alue muuttunut"),
                 PublicationChange(
                     PropKey("location"),
@@ -1563,19 +1549,14 @@ constructor(
             )
             assertEquals(listOf(), indirectChanges)
         }
-        publicationDao
-            .fetchPublicationTrackNumberChanges(
-                LayoutBranch.main,
-                originalPublication,
-            )
-            .let { changes ->
-                assertEquals(1, changes.size)
-                val change = changes[trackNumber.id]!!
-                assertEquals(null, change.trackNumber.old)
-                assertEquals("original", change.trackNumber.new.toString())
-                assertEquals(null, change.startPoint.old)
-                assertEquals(Point(0.0, 0.0), change.startPoint.new)
-            }
+        publicationDao.fetchPublicationTrackNumberChanges(LayoutBranch.main, originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[trackNumber.id]!!
+            assertEquals(null, change.trackNumber.old)
+            assertEquals("original", change.trackNumber.new.toString())
+            assertEquals(null, change.startPoint.old)
+            assertEquals(Point(0.0, 0.0), change.startPoint.new)
+        }
         publicationDao.fetchPublishedLocationTracks(setOf(originalPublication)).getValue(originalPublication).let {
             (directChanges, indirectChanges) ->
             assertEquals(

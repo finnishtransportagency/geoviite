@@ -59,10 +59,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
             }
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = tracks.map { (id, _) -> id },
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = tracks.map { (id, _) -> id })
 
         val newestButEmptyPublication = testDBService.publish()
         val response = api.locationTrackCollection.get()
@@ -187,11 +184,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val (trackId, trackOid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-        val publication =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+        val publication = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response =
@@ -231,10 +224,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                 trackGeometryOfSegments(segment),
             )
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(deletedTrackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(deletedTrackId))
 
         val response = api.locationTrackCollection.get()
         assertEquals(0, response.sijaintiraiteet.size)
@@ -263,10 +253,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
                     trackOid to trackId
                 }
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = tracks.map { (_, id) -> id },
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = tracks.map { (_, id) -> id })
 
         val response = api.locationTrackCollection.get()
         assertEquals(tracks.size, response.sijaintiraiteet.size)
@@ -415,10 +402,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
             }
 
         val initialPublication =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = tracks.map { (id, _) -> id },
-            )
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = tracks.map { (id, _) -> id })
 
         val modifiedTrackDescription = "this is a modified track from publicationUuid=${initialPublication.uuid}"
         tracks.forEach { (id, _) ->
@@ -456,10 +440,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val trackOid = mainDraftContext.generateOid(trackId)
 
         val publicationStart =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val modifiedDescription = "previous track layout version uuid=${publicationStart.uuid}"
         locationTrackService.getWithGeometry(trackVersion).let { (track, geometry) ->
@@ -502,10 +483,7 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
         val trackOid = mainDraftContext.generateOid(trackId)
 
         val publicationStart =
-            testDBService.publish(
-                trackNumbers = listOf(trackNumberId),
-                locationTracks = listOf(trackId),
-            )
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val modifiedDescription = "previous track layout version uuid=${publicationStart.uuid}"
         locationTrackService.getWithGeometry(trackVersion).let { (track, geometry) ->

@@ -28,7 +28,6 @@ const val CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK = "kkj-tm35fin-triangles"
 const val CACHE_GEOCODING_CONTEXTS = "geocoding-contexts"
 const val CACHE_PLAN_GEOCODING_CONTEXTS = "plan-geocoding-contexts"
 
-
 val planCacheDuration: Duration = Duration.ofMinutes(60)
 val layoutCacheDuration: Duration = Duration.ofMinutes(60)
 val staticDataCacheDuration: Duration = Duration.ofHours(24)

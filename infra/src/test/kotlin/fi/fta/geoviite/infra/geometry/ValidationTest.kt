@@ -137,8 +137,9 @@ class ValidationTest {
         val angle = PI / 4
         val switch = createSwitch(yvStructure, location, angle)
         val alignments = createSwitchAlignments(switch, yvStructure)
-        val alignmentSwitches =
-            alignments.mapNotNull { alignment -> collectAlignmentSwitchJoints(switch.id, alignment) }
+        val alignmentSwitches = alignments.mapNotNull { alignment ->
+            collectAlignmentSwitchJoints(switch.id, alignment)
+        }
         assertEquals(listOf<GeometryValidationIssue>(), validateSwitch(switch, yvStructure, alignmentSwitches))
     }
 
@@ -160,8 +161,9 @@ class ValidationTest {
                     }
             )
         val alignments = createSwitchAlignments(invalidSwitch, yvStructure)
-        val alignmentSwitches =
-            alignments.mapNotNull { alignment -> collectAlignmentSwitchJoints(invalidSwitch.id, alignment) }
+        val alignmentSwitches = alignments.mapNotNull { alignment ->
+            collectAlignmentSwitchJoints(invalidSwitch.id, alignment)
+        }
         assertGeometryValidationIssues(
             validateSwitch(invalidSwitch, yvStructure, alignmentSwitches),
             listOf("$VALIDATION_SWITCH.incorrect-joint-locations"),
@@ -186,8 +188,9 @@ class ValidationTest {
                     }
             )
         val alignments = createSwitchAlignments(inaccurateSwitch, yvStructure)
-        val alignmentSwitches =
-            alignments.mapNotNull { alignment -> collectAlignmentSwitchJoints(inaccurateSwitch.id, alignment) }
+        val alignmentSwitches = alignments.mapNotNull { alignment ->
+            collectAlignmentSwitchJoints(inaccurateSwitch.id, alignment)
+        }
         assertGeometryValidationIssues(
             validateSwitch(inaccurateSwitch, yvStructure, alignmentSwitches),
             listOf("$VALIDATION_SWITCH.inaccurate-joint-locations"),

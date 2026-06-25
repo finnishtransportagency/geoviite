@@ -60,9 +60,9 @@ import fi.fta.geoviite.infra.tracklayout.collectSplitPoints
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 

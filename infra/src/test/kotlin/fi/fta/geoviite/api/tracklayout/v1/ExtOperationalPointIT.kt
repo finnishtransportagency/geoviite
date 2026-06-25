@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.random.Random
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -36,7 +37,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import kotlin.random.Random
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -451,10 +451,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
             )
 
         val trackPublication =
-            testDBService.publish(
-                locationTracks = listOf(trackId),
-                trackNumbers = listOf(trackNumberId),
-            )
+            testDBService.publish(locationTracks = listOf(trackId), trackNumbers = listOf(trackNumberId))
 
         // Operational point should show as changed again
         val trackModification = api.operationalPoint.getModifiedSince(opOid, switchPublication.uuid)

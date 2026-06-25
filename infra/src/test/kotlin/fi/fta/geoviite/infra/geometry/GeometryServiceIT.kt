@@ -30,6 +30,8 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
+import java.math.BigDecimal
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -39,8 +41,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -175,12 +175,7 @@ constructor(
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         val trackNumberId =
-            layoutTrackNumberDao
-                .save(
-                    trackNumber(trackNumber.number, draft = true, geometry = geom),
-                    geom,
-                )
-                .id
+            layoutTrackNumberDao.save(trackNumber(trackNumber.number, draft = true, geometry = geom), geom).id
         val p1 = insertPlanWithGeometry("plan1.xml", trackNumber.number)
         val p2 = insertPlanWithGeometry("plan2.xml", trackNumber.number)
         val p3 = insertPlanWithGeometry("plan3.xml", trackNumber.number)
@@ -431,12 +426,7 @@ constructor(
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         val trackNumberId =
-            layoutTrackNumberDao
-                .save(
-                    trackNumber(trackNumber.number, draft = true, geometry = geom),
-                    geom,
-                )
-                .id
+            layoutTrackNumberDao.save(trackNumber(trackNumber.number, draft = true, geometry = geom), geom).id
         val profile =
             GeometryProfile(
                 PlanElementName("profile"),
@@ -483,12 +473,7 @@ constructor(
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         val trackNumberId =
-            layoutTrackNumberDao
-                .save(
-                    trackNumber(trackNumber.number, draft = true, geometry = geom),
-                    geom,
-                )
-                .id
+            layoutTrackNumberDao.save(trackNumber(trackNumber.number, draft = true, geometry = geom), geom).id
         val locationTrackId =
             locationTrackService
                 .saveDraft(
@@ -508,12 +493,7 @@ constructor(
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         val trackNumberId =
-            layoutTrackNumberDao
-                .save(
-                    trackNumber(trackNumber.number, draft = true, geometry = geom),
-                    geom,
-                )
-                .id
+            layoutTrackNumberDao.save(trackNumber(trackNumber.number, draft = true, geometry = geom), geom).id
         // Two plans with distinct profiles so deduplication keeps both entries
         val profile1 =
             GeometryProfile(
@@ -577,12 +557,7 @@ constructor(
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val geom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         val trackNumberId =
-            layoutTrackNumberDao
-                .save(
-                    trackNumber(trackNumber.number, draft = true, geometry = geom),
-                    geom,
-                )
-                .id
+            layoutTrackNumberDao.save(trackNumber(trackNumber.number, draft = true, geometry = geom), geom).id
         // Two plans with distinct profiles whose curve tangent ranges overlap in geocoded addresses.
         // Addresses are computed from plan alignment coordinates, so curves at similar stations
         // on both plans produce entries with overlapping address ranges.

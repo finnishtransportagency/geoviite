@@ -28,6 +28,10 @@ import fi.fta.geoviite.infra.tracklayout.someReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -36,10 +40,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 

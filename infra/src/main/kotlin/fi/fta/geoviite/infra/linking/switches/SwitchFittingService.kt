@@ -521,22 +521,21 @@ private fun findIntersectionsBetweenLineLists(
     lines2: List<Line>,
     alignment1: IAlignment<LocationTrackM>,
     alignment2: IAlignment<LocationTrackM>,
-) =
-    lines1.flatMap { line1 ->
-        lines2.mapNotNull { line2 ->
-            val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
-            if (intersection != null && intersection.linesIntersect()) {
-                TrackIntersection(
-                    point = intersection.point,
-                    distance = 0.0,
-                    alignment1 = alignment1,
-                    alignment2 = alignment2,
-                )
-            } else {
-                tryFindingNearIntersection(line1, line2, alignment1, alignment2)
-            }
+) = lines1.flatMap { line1 ->
+    lines2.mapNotNull { line2 ->
+        val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
+        if (intersection != null && intersection.linesIntersect()) {
+            TrackIntersection(
+                point = intersection.point,
+                distance = 0.0,
+                alignment1 = alignment1,
+                alignment2 = alignment2,
+            )
+        } else {
+            tryFindingNearIntersection(line1, line2, alignment1, alignment2)
         }
     }
+}
 
 private fun tryFindingNearIntersection(
     line1: Line,
@@ -590,8 +589,9 @@ private fun getClosestPointAsIntersection(
         }
 }
 
-private fun <T> pairsOf(things: List<T>): List<Pair<T, T>> =
-    things.flatMapIndexed { index, t1 -> things.drop(index + 1).map { t2 -> t1 to t2 } }
+private fun <T> pairsOf(things: List<T>): List<Pair<T, T>> = things.flatMapIndexed { index, t1 ->
+    things.drop(index + 1).map { t2 -> t1 to t2 }
+}
 
 private fun findTrackIntersectionsForGridPoints(
     trackAlignments: List<IAlignment<LocationTrackM>>,
@@ -604,12 +604,9 @@ private fun findTrackIntersectionsForGridPoints(
         grid.mapMulti(parallel = true) { gridPoint ->
             allActualIntersections.sortedWith(orderIntersectionsWithDesiredPoint(gridPoint)).take(2).toSet()
         }
-    val closestPointsAsIntersections =
-        grid.mapMulti { gridPoint ->
-            trackPairs
-                .mapNotNull { (track1, track2) -> getClosestPointAsIntersection(track1, track2, gridPoint) }
-                .toSet()
-        }
+    val closestPointsAsIntersections = grid.mapMulti { gridPoint ->
+        trackPairs.mapNotNull { (track1, track2) -> getClosestPointAsIntersection(track1, track2, gridPoint) }.toSet()
+    }
 
     return closestPointsAsIntersections.zipWithByPoint(closestActualIntersections, Set<TrackIntersection>::plus)
 }
@@ -804,14 +801,13 @@ private fun selectBestSuggestedSwitch(
 ): FittedSwitch {
     assert(switchSuggestions.isNotEmpty()) { "switchSuggestions.isNotEmpty()" }
 
-    val maxFarthestJointDistance =
-        switchSuggestions.maxOf { suggestedSwitch ->
-            suggestedSwitch.joints.maxOf { joint ->
-                if (joint.number == farthestJoint.number) {
-                    lineLength(desiredLocation, joint.location)
-                } else 0.0
-            }
+    val maxFarthestJointDistance = switchSuggestions.maxOf { suggestedSwitch ->
+        suggestedSwitch.joints.maxOf { joint ->
+            if (joint.number == farthestJoint.number) {
+                lineLength(desiredLocation, joint.location)
+            } else 0.0
         }
+    }
 
     return switchSuggestions.maxBy { fittedSwitch ->
         getSuggestedSwitchScore(
@@ -852,8 +848,9 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     val pointBboxes =
         grid.points.associateWith { point -> BoundingBox(0.0..pointBboxSize, 0.0..pointBboxSize).centerAt(point) }
 
-    val croppedTracks =
-        nearbyLocationTracks.map { (track, geometry) -> track to cropPoints(track.id as IntId, geometry, gridBbox) }
+    val croppedTracks = nearbyLocationTracks.map { (track, geometry) ->
+        track to cropPoints(track.id as IntId, geometry, gridBbox)
+    }
 
     val intersections = findTrackIntersectionsForGridPoints(croppedTracks.map { it.second }, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)

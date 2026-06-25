@@ -17,6 +17,8 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -28,8 +30,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest

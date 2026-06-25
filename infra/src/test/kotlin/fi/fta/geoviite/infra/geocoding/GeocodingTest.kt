@@ -20,14 +20,13 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
-import fi.fta.geoviite.infra.tracklayout.TmpReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometryOfPoints
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -346,19 +345,18 @@ class GeocodingTest {
                 Point(180.0, 220.0),
             )
         val points = points1 + points2
-        val edges =
-            points.mapIndexedNotNull { index: Int, point: SegmentPoint ->
-                if (index == 0) null
-                else
-                    PolyLineEdge(
-                        start = points[index - 1],
-                        end = point,
-                        segmentStart =
-                            if (index <= points1.lastIndex) LineM<ReferenceLineM>(0.0)
-                            else points1.last().m.castToDifferentM(),
-                        referenceDirection = directionBetweenPoints(points[index - 1], point),
-                    )
-            }
+        val edges = points.mapIndexedNotNull { index: Int, point: SegmentPoint ->
+            if (index == 0) null
+            else
+                PolyLineEdge(
+                    start = points[index - 1],
+                    end = point,
+                    segmentStart =
+                        if (index <= points1.lastIndex) LineM<ReferenceLineM>(0.0)
+                        else points1.last().m.castToDifferentM(),
+                    referenceDirection = directionBetweenPoints(points[index - 1], point),
+                )
+        }
 
         val intersection1 = getIntersection(projection1, edges)
         assertNotNull(intersection1)
@@ -1153,8 +1151,9 @@ class GeocodingTest {
                 TrackMeter(KmNumber(0), BigDecimal("0.001") * milli.toBigDecimal() + 10.toBigDecimal())
             }
 
-        val singleAroundBump =
-            aroundBumpAddresses.map { address -> context.getTrackLocation(locationTrackGeometry, address) }
+        val singleAroundBump = aroundBumpAddresses.map { address ->
+            context.getTrackLocation(locationTrackGeometry, address)
+        }
         val multiAroundBump = context.getTrackLocations(locationTrackGeometry, aroundBumpAddresses)
         assertEquals(singleAroundBump, multiAroundBump)
         // Track addresses can hit a location track out of order. This is still a bad result and maybe will be handled

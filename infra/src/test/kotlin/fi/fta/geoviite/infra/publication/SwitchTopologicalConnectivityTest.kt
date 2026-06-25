@@ -357,10 +357,7 @@ class SwitchTopologicalConnectivityTest {
                     ),
                 )
             )
-        assertEquals(
-            expected,
-            validateSwitchTopologicalConnectivity(switch, switchStructure, tracks, null),
-        )
+        assertEquals(expected, validateSwitchTopologicalConnectivity(switch, switchStructure, tracks, null))
     }
 
     // might be a segment's start and/or end joint, might be a track's topology start or end link
@@ -396,16 +393,15 @@ class SwitchTopologicalConnectivityTest {
                 duplicateOf = if (isDuplicate) IntId(12345) else null,
                 state = if (isDeleted) LocationTrackState.DELETED else LocationTrackState.IN_USE,
             )
-        val switchEdges =
-            switchLinks.mapIndexed { index, link ->
-                edge(
-                    startOuterSwitch = topologyLinks?.start?.takeIf { index == 0 },
-                    endOuterSwitch = topologyLinks?.end?.takeIf { index == switchLinks.lastIndex },
-                    startInnerSwitch = link?.start,
-                    endInnerSwitch = link?.end,
-                    segments = listOf(segment(Point(0.0, index.toDouble()), Point(0.0, index.toDouble() + 1.0))),
-                )
-            }
+        val switchEdges = switchLinks.mapIndexed { index, link ->
+            edge(
+                startOuterSwitch = topologyLinks?.start?.takeIf { index == 0 },
+                endOuterSwitch = topologyLinks?.end?.takeIf { index == switchLinks.lastIndex },
+                startInnerSwitch = link?.start,
+                endInnerSwitch = link?.end,
+                segments = listOf(segment(Point(0.0, index.toDouble()), Point(0.0, index.toDouble() + 1.0))),
+            )
+        }
         val edges =
             switchEdges.takeIf { it.isNotEmpty() }
                 ?: listOf(

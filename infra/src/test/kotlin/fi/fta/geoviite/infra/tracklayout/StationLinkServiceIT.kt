@@ -146,9 +146,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         val track1 =
             mainOfficialContext.save(
                 locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1.id, op2.id)),
-                trackGeometry(
-                    edge(segments = listOf(segment(Point(5.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))
-                ),
+                trackGeometry(edge(segments = listOf(segment(Point(5.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))),
             )
 
         // Track 2 connects OP2 and OP3 directly (no switches)

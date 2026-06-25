@@ -550,10 +550,7 @@ constructor(
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
 
-        testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(trackId),
-        )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         return oid
     }
@@ -574,10 +571,7 @@ constructor(
                 trackId
             }
 
-        return testDBService.publish(
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = tracks,
-        )
+        return testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = tracks)
     }
 
     private fun setupValidSwitch(): Oid<LayoutSwitch> {
