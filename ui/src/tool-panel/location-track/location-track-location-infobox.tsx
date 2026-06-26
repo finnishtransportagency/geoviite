@@ -56,6 +56,7 @@ import { getSplitPointName } from 'tool-panel/location-track/splitting/location-
 import { translatedBoundaryMoveDisabledReasons } from 'tool-panel/location-track/location-track-track-boundary-move-infobox';
 import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
 import { menuOption } from 'vayla-design-lib/menu/menu';
+import { useEnvironmentInfo } from 'environment/environment-info';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 
 type LocationTrackLocationInfoboxContainerProps = {
@@ -257,6 +258,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [startingSplitting, setStartingSplitting] = React.useState<boolean>(false);
+    const environmentInfo = useEnvironmentInfo();
+    const showBoundaryMoveOption = ['local', 'dev'].includes(environmentInfo?.environmentName ?? '');
 
 
     React.useEffect(() => {
@@ -431,7 +434,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         );
     };
 
-    const modifyStartOrEndButton = (
+    const modifyStartOrEndButton = showBoundaryMoveOption ? (
         <SplitButton
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SMALL}
@@ -460,6 +463,23 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             ]}>
             {t('tool-panel.location-track.shorten-track-start-or-end')}
         </SplitButton>
+    ) : (
+        <Button
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SMALL}
+            qa-id="modify-start-or-end"
+            title={getModifyStartOrEndDisabledReasonTranslated()}
+            disabled={shorteningDisabled}
+            onClick={() => {
+                getEndLinkPoints(
+                    locationTrack.id,
+                    layoutContext,
+                    MapAlignmentType.LocationTrack,
+                    changeTimes.layoutLocationTrack,
+                ).then(onStartLocationTrackGeometryChange);
+            }}>
+            {t('tool-panel.location-track.shorten-track-start-or-end')}
+        </Button>
     );
 
     return (
