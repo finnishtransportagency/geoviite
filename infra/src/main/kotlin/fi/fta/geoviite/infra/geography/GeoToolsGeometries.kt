@@ -9,6 +9,9 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.logger
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.getOrSet
+import kotlin.math.round
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.geotools.api.referencing.operation.MathTransform
 import org.geotools.geometry.jts.GeometryBuilder
@@ -17,15 +20,12 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.referencing.CRS
 import org.geotools.referencing.GeodeticCalculator
 import org.locationtech.jts.algorithm.ConvexHull
-import org.locationtech.jts.geom.GeometryFactory
-import org.locationtech.jts.geom.PrecisionModel
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.getOrSet
-import kotlin.math.round
 import org.locationtech.jts.geom.Coordinate as JtsCoordinate
+import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.LineString as JtsLineString
 import org.locationtech.jts.geom.Point as JtsPoint
 import org.locationtech.jts.geom.Polygon as JtsPolygon
+import org.locationtech.jts.geom.PrecisionModel
 
 val FINNISH_GK_LONGITUDE_RANGE = 19..31
 

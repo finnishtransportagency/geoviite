@@ -30,16 +30,12 @@ class ExtSridV1Test {
 
     @Test
     fun `all GK-FIN coordinate systems are accepted`() {
-        ExtSridV1.SUPPORTED.filter { it.code in 3873..3885 }.forEach { srid ->
-            assertDoesNotThrow { ExtSridV1(srid) }
-        }
+        ExtSridV1.SUPPORTED.filter { it.code in 3873..3885 }.forEach { srid -> assertDoesNotThrow { ExtSridV1(srid) } }
     }
 
     @Test
     fun `all legacy ETRS-GK-FIN coordinate systems are accepted`() {
-        (3126..3138).forEach { code ->
-            assertDoesNotThrow { ExtSridV1(Srid(code)) }
-        }
+        (3126..3138).forEach { code -> assertDoesNotThrow { ExtSridV1(Srid(code)) } }
     }
 
     @Test
@@ -77,4 +73,3 @@ class ExtSridV1Test {
         assertThrows<InputValidationException> { ExtSridV1("EPSG:99999") }
     }
 }
-
