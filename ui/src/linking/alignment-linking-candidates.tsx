@@ -64,6 +64,7 @@ type CandidatesListProps = {
     isEmpty: boolean;
     emptyMessage: React.ReactNode;
     children: React.ReactNode;
+    withTopBorder?: boolean;
 };
 
 const CandidatesList: React.FC<CandidatesListProps> = ({
@@ -71,8 +72,14 @@ const CandidatesList: React.FC<CandidatesListProps> = ({
     isEmpty,
     emptyMessage,
     children,
+    withTopBorder,
 }) => (
-    <ul className={styles['geometry-alignment-infobox__alignments-container']}>
+    <ul
+        className={createClassName(
+            styles['geometry-alignment-infobox__alignments-container'],
+            withTopBorder &&
+                styles['geometry-alignment-infobox__alignments-container--with-top-border'],
+        )}>
         {children}
 
         {isLoading && <Spinner />}
@@ -89,6 +96,7 @@ type LocationTrackCandidatesProps = {
     lockedAlignmentId?: LocationTrackId;
     isLoading: boolean;
     emptyMessage: React.ReactNode;
+    withTopBorder?: boolean;
     // A returned reason disables selecting the candidate and is shown as its tooltip
     getDisabledReason?: (track: LayoutLocationTrack) => string | undefined;
     onSelect: (track: LocationTrackId) => void;
@@ -100,13 +108,15 @@ export const LocationTrackCandidates: React.FC<LocationTrackCandidatesProps> = (
     lockedAlignmentId,
     isLoading,
     emptyMessage,
+    withTopBorder,
     getDisabledReason,
     onSelect,
 }) => (
     <CandidatesList
         isLoading={isLoading}
         isEmpty={candidates.length === 0}
-        emptyMessage={emptyMessage}>
+        emptyMessage={emptyMessage}
+        withTopBorder={withTopBorder}>
         {candidates.map((track) => {
             const isSelected = track.id === selectedId;
             const disabledReason = getDisabledReason?.(track);

@@ -18,7 +18,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { LocationTrackCandidates } from 'linking/alignment-linking-candidates';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -256,12 +256,14 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
 
                         <InfoboxButtons>
                             <Button
+                                size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={saving}
                                 onClick={onStopTrackBoundaryMove}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                size={ButtonSize.SMALL}
                                 disabled={saving || !canSave(linkingState)}
                                 isProcessing={saving}
                                 onClick={saveBoundaryMove}>
@@ -285,6 +287,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                             emptyMessage={t(
                                 'tool-panel.location-track.track-boundary-move.no-candidates',
                             )}
+                            withTopBorder
                             getDisabledReason={counterpartDisabledReason}
                             onSelect={selectCounterpart}
                         />
@@ -295,11 +298,13 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
 
                         <InfoboxButtons>
                             <Button
+                                size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
                                 onClick={onStopTrackBoundaryMove}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                size={ButtonSize.SMALL}
                                 disabled={counterpart === undefined}
                                 onClick={onConfirmCounterpartSelection}>
                                 {t('tool-panel.location-track.track-boundary-move.lock-selection')}

@@ -31,6 +31,11 @@
         border: 1px solid vayla-design.$color-white-darker;
         border-top: 0;
         border-radius: 0 0 4px 4px;
+
+        &--with-top-border {
+            border-top: 1px solid vayla-design.$color-white-darker;
+            border-radius: 4px;
+        }
         padding: 10px 20px 10px 12px;
 
         height: 200px;
