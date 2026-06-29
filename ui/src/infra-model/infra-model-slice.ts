@@ -97,6 +97,7 @@ export type GeometryValidationIssueType =
 
 export type CustomGeometryValidationIssue = {
     localizationKey: LocalizationKey;
+    localizationParams: LocalizationParams;
     issueType: GeometryValidationIssueType;
 } & LocalizationParams;
 

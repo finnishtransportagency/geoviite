@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.util.FileName
@@ -35,7 +36,10 @@ const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 const val INFRAMODEL_PARSING_KEY_EMPTY = "$INFRAMODEL_PARSING_KEY_PARENT.empty"
 
-data class ParsingError(override val localizationKey: LocalizationKey) : GeometryValidationIssue {
+data class ParsingError(
+    override val localizationKey: LocalizationKey,
+    val localizationParams: LocalizationParams? = null,
+) : GeometryValidationIssue {
     override val issueType = GeometryIssueType.PARSING_ERROR
 }
 
