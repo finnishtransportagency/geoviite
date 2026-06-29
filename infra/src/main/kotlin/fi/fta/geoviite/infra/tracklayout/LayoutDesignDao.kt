@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLocalDate
+import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
@@ -34,7 +35,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun fetch(id: IntId<LayoutDesign>): LayoutDesign {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state, external_id
             from layout.design
             where id = :id
             """
@@ -45,7 +46,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun fetchVersion(rowVersion: RowVersion<LayoutDesign>): LayoutDesign {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state, external_id
             from layout.design_version
             where id = :id and version = :version
             """
@@ -60,7 +61,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state, external_id
             from layout.design
             where design_state = 'ACTIVE'::layout.design_state 
               or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
@@ -130,8 +131,8 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         jdbcTemplate.setUser()
         val sql =
             """
-            insert into layout.design (name, estimated_completion, design_state)
-            values (:name, :estimated_completion, :design_state::layout.design_state)
+            insert into layout.design (name, estimated_completion, design_state, external_id)
+            values (:name, :estimated_completion, :design_state::layout.design_state, common.generate_oid('DESIGN'))
             returning id, version
             """
                 .trimIndent()
@@ -195,4 +196,5 @@ private fun getLayoutDesign(rs: ResultSet) =
         LayoutDesignName(rs.getString("name")),
         rs.getLocalDate("estimated_completion"),
         rs.getEnum("design_state"),
+        rs.getOid("external_id")
     )
