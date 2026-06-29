@@ -22,6 +22,8 @@ import {
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -43,6 +45,15 @@ const LocationTrackElementListingSearch = ({
     setLoading,
 }: LocationTrackElementListingSearchProps) => {
     const { t } = useTranslation();
+
+    const locationTrackChangeTime = useCommonDataAppSelector(
+        (s) => s.changeTimes.layoutLocationTrack,
+    );
+    const freshLocationTrack = useLocationTrack(
+        state.searchParameters.locationTrack?.id,
+        officialMainLayoutContext(),
+        locationTrackChangeTime,
+    );
 
     // Use memoized function to make debouncing functionality work when re-rendering
     const getLocationTracks = React.useCallback(
@@ -92,7 +103,7 @@ const LocationTrackElementListingSearch = ({
                     value={
                         <Dropdown
                             qaId="data-products-search-location-track"
-                            value={state.searchParameters.locationTrack}
+                            value={freshLocationTrack ?? state.searchParameters.locationTrack}
                             getName={(item) => item.name}
                             placeholder={t('data-products.search.search')}
                             options={getLocationTracks}

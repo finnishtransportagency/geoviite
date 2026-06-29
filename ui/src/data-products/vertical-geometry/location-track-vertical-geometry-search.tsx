@@ -23,6 +23,8 @@ import {
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -42,6 +44,16 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     LocationTrackVerticalGeometrySearchProps
 > = ({ state, onCommitField, onUpdateProp, setVerticalGeometry, setLoading }) => {
     const { t } = useTranslation();
+
+    const locationTrackChangeTime = useCommonDataAppSelector(
+        (s) => s.changeTimes.layoutLocationTrack,
+    );
+    const freshLocationTrack = useLocationTrack(
+        state.searchParameters.locationTrack?.id,
+        officialMainLayoutContext(),
+        locationTrackChangeTime,
+    );
+
     const getLocationTracks = React.useCallback(
         (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10).then(
@@ -94,7 +106,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                     value={
                         <Dropdown
                             qaId={'data-products-search-location-track'}
-                            value={state.searchParameters.locationTrack}
+                            value={freshLocationTrack ?? state.searchParameters.locationTrack}
                             getName={(item) => item.name}
                             placeholder={t('data-products.search.search')}
                             options={getLocationTracks}
