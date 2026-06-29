@@ -115,7 +115,6 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
         logger.info("Edit start/end point")
 
         childButton(byQaId("modify-start-or-end")).click()
-        clickWhenClickable(byQaId("shorten-track-start-or-end"))
         waitUntilChildVisible(byQaId("save-start-and-end-changes"))
     }
 
