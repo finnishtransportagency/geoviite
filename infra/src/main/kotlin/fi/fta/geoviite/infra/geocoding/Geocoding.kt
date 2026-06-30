@@ -249,6 +249,14 @@ private const val PROJECTION_LINE_DISTANCE_DEVIATION = 0.05
  */
 private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
+/**
+ * For the purpose of geocoding, we treat reference lines as very slightly longer than they actually are (extended in
+ * their start and end directions). In theory, assuming the straight extrapolation was correct in the first place, half
+ * a millimeter would be the length that it's correct to assign addresses that will be rounded to 3 decimals at the end;
+ * but because there are earlier rounding steps as well, we give an extra half-mm of slack.
+ */
+private const val PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE = 0.001
+
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
 data class ValidatedGeocodingContext<M : GeocodingAlignmentM<M>>(
@@ -334,8 +342,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             val startDir = referenceLineGeometry.segments.firstOrNull()?.startDirection ?: return@lazy null
             ProjectionLine<M>(
                 start.address,
-                start.projection.move(pointInDirection(distance = -1.0, direction = startDir)),
-                LineM(-1.0),
+                start.projection.move(
+                    pointInDirection(distance = -PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE, direction = startDir)
+                ),
+                LineM(-PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE),
                 start.referenceDirection,
             )
         }
@@ -348,8 +358,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             val endDir = referenceLineGeometry.segments.lastOrNull()?.endDirection ?: return@lazy null
             ProjectionLine(
                 end.address,
-                end.projection.move(pointInDirection(distance = 1.0, direction = endDir)),
-                referenceLineGeometry.length + 1.0,
+                end.projection.move(
+                    pointInDirection(distance = PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE, direction = endDir)
+                ),
+                referenceLineGeometry.length + PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE,
                 end.referenceDirection,
             )
         }
@@ -369,8 +381,6 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     private fun getProjectionLineInContext(address: TrackMeter): ProjectionLineInContext<M>? =
         when (val surrounding = getSurroundingProjectionLines(address)) {
             is PastReferenceLineEnd -> null
-            is ExactHit ->
-                ProjectionLineInContext(useAddressPrecision(surrounding.projectionLine, address), surrounding.index)
             is ProjectionLineInterval ->
                 ProjectionLineInContext(
                     interpolateProjectionLine(address, surrounding.left, surrounding.right),
@@ -379,19 +389,20 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         }
 
     private fun getSurroundingProjectionLines(address: TrackMeter): SurroundingProjectionLines<M> {
-        val extrapolatedStart = extrapolatedBeforeStartProjectionLine
-        val extrapolatedEnd = extrapolatedAfterEndProjectionLine
         val projectionLines = getProjectionLines(Resolution.ONE_METER)
-        return if (projectionLines.isEmpty() || extrapolatedStart == null || extrapolatedEnd == null)
-            PastReferenceLineEnd()
+        return if (projectionLines.isEmpty()) PastReferenceLineEnd()
         else
             projectionLines
                 .binarySearch { line -> line.address.compareTo(address) }
                 .let { ix ->
-                    if (ix == -1) ProjectionLineInterval(extrapolatedStart, projectionLines.first(), -1)
-                    else if (ix == -(projectionLines.size + 1))
-                        ProjectionLineInterval(projectionLines.last(), extrapolatedEnd, projectionLines.lastIndex)
-                    else if (ix >= 0) ExactHit(projectionLines[ix], ix)
+                    if (ix == -1 || ix == -(projectionLines.size + 1)) PastReferenceLineEnd()
+                    else if (ix == projectionLines.lastIndex)
+                        ProjectionLineInterval(
+                            projectionLines[projectionLines.lastIndex - 1],
+                            projectionLines.last(),
+                            projectionLines.lastIndex - 1,
+                        )
+                    else if (ix >= 0) ProjectionLineInterval(projectionLines[ix], projectionLines[ix + 1], ix)
                     else ProjectionLineInterval(projectionLines[-(ix + 2)], projectionLines[-(ix + 1)], -(ix + 2))
                 }
     }
@@ -554,13 +565,24 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         val meters =
             round(km.startMeters.toDouble() + closestReferenceLineM.distance - km.referenceLineM.min.distance, decimals)
         return if (!TrackMeter.isMetersValid(meters)) null
-        else
-            getAddressInInterval(
-                getMeterProjectionLineAtExtrapolatedIndex(),
-                queryCoordinate,
-                getSurroundingProjectionLines(TrackMeter(km.kmNumber, meters)),
-                decimals,
-            )
+        else {
+            val addressInInterval =
+                getAddressInInterval(
+                    getMeterProjectionLineAtExtrapolatedIndex(),
+                    queryCoordinate,
+                    getSurroundingProjectionLines(TrackMeter(km.kmNumber, meters)),
+                )
+            if (addressInInterval == null) null
+            else roundAddress(addressInInterval.first, addressInInterval.second, decimals)
+        }
+    }
+
+    private fun roundAddress(kmNumber: KmNumber, meters: BigDecimal, decimals: Int): TrackMeter {
+        val kmIndex = findKmIndex(kmNumber)
+        val roundedMeters = round(meters, decimals)
+        return if (roundedMeters == round(kms[kmIndex].endAddress.meters, decimals) && kmIndex < kms.lastIndex)
+            kms[kmIndex + 1].startAddress
+        else TrackMeter(kmNumber, roundedMeters)
     }
 
     fun getReferenceLineAddressesWithResolution(
@@ -761,6 +783,15 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             }
             .let(kms::getOrNull)
             ?: throw GeocodingFailureException("Target point is not within the reference line length")
+    }
+
+    private fun findKmIndex(kmNumber: KmNumber): Int {
+        return kms.binarySearch { km -> km.kmNumber.compareTo(kmNumber) }
+            .also { ix ->
+                if (ix < 0 || ix > kms.lastIndex) {
+                    throw GeocodingFailureException("km number $kmNumber does not exist in geocoding context")
+                }
+            }
     }
 
     fun cutRangeByKms(
@@ -1192,9 +1223,6 @@ private fun <M : GeocodingAlignmentM<M>> interpolateProjectionLine(
 sealed class SurroundingProjectionLines<M : GeocodingAlignmentM<M>>
 
 class PastReferenceLineEnd<M : GeocodingAlignmentM<M>> : SurroundingProjectionLines<M>()
-
-data class ExactHit<M : GeocodingAlignmentM<M>>(val projectionLine: ProjectionLine<M>, val index: Int) :
-    SurroundingProjectionLines<M>()
 
 data class ProjectionLineInterval<M : GeocodingAlignmentM<M>>(
     val left: ProjectionLine<M>,

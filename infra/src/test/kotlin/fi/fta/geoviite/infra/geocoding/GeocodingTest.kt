@@ -1128,7 +1128,7 @@ class GeocodingTest {
         val referenceLineGeometry =
             referenceLineGeometry(
                 segment(Point(0.0, 100.0), Point(10.0, 100.0)), // reference line is convex toward track
-                segment(Point(10.0, 100.0), Point(20.0, 99.9)),
+                segment(Point(10.0, 100.0), Point(190.0, 90.0)),
             )
         val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(20.0, 0.0)))
 
@@ -1172,7 +1172,7 @@ class GeocodingTest {
                 segment(Point(5.0, 100.0), Point(15.0, 100.0)),
                 segment(Point(15.0, 100.0), Point(20.0, 99.0)),
             )
-        val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(20.0, 0.0)))
+        val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 99.0), Point(20.0, 99.0)))
         val context =
             GeocodingContext.create(
                     trackNumber = TrackNumber("001"),
@@ -1248,6 +1248,24 @@ class GeocodingTest {
                 addressFilter = AddressFilter(KmLimit(KmNumber(3, "A")), KmLimit(KmNumber(3, "A"))),
             ) is AddressPointsResult.InvalidEndpoint
         )
+    }
+
+    @Test
+    fun `getAddress() rejects geocoding points too far past reference line ends`() {
+        val startPoint = context.referenceLineGeometry.start!!.toPoint()
+        val startDirection = context.referenceLineGeometry.segments[0].startDirection
+        val endPoint = context.referenceLineGeometry.end!!.toPoint()
+        val endDirection = context.referenceLineGeometry.segments.last().endDirection
+
+        val farFromStart = pointInDirection(startPoint, -0.0014, startDirection)
+        val nearStart = pointInDirection(startPoint, -0.0006, startDirection)
+        val nearEnd = pointInDirection(endPoint, 0.0006, endDirection)
+        val farFromEnd = pointInDirection(endPoint, 0.0014, endDirection)
+
+        assertEquals(null, context.getAddress(farFromStart)?.first)
+        assertEquals(context.startAddress.round(3), context.getAddress(nearStart)?.first)
+        assertEquals(context.endAddress.round(3), context.getAddress(nearEnd)?.first)
+        assertEquals(null, context.getAddress(farFromEnd)?.first)
     }
 
     private fun <M : AlignmentM<M>> assertEqualsRounded(

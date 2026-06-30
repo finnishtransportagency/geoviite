@@ -1716,7 +1716,7 @@ constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
         val trackNumber =
             designOfficialContext
-                .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))))
+                .save(trackNumber(), referenceLineGeometry(segment(Point(-1.0, 0.0), Point(40.0, 0.0))))
                 .id
 
         val switchName = "TST V0001"

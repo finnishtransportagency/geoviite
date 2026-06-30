@@ -291,11 +291,9 @@ constructor(
                     ),
                 )
                 .id
-        // geocoding rounds m-values to three decimals half-up, so placing the km post juuuuuuuust
-        // here in fact rounds
-        // its position back to exactly 10, causing the 9..10 connection segment's end address to
-        // also be in
-        // track km 0155
+        // geocoding rounds m-values to three decimals half-up, so placing the km post juuuuuuuust here in fact rounds
+        // its position back to exactly 10, causing the 9..10 connection segment's end address to also be in track km
+        // 0155
         val post = kmPost(trackNumberId, KmNumber("0155"), kmPostGkLocation(0.0, 10.00001), draft = true)
         kmPostService.saveDraft(LayoutBranch.main, post)
 
