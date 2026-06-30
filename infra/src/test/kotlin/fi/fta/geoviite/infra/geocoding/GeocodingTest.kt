@@ -1251,6 +1251,19 @@ class GeocodingTest {
     }
 
     @Test
+    fun `getAddress() rounds an address up to the next track kilometer when close enough to a km end`() {
+        val context =
+            createContext(
+                geometryPoints = listOf(Point(0.0, 0.0), Point(10.0, 0.0)),
+                startAddress = TrackMeter(1, 0),
+                kmPoints = listOf(TrackMeter(2, 0) to 5.0),
+            )
+
+        assertEquals(TrackMeter(2, 0), context.getAddress(Point(4.9997, 0.0), 3)?.first)
+        assertEquals(TrackMeter(1, "4.999"), context.getAddress(Point(4.9990, 0.0), 3)?.first)
+    }
+
+    @Test
     fun `getAddress() rejects geocoding points too far past reference line ends`() {
         val startPoint = context.referenceLineGeometry.start!!.toPoint()
         val startDirection = context.referenceLineGeometry.segments[0].startDirection
