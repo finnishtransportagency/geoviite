@@ -1194,14 +1194,6 @@ data class PolyLineEdge<M : AlignmentM<M>>(
         if (portion <= 0.0) start else if (portion >= 1.0) end else interpolateToSegmentPoint(start, end, portion)
 }
 
-private fun <M : GeocodingAlignmentM<M>> useAddressPrecision(projectionLine: ProjectionLine<M>, address: TrackMeter) =
-    if (address.decimalCount() == projectionLine.address.decimalCount()) projectionLine
-    else {
-        val lineAddress = projectionLine.address
-        val lineMeters = lineAddress.meters
-        projectionLine.copy(address = lineAddress.copy(meters = lineMeters.setScale(address.meters.scale())))
-    }
-
 private fun <M : GeocodingAlignmentM<M>> interpolateProjectionLine(
     address: TrackMeter,
     left: ProjectionLine<M>,
