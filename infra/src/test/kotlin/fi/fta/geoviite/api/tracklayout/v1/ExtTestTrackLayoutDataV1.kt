@@ -1,3 +1,5 @@
+@file:Suppress("ConstructorParameterNaming")
+
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.math.IPoint
