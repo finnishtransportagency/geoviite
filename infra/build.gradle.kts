@@ -179,6 +179,7 @@ tasks.register<Test>("integrationtest-without-cache") {
 }
 
 tasks.register<Test>("ui-test-selenium-local") {
+    environment("TZ", "Europe/Helsinki")
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
