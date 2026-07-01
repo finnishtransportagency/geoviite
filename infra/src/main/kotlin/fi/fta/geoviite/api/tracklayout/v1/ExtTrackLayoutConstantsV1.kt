@@ -173,3 +173,8 @@ const val ELEMENT_RADIUS = "kaarresade"
 const val ELEMENT_CANT = "kallistus"
 const val ELEMENT_DIRECTION = "suuntakulma_gooni"
 const val ELEMENT_LENGTH = "pituus_m"
+const val ELEMENT_START_VALUE = "alku"
+const val ELEMENT_END_VALUE = "loppu"
+
+const val NOTE_PARTIAL_ELEMENT = "sisaltaa_vain_osan_elementista"
+const val NOTE_SWITCH_ELEMENT = "vaihteen_elementti"

@@ -1,19 +1,25 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.ElementListing
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.unknownSwitchName
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.math.IPoint
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
@@ -26,6 +32,7 @@ constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val geometryService: GeometryService,
     private val coordinateTransformationService: CoordinateTransformationService,
+    private val switchDao: LayoutSwitchDao,
 ) {
     fun getExtLocationTrackElementListing(
         oid: ExtOidV1<LocationTrack>,
@@ -54,7 +61,12 @@ constructor(
                 val geocodingContext =
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                         ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-                val listings = geometryService.getElementListing(track, geometry, null, geocodingContext)
+                val listings = geometryService.getElementListing(
+                    track,
+                    geometry,
+                    geocodingContext.trackNumber,
+                    geocodingContext,
+                ) { switchId -> switchNameAtMoment(branch, switchId, moment) }
                 ExtLocationTrackElementListingResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
                     locationTrackOid = oid,
@@ -64,19 +76,45 @@ constructor(
             }
     }
 
+    private fun switchNameAtMoment(branch: LayoutBranch, switchId: IntId<LayoutSwitch>, moment: Instant) =
+        switchDao.fetchOfficialVersionAtMoment(branch, switchId, moment)
+            ?.let { switchDao.fetch(it).name }
+            ?: unknownSwitchName
+
     private fun toElementAddressIntervals(
         listings: List<ElementListing>,
         coordinateSystem: Srid,
     ): List<ExtElementAddressIntervalV1> {
         if (listings.isEmpty()) return emptyList()
-        val intervalStart = listings.first().start.address?.formatFixedDecimals(3) ?: return emptyList()
-        val intervalEnd = listings.last().end.address?.formatFixedDecimals(3) ?: return emptyList()
-        return listOf(
-            ExtElementAddressIntervalV1(
-                start = intervalStart,
-                end = intervalEnd,
-                elements = listings.map { listing -> toExtGeometryElement(listing, coordinateSystem) },
-            )
+
+        val intervals = mutableListOf<ExtElementAddressIntervalV1>()
+        var currentRun = mutableListOf<ElementListing>()
+
+        for (listing in listings) {
+            if (listing.start.address != null && listing.end.address != null) {
+                currentRun.add(listing)
+            } else {
+                if (currentRun.isNotEmpty()) {
+                    intervals.add(buildInterval(currentRun, coordinateSystem))
+                    currentRun = mutableListOf()
+                }
+            }
+        }
+        if (currentRun.isNotEmpty()) {
+            intervals.add(buildInterval(currentRun, coordinateSystem))
+        }
+
+        if (intervals.isEmpty()) throwNonGeocodableElementInterval()
+        return intervals
+    }
+
+    private fun buildInterval(run: List<ElementListing>, coordinateSystem: Srid): ExtElementAddressIntervalV1 {
+        val start = run.first().start.address!!.formatFixedDecimals(3)
+        val end = run.last().end.address!!.formatFixedDecimals(3)
+        return ExtElementAddressIntervalV1(
+            start = start,
+            end = end,
+            elements = run.map { listing -> toExtGeometryElement(listing, coordinateSystem) },
         )
     }
 
@@ -123,7 +161,7 @@ constructor(
         if (listing.isPartial) {
             notes.add(
                 ExtElementNoteV1(
-                    code = "sisaltaa_vain_osan_elementista",
+                    code = NOTE_PARTIAL_ELEMENT,
                     description = "Raide sisältää vain osan geometriaelementistä",
                 )
             )
@@ -131,7 +169,7 @@ constructor(
         if (listing.connectedSwitchName != null) {
             notes.add(
                 ExtElementNoteV1(
-                    code = "vaihteen_elementti",
+                    code = NOTE_SWITCH_ELEMENT,
                     description = "Elementti kuuluu vaihteeseen",
                 )
             )
