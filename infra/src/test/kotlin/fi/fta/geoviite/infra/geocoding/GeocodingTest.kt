@@ -1165,14 +1165,35 @@ class GeocodingTest {
     }
 
     @Test
-    fun `getAddressPoints() handles overly concave reference line without crashing`() {
+    fun `getAddressPoints() rejects geocoding against overly concave reference line`() {
         val referenceLineGeometry =
             referenceLineGeometry(
                 segment(Point(0.0, 99.0), Point(5.0, 100.0)),
                 segment(Point(5.0, 100.0), Point(15.0, 100.0)),
                 segment(Point(15.0, 100.0), Point(20.0, 99.0)),
             )
-        val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 99.0), Point(20.0, 99.0)))
+        val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(20.0, 0.0)))
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("001"),
+                    startAddress = TrackMeter(KmNumber(0), 0),
+                    referenceLineGeometry = referenceLineGeometry,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+        assertNull(context.getAddressPoints(locationTrackGeometry).addresses)
+    }
+
+    @Test
+    fun `getAddressPoints() survives reference line with a concavity in the middle without crashing`() {
+        val referenceLineGeometry =
+            referenceLineGeometry(
+                segment(Point(0.0, 99.0), Point(5.0, 99.0)),
+                segment(Point(5.0, 99.0), Point(10.0, 100.0)),
+                segment(Point(10.0, 100.0), Point(15.0, 99.0)),
+                segment(Point(15.0, 99.0), Point(20.0, 99.0)),
+            )
+        val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(20.0, 0.0)))
         val context =
             GeocodingContext.create(
                     trackNumber = TrackNumber("001"),
