@@ -275,7 +275,9 @@ constructor(
         geometry: DbLocationTrackGeometry,
         trackNumber: TrackNumber?,
         geocodingContext: GeocodingContext<ReferenceLineM>?,
-        switchNameResolver: (IntId<LayoutSwitch>) -> SwitchName = { id -> getSwitchName(MainLayoutContext.official, id) },
+        switchNameResolver: (IntId<LayoutSwitch>) -> SwitchName = { id ->
+            getSwitchName(MainLayoutContext.official, id)
+        },
     ): List<ElementListing> {
         return toElementListing(
             geocodingContext,

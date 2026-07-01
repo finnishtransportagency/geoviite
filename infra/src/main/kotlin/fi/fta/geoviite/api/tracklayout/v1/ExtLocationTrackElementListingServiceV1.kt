@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.ElementListing
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.unknownSwitchName
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -18,7 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.math.IPoint
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -61,12 +61,15 @@ constructor(
                 val geocodingContext =
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                         ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-                val listings = geometryService.getElementListing(
-                    track,
-                    geometry,
-                    geocodingContext.trackNumber,
-                    geocodingContext,
-                ) { switchId -> switchNameAtMoment(branch, switchId, moment) }
+                val listings =
+                    geometryService.getElementListing(
+                        track,
+                        geometry,
+                        geocodingContext.trackNumber,
+                        geocodingContext,
+                    ) { switchId ->
+                        switchNameAtMoment(branch, switchId, moment)
+                    }
                 ExtLocationTrackElementListingResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
                     locationTrackOid = oid,
@@ -77,8 +80,7 @@ constructor(
     }
 
     private fun switchNameAtMoment(branch: LayoutBranch, switchId: IntId<LayoutSwitch>, moment: Instant) =
-        switchDao.fetchOfficialVersionAtMoment(branch, switchId, moment)
-            ?.let { switchDao.fetch(it).name }
+        switchDao.fetchOfficialVersionAtMoment(branch, switchId, moment)?.let { switchDao.fetch(it).name }
             ?: unknownSwitchName
 
     private fun toElementAddressIntervals(
@@ -126,12 +128,14 @@ constructor(
             locationEnd = toExtAddressPoint(layoutEnd, listing.end.address, coordinateSystem),
             length = listing.lengthMeters,
             plan = toExtPlanReference(listing),
-            radius = if (listing.start.radiusMeters != null || listing.end.radiusMeters != null) {
-                ExtElementRadiusV1(listing.start.radiusMeters, listing.end.radiusMeters)
-            } else null,
-            cant = if (listing.start.cant != null || listing.end.cant != null) {
-                ExtElementCantV1(listing.start.cant, listing.end.cant)
-            } else null,
+            radius =
+                if (listing.start.radiusMeters != null || listing.end.radiusMeters != null) {
+                    ExtElementRadiusV1(listing.start.radiusMeters, listing.end.radiusMeters)
+                } else null,
+            cant =
+                if (listing.start.cant != null || listing.end.cant != null) {
+                    ExtElementCantV1(listing.start.cant, listing.end.cant)
+                } else null,
             direction = ExtElementDirectionV1(listing.start.directionGrads, listing.end.directionGrads),
             notes = toExtNotes(listing),
         )
@@ -167,12 +171,7 @@ constructor(
             )
         }
         if (listing.connectedSwitchName != null) {
-            notes.add(
-                ExtElementNoteV1(
-                    code = NOTE_SWITCH_ELEMENT,
-                    description = "Elementti kuuluu vaihteeseen",
-                )
-            )
+            notes.add(ExtElementNoteV1(code = NOTE_SWITCH_ELEMENT, description = "Elementti kuuluu vaihteeseen"))
         }
         return notes
     }
