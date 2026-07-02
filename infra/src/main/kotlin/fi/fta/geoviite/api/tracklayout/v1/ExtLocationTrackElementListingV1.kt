@@ -19,6 +19,18 @@ data class ExtLocationTrackElementListingResponseV1(
     @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtElementAddressIntervalV1>,
 )
 
+@Schema(title = "Vastaus: Sijaintiraiteen geometriaelementtien muutokset")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtLocationTrackElementListingModificationsResponseV1(
+    @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val layoutVersionFrom: ExtLayoutVersionV1,
+    @JsonProperty(TRACK_LAYOUT_VERSION_TO) val layoutVersionTo: ExtLayoutVersionV1,
+    @Schema(example = "1.2.246.578.13.123.456")
+    @JsonProperty(LOCATION_TRACK_OID)
+    val locationTrackOid: ExtOidV1<LocationTrack>,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
+    @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtElementAddressIntervalV1>,
+)
+
 @Schema(title = "Geometriaelementtien osoiteväli")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtElementAddressIntervalV1(

@@ -378,6 +378,14 @@ data class ExtTestLocationTrackElementListingResponseV1(
     val osoitevalit: List<ExtTestElementAddressIntervalV1>,
 )
 
+data class ExtTestLocationTrackElementListingModificationsResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestElementAddressIntervalV1>,
+)
+
 data class ExtTestElementAddressIntervalV1(
     val alku: String,
     val loppu: String,

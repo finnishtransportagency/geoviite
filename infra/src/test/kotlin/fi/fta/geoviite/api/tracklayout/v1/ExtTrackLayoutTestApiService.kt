@@ -59,9 +59,15 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         )
 
     val locationTrackElementListing =
-        AssetApi<Oid<*>, ExtTestLocationTrackElementListingResponseV1, Nothing>(
+        AssetApi<
+            Oid<*>,
+            ExtTestLocationTrackElementListingResponseV1,
+            ExtTestLocationTrackElementListingModificationsResponseV1,
+        >(
             assetUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}/geometriaelementit" },
             assetClazz = ExtTestLocationTrackElementListingResponseV1::class,
+            modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}/geometriaelementit/muutokset" },
+            modifiedClazz = ExtTestLocationTrackElementListingModificationsResponseV1::class,
         )
 
     val trackNumbers =
