@@ -35,6 +35,7 @@ class ExtLocationTrackControllerV1(
     private val extLocationTrackService: ExtLocationTrackServiceV1,
     private val extLocationTrackGeometryService: ExtLocationTrackGeometryServiceV1,
     private val extLocationTrackProfileService: ExtLocationTrackProfileServiceV1,
+    private val extLocationTrackElementListingService: ExtLocationTrackElementListingServiceV1,
 ) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -468,5 +469,50 @@ class ExtLocationTrackControllerV1(
     ): ResponseEntity<ExtLocationTrackModifiedProfileResponseV1> =
         extLocationTrackProfileService
             .getExtLocationTrackProfileModifications(oid, layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
+            .let(::toResponse)
+
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometriaelementit")
+    @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
+    @Operation(summary = "Yksittäisen sijaintiraiteen geometriaelementtien haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "Sijaintiraiteen geometriaelementtien haku onnistui."),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta se on poistettu, joten sille ei ole geometriaelementtejä annetussa rataverkon versiossa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun getExtLocationTrackElementListing(
+        @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
+        @PathVariable(LOCATION_TRACK_OID_PARAM)
+        oid: ExtOidV1<LocationTrack>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        layoutVersion: ExtLayoutVersionV1? = null,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
+        extCoordinateSystem: ExtSridV1? = null,
+    ): ResponseEntity<ExtLocationTrackElementListingResponseV1> =
+        extLocationTrackElementListingService
+            .getExtLocationTrackElementListing(oid, layoutVersion, extCoordinateSystem)
             .let(::toResponse)
 }
