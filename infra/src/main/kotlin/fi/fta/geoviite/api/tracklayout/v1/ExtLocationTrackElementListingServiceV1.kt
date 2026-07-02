@@ -154,7 +154,7 @@ constructor(
     private fun toExtPlanReference(listing: ElementListing): ExtGeometryPlanReferenceV1? {
         if (listing.planId == null) return null
         return ExtGeometryPlanReferenceV1(
-            coordinateSystem = listing.coordinateSystemSrid?.toString() ?: listing.coordinateSystemName?.toString(),
+            coordinateSystem = listing.coordinateSystemSrid?.toString(),
             locationStart = ExtPlanCoordinateV1(listing.start.coordinate.x, listing.start.coordinate.y),
             locationEnd = ExtPlanCoordinateV1(listing.end.coordinate.x, listing.end.coordinate.y),
         )
