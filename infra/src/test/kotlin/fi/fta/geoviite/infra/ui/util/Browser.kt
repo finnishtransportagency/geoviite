@@ -17,7 +17,6 @@ import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.devtools.v145.emulation.Emulation
 import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.firefox.FirefoxOptions
 import org.openqa.selenium.logging.LogEntries
@@ -59,12 +58,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     logPrefs.enable(LogType.PERFORMANCE, Level.ALL)
     options.setCapability("goog:loggingPrefs", logPrefs)
 
-    val driver = ChromeDriver(options)
-    val devTools = driver.devTools
-    devTools.createSession()
-    devTools.send(Emulation.setTimezoneOverride("Europe/Helsinki"))
-
-    return driver
+    return ChromeDriver(options)
 }
 
 private fun createRemoteChromeDriver(seleniumHubUrl: String): RemoteWebDriver {
