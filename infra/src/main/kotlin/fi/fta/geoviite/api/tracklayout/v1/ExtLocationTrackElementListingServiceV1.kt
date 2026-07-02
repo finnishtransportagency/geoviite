@@ -69,6 +69,7 @@ constructor(
             }
     }
 
+    @Suppress("ReturnCount")
     fun getExtLocationTrackElementListingModifications(
         oid: ExtOidV1<LocationTrack>,
         layoutVersionFrom: ExtLayoutVersionV1,
@@ -116,6 +117,7 @@ constructor(
         }
     }
 
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
     private fun diffElementListings(
         oldListings: List<ElementListing>,
         newListings: List<ElementListing>,
