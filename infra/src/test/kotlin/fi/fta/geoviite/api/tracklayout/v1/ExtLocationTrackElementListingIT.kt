@@ -3,9 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.FIN_GK25_SRID
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElement
@@ -15,17 +13,15 @@ import fi.fta.geoviite.infra.geometry.kmPosts
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -44,9 +40,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtLocationTrackElementListingIT
-@Autowired
-constructor(mockMvc: MockMvc) : DBTestBase() {
+class ExtLocationTrackElementListingIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -111,10 +105,7 @@ constructor(mockMvc: MockMvc) : DBTestBase() {
         val elements = plan.alignments[0].elements
         val trackNumberId = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
-            mainDraftContext.saveWithOid(
-                locationTrack(trackNumberId),
-                trackGeometryOfElements(elements, FIN_GK25_SRID),
-            )
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
         testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val response = api.locationTrackElementListing.get(oid)
@@ -151,10 +142,7 @@ constructor(mockMvc: MockMvc) : DBTestBase() {
                 referenceLineGeometry(segment(start, end)),
             )
         val (trackId, oid) =
-            mainDraftContext.saveWithOid(
-                locationTrack(trackNumberId),
-                trackGeometryOfSegments(segment(start, end)),
-            )
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
         testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         api.locationTrackElementListing.get(oid).osoitevalit.single().geometriaelementit.single().also { element ->
@@ -181,17 +169,17 @@ constructor(mockMvc: MockMvc) : DBTestBase() {
         val (trackId, oid) =
             mainDraftContext.saveWithOid(
                 locationTrack(trackNumberId),
-                trackGeometryOfSegments(
-                    segment(segmentPoints, sourceId = element.id, sourceStartM = 0.0),
-                ),
+                trackGeometryOfSegments(segment(segmentPoints, sourceId = element.id, sourceStartM = 0.0)),
             )
         testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         api.locationTrackElementListing.get(oid).osoitevalit.single().geometriaelementit.single().also { element ->
-            element.huomiot.find { it.koodi == NOTE_PARTIAL_ELEMENT }.also { partialNote ->
-                assertNotNull(partialNote, "Expected $NOTE_PARTIAL_ELEMENT note for partial element")
-                assertEquals("Raide sisältää vain osan geometriaelementistä", partialNote!!.selite)
-            }
+            element.huomiot
+                .find { it.koodi == NOTE_PARTIAL_ELEMENT }
+                .also { partialNote ->
+                    assertNotNull(partialNote, "Expected $NOTE_PARTIAL_ELEMENT note for partial element")
+                    assertEquals("Raide sisältää vain osan geometriaelementistä", partialNote!!.selite)
+                }
         }
     }
 
