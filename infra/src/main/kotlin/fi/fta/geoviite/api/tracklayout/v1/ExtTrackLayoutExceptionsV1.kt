@@ -60,3 +60,5 @@ fun throwLocationTrackNotFound(version: LayoutRowVersion<LocationTrack>): Nothin
     error("${LocationTrack::class.simpleName} was not found: version=$version")
 
 fun throwNonGeocodablePvi(): Nothing = error("Non geocodable points should not be included in profile")
+
+fun throwNonGeocodableElementInterval(): Nothing = error("No geocodable interval found in element listing")

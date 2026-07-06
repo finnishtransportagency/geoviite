@@ -275,6 +275,9 @@ constructor(
         geometry: DbLocationTrackGeometry,
         trackNumber: TrackNumber?,
         geocodingContext: GeocodingContext<ReferenceLineM>?,
+        switchNameResolver: (IntId<LayoutSwitch>) -> SwitchName = { id ->
+            getSwitchName(MainLayoutContext.official, id)
+        },
     ): List<ElementListing> {
         return toElementListing(
             geocodingContext,
@@ -286,9 +289,8 @@ constructor(
             null,
             null,
             ::getHeaderAndAlignment,
-        ) { id ->
-            getSwitchName(MainLayoutContext.official, id)
-        }
+            switchNameResolver,
+        )
     }
 
     @Transactional(readOnly = true)

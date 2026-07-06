@@ -1,3 +1,5 @@
+@file:Suppress("ConstructorParameterNaming")
+
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.math.IPoint
@@ -368,3 +370,40 @@ data class ExtTestModifiedLocationTrackProfileResponseV1(
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestProfileAddressRangeV1>,
 )
+
+data class ExtTestLocationTrackElementListingResponseV1(
+    val rataverkon_versio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestElementAddressIntervalV1>,
+)
+
+data class ExtTestElementAddressIntervalV1(
+    val alku: String,
+    val loppu: String,
+    val geometriaelementit: List<ExtTestGeometryElementV1>,
+)
+
+data class ExtTestGeometryElementV1(
+    val tyyppi: String,
+    val sijainti_alku: ExtTestAddressPointV1,
+    val sijainti_loppu: ExtTestAddressPointV1,
+    val pituus_m: Double,
+    val suunnitelma: ExtTestGeometryPlanReferenceV1?,
+    val kaarresade: ExtTestElementStartEndValuesV1?,
+    val kallistus: ExtTestElementStartEndValuesV1?,
+    val suuntakulma_gooni: ExtTestElementStartEndValuesV1,
+    val huomiot: List<ExtTestElementNoteV1>,
+)
+
+data class ExtTestGeometryPlanReferenceV1(
+    val koordinaatisto: String?,
+    val sijainti_alku: ExtTestPlanCoordinateV1,
+    val sijainti_loppu: ExtTestPlanCoordinateV1,
+)
+
+data class ExtTestPlanCoordinateV1(val x: Double, val y: Double)
+
+data class ExtTestElementStartEndValuesV1(val alku: Double, val loppu: Double)
+
+data class ExtTestElementNoteV1(val koodi: String, val selite: String)
