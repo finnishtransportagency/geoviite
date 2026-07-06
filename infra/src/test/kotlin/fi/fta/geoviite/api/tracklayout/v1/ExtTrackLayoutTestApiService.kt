@@ -148,6 +148,8 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             modifiedAssetCollectionClazz = ExtTestModifiedOperationalPointCollectionResponseV1::class,
         )
 
+    val routing = RoutingApi(routingUrl = { "/geoviite/paikannuspohja/v1/reititys" })
+
     val stationLinkCollection =
         AssetCollectionApi<ExtTestStationLinkCollectionResponseV1, Nothing>(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/liikennepaikkavalit" },
@@ -373,5 +375,64 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
 
     fun internalGetWithoutBody(url: String, params: Map<String, String> = emptyMap(), httpStatus: HttpStatus) {
         testApiConnection.doGetWithParamsWithoutBody(url, params, httpStatus)
+    }
+
+    inner class RoutingApi(private val routingUrl: () -> String) {
+        fun get(
+            startX: Double,
+            startY: Double,
+            endX: Double,
+            endY: Double,
+            vararg params: Pair<String, String>,
+        ): ExtTestRouteResponseV1 {
+            val coordinateParams =
+                mapOf(
+                    START_X to startX.toString(),
+                    START_Y to startY.toString(),
+                    END_X to endX.toString(),
+                    END_Y to endY.toString(),
+                )
+            return internalGet(ExtTestRouteResponseV1::class, routingUrl(), coordinateParams + params.toMap())
+        }
+
+        fun getWithExpectedError(
+            startX: Double,
+            startY: Double,
+            endX: Double,
+            endY: Double,
+            vararg params: Pair<String, String>,
+            httpStatus: HttpStatus,
+        ): ExtTestErrorResponseV1 {
+            val coordinateParams =
+                mapOf(
+                    START_X to startX.toString(),
+                    START_Y to startY.toString(),
+                    END_X to endX.toString(),
+                    END_Y to endY.toString(),
+                )
+            return internalGet(
+                ExtTestErrorResponseV1::class,
+                routingUrl(),
+                coordinateParams + params.toMap(),
+                httpStatus,
+            )
+        }
+
+        fun assertNoRoute(
+            startX: Double,
+            startY: Double,
+            endX: Double,
+            endY: Double,
+            vararg params: Pair<String, String>,
+        ) {
+            val coordinateParams =
+                mapOf(
+                    START_X to startX.toString(),
+                    START_Y to startY.toString(),
+                    END_X to endX.toString(),
+                    END_Y to endY.toString(),
+                )
+            internalGetWithoutBody(routingUrl(), coordinateParams + params.toMap(), HttpStatus.NO_CONTENT)
+        }
     }
 }

@@ -407,3 +407,25 @@ data class ExtTestPlanCoordinateV1(val x: Double, val y: Double)
 data class ExtTestElementStartEndValuesV1(val alku: Double, val loppu: Double)
 
 data class ExtTestElementNoteV1(val koodi: String, val selite: String)
+
+data class ExtTestRouteSectionEndpointV1(
+    val tyyppi: String,
+    val vaihde_oid: String?,
+    val rataosoite: String?,
+    val x: Double,
+    val y: Double,
+    val m_arvo: Double,
+)
+
+data class ExtTestRouteSectionV1(
+    val sijaintiraide_oid: String,
+    val ratanumero_oid: String,
+    val alku: ExtTestRouteSectionEndpointV1,
+    val loppu: ExtTestRouteSectionEndpointV1,
+    val suunta: String,
+    val pituus: Double,
+)
+
+data class ExtTestRouteV1(val pituus: Double, val reitin_osat: List<ExtTestRouteSectionV1>)
+
+data class ExtTestRouteResponseV1(val rataverkon_versio: String, val koordinaatisto: String, val reitti: ExtTestRouteV1)
