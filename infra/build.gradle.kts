@@ -22,9 +22,10 @@ plugins {
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"
-    // nb. ktfmt-gradle 0.26.0 uses ktfmt 0.62, which doesn't preserveLambdaBreaks; but later ktfmt versions starting
-    // with 0.63 by default do. If updating this dependency, check whether they added preserveLambdaBreaks=false or
-    // whether that needs to be configured by us.
+    // nb. ktfmt-gradle 0.26.0 uses ktfmt 0.62, which doesn't preserve linebreaks within lambdas, and in fact has no
+    // option to preserve them. Later ktfmt versions do have that option (as preserveLambaBreaks), and in fact set it
+    // as true by default; but our code so far is formatted according to 0.62 rules. If updating this dependency,
+    // check whether they added preserveLambdaBreaks=false or whether that needs to be configured by us.
     id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
