@@ -846,7 +846,8 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
             // Both edges agree on the switch content -> move on
             if (next.startNode.node.contentKey == previous.endNode.node.contentKey) {
                 combined.add(previous)
-                previous = next
+                val gapSegment = createGapIfNeeded(previous.segments, next.segments)
+                previous = if (gapSegment != null) next.withSegments(listOf(gapSegment) + next.segments) else next
             }
             // Edges disagree on the switch content -> create a new combined node of their connected
             // ports
