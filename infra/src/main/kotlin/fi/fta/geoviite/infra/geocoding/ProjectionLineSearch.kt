@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineIntersection
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import java.math.BigDecimal
 
@@ -16,8 +15,7 @@ fun <M : GeocodingAlignmentM<M>> getAddressInInterval(
     getMeterProjectionLine: (index: Int) -> ProjectionLine<M>?,
     queryCoordinate: IPoint,
     initialSurroundingProjectionLines: SurroundingProjectionLines<M>,
-    decimals: Int,
-): TrackMeter? {
+): Pair<KmNumber, BigDecimal>? {
     var surroundingProjectionLines = initialSurroundingProjectionLines
     var lastStepDirection: StepDirection? = null
 
@@ -25,7 +23,7 @@ fun <M : GeocodingAlignmentM<M>> getAddressInInterval(
         val step = getAddressInIntervalStep(getMeterProjectionLine, queryCoordinate, surroundingProjectionLines)
         return when (step) {
             is NotFound -> null
-            is Resolved -> TrackMeter(step.kmNumber, round(step.meters, decimals))
+            is Resolved -> step.kmNumber to step.meters
             is TakeStep<M> -> {
                 // Mathematically, the line segment from a point to the nearest point to it on a smooth curve hits the
                 // curve either perpendicularly or at an end. Floatingpointly, with line strings, it mightn't, and so we
@@ -62,7 +60,6 @@ private fun <M : GeocodingAlignmentM<M>> getAddressInIntervalStep(
 ): AddressInIntervalSearchStepResult<M> =
     when (surroundingProjectionLines) {
         is PastReferenceLineEnd -> NotFound()
-        is ExactHit<*> -> Resolved(surroundingProjectionLines.projectionLine.address)
         is ProjectionLineInterval<M> ->
             getAddressInIntervalBetweenSurroundingLinesStep(
                 getMeterProjectionLine,
@@ -92,6 +89,10 @@ private fun <M : GeocodingAlignmentM<M>> getAddressInIntervalBetweenSurroundingL
         val stepDirection = if (isLeftOfLeftProjectionLine) StepDirection.Backward else StepDirection.Forward
         val next = getNextSurroundingProjectionLines(getMeterProjectionLine, interval, stepDirection)
         if (next == null) NotFound() else TakeStep(stepDirection, next)
+    } else if (interval.leftIndex == -1 || getMeterProjectionLine(interval.leftIndex + 2) == null) {
+        // the interval is one of the extrapolated-past-end ones, which have the same address at both ends of the
+        // interval, so just picking the left one is fine
+        Resolved(left.address)
     } else {
         val proportion =
             -leftIntersection.segment1Portion / (rightIntersection.segment1Portion - leftIntersection.segment1Portion)
@@ -125,9 +126,6 @@ private fun <M : GeocodingAlignmentM<M>> getNextSurroundingProjectionLines(
     val (leftIndex, rightIndex) =
         when (here) {
             is PastReferenceLineEnd -> return null
-            is ExactHit ->
-                if (stepDirection == StepDirection.Backward) here.index - 1 to here.index
-                else here.index to here.index + 1
             is ProjectionLineInterval -> here.leftIndex + stepDirection.diff to here.leftIndex + 1 + stepDirection.diff
         }
     return getMeterProjectionLine(leftIndex)?.let { left ->

@@ -56,7 +56,7 @@ projektioviivoja. Projektioviivoja lähtee pituusmittauslinjalta:
 
 - Tasametripisteiltä
 - Pituusmittauslinjan alku- ja loppupisteeltä, jos ne ovat riittävän kaukana lähimmästä tasametripisteestä
-- Kohdilta metrin ennen pituusmittauslinjan alkua ja jälkeen sen loppua
+- Ekstrapoloiduilta kohdilta millimetrin ennen pituusmittauslinjan alkua ja jälkeen sen loppua
 
 Esimerkki projektioviivoista (pituusmittauslinjalla KV 225). Linja kääntyy pohjoiseen, joten mutkan koveralla puolella
 projektioviivat yhdentyvät, kun taas kuperalla puolella ne loittonevat:
