@@ -388,6 +388,7 @@ fun toGvtProfile(profile: InfraModelProfile): GeometryProfile? {
         GeometryProfile(
                 name = tryParsePlanElementName(profAlign.name) ?: emptyName(),
                 elements = profAlign.elements.map { pa -> toGvtVerticalIntersection(pa) },
+                groupNumber = profAlign.groupNumber,
             )
             .let { geometryProfile ->
                 // Ensure that profile segment calculation works
