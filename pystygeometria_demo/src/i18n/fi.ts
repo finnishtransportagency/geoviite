@@ -2,6 +2,10 @@ const fi = {
   translation: {
     title: "Pystygeometriakaavio",
 
+    boxApiEnvironment: "API-ympäristö",
+    boxDiagram: "Kaavio",
+    boxTrackSelection: "Raiteiden valinta",
+
     environment: "Ympäristö",
     devApiKey: "Dev API-avain",
     prodApiKey: "Prod API-avain",
@@ -29,6 +33,19 @@ const fi = {
       "{{listed}}/{{total}} sijaintiraidetta osoitevälillä, {{selected}} valittu",
     searchTrackNumber: "Hae ratanumeroa OID:lla tai kuvauksella…",
     failedToLoadTrackNumbers: "Ratanumeroiden lataus epäonnistui: {{error}}",
+
+    selectionModeTrackNumber: "Ratanumero ja osoiteväli",
+    selectionModeRoute: "Reitti toiminnallisten pisteiden välillä",
+    routeStartPoint: "Valitse reitin alkupiste…",
+    routeEndPoint: "Valitse reitin loppupiste…",
+    swapRouteEndpoints: "⇅ Vaihda suunta",
+    selectRoutePoints:
+      "Valitse alku- ja loppupiste näyttääksesi reitin pystygeometrian.",
+    loadingRoute: "Haetaan reittiä…",
+    noRouteFound: "Valittujen pisteiden välille ei löytynyt reittiä.",
+    failedToLoadRoute: "Reitin haku epäonnistui: {{error}}",
+    routeSummary:
+      "Reitin pituus {{lengthKm}} km, {{sections}} osaa {{tracks}} sijaintiraiteella",
   },
 };
 

@@ -28,7 +28,7 @@ function operationalPoint(
 
 // A straight track along the x-axis sampled every 10 m, m == x.
 const trackA: OperationalPointTrack = {
-  oid: "A",
+  key: "A",
   geometryPoints: Array.from({ length: 101 }, (_, i) =>
     geometryPoint(i * 10, 0, i * 10),
   ),
@@ -36,7 +36,7 @@ const trackA: OperationalPointTrack = {
 
 // A parallel track 200 m north.
 const trackB: OperationalPointTrack = {
-  oid: "B",
+  key: "B",
   geometryPoints: Array.from({ length: 101 }, (_, i) =>
     geometryPoint(i * 10, 200, i * 10),
   ),
@@ -49,7 +49,7 @@ describe("placeOperationalPoints", () => {
       [operationalPoint("op1", "Station", 503, 20)],
     );
     expect(placed).toEqual([
-      { oid: "op1", name: "Station", trackOid: "A", m: 500 },
+      { oid: "op1", name: "Station", trackKey: "A", m: 500 },
     ]);
   });
 
@@ -66,7 +66,7 @@ describe("placeOperationalPoints", () => {
         [trackA],
         [operationalPoint("near", "Near", 500, 99)],
       ),
-    ).toEqual([{ oid: "near", name: "Near", trackOid: "A", m: 500 }]);
+    ).toEqual([{ oid: "near", name: "Near", trackKey: "A", m: 500 }]);
   });
 
   test("shows a point only on the single closest track", () => {
@@ -76,7 +76,7 @@ describe("placeOperationalPoints", () => {
       [operationalPoint("op", "Between", 300, 60)],
     );
     expect(placed).toEqual([
-      { oid: "op", name: "Between", trackOid: "A", m: 300 },
+      { oid: "op", name: "Between", trackKey: "A", m: 300 },
     ]);
   });
 
@@ -87,8 +87,28 @@ describe("placeOperationalPoints", () => {
       [operationalPoint("op", "Closer to A", 300, 90)],
     );
     expect(placed).toEqual([
-      { oid: "op", name: "Closer to A", trackOid: "A", m: 300 },
+      { oid: "op", name: "Closer to A", trackKey: "A", m: 300 },
     ]);
+  });
+
+  test("keeps a point at exactly the maximum distance", () => {
+    expect(
+      placeOperationalPoints(
+        [trackA],
+        [operationalPoint("edge", "Edge", 500, 100)],
+      ),
+    ).toEqual([{ oid: "edge", name: "Edge", trackKey: "A", m: 500 }]);
+  });
+
+  test("finds points across grid cell boundaries", () => {
+    // 95 m straight down from the m=200 sample: the point sits in the grid cell
+    // south of the track's, so the match must look past its own cell.
+    expect(
+      placeOperationalPoints(
+        [trackA],
+        [operationalPoint("south", "South", 200, -95)],
+      ),
+    ).toEqual([{ oid: "south", name: "South", trackKey: "A", m: 200 }]);
   });
 
   test("drops nothing and finds nearest among many points", () => {
@@ -103,8 +123,8 @@ describe("placeOperationalPoints", () => {
     // a is closest to the m=0 sample; c is at x=2000, off the end of the track
     // (max point x=1000), 1000 m away → dropped.
     expect(placed).toEqual([
-      { oid: "a", name: "A", trackOid: "A", m: 0 },
-      { oid: "b", name: "B", trackOid: "A", m: 1000 },
+      { oid: "a", name: "A", trackKey: "A", m: 0 },
+      { oid: "b", name: "B", trackKey: "A", m: 1000 },
     ]);
   });
 });

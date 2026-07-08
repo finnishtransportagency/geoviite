@@ -37,6 +37,10 @@ function collectSnapCandidates(
     const track = tracks[spanIndex];
     if (!track) return;
 
+    // A route span's item list covers its whole track, reaching past the span's
+    // m-range; points outside the span are not drawn, so don't snap to them.
+    const withinSpan = (m: number) => m >= span.startM && m <= span.endM;
+
     for (const item of track.items) {
       const baseAddress = parseTrackAddress(item.pointAddress);
       const startAddress = parseTrackAddress(item.startAddress);
@@ -46,17 +50,19 @@ function collectSnapCandidates(
       // PVI intersection point — show the on-curve (profile) height so the
       // tooltip dot sits on the drawn track profile, not at the intersection
       // diamond.
-      const profileHeight = profileHeightAtM(track.items, item.pointM);
-      candidates.push({
-        diagramM: span.offsetX + (item.pointM - span.startM),
-        height: profileHeight ?? item.pointHeight,
-        address: baseAddress,
-        snapTarget: "pviPoint",
-      });
+      if (withinSpan(item.pointM)) {
+        const profileHeight = profileHeightAtM(track.items, item.pointM);
+        candidates.push({
+          diagramM: span.offsetX + (item.pointM - span.startM),
+          height: profileHeight ?? item.pointHeight,
+          address: baseAddress,
+          snapTarget: "pviPoint",
+        });
+      }
 
       if (drawTangentArrows) {
         // Curve start tangent point
-        if (startAddress) {
+        if (startAddress && withinSpan(item.startM)) {
           candidates.push({
             diagramM: span.offsetX + (item.startM - span.startM),
             height: item.startHeight,
@@ -66,7 +72,7 @@ function collectSnapCandidates(
         }
 
         // Curve end tangent point
-        if (endAddress) {
+        if (endAddress && withinSpan(item.endM)) {
           candidates.push({
             diagramM: span.offsetX + (item.endM - span.startM),
             height: item.endHeight,

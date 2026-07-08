@@ -39,6 +39,7 @@ export const Diagram: React.FC<DiagramProps> = ({
   dimensions,
 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
+  const clipIdPrefix = React.useId();
   const [panning, setPanning] = React.useState<number>();
   const [mousePosition, setMousePosition] = React.useState<
     [number, number] | undefined
@@ -140,8 +141,10 @@ export const Diagram: React.FC<DiagramProps> = ({
             span.startM,
           );
           const startXPx = mToX(coordinates, span.offsetX);
+          const endXPx = mToX(coordinates, span.offsetX + span.lengthM);
+          const clipId = `${clipIdPrefix}${spanIndex}`;
           return (
-            <g key={span.oid}>
+            <g key={span.key}>
               {spanIndex > 0 && (
                 <line
                   x1={startXPx}
@@ -159,19 +162,31 @@ export const Diagram: React.FC<DiagramProps> = ({
               >
                 {span.name}
               </text>
-              <HeightGraph
-                items={track.items}
-                coordinates={trackCoordinates}
-                trackStartM={span.startM}
-                trackEndM={span.startM + span.lengthM}
-                prevItem={track.prevItem}
-                nextItem={track.nextItem}
-              />
-              <TrackPviGeometry
-                items={track.items}
-                coordinates={trackCoordinates}
-                drawTangentArrows={drawTangentArrows}
-              />
+              {/* A route span's PVI items cover its whole track and can reach past the
+                  span's ends; clip the drawing to the span's own horizontal extent. */}
+              <clipPath id={clipId}>
+                <rect
+                  x={startXPx}
+                  width={Math.max(endXPx - startXPx, 0)}
+                  y={0}
+                  height={fullDimensions.heightPx}
+                />
+              </clipPath>
+              <g clipPath={`url(#${clipId})`}>
+                <HeightGraph
+                  items={track.items}
+                  coordinates={trackCoordinates}
+                  trackStartM={span.startM}
+                  trackEndM={span.startM + span.lengthM}
+                  prevItem={track.prevItem}
+                  nextItem={track.nextItem}
+                />
+                <TrackPviGeometry
+                  items={track.items}
+                  coordinates={trackCoordinates}
+                  drawTangentArrows={drawTangentArrows}
+                />
+              </g>
             </g>
           );
         })}

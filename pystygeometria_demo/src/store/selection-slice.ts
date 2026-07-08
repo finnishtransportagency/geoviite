@@ -2,15 +2,25 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { apiConfigSet } from "./config-slice";
 import { LocationTrackType } from "../api/types";
 
+// How the displayed track spans are chosen: by picking a track number and its location
+// tracks by hand, or by routing between two operational points.
+export type SelectionMode = "trackNumber" | "route";
+
 interface SelectionState {
+  mode: SelectionMode;
   trackNumberOid?: string;
   addressStart: string;
   addressEnd: string;
   selectedLocationTrackOids: string[];
   trackTypeFilter: LocationTrackType[];
+  // Operational point oids bounding the route in route mode. Kept when switching
+  // modes, so flipping back and forth does not lose either selection.
+  routeStartOid?: string;
+  routeEndOid?: string;
 }
 
 const initialState: SelectionState = {
+  mode: "trackNumber",
   addressStart: "",
   addressEnd: "",
   selectedLocationTrackOids: [],
@@ -21,6 +31,9 @@ export const selectionSlice = createSlice({
   name: "selection",
   initialState,
   reducers: {
+    selectionModeSet: (state, action: PayloadAction<SelectionMode>) => {
+      state.mode = action.payload;
+    },
     trackNumberSelected: (
       state,
       action: PayloadAction<{
@@ -29,12 +42,23 @@ export const selectionSlice = createSlice({
         addressEnd: string;
       }>,
     ) => ({
+      ...state,
       trackNumberOid: action.payload.oid,
       addressStart: action.payload.addressStart,
       addressEnd: action.payload.addressEnd,
       selectedLocationTrackOids: [],
-      trackTypeFilter: state.trackTypeFilter,
     }),
+    routeStartSet: (state, action: PayloadAction<string | undefined>) => {
+      state.routeStartOid = action.payload;
+    },
+    routeEndSet: (state, action: PayloadAction<string | undefined>) => {
+      state.routeEndOid = action.payload;
+    },
+    routeEndpointsSwapped: (state) => {
+      const start = state.routeStartOid;
+      state.routeStartOid = state.routeEndOid;
+      state.routeEndOid = start;
+    },
     addressStartSet: (state, action: PayloadAction<string>) => {
       state.addressStart = action.payload;
     },
@@ -70,9 +94,13 @@ export const selectionSlice = createSlice({
 });
 
 export const {
+  selectionModeSet,
   trackNumberSelected,
   addressStartSet,
   addressEndSet,
   trackTypeFilterToggled,
   locationTrackToggled,
+  routeStartSet,
+  routeEndSet,
+  routeEndpointsSwapped,
 } = selectionSlice.actions;

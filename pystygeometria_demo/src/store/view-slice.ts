@@ -1,7 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ViewRange } from "../math/layout";
 import { apiConfigSet } from "./config-slice";
-import { trackNumberSelected } from "./selection-slice";
+import { fetchRoute } from "./data-slice";
+import { selectionModeSet, trackNumberSelected } from "./selection-slice";
 
 interface ViewState {
   // null means "show the full extent of the displayed tracks"
@@ -22,6 +23,10 @@ export const viewSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(apiConfigSet, () => initialState);
     builder.addCase(trackNumberSelected, () => initialState);
+    // Both changing the routing request and switching between the selection modes
+    // replace the displayed spans wholesale; show the new full extent.
+    builder.addCase(fetchRoute.pending, () => initialState);
+    builder.addCase(selectionModeSet, () => initialState);
   },
 });
 

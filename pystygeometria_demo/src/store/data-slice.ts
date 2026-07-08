@@ -1,18 +1,21 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { apiGet, ApiConfig } from "../api/client";
+import { apiGet, apiGetAllowingNoContent, ApiConfig } from "../api/client";
 import {
   CommonData,
   ExtLocationTrack,
   ExtLocationTrackCollectionResponse,
   ExtLocationTrackGeometryResponse,
   ExtLocationTrackProfileResponse,
+  ExtLocationTrackResponse,
   ExtOperationalPoint,
   ExtOperationalPointCollectionResponse,
+  ExtRouteResponse,
   ExtTrackNumber,
   ExtTrackNumberCollectionResponse,
   LocationTrackResponse,
 } from "../api/types";
 import { apiConfigSet } from "./config-slice";
+import { routeStartSet, routeEndSet } from "./selection-slice";
 
 export interface AsyncData<T> {
   status: "idle" | "loading" | "ready" | "error";
@@ -28,17 +31,22 @@ interface DataState {
   trackNumberTracks: AsyncData<ExtLocationTrack[]> & {
     trackNumberOid?: string;
   };
+  // The latest requested route; data is null when the API found no route between the
+  // given locations (204). `key` identifies the request (see routeRequestKey) so a
+  // stale response cannot overwrite a newer request's state.
+  route: AsyncData<ExtRouteResponse | null> & { key?: string };
   locationTracks: Record<string, AsyncData<LocationTrackResponse>>;
 }
 
 const initialState: DataState = {
   commonData: { status: "idle" },
   trackNumberTracks: { status: "idle" },
+  route: { status: "idle" },
   locationTracks: {},
 };
 
 interface ThunkApiConfig {
-  state: { config: ApiConfig };
+  state: { config: ApiConfig; data: DataState };
 }
 
 export const fetchCommonData = createAsyncThunk<
@@ -80,6 +88,10 @@ export const fetchLocationTrack = createAsyncThunk<
   string,
   ThunkApiConfig
 >("data/fetchTrack", async (locationTrackOid, { getState }) => {
+  const info = apiGet<ExtLocationTrackResponse>(
+    getState().config,
+    `/paikannuspohja/v1/sijaintiraiteet/${encodeURIComponent(locationTrackOid)}`,
+  );
   const geometry = apiGet<ExtLocationTrackGeometryResponse>(
     getState().config,
     `/paikannuspohja/v1/sijaintiraiteet/${encodeURIComponent(locationTrackOid)}/geometria`,
@@ -89,10 +101,55 @@ export const fetchLocationTrack = createAsyncThunk<
     getState().config,
     `/paikannuspohja/v1/sijaintiraiteet/${encodeURIComponent(locationTrackOid)}/pystygeometria`,
   );
-  return Promise.all([profile, geometry]).then(([profile, geometry]) => ({
-    profile,
-    geometry,
-  }));
+  return Promise.all([info, profile, geometry]).then(
+    ([info, profile, geometry]) => ({
+      info: info.sijaintiraide,
+      profile,
+      geometry,
+    }),
+  );
+});
+
+export interface RouteRequest {
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+}
+
+export function routeRequestKey(request: RouteRequest): string {
+  return `${request.start.x},${request.start.y}->${request.end.x},${request.end.y}`;
+}
+
+// Fetches the route between two map locations and kicks off loading the profile and
+// geometry of every location track the route runs over. Resolves to null when the API
+// reports that no route exists (204 No Content).
+export const fetchRoute = createAsyncThunk<
+  ExtRouteResponse | null,
+  RouteRequest,
+  ThunkApiConfig
+>("data/fetchRoute", async (request, { getState, dispatch }) => {
+  const response = await apiGetAllowingNoContent<ExtRouteResponse>(
+    getState().config,
+    "/paikannuspohja/v1/reititys",
+    {
+      sijainti_alku_x: String(request.start.x),
+      sijainti_alku_y: String(request.start.y),
+      sijainti_loppu_x: String(request.end.x),
+      sijainti_loppu_y: String(request.end.y),
+    },
+  );
+  if (!response) {
+    return null;
+  }
+  const trackOids = new Set(
+    response.reitti.reitin_osat.map((section) => section.sijaintiraide_oid),
+  );
+  for (const oid of trackOids) {
+    const existing = getState().data.locationTracks[oid];
+    if (!existing || existing.status === "error") {
+      dispatch(fetchLocationTrack(oid));
+    }
+  }
+  return response;
 });
 
 export const dataSlice = createSlice({
@@ -102,6 +159,18 @@ export const dataSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(apiConfigSet, () => initialState)
+      // Clearing either route endpoint empties the diagram: without both endpoints
+      // there is no route to display, so drop the stale route response.
+      .addCase(routeStartSet, (state, action) => {
+        if (action.payload === undefined) {
+          state.route = { status: "idle" };
+        }
+      })
+      .addCase(routeEndSet, (state, action) => {
+        if (action.payload === undefined) {
+          state.route = { status: "idle" };
+        }
+      })
       .addCase(fetchCommonData.pending, (state) => {
         state.commonData = { status: "loading" };
       })
@@ -132,6 +201,30 @@ export const dataSlice = createSlice({
             status: "error",
             error: action.error.message,
             trackNumberOid: action.meta.arg,
+          };
+        }
+      })
+      .addCase(fetchRoute.pending, (state, action) => {
+        state.route = {
+          status: "loading",
+          key: routeRequestKey(action.meta.arg),
+        };
+      })
+      .addCase(fetchRoute.fulfilled, (state, action) => {
+        if (state.route.key === routeRequestKey(action.meta.arg)) {
+          state.route = {
+            status: "ready",
+            data: action.payload,
+            key: state.route.key,
+          };
+        }
+      })
+      .addCase(fetchRoute.rejected, (state, action) => {
+        if (state.route.key === routeRequestKey(action.meta.arg)) {
+          state.route = {
+            status: "error",
+            error: action.error.message,
+            key: state.route.key,
           };
         }
       })

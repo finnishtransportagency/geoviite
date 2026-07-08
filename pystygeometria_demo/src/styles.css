@@ -15,21 +15,58 @@ body {
   margin: 0 0 12px 0;
 }
 
+.box {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.box__heading {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0 0 10px 0;
+}
+
 .api-settings {
   display: flex;
   gap: 16px;
-  margin-bottom: 12px;
 }
 
 .selection-row {
   display: flex;
   gap: 16px;
   align-items: center;
-  margin-bottom: 12px;
+  margin: 12px 0;
 }
 
 .track-number-select {
   width: 480px;
+}
+
+.selection-mode-toggle {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.selection-mode-toggle label {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.route-select {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 480px;
+}
+
+.route-select__status {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .address-range-inputs {
@@ -43,9 +80,13 @@ body {
   align-items: flex-start;
 }
 
-.side-panel {
-  width: 420px;
+.diagram-box {
   flex-shrink: 0;
+}
+
+.selection-box {
+  flex: 1;
+  min-width: 500px;
 }
 
 .track-type-filter {

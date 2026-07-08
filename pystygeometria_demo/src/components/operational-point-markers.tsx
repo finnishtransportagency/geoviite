@@ -4,7 +4,7 @@ import { Layout, trackPositionToX } from "../math/layout";
 import { PlacedOperationalPoint } from "../math/operational-points";
 
 // Operational points drawn along the bottom of the diagram: a small dot at the point's
-// chainage on its track, with the name beside it. Points whose track is not displayed,
+// position on its span, with the name beside it. Points whose span is not displayed,
 // or that fall outside the visible horizontal range, are skipped.
 
 const dotRadiusPx = 3;
@@ -23,7 +23,7 @@ export const OperationalPointMarkers: React.FC<
     coordinates.dimensions.operationalPointRowOffsetPx;
   const diagramMs = operationalPoints.map((point) => {
     return trackPositionToX(layout, {
-      oid: point.trackOid,
+      key: point.trackKey,
       m: point.m,
     });
   });

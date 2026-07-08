@@ -9,9 +9,9 @@ import {
   zoomedView,
 } from "./layout";
 
-const trackA = { oid: "A", name: "A", startM: 0, endM: 500 };
-const trackB = { oid: "B", name: "B", startM: 100, endM: 400 };
-const trackC = { oid: "C", name: "C", startM: 0, endM: 1000 };
+const trackA = { key: "A", oid: "A", name: "A", startM: 0, endM: 500 };
+const trackB = { key: "B", oid: "B", name: "B", startM: 100, endM: 400 };
+const trackC = { key: "C", oid: "C", name: "C", startM: 0, endM: 1000 };
 
 describe("computeLayout", () => {
   test("concatenates spans", () => {
@@ -26,19 +26,19 @@ describe("xToTrackPosition / trackPositionToX", () => {
   const layout = computeLayout([trackA, trackB]);
 
   test("maps diagram-x into track chainage and back", () => {
-    expect(xToTrackPosition(layout, 600)).toEqual({ oid: "B", m: 200 });
-    expect(trackPositionToX(layout, { oid: "B", m: 200 })).toBe(600);
+    expect(xToTrackPosition(layout, 600)).toEqual({ key: "B", m: 200 });
+    expect(trackPositionToX(layout, { key: "B", m: 200 })).toBe(600);
   });
 
   test("respects the track-local start m-value", () => {
-    expect(xToTrackPosition(layout, 500)).toEqual({ oid: "A", m: 500 });
-    expect(trackPositionToX(layout, { oid: "B", m: 100 })).toBe(500);
+    expect(xToTrackPosition(layout, 500)).toEqual({ key: "A", m: 500 });
+    expect(trackPositionToX(layout, { key: "B", m: 100 })).toBe(500);
   });
 
   test("is undefined outside the layout or the track span", () => {
     expect(xToTrackPosition(layout, 900)).toBeUndefined();
-    expect(trackPositionToX(layout, { oid: "B", m: 50 })).toBeUndefined();
-    expect(trackPositionToX(layout, { oid: "missing", m: 50 })).toBeUndefined();
+    expect(trackPositionToX(layout, { key: "B", m: 50 })).toBeUndefined();
+    expect(trackPositionToX(layout, { key: "missing", m: 50 })).toBeUndefined();
   });
 });
 

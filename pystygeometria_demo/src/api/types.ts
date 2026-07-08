@@ -30,7 +30,8 @@ export interface CommonData {
 export interface ExtOperationalPoint {
   toiminnallinen_piste_oid: string;
   nimi: string;
-  sijainti: { x: number; y: number };
+  lyhenne?: string;
+  sijainti?: { x: number; y: number };
 }
 
 export interface ExtOperationalPointCollectionResponse {
@@ -148,9 +149,54 @@ export interface ExtLocationTrackGeometryResponse {
   osoitevali: ExtGeometryAddressRange;
 }
 
+export interface ExtLocationTrackResponse {
+  rataverkon_versio: string;
+  koordinaatisto: string;
+  sijaintiraide: ExtLocationTrack;
+}
+
 export interface LocationTrackResponse {
+  // The track's basic info (fetched for the track's name; the track-number listing has
+  // it too, but route sections arrive with only the track's oid).
+  info?: ExtLocationTrack;
   profile: ExtLocationTrackProfileResponse;
   geometry: ExtLocationTrackGeometryResponse;
+}
+
+export type ExtRouteEndpointType =
+  | "sijainti_raiteella"
+  | "vaihde"
+  | "raiteen_pää";
+
+export type ExtRouteDirection = "nouseva" | "laskeva";
+
+export interface ExtRouteSectionEndpoint {
+  tyyppi: ExtRouteEndpointType;
+  vaihde_oid?: string;
+  rataosoite?: string;
+  x: number;
+  y: number;
+  m_arvo: number;
+}
+
+export interface ExtRouteSection {
+  sijaintiraide_oid: string;
+  ratanumero_oid: string;
+  alku: ExtRouteSectionEndpoint;
+  loppu: ExtRouteSectionEndpoint;
+  suunta: ExtRouteDirection;
+  pituus: number;
+}
+
+export interface ExtRoute {
+  pituus: number;
+  reitin_osat: ExtRouteSection[];
+}
+
+export interface ExtRouteResponse {
+  rataverkon_versio: string;
+  koordinaatisto: string;
+  reitti: ExtRoute;
 }
 
 export type Environment = "local" | "dev" | "test" | "prod";

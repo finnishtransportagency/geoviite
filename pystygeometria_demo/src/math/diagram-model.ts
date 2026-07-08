@@ -10,17 +10,25 @@ import {
   PviItem,
   pviItemsFromProfile,
 } from "./profile";
+import {
+  geometryPointsToDisplayFrame,
+  pviItemsToDisplayFrame,
+  RouteSpan,
+} from "./route";
 
-// Everything the diagram needs about one displayed location track.
+// Everything the diagram needs about one displayed span: either a whole location track
+// or a route section's piece of one. All m-values are in the span's display frame; for
+// a whole track that is simply the track's own chainage, for a route section see
+// route.ts.
 export interface DiagramTrack extends TrackSpanInput {
   items: PviItem[];
-  // Map geometry points (x/y with chainage m), used to place operational points along
-  // the track.
+  // Map geometry points (x/y with display-frame m), used to place operational points
+  // along the span.
   geometryPoints: ExtMeasureAddressPoint[];
-  // Nearest PVIs carried from the neighbouring displayed tracks, so a track with no
-  // PVIs of its own (a short track may have none) still gets a height from the
-  // continuous grade line running through the track number. Only consulted when the
-  // track has no own PVIs. Undefined when no displayed track on that side has a PVI
+  // Nearest PVIs carried from the neighbouring displayed spans, so a span with no
+  // PVIs of its own (a short span may have none) still gets a height from the
+  // continuous grade line running through the displayed stretch. Only consulted when
+  // the span has no own PVIs. Undefined when no displayed span on that side has a PVI
   // to carry.
   prevItem?: NeighborPvi;
   nextItem?: NeighborPvi;
@@ -48,12 +56,50 @@ export function buildDiagramTracks(
       geometryPoints[geometryPoints.length - 1]?.osoitevali_m ?? 0;
     return [
       {
+        key: track.sijaintiraide_oid,
         oid: track.sijaintiraide_oid,
         name: track.sijaintiraidetunnus,
         startM: 0,
         endM: Math.max(lengthM, lastItem?.endM ?? 0),
         items,
         geometryPoints,
+      },
+    ];
+  });
+  linkNeighbouringPvis(tracks);
+  return tracks;
+}
+
+// Builds the displayed tracks for a route: one span per route section, in route order,
+// each covering just the section's piece of its track, mirrored when the route runs
+// against the track's chainage. The whole track's PVI items are kept (translated into
+// the span's display frame) so short sections still get heights from PVIs outside
+// their own m-range; rendering clips each span to its horizontal extent. Sections
+// whose track responses have not arrived yet are left out; they pop in when loaded.
+export function buildRouteDiagramTracks(
+  spans: readonly RouteSpan[],
+  responsesByOid: Record<string, LocationTrackResponse | undefined>,
+): DiagramTrack[] {
+  const tracks = spans.flatMap((span): DiagramTrack[] => {
+    const response = responsesByOid[span.trackOid];
+    if (!response) {
+      return [];
+    }
+    return [
+      {
+        key: span.key,
+        oid: span.trackOid,
+        name: response.info?.sijaintiraidetunnus ?? span.trackOid,
+        startM: 0,
+        endM: span.maxM - span.minM,
+        items: pviItemsToDisplayFrame(
+          pviItemsFromProfile(response.profile),
+          span,
+        ),
+        geometryPoints: geometryPointsToDisplayFrame(
+          response.geometry.osoitevali.pisteet,
+          span,
+        ),
       },
     ];
   });
