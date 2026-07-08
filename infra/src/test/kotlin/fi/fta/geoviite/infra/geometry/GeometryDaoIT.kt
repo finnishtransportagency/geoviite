@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -251,5 +252,39 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
     @Test
     fun `getPlanFiles throws NoSuchEntityException for nonexistent plan id`() {
         assertThrows(NoSuchEntityException::class.java) { geometryDao.getPlanFiles(listOf(IntId(-1))) }
+    }
+
+    @Test
+    fun `profile groupNumber survives a DB round-trip`() {
+        val file = infraModelFile("${TEST_NAME_PREFIX}_profile_group_number.xml")
+        val profile = GeometryProfile(
+            name = PlanElementName("test-profile"),
+            elements = listOf(
+                VIPoint(PlanElementName("start"), Point(0.0, 10.0)),
+                VIPoint(PlanElementName("end"), Point(100.0, 20.0)),
+            ),
+            groupNumber = "7",
+        )
+        val planIn = plan(alignments = listOf(geometryAlignment(profile = profile)))
+        val version = geometryDao.insertPlan(planIn, file, null)
+        val planOut = geometryDao.fetchPlan(version)
+        assertEquals(1, planOut.alignments.size)
+        assertEquals("7", planOut.alignments.first().profile?.groupNumber)
+    }
+
+    @Test
+    fun `profile groupNumber is null when not set`() {
+        val file = infraModelFile("${TEST_NAME_PREFIX}_profile_no_group.xml")
+        val profile = GeometryProfile(
+            name = PlanElementName("test-profile"),
+            elements = listOf(
+                VIPoint(PlanElementName("start"), Point(0.0, 10.0)),
+                VIPoint(PlanElementName("end"), Point(100.0, 20.0)),
+            ),
+        )
+        val planIn = plan(alignments = listOf(geometryAlignment(profile = profile)))
+        val version = geometryDao.insertPlan(planIn, file, null)
+        val planOut = geometryDao.fetchPlan(version)
+        assertEquals(null, planOut.alignments.first().profile?.groupNumber)
     }
 }

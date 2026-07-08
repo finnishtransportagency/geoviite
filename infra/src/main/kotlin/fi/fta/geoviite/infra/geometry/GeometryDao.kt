@@ -712,6 +712,7 @@ constructor(
               state,
               sta_start,
               profile_name,
+              profile_group_number,
               cant_name,
               cant_description,
               cant_gauge,
@@ -724,6 +725,7 @@ constructor(
               :state::geometry.plan_state,
               :sta_start,
               :profile_name,
+              :profile_group_number,
               :cant_name,
               :cant_description,
               :cant_gauge,
@@ -740,6 +742,7 @@ constructor(
                 "state" to alignment.state?.name,
                 "sta_start" to alignment.staStart,
                 "profile_name" to alignment.profile?.name,
+                "profile_group_number" to alignment.profile?.groupNumber,
                 "cant_name" to alignment.cant?.name,
                 "cant_description" to alignment.cant?.description,
                 "cant_gauge" to alignment.cant?.gauge,
@@ -1271,6 +1274,7 @@ constructor(
               alignment.name, alignment.state, alignment.description,
               alignment.sta_start,
               alignment.profile_name,
+              alignment.profile_group_number,
               alignment.cant_name, alignment.cant_description,
               alignment.cant_gauge, alignment.cant_rotation_point,
               alignment.feature_type_code
@@ -1298,7 +1302,11 @@ constructor(
                 elements = fetchElements(alignmentId, units),
                 profile =
                     profileName?.let { name ->
-                        GeometryProfile(name = PlanElementName(name), elements = fetchProfileElements(alignmentId))
+                        GeometryProfile(
+                            name = PlanElementName(name),
+                            elements = fetchProfileElements(alignmentId),
+                            groupNumber = rs.getString("profile_group_number"),
+                        )
                     },
                 cant =
                     cantName?.let { name ->
