@@ -108,6 +108,7 @@ export type AlignmentHeader = {
 export type GeometryAlignmentHeader = AlignmentHeader & {
     id: GeometryAlignmentId;
     alignmentSource: 'GEOMETRY';
+    profAlignGroupNumber: string | undefined;
 };
 
 export type AlignmentPolyLine = {
