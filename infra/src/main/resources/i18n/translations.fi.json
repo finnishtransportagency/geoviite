@@ -778,6 +778,8 @@
                 "name": "Nimi",
                 "location-track": "Sijaintiraide",
                 "reference-line": "Pituusmittauslinja",
+                "prof-align-group-number": "Korkeusryhmä",
+                "prof-align-group-number-unknown": "Ei tiedossa",
                 "linking-title": "Linkitys",
                 "is-linked": "Linkitetty",
                 "link-command": "Linkitä",
