@@ -695,6 +695,7 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
                 trackNumberId = IntId(1),
                 length = LineM(segments.sumOf(PlanLayoutSegment::length)),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
+                profAlignGroupNumber = null,
             ),
         segments = segments,
     )
