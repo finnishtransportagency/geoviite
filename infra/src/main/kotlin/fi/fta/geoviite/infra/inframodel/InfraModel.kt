@@ -139,7 +139,6 @@ interface InfraModelProfile {
 
 interface InfraModelProfAlign {
     val name: String
-    val groupNumber: String?
     val elements: List<InfraModelProfileElement>
     val features: List<InfraModelFeature>
 }

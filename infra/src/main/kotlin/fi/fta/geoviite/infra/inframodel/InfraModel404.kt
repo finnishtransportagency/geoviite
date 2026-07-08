@@ -191,7 +191,6 @@ data class InfraModelProfile404(
 @XmlAccessorType(XmlAccessType.FIELD)
 data class InfraModelProfAlign404(
     @field:XmlAttribute override val name: String = "",
-    @field:XmlAttribute(name = "ProfAlignGroupNumber") override val groupNumber: String? = null,
     @field:XmlElements(
         XmlElement(name = "PVI", namespace = XMLNS_404, type = InfraModelPvi404::class),
         XmlElement(name = "CircCurve", namespace = XMLNS_404, type = InfraModelCircCurve404::class),

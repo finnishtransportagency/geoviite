@@ -665,37 +665,6 @@ constructor(
         return if (value == "NaN") null else value.toBigDecimal()
     }
 
-    @Test
-    fun `ProfAlignGroupNumber attribute is parsed into GeometryProfile groupNumber`() {
-        val profAlign = InfraModelProfAlign403(
-            name = "tp",
-            groupNumber = "5",
-            elements = listOf(
-                InfraModelPvi403("start", "100.0 10.0"),
-                InfraModelPvi403("end", "200.0 20.0"),
-            ),
-            features = emptyList(),
-        )
-        val profile = toGvtProfile(InfraModelProfile403(profAlign, emptyList()))
-        assertNotNull(profile)
-        assertEquals("5", profile!!.groupNumber)
-    }
-
-    @Test
-    fun `GeometryProfile groupNumber is null when ProfAlignGroupNumber is absent`() {
-        val profAlign = InfraModelProfAlign403(
-            name = "tp",
-            elements = listOf(
-                InfraModelPvi403("start", "100.0 10.0"),
-                InfraModelPvi403("end", "200.0 20.0"),
-            ),
-            features = emptyList(),
-        )
-        val profile = toGvtProfile(InfraModelProfile403(profAlign, emptyList()))
-        assertNotNull(profile)
-        assertEquals(null, profile!!.groupNumber)
-    }
-
     private fun parseFeatureCoordinates(xmlFeature: InfraModelFeature): Point {
         val properties: List<InfraModelProperty> = xmlFeature.properties
         val coordinates = properties.map { p -> p.value.toBigDecimal() }
