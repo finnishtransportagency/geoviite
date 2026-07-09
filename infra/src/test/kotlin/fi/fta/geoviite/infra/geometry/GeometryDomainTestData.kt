@@ -455,7 +455,7 @@ fun plan(
     srid: Srid? = Srid(3879),
     alignments: List<GeometryAlignment> = listOf(geometryAlignment()),
     switches: List<GeometrySwitch> = listOf(),
-    measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    measurementMethod: MeasurementMethod? = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
     elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
@@ -496,7 +496,7 @@ fun plan(
 fun planHeader(
     id: IntId<GeometryPlan> = IntId(1),
     fileName: FileName = FileName("test_file.xml"),
-    measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    measurementMethod: MeasurementMethod? = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
     elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,

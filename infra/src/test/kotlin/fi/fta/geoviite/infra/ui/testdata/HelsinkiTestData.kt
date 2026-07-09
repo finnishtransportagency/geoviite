@@ -70,7 +70,7 @@ class HelsinkiTestData private constructor() {
                 pvDocumentId = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
                 decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
-                measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+                measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = null,
                 uploadTime = Instant.now(),
