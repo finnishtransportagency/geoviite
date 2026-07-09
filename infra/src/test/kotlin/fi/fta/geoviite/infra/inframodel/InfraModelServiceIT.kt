@@ -12,16 +12,15 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryService
-import fi.fta.geoviite.infra.geometry.PlanQuality
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.geometry.PlanQuality
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.PlanState
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.minimalLine
 import fi.fta.geoviite.infra.geometry.plan
-import fi.fta.geoviite.infra.geometry.someBoundingPolygon
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
