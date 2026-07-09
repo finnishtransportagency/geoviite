@@ -91,15 +91,6 @@ constructor(
         return geometryService.setPlanHidden(planId, hidden).id
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
-    @PutMapping("/{planId}/applicability")
-    fun setInfraModelApplicability(
-        @PathVariable("planId") planId: IntId<GeometryPlan>,
-        @RequestBody applicability: PlanApplicability?,
-    ): IntId<GeometryPlan> {
-        return infraModelService.setPlanApplicability(planId, applicability).id
-    }
-
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @PutMapping("/{planId}/linked-items")
     fun getInfraModelLinkedItems(@PathVariable("planId") planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {

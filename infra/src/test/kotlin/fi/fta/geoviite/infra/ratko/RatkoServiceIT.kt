@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.PlanQuality
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.lineFromOrigin
 import fi.fta.geoviite.infra.geometry.plan
@@ -588,6 +589,7 @@ constructor(
                     trackNumber,
                     srid = Srid(3879),
                     measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
+                    quality = PlanQuality.PLAN,
                     planTime = Instant.parse("2018-11-30T18:35:24.00Z"),
                     alignments = listOf(geometryAlignment(name = "geo name", elements = listOf(lineFromOrigin(1.0)))),
                 ),

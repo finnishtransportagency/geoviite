@@ -29,7 +29,7 @@ fun assertPlansMatch(original: GeometryPlan, planFromDb: GeometryPlan) {
     assertEquals(original.message, planFromDb.message)
     assertEquals(original.name, planFromDb.name)
     assertEquals(original.isHidden, planFromDb.isHidden)
-    assertEquals(original.planApplicability, planFromDb.planApplicability)
+    assertEquals(original.quality, planFromDb.quality)
 
     assertEquals(original.alignments.size, planFromDb.alignments.size)
     original.alignments.forEachIndexed { index, convertedAlignment ->
