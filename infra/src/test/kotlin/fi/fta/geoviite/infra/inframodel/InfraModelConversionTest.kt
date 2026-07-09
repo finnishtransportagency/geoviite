@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
+import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
