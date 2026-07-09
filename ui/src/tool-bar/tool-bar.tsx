@@ -34,7 +34,7 @@ import { getExternallyChangedOperationalPointIds } from 'track-layout/layout-ope
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { EDIT_LAYOUT, VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { EDIT_LAYOUT, VIEW_DESIGN, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import {
     draftLayoutContext,
     LayoutContext,
@@ -394,7 +394,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             <span>{t(`enum.LayoutContextMode.MAIN_DRAFT`)}</span>
                         </TabHeader>
                     </PrivilegeRequired>
-                    <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                    <PrivilegeRequired privilege={VIEW_DESIGN}>
                         <div ref={designTabRef}>
                             <TabHeader
                                 qaId={'design-mode-tab'}
