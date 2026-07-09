@@ -33,6 +33,7 @@ import java.time.Instant
 enum class PlanSource {
     GEOMETRIAPALVELU,
     PAIKANNUSPALVELU,
+    GEOVIITE,
 }
 
 /** GeometryPlanHeader is a lightweight object to be us ed as list items etc. */

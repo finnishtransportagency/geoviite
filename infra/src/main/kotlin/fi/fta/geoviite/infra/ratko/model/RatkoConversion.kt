@@ -75,6 +75,10 @@ fun mapToRatkoMeasurementMethod(layoutMeasurementMethod: MeasurementMethod?) =
         MeasurementMethod.TRACK_INSPECTION -> RatkoMeasurementMethod.TRACK_INSPECTION
         MeasurementMethod.DIGITIZED_AERIAL_IMAGE -> RatkoMeasurementMethod.DIGITALIZED_AERIAL_IMAGE
         MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> RatkoMeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY
+        MeasurementMethod.POINT_CLOUD_SIGNALED -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.POINT_CLOUD_UNSIGNALED -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.GNSS_IMU -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.RTK_GNSS -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
         null -> RatkoMeasurementMethod.UNKNOWN
     }
 
