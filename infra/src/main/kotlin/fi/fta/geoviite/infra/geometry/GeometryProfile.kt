@@ -30,7 +30,11 @@ data class VICircularCurve(
     }
 }
 
-data class GeometryProfile(val name: PlanElementName, val elements: List<VerticalIntersection>) {
+data class GeometryProfile(
+    val name: PlanElementName,
+    val elements: List<VerticalIntersection>,
+    val groupNumber: String? = null,
+) {
     @get:JsonIgnore val segments: List<ProfileSegment> by lazy { createSegments(elements) }
 
     fun getHeightAt(distance: LineM<PlanLayoutAlignmentM>): Double? {

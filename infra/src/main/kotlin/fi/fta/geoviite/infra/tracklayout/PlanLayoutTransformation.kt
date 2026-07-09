@@ -200,6 +200,7 @@ fun toAlignmentHeader(
         boundingBox = boundingBoxInLayoutSpace,
         length = LineM(alignment.elements.sumOf(GeometryElement::calculatedLength)),
         segmentCount = alignment.elements.size,
+        profAlignGroupNumber = alignment.profile?.groupNumber,
     )
 
 private fun toMapSegments(

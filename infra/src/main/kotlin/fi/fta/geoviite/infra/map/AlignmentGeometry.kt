@@ -61,6 +61,7 @@ data class GeometryAlignmentHeader(
     override val length: LineM<PlanLayoutAlignmentM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
+    val profAlignGroupNumber: String?,
 ) : AlignmentHeader<GeometryAlignment, LayoutState>() {
     override val alignmentSource = MapAlignmentSource.GEOMETRY
 }

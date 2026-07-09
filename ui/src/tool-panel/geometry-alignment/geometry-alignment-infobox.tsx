@@ -92,6 +92,14 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                             geometryAlignment.alignmentType === 'REFERENCE_LINE' ? 'yes' : 'no',
                         )}
                     />
+                    <InfoboxField
+                        qaId="geometry-alignment-prof-align-group-number"
+                        label={t('tool-panel.alignment.geometry.prof-align-group-number')}
+                        value={
+                            geometryAlignment.profAlignGroupNumber ??
+                            t('tool-panel.alignment.geometry.prof-align-group-number-unknown')
+                        }
+                    />
                     <InfoboxButtons>
                         <Button
                             size={ButtonSize.SMALL}
