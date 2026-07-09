@@ -131,8 +131,14 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
         }
 
         E2ERole.Authority,
-        E2ERole.Browser,
         E2ERole.Consultant -> {
+            mapPage
+                .also { assertOnlyDesignModeTabVisible() }
+                .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
+                .also { assertEditDesignButtonsInvisible() }
+        }
+
+        E2ERole.Browser -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsInvisible() }
                 .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
@@ -143,6 +149,11 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
 
 fun assertDraftAndDesignModeTabsVisible() {
     waitUntilExists(byQaId("draft-mode-tab"))
+    waitUntilExists(byQaId("design-mode-tab"))
+}
+
+fun assertOnlyDesignModeTabVisible() {
+    waitUntilNotExist(byQaId("draft-mode-tab"))
     waitUntilExists(byQaId("design-mode-tab"))
 }
 

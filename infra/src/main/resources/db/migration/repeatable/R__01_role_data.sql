@@ -89,6 +89,7 @@ with temp(role_code, privilege_code) as (
       ('authority', 'api-frame-converter'),
       ('authority', 'api-geometry'),
       ('authority', 'api-swagger'),
+      ('authority', 'view-design'),
 
       ('consultant', 'view-basic'),
       ('consultant', 'view-publication'),
@@ -97,6 +98,7 @@ with temp(role_code, privilege_code) as (
       ('consultant', 'api-frame-converter'),
       ('consultant', 'api-geometry'),
       ('consultant', 'api-swagger'),
+      ('consultant', 'view-design'),
 
       ('api-public', 'api-frame-converter'),
       ('api-public', 'api-swagger'),
