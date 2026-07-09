@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
@@ -45,8 +44,6 @@ import org.springframework.test.context.ActiveProfiles
 class InfraModelServiceIT
 @Autowired
 constructor(val infraModelService: InfraModelService, val geometryDao: GeometryDao) : DBTestBase() {
-
-    @Autowired private lateinit var geometryService: GeometryService
 
     @BeforeEach
     fun clearPlanTables() {
