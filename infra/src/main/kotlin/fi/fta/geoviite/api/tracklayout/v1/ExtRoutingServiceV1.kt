@@ -54,8 +54,8 @@ constructor(
         val moment = publication.publicationTime
         val srid = coordinateSystem(extCoordinateSystem)
 
-        val startPoint = toLayoutPoint(startX, startY, srid)
-        val endPoint = toLayoutPoint(endX, endY, srid)
+        val startPoint = toLayoutCoordinate(startX, startY, srid)
+        val endPoint = toLayoutCoordinate(endX, endY, srid)
 
         val routeResult =
             routingService.getRoute(branch.official, startPoint, endPoint, MAX_ROUTE_SEEK_DISTANCE) ?: return null
@@ -69,6 +69,8 @@ constructor(
         val trackGeometryById = tracksWithGeometry.associate { (t, g) -> (t.id as IntId<LocationTrack>) to g }
         val trackById = tracksWithGeometry.associate { (t, _) -> (t.id as IntId<LocationTrack>) to t }
 
+        // fetchExternalIds returns only OIDs from this branch; inherited OIDs from parent branches are not included.
+        // This works correctly on main. Design branch routing is a known open problem — OIDs may be missing there.
         val trackExtIds: Map<IntId<LocationTrack>, RatkoExternalId<LocationTrack>> =
             locationTrackDao.fetchExternalIds(branch, trackIds)
         val trackNumberExtIds: Map<IntId<LayoutTrackNumber>, RatkoExternalId<LayoutTrackNumber>> =
@@ -78,12 +80,20 @@ constructor(
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
 
         val sections =
-            routeResult.route.sections.mapNotNull { section ->
-                val track = trackById[section.trackId] ?: return@mapNotNull null
-                val geometry = trackGeometryById[section.trackId] ?: return@mapNotNull null
-                val trackOid = trackExtIds[section.trackId]?.oid ?: return@mapNotNull null
+            routeResult.route.sections.map { section ->
+                val track =
+                    trackById[section.trackId]
+                        ?: error("LocationTrack not found in routing result: trackId=${section.trackId}")
+                val geometry =
+                    trackGeometryById[section.trackId]
+                        ?: error("LocationTrack geometry not found in routing result: trackId=${section.trackId}")
+                val trackOid =
+                    trackExtIds[section.trackId]?.oid
+                        ?: error("LocationTrack OID not found: trackId=${section.trackId}")
                 val trackNumberId = track.trackNumberId as IntId<LayoutTrackNumber>
-                val trackNumberOid = trackNumberExtIds[trackNumberId]?.oid ?: return@mapNotNull null
+                val trackNumberOid =
+                    trackNumberExtIds[trackNumberId]?.oid
+                        ?: error("TrackNumber OID not found: trackNumberId=$trackNumberId")
                 val geocodingContext = getGeocodingContext(trackNumberId)
 
                 val (alkuM, loppuM) =
@@ -92,8 +102,12 @@ constructor(
                         EdgeDirection.DOWN -> section.mRange.max to section.mRange.min
                     }
 
-                val alkuPoint = geometry.getPointAtM(alkuM) ?: return@mapNotNull null
-                val loppuPoint = geometry.getPointAtM(loppuM) ?: return@mapNotNull null
+                val alkuPoint =
+                    geometry.getPointAtM(alkuM)
+                        ?: error("Point at M not found on geometry: m=$alkuM trackId=${section.trackId}")
+                val loppuPoint =
+                    geometry.getPointAtM(loppuM)
+                        ?: error("Point at M not found on geometry: m=$loppuM trackId=${section.trackId}")
 
                 val alkuAddress = geocodingContext?.getAddress(alkuPoint)?.first
                 val loppuAddress = geocodingContext?.getAddress(loppuPoint)?.first
@@ -149,7 +163,11 @@ constructor(
         val (tyyppi, vaihdeOid) =
             when {
                 switchLink != null ->
-                    ExtRouteEndpointTypeV1.VAIHDE to switchExtIds[switchLink.switchId]?.oid?.let(::ExtOidV1)
+                    ExtRouteEndpointTypeV1.VAIHDE to
+                        ExtOidV1(
+                            switchExtIds[switchLink.switchId]?.oid
+                                ?: error("Switch OID not found: switchId=${switchLink.switchId}")
+                        )
                 isTrackEnd(m, trackLength) -> ExtRouteEndpointTypeV1.RAITEEN_PAA to null
                 else -> ExtRouteEndpointTypeV1.SIJAINTI_RAITEELLA to null
             }
@@ -172,7 +190,7 @@ constructor(
     private fun isTrackEnd(m: LineM<LocationTrackM>, trackLength: LineM<LocationTrackM>): Boolean =
         m.distance < LAYOUT_M_DELTA || abs(m.distance - trackLength.distance) < LAYOUT_M_DELTA
 
-    private fun toLayoutPoint(x: Double, y: Double, srid: Srid): Point {
+    private fun toLayoutCoordinate(x: Double, y: Double, srid: Srid): Point {
         val input = Point(x, y)
         return if (srid == LAYOUT_SRID) input
         else transformNonKKJCoordinate(srid, LAYOUT_SRID, input).let { Point(it.x, it.y) }
