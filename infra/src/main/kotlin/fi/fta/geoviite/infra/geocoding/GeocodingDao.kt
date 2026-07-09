@@ -5,11 +5,15 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetReader
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -117,7 +121,8 @@ class GeocodingDao(
                     with
                       tn_versions as (
                         select distinct on (id, is_design)
-                          id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
+                          id, design_id, version, state, deleted, design_asset_state,
+                          case when design_id is not null then 0 else 1 end as is_design
                         from layout.track_number_version
                         where id = :tn_id
                           and draft = false
@@ -128,13 +133,14 @@ class GeocodingDao(
                       tn as (
                         select id, design_id, version, state
                         from tn_versions
-                        where deleted = false
+                        where deleted = false and design_asset_state is distinct from 'CANCELLED'
                         order by is_design
                         limit 1
                       ),
                       kmp_versions as (
                         select distinct on (id, is_design)
-                          id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
+                          id, design_id, version, state, deleted, design_asset_state,
+                          case when design_id is not null then 0 else 1 end as is_design
                         from layout.km_post_version
                         where track_number_id = :tn_id
                           and draft = false
@@ -145,7 +151,7 @@ class GeocodingDao(
                       kmp as (
                         select distinct on (id) id, design_id, false as draft, version, state
                         from kmp_versions
-                        where deleted = false
+                        where deleted = false and design_asset_state is distinct from 'CANCELLED'
                         order by id, is_design
                       )
                     select
@@ -215,7 +221,9 @@ class GeocodingDao(
 
         // Since we included deleted versions, we now need to verify the existence for the final TrackNumber
         // as DELETED TrackNumbers don't have geocoding contexts
-        return (versions.findTrackNumber(trackNumberId) ?: base?.trackNumberVersion)
+        return (versions.findTrackNumber(trackNumberId)?.let { trackNumberVersion ->
+                resolveCancellation(trackNumberDao, trackNumberVersion)
+            } ?: base?.trackNumberVersion)
             ?.takeIf { tnVersion -> trackNumberDao.fetch(tnVersion).exists }
             ?.let { tnVersion ->
                 val validationKmPostsParticipatingInGeocoding =
@@ -226,9 +234,9 @@ class GeocodingDao(
                     base?.kmPostVersions?.filter { v -> !participatingValidationKmPostIds.contains(v.id) } ?: listOf()
                 val kmPostVersions =
                     listOf(
-                            validationKmPostsParticipatingInGeocoding
-                                .filter { it.value.state == LayoutState.IN_USE }
-                                .map { it.key },
+                            validationKmPostsParticipatingInGeocoding.keys
+                                .mapNotNull { version -> resolveCancellation(kmPostDao, version) }
+                                .filter { version -> kmPostDao.fetch(version).state == LayoutState.IN_USE },
                             nonOverriddenBaseKmPosts,
                         )
                         .flatten()
@@ -237,4 +245,10 @@ class GeocodingDao(
                 return LayoutGeocodingContextCacheKey(tnVersion, kmPostVersions)
             }
     }
+
+    private fun <T : LayoutAsset<T>> resolveCancellation(
+        dao: LayoutAssetReader<T>,
+        version: LayoutRowVersion<T>,
+    ): LayoutRowVersion<T>? =
+        if (dao.fetch(version).isCancelled) dao.fetchVersion(MainLayoutContext.official, version.id) else version
 }
