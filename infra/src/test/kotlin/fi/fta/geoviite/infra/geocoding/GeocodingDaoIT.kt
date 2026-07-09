@@ -370,6 +370,33 @@ constructor(
         )
     }
 
+    @Test
+    fun `Cancelling creation of a new design track number yields no validation cache key`() {
+        val designBranch = testDBService.createDesignBranch()
+        val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
+        val target = PublicationInDesign(designBranch)
+
+        // Create a track number directly in the design — it has no main official counterpart
+        val tnDesignOnly = officialDesignContext.createLayoutTrackNumber()
+        val tnId = tnDesignOnly.id
+
+        // Before cancellation, the design track number has a valid cache key
+        assertNotNull(
+            geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(target = target)),
+        )
+
+        // Cancel the creation of this track number
+        val tnCancellation = trackNumberService.cancel(designBranch, tnId)!!
+
+        // The cancellation resolves to null because there is no main official row to fall back to
+        assertNull(
+            geocodingDao.getLayoutGeocodingContextCacheKey(
+                tnId,
+                validationVersions(trackNumbers = listOf(tnCancellation), target = target),
+            ),
+        )
+    }
+
     /**
      * Marks a design-official row cancelled, as publishing a cancellation does: the row stays in place, non-deleted and
      * IN_USE, and only its designAssetState says that it no longer applies.

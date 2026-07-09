@@ -221,9 +221,10 @@ class GeocodingDao(
 
         // Since we included deleted versions, we now need to verify the existence for the final TrackNumber
         // as DELETED TrackNumbers don't have geocoding contexts
-        return (versions.findTrackNumber(trackNumberId)?.let { trackNumberVersion ->
-                resolveCancellation(trackNumberDao, trackNumberVersion)
-            } ?: base?.trackNumberVersion)
+        val validationTrackNumberVersion = versions.findTrackNumber(trackNumberId)
+        return (if (validationTrackNumberVersion != null)
+                resolveCancellation(trackNumberDao, validationTrackNumberVersion)
+            else base?.trackNumberVersion)
             ?.takeIf { tnVersion -> trackNumberDao.fetch(tnVersion).exists }
             ?.let { tnVersion ->
                 val validationKmPostsParticipatingInGeocoding =
