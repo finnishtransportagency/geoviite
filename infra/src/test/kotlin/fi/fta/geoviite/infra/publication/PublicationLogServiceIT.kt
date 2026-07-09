@@ -436,9 +436,8 @@ constructor(
                 emptySet(),
                 switchOids = mapOf(),
                 operationalPointOids = mapOf(),
-            ) { _, _ ->
-                null
-            }
+                getGeocodingContext = { _, _ -> null },
+            )
         assertEquals(7, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -501,9 +500,8 @@ constructor(
                 emptySet(),
                 mapOf(),
                 mapOf(),
-            ) { _, _ ->
-                null
-            }
+                getGeocodingContext = { _, _ -> null },
+            )
         assertEquals(1, diff.size)
         assertEquals("location-track-type", diff[0].propKey.key.toString())
         assertEquals(locationTrack.type, diff[0].value.oldValue)
@@ -1038,9 +1036,8 @@ constructor(
                 setOf(KmNumber(0)),
                 mapOf(),
                 mapOf(),
-            ) { _, _ ->
-                null
-            }
+                getGeocodingContext = { _, _ -> null },
+            )
         assertEquals(1, diff.size)
         assertEquals("Muutos välillä 0000+0001-0000+0009, sivusuuntainen muutos 10.0 m", diff[0].remark)
     }

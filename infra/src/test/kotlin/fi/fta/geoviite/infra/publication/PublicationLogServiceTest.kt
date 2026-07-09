@@ -32,15 +32,26 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 
 class PublicationLogServiceTest {
 
-    private lateinit var locationTrackService: LocationTrackService
-    private lateinit var service: PublicationLogService
+    private val service =
+        PublicationLogService(
+            publicationDao = mock(PublicationDao::class.java),
+            geocodingService = mock(GeocodingService::class.java),
+            locationTrackService = mock(LocationTrackService::class.java),
+            locationTrackDao = mock(LocationTrackDao::class.java),
+            trackNumberDao = mock(LayoutTrackNumberDao::class.java),
+            ratkoPushDao = mock(RatkoPushDao::class.java),
+            splitService = mock(SplitService::class.java),
+            localizationService = mock(LocalizationService::class.java),
+            geographyService = mock(GeographyService::class.java),
+            switchDao = mock(LayoutSwitchDao::class.java),
+            kmPostDao = mock(LayoutKmPostDao::class.java),
+            operationalPointDao = mock(OperationalPointDao::class.java),
+        )
 
     private val translation = Translation(LocalizationLanguage.FI, "{}")
     private val now = Instant.parse("2026-01-01T00:00:00Z")
@@ -48,32 +59,11 @@ class PublicationLogServiceTest {
     private val trackNumberId = IntId<LayoutTrackNumber>(1)
     private val ownerId = IntId<LocationTrackOwner>(1)
 
-    @BeforeEach
-    fun setUp() {
-        locationTrackService = mock(LocationTrackService::class.java)
-
-        service =
-            PublicationLogService(
-                publicationDao = mock(PublicationDao::class.java),
-                geocodingService = mock(GeocodingService::class.java),
-                locationTrackService = locationTrackService,
-                locationTrackDao = mock(LocationTrackDao::class.java),
-                trackNumberDao = mock(LayoutTrackNumberDao::class.java),
-                ratkoPushDao = mock(RatkoPushDao::class.java),
-                splitService = mock(SplitService::class.java),
-                localizationService = mock(LocalizationService::class.java),
-                geographyService = mock(GeographyService::class.java),
-                switchDao = mock(LayoutSwitchDao::class.java),
-                kmPostDao = mock(LayoutKmPostDao::class.java),
-                operationalPointDao = mock(OperationalPointDao::class.java),
-            )
-    }
-
     @Test
     fun `should not crash and should omit location fields when start and end points are null`() {
         val changes = baseChanges(startPoint = null, endPoint = null)
 
-        val diff = diff(changes)
+        val diff = callDiffLocationTrack(changes)
 
         val keys = diff.map { it.propKey.key.toString() }
         assertTrue("start-location" !in keys)
@@ -84,7 +74,7 @@ class PublicationLogServiceTest {
 
     @Test
     fun `should return empty list when nothing has changed`() {
-        val diff = diff(baseChanges())
+        val diff = callDiffLocationTrack(baseChanges())
 
         assertTrue(diff.isEmpty())
     }
@@ -93,7 +83,7 @@ class PublicationLogServiceTest {
     fun `should report name change`() {
         val changes = baseChanges().copy(name = Change(AlignmentName("OLD"), AlignmentName("NEW")))
 
-        val diff = diff(changes)
+        val diff = callDiffLocationTrack(changes)
 
         assertEquals(1, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
@@ -103,7 +93,7 @@ class PublicationLogServiceTest {
     fun `should report state change`() {
         val changes = baseChanges().copy(state = Change(LocationTrackState.IN_USE, LocationTrackState.NOT_IN_USE))
 
-        val diff = diff(changes)
+        val diff = callDiffLocationTrack(changes)
 
         assertEquals(1, diff.size)
         assertEquals("state", diff[0].propKey.key.toString())
@@ -113,7 +103,7 @@ class PublicationLogServiceTest {
     fun `should report geometry change when km numbers changed`() {
         val kmNumbers = setOf(KmNumber(1))
 
-        val diff = diff(baseChanges(), changedKmNumbers = kmNumbers)
+        val diff = callDiffLocationTrack(baseChanges(), changedKmNumbers = kmNumbers)
 
         assertEquals(1, diff.size)
         assertEquals("geometry", diff[0].propKey.key.toString())
@@ -127,7 +117,7 @@ class PublicationLogServiceTest {
         val newEnd = Point(1100.0, 0.0)
         val changes = baseChanges().copy(startPoint = Change(oldStart, newStart), endPoint = Change(oldEnd, newEnd))
 
-        val diff = diff(changes)
+        val diff = callDiffLocationTrack(changes)
 
         val keys = diff.map { it.propKey.key.toString() }
         assertTrue("start-location" in keys)
@@ -140,7 +130,7 @@ class PublicationLogServiceTest {
         val nudged = Point(0.0001, 0.0)
         val changes = baseChanges().copy(startPoint = Change(base, nudged), endPoint = Change(base, nudged))
 
-        val diff = diff(changes)
+        val diff = callDiffLocationTrack(changes)
 
         val keys = diff.map { it.propKey.key.toString() }
         assertTrue("start-location" !in keys)
@@ -156,7 +146,7 @@ class PublicationLogServiceTest {
                     endPoint = Change(Point(1000.0, 0.0), Point(1100.0, 0.0)),
                 )
 
-        val diff = diff(changes, geocodingContext = { _, _ -> null })
+        val diff = callDiffLocationTrack(changes, geocodingContext = { _, _ -> null })
 
         val keys = diff.map { it.propKey.key.toString() }
         assertTrue("start-address" !in keys)
@@ -167,25 +157,24 @@ class PublicationLogServiceTest {
     fun `should report owner change when owner name is found`() {
         val oldOwner = IntId<LocationTrackOwner>(1)
         val newOwner = IntId<LocationTrackOwner>(2)
-        `when`(locationTrackService.getLocationTrackOwners())
-            .thenReturn(
-                listOf(
-                    LocationTrackOwner(oldOwner, MetaDataName("Old Owner")),
-                    LocationTrackOwner(newOwner, MetaDataName("New Owner")),
-                )
+        val owners =
+            listOf(
+                LocationTrackOwner(oldOwner, MetaDataName("Old Owner")),
+                LocationTrackOwner(newOwner, MetaDataName("New Owner")),
             )
         val changes = baseChanges().copy(owner = Change(oldOwner, newOwner))
 
-        val diff = diff(changes)
+        val diff = callDiffLocationTrack(changes, getOwners = { owners })
 
         assertEquals(1, diff.size)
         assertEquals("owner", diff[0].propKey.key.toString())
     }
 
-    private fun diff(
+    private fun callDiffLocationTrack(
         changes: LocationTrackChanges,
         changedKmNumbers: Set<KmNumber> = emptySet(),
         geocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>? = { _, _ -> null },
+        getOwners: (() -> List<LocationTrackOwner>)? = null,
     ) =
         service.diffLocationTrack(
             translation,
@@ -201,6 +190,7 @@ class PublicationLogServiceTest {
             switchOids = emptyMap(),
             operationalPointOids = emptyMap(),
             getGeocodingContext = geocodingContext,
+            getOwners = getOwners,
         )
 
     private fun baseChanges(startPoint: Point? = Point(0.0, 0.0), endPoint: Point? = Point(10.0, 0.0)) =

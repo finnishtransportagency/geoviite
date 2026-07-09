@@ -39,6 +39,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
@@ -598,7 +599,11 @@ constructor(
         switchOids: Map<IntId<LayoutSwitch>, Oid<LayoutSwitch>>,
         operationalPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
         getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
+        getOwners: (() -> List<LocationTrackOwner>)? = null,
+        getOfficialAtMoment: ((LayoutBranch, IntId<LocationTrack>, Instant) -> LocationTrack?)? = null,
     ): List<PublicationChange<*>> {
+        val resolvedGetOwners = getOwners ?: locationTrackService::getLocationTrackOwners
+        val resolvedGetOfficialAtMoment = getOfficialAtMoment ?: locationTrackService::getOfficialAtMoment
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
         val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
         val oldStartPointAndM =
@@ -666,7 +671,7 @@ constructor(
             ),
             compareChangeValues(
                 locationTrackChanges.owner,
-                { locationTrackService.getLocationTrackOwners().find { owner -> owner.id == it }?.name },
+                { resolvedGetOwners().find { owner -> owner.id == it }?.name },
                 PropKey("owner"),
             ),
             compareChange(
@@ -674,7 +679,7 @@ constructor(
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
-                    duplicateOf?.let { locationTrackService.getOfficialAtMoment(branch, it, timestamp)?.name }
+                    duplicateOf?.let { resolvedGetOfficialAtMoment(branch, it, timestamp)?.name }
                 },
                 PropKey("duplicate-of"),
             ),
