@@ -257,14 +257,16 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
     @Test
     fun `profile groupNumber survives a DB round-trip`() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_profile_group_number.xml")
-        val profile = GeometryProfile(
-            name = PlanElementName("test-profile"),
-            elements = listOf(
-                VIPoint(PlanElementName("start"), Point(0.0, 10.0)),
-                VIPoint(PlanElementName("end"), Point(100.0, 20.0)),
-            ),
-            groupNumber = "7",
-        )
+        val profile =
+            GeometryProfile(
+                name = PlanElementName("test-profile"),
+                elements =
+                    listOf(
+                        VIPoint(PlanElementName("start"), Point(0.0, 10.0)),
+                        VIPoint(PlanElementName("end"), Point(100.0, 20.0)),
+                    ),
+                groupNumber = "7",
+            )
         val planIn = plan(alignments = listOf(geometryAlignment(profile = profile)))
         val version = geometryDao.insertPlan(planIn, file, null)
         val planOut = geometryDao.fetchPlan(version)
@@ -275,13 +277,15 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
     @Test
     fun `profile groupNumber is null when not set`() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_profile_no_group.xml")
-        val profile = GeometryProfile(
-            name = PlanElementName("test-profile"),
-            elements = listOf(
-                VIPoint(PlanElementName("start"), Point(0.0, 10.0)),
-                VIPoint(PlanElementName("end"), Point(100.0, 20.0)),
-            ),
-        )
+        val profile =
+            GeometryProfile(
+                name = PlanElementName("test-profile"),
+                elements =
+                    listOf(
+                        VIPoint(PlanElementName("start"), Point(0.0, 10.0)),
+                        VIPoint(PlanElementName("end"), Point(100.0, 20.0)),
+                    ),
+            )
         val planIn = plan(alignments = listOf(geometryAlignment(profile = profile)))
         val version = geometryDao.insertPlan(planIn, file, null)
         val planOut = geometryDao.fetchPlan(version)
