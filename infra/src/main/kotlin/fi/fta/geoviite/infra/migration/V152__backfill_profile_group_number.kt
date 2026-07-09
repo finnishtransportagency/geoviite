@@ -38,14 +38,28 @@ class V152__backfill_profile_group_number : BaseJavaMigration() {
         for ((planId, content) in planFiles) {
             val doc = dbFactory.newDocumentBuilder().parse(content.byteInputStream())
             val xpath = xpathFactory.newXPath()
-            val nodes = xpath.evaluate("//*[local-name()='ProfAlign']", doc, XPathConstants.NODESET) as NodeList
+            val nodes =
+                xpath.evaluate("//*[local-name()='Feature'][@code='IM_ProfileGroup']", doc, XPathConstants.NODESET)
+                    as NodeList
 
             val updates = mutableListOf<Map<String, Any?>>()
-            @Suppress("LoopWithTooManyJumpStatements")
             for (i in 0 until nodes.length) {
                 val node = nodes.item(i) as Element
-                val profileName = node.getAttribute("name").takeIf { it.isNotEmpty() } ?: continue
-                val groupNumber = node.getAttribute("ProfAlignGroupNumber").takeIf { it.isNotEmpty() } ?: continue
+                val profileName =
+                    (xpath.evaluate(
+                            "*[local-name()='Property'][@label='ProfAlignName']/@value",
+                            node,
+                            XPathConstants.STRING,
+                        ) as String)
+                        .takeIf { it.isNotEmpty() }
+                val groupNumber =
+                    (xpath.evaluate(
+                            "*[local-name()='Property'][@label='ProfAlignGroupNumber']/@value",
+                            node,
+                            XPathConstants.STRING,
+                        ) as String)
+                        .takeIf { it.isNotEmpty() }
+                if (profileName == null || groupNumber == null) continue
                 updates.add(mapOf("plan_id" to planId, "profile_name" to profileName, "group_number" to groupNumber))
             }
 
