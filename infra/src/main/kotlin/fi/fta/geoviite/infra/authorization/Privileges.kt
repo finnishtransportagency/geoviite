@@ -17,7 +17,10 @@ const val PUBLICATION_STATE = "publicationState"
 const val AUTH_VIEW_DESIGN = "hasAuthority('view-design')"
 
 const val AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE =
-    "(#$PUBLICATION_STATE.name() == 'DRAFT' && ($AUTH_VIEW_LAYOUT_DRAFT || (#$LAYOUT_BRANCH.type.name() == 'DESIGN' && $AUTH_VIEW_DESIGN))) || (#$PUBLICATION_STATE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"
+    "(#$PUBLICATION_STATE.name() == 'DRAFT' && " +
+        "($AUTH_VIEW_LAYOUT_DRAFT || " +
+        "(#$LAYOUT_BRANCH.type.name() == 'DESIGN' && $AUTH_VIEW_DESIGN))) || " +
+        "(#$PUBLICATION_STATE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"
 
 const val AUTH_VIEW_DEBUG_LAYERS = "hasAuthority('view-debug-layers')"
 
