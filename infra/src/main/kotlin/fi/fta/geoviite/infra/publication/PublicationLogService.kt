@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AddressAndM
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.GeographyService
@@ -585,6 +586,7 @@ constructor(
         )
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     fun diffLocationTrack(
         translation: Translation,
         locationTrackChanges: LocationTrackChanges,
@@ -606,30 +608,8 @@ constructor(
         val resolvedGetOfficialAtMoment = getOfficialAtMoment ?: locationTrackService::getOfficialAtMoment
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
         val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
-        val oldStartPointAndM =
-            locationTrackChanges.startPoint.old?.let { oldStart ->
-                locationTrackChanges.trackNumberId.old?.let {
-                    getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldStart)
-                }
-            }
-        val oldEndPointAndM =
-            locationTrackChanges.endPoint.old?.let { oldEnd ->
-                locationTrackChanges.trackNumberId.old?.let {
-                    getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldEnd)
-                }
-            }
-        val newStartPointAndM =
-            locationTrackChanges.startPoint.new?.let { newStart ->
-                locationTrackChanges.trackNumberId.new.let {
-                    getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
-                }
-            }
-        val newEndPointAndM =
-            locationTrackChanges.endPoint.new?.let { newEnd ->
-                locationTrackChanges.trackNumberId.new.let {
-                    getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
-                }
-            }
+        val (oldStartPointAndM, oldEndPointAndM, newStartPointAndM, newEndPointAndM) =
+            resolveEndpointAddresses(locationTrackChanges, oldAndTime.second, newAndTime.second, getGeocodingContext)
 
         val switchLinkChanges = referenceChanges.locationTrackSwitches[locationTrackChanges.id]
         val operationalPointLinkChanges = referenceChanges.locationTrackOperationalPoints[locationTrackChanges.id]
@@ -784,6 +764,42 @@ constructor(
             },
         )
     }
+
+    private data class LocationTrackEndpointAddresses(
+        val oldStart: AddressAndM?,
+        val oldEnd: AddressAndM?,
+        val newStart: AddressAndM?,
+        val newEnd: AddressAndM?,
+    )
+
+    private fun resolveEndpointAddresses(
+        locationTrackChanges: LocationTrackChanges,
+        previousPublicationTime: Instant,
+        publicationTime: Instant,
+        getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
+    ): LocationTrackEndpointAddresses =
+        LocationTrackEndpointAddresses(
+            oldStart =
+                locationTrackChanges.startPoint.old?.let { pt ->
+                    locationTrackChanges.trackNumberId.old?.let {
+                        getGeocodingContext(it, previousPublicationTime)?.getAddressAndM(pt)
+                    }
+                },
+            oldEnd =
+                locationTrackChanges.endPoint.old?.let { pt ->
+                    locationTrackChanges.trackNumberId.old?.let {
+                        getGeocodingContext(it, previousPublicationTime)?.getAddressAndM(pt)
+                    }
+                },
+            newStart =
+                locationTrackChanges.startPoint.new?.let { pt ->
+                    getGeocodingContext(locationTrackChanges.trackNumberId.new, publicationTime)?.getAddressAndM(pt)
+                },
+            newEnd =
+                locationTrackChanges.endPoint.new?.let { pt ->
+                    getGeocodingContext(locationTrackChanges.trackNumberId.new, publicationTime)?.getAddressAndM(pt)
+                },
+        )
 
     fun diffKmPost(
         translation: Translation,
