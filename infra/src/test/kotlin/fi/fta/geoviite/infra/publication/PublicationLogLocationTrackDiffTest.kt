@@ -6,52 +6,24 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.ratko.RatkoPushDao
-import fi.fta.geoviite.infra.split.SplitService
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
 
-class PublicationLogServiceTest {
-
-    private val service =
-        PublicationLogService(
-            publicationDao = mock(PublicationDao::class.java),
-            geocodingService = mock(GeocodingService::class.java),
-            locationTrackService = mock(LocationTrackService::class.java),
-            locationTrackDao = mock(LocationTrackDao::class.java),
-            trackNumberDao = mock(LayoutTrackNumberDao::class.java),
-            ratkoPushDao = mock(RatkoPushDao::class.java),
-            splitService = mock(SplitService::class.java),
-            localizationService = mock(LocalizationService::class.java),
-            geographyService = mock(GeographyService::class.java),
-            switchDao = mock(LayoutSwitchDao::class.java),
-            kmPostDao = mock(LayoutKmPostDao::class.java),
-            operationalPointDao = mock(OperationalPointDao::class.java),
-        )
+class PublicationLogLocationTrackDiffTest {
 
     private val translation = Translation(LocalizationLanguage.FI, "{}")
     private val now = Instant.parse("2026-01-01T00:00:00Z")
@@ -174,9 +146,9 @@ class PublicationLogServiceTest {
         changes: LocationTrackChanges,
         changedKmNumbers: Set<KmNumber> = emptySet(),
         geocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>? = { _, _ -> null },
-        getOwners: (() -> List<LocationTrackOwner>)? = null,
+        getOwners: () -> List<LocationTrackOwner> = { emptyList() },
     ) =
-        service.diffLocationTrack(
+        diffLocationTrack(
             translation,
             changes,
             PublicationReferencedAssetSetChanges.empty(),
@@ -191,6 +163,7 @@ class PublicationLogServiceTest {
             operationalPointOids = emptyMap(),
             getGeocodingContext = geocodingContext,
             getOwners = getOwners,
+            getOfficialAtMoment = { _, _, _ -> null },
         )
 
     private fun baseChanges(startPoint: Point? = Point(0.0, 0.0), endPoint: Point? = Point(10.0, 0.0)) =
