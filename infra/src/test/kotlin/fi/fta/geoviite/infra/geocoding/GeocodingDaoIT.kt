@@ -381,9 +381,7 @@ constructor(
         val tnId = tnDesignOnly.id
 
         // Before cancellation, the design track number has a valid cache key
-        assertNotNull(
-            geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(target = target)),
-        )
+        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(target = target)))
 
         // Cancel the creation of this track number
         val tnCancellation = trackNumberService.cancel(designBranch, tnId)!!
@@ -393,7 +391,7 @@ constructor(
             geocodingDao.getLayoutGeocodingContextCacheKey(
                 tnId,
                 validationVersions(trackNumbers = listOf(tnCancellation), target = target),
-            ),
+            )
         )
     }
 
