@@ -88,7 +88,7 @@ fun boundaryMoveDisabledReasons(
             geometry.switchIds.any { switchId -> unpublishedSplits.any { split -> split.containsSwitch(switchId) } }
         },
         BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER.takeIf { track.trackNumberId != expectedTrackNumberId },
-        BoundaryMoveDisabledReason.GEOCODING_FAILED.takeIf { trackAddresses == null },
+        BoundaryMoveDisabledReason.GEOCODING_FAILED.takeIf { trackAddresses == null && !geometry.isEmpty },
     )
 }
 

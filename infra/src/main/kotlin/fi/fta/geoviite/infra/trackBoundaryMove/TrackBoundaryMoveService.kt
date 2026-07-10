@@ -268,7 +268,11 @@ class TrackBoundaryMoveService(
                     unpublishedBoundaryMoves,
                     expectedTrackNumberId,
                 )
-            if (counterpartTrack.trackNumberId == expectedTrackNumberId && headAddressPoints != null) {
+            if (
+                counterpartTrack.trackNumberId == expectedTrackNumberId &&
+                    headAddressPoints != null &&
+                    addressPoints != null
+            ) {
                 baseReasons + addressOverlapDisabledReasons(headAddressPoints, addressPoints)
             } else {
                 baseReasons
