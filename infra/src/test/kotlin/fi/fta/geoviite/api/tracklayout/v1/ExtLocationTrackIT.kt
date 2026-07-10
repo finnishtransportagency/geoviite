@@ -214,6 +214,57 @@ constructor(mockMvc: MockMvc, private val locationTrackService: LocationTrackSer
     }
 
     @Test
+    fun `Location track geometry api returns single point when address filter range contains only one point`() {
+        // Track: 0000+0050.000 to 0000+0150.000
+        val trackStartM = 50.0
+        val trackEndM = 150.0
+        val segment =
+            segment(
+                HelsinkiTestData.HKI_BASE_POINT,
+                HelsinkiTestData.HKI_BASE_POINT + Point(0.0, trackEndM - trackStartM),
+                trackStartM,
+            )
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(
+                    testDBService.getUnusedTrackNumber(),
+                    startAddress = TrackMeter(KmNumber("0000"), trackStartM.toBigDecimal()),
+                ),
+                referenceLineGeometry(segment),
+            )
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        // Scenario 1: same start and end address
+        api.locationTrackGeometry
+            .get(oid, "osoitepistevali_alku" to "0000+0100.000", "osoitepistevali_loppu" to "0000+0100.000")
+            .osoitevali!!
+            .also { interval ->
+                assertEquals(1, interval.pisteet.size)
+                assertEquals("0000+0100.000", interval.pisteet[0].rataosoite)
+            }
+
+        // Scenario 2: filter end == track start (filter start before track)
+        api.locationTrackGeometry
+            .get(oid, "osoitepistevali_alku" to "0000+0000.000", "osoitepistevali_loppu" to "0000+0050.000")
+            .osoitevali!!
+            .also { interval ->
+                assertEquals(1, interval.pisteet.size)
+                assertEquals("0000+0050.000", interval.pisteet[0].rataosoite)
+            }
+
+        // Scenario 3: filter start == track end (filter end after track)
+        api.locationTrackGeometry
+            .get(oid, "osoitepistevali_alku" to "0000+0150.000", "osoitepistevali_loppu" to "0000+0200.000")
+            .osoitevali!!
+            .also { interval ->
+                assertEquals(1, interval.pisteet.size)
+                assertEquals("0000+0150.000", interval.pisteet[0].rataosoite)
+            }
+    }
+
+    @Test
     fun `Location track geometry api only returns start and end points if track is shorter than resolution`() {
         val startKmNumber = KmNumber("0000")
 
