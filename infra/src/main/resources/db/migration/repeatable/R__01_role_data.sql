@@ -29,7 +29,8 @@ with temp(code) as (
       ('download-publication'),
       ('api-frame-converter'),
       ('api-geometry'),
-      ('api-swagger')
+      ('api-swagger'),
+      ('view-debug-layers')
 )
 select *
   from temp;
@@ -64,6 +65,7 @@ with temp(role_code, privilege_code) as (
       ('team', 'api-frame-converter'),
       ('team', 'api-geometry'),
       ('team', 'api-swagger'),
+      ('team', 'view-debug-layers'),
 
       ('browser', 'view-basic'),
       ('browser', 'view-layout'),

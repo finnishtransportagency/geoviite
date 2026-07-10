@@ -9,14 +9,13 @@ import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import { EnvRestricted } from 'environment/env-restricted';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import {
     isLayerInProxyLayerCollection,
     layersToHideByProxy,
     layersToShowByProxy,
 } from 'map/map-store';
-import { VIEW_GEOMETRY, VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { VIEW_DEBUG_LAYERS, VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
@@ -186,16 +185,14 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
                             mapLayerVisibilities={visibleLayers}
                         />
                     </PrivilegeRequired>
-                    <EnvRestricted restrictTo="dev">
-                        <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                            <MapLayerGroup
-                                title={t('map-layer-menu.debug-title')}
-                                menuItemVisibilities={mapLayerMenuGroups.debug}
-                                onMenuChange={onMenuChange}
-                                mapLayerVisibilities={visibleLayers}
-                            />
-                        </PrivilegeRequired>
-                    </EnvRestricted>
+                    <PrivilegeRequired privilege={VIEW_DEBUG_LAYERS}>
+                        <MapLayerGroup
+                            title={t('map-layer-menu.debug-title')}
+                            menuItemVisibilities={mapLayerMenuGroups.debug}
+                            onMenuChange={onMenuChange}
+                            mapLayerVisibilities={visibleLayers}
+                        />
+                    </PrivilegeRequired>
                 </CloseableModal>
             )}
         </React.Fragment>
