@@ -12,6 +12,8 @@ export const EDIT_LAYOUT = 'edit-layout';
 export const VIEW_GEOMETRY = 'view-geometry';
 export const EDIT_GEOMETRY_FILE = 'edit-geometry-file';
 export const DOWNLOAD_GEOMETRY = 'download-geometry';
+export const VIEW_DEBUG_LAYERS = 'view-debug-layers';
+export const VIEW_DESIGN = 'view-design';
 
 export type PrivilegeCode =
     | typeof VIEW_BASIC
@@ -24,7 +26,9 @@ export type PrivilegeCode =
     | typeof EDIT_LAYOUT
     | typeof VIEW_GEOMETRY
     | typeof EDIT_GEOMETRY_FILE
-    | typeof DOWNLOAD_GEOMETRY;
+    | typeof DOWNLOAD_GEOMETRY
+    | typeof VIEW_DEBUG_LAYERS
+    | typeof VIEW_DESIGN;
 
 export type User = {
     details: UserDetails;
