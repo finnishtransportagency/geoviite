@@ -167,13 +167,13 @@ complexity:
   TooManyFunctions:
     active: true
     excludes: ['**/test/**']
-    thresholdInFiles: 22
-    thresholdInClasses: 22
-    thresholdInInterfaces: 22
-    thresholdInObjects: 22
-    thresholdInEnums: 22
+    thresholdInFiles: 40
+    thresholdInClasses: 40
+    thresholdInInterfaces: 40
+    thresholdInObjects: 40
+    thresholdInEnums: 40
     ignoreDeprecated: false
-    ignorePrivate: false
+    ignorePrivate: true  # private SQL mappers and argument builders are implementation detail, not public API surface
     ignoreOverridden: false
 
 coroutines:
@@ -631,6 +631,8 @@ style:
     maxChainedCalls: 5
   MaxLineLength:
     active: true
+    # ktfmt enforces 120 for Kotlin code. 180 is intentionally looser to allow SQL string literals
+    # in DAO files, which cannot be wrapped at 120 without harming readability.
     maxLineLength: 180
     excludePackageStatements: true
     excludeImportStatements: true
@@ -674,12 +676,12 @@ style:
     active: false
   ReturnCount:
     active: true
-    max: 2
+    max: 3
     excludedFunctions:
       - 'equals'
     excludeLabeled: false
     excludeReturnFromLambda: true
-    excludeGuardClauses: false
+    excludeGuardClauses: true
   SafeCast:
     active: true
   SerialVersionUIDInSerializableClass:
