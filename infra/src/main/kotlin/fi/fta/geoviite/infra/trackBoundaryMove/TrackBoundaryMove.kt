@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.split.AdministrativeChange
 import fi.fta.geoviite.infra.split.Split
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 
 enum class BoundaryOrientation {
     HEAD_FIRST,
@@ -59,11 +61,14 @@ enum class BoundaryMoveDisabledReason {
     NO_GEOMETRY,
     SWITCHES_PART_OF_SPLIT,
     ON_DIFFERENT_TRACK_NUMBER,
+    OVERLAPPING_ADDRESSES,
+    GEOCODING_FAILED,
 }
 
 fun boundaryMoveDisabledReasons(
     track: LocationTrack,
     geometry: LocationTrackGeometry,
+    trackAddresses: AlignmentAddresses<LocationTrackM>?,
     unfinishedSplits: List<Split>,
     unpublishedBoundaryMoves: List<TrackBoundaryMove>,
     expectedTrackNumberId: IntId<LayoutTrackNumber>,
@@ -83,6 +88,7 @@ fun boundaryMoveDisabledReasons(
             geometry.switchIds.any { switchId -> unpublishedSplits.any { split -> split.containsSwitch(switchId) } }
         },
         BoundaryMoveDisabledReason.ON_DIFFERENT_TRACK_NUMBER.takeIf { track.trackNumberId != expectedTrackNumberId },
+        BoundaryMoveDisabledReason.GEOCODING_FAILED.takeIf { trackAddresses == null },
     )
 }
 

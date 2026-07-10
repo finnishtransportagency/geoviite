@@ -80,7 +80,10 @@ constructor(
 
     @Test
     fun `move along ascending track`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         // Three switches laid out on one physically continuous track. lengtheningTrack contains switch 1,
         // shorteningTrack contains switches 2 and 3. Moving the boundary from switch1.j2 to switch2.j1 moves the gap
@@ -158,7 +161,10 @@ constructor(
 
     @Test
     fun `move in descending direction on short track`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         // The shortening track lies entirely inside the switch, so the whole track gets moved and its switch relinked.
         val (switchVersion, straightSwitchEdges, branchingSwitchEdges) =
@@ -204,7 +210,10 @@ constructor(
 
     @Test
     fun `shortened track remains with no geometry`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         // Three switches laid out on one physically continuous track. lengtheningTrack contains switch 1,
         // shorteningTrack contains switches 2 and 3; moving all edges leaves the shortening track empty.
@@ -276,7 +285,10 @@ constructor(
 
     @Test
     fun `combine unconnected tracks with combinable geometries`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         val (_, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
@@ -309,7 +321,10 @@ constructor(
 
     @Test
     fun `upToSwitchJoint=null with descending move appends shortening geometry`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
         val switch1 = sw1Version.id
@@ -346,7 +361,10 @@ constructor(
 
     @Test
     fun `upToSwitchJoint=null with ascending move prepends shortening geometry`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(0.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
         val switch1 = sw1Version.id
@@ -482,7 +500,10 @@ constructor(
 
     @Test
     fun `track with no geometry cannot be part of a boundary move`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val shorteningTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
@@ -617,7 +638,10 @@ constructor(
 
     @Test
     fun `counterpart options flag counterparts with unpublished changes`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val headTrack =
             mainOfficialContext.save(
                 locationTrack(trackNumber),
@@ -698,7 +722,10 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting without a connecting switch`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         val trackA =
             testDBService.save(
@@ -740,7 +767,10 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting at a switch boundary`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val switch1 = testDBService.save(switch()).id
 
         // headTrack ends inside switch1 at joint 2; counterpartTrack starts with an outer (topological) link to it.
@@ -800,7 +830,10 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting within a switch`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val switch1 = testDBService.save(switch()).id
 
         val trackA =
@@ -850,7 +883,10 @@ constructor(
 
     @Test
     fun `counterpart options for tracks meeting at head-to-head switches`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val switch1 = testDBService.save(switch()).id
         val switch2 = testDBService.save(switch()).id
 
@@ -902,8 +938,14 @@ constructor(
 
     @Test
     fun `counterpart options flag tracks on a different track number`() {
-        val trackNumberA = mainDraftContext.createLayoutTrackNumber().id
-        val trackNumberB = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumberA =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+        val trackNumberB =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         val headTrack =
             testDBService.save(
@@ -927,6 +969,33 @@ constructor(
             ),
             trackBoundaryMoveService.getBoundaryMoveCounterpartOptions(LayoutBranch.main.draft, headTrack.id),
         )
+    }
+
+    @Test
+    fun `counterpart options flag tracks with overlapping addresses`() {
+        val trackNumberId =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+
+        // Track A covers addresses approximately [0+0000, 0+0150]
+        val headTrack =
+            testDBService.save(
+                locationTrack(trackNumberId),
+                trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(150.0, 0.0))))),
+            )
+        // Track B starts within 1m of track A's end but its start projects to ~0+0149.5 on the
+        // reference line, overlapping with track A's address range.
+        val overlappingTrack =
+            testDBService.save(
+                locationTrack(trackNumberId),
+                trackGeometry(edge(listOf(segment(Point(149.5, 0.5), Point(200.0, 0.5))))),
+            )
+
+        val options = trackBoundaryMoveService.getBoundaryMoveCounterpartOptions(LayoutBranch.main.draft, headTrack.id)
+        assertEquals(1, options.size)
+        assertEquals(overlappingTrack.id, options.single().trackId)
+        assertContains(options.single().disabledReasons, BoundaryMoveDisabledReason.OVERLAPPING_ADDRESSES)
     }
 
     @Test
@@ -1055,7 +1124,10 @@ constructor(
 
     @Test
     fun `boundary move over a switch that cannot be relinked is an error`() {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         // switch1 is proper and relinkable, switch2 is intentionally unlinkable (joints far from any track)
         val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
@@ -1107,7 +1179,10 @@ constructor(
     }
 
     private fun saveBoundaryMoveOverRelinkableSwitch(): Pair<IntId<TrackBoundaryMove>, IntId<LayoutSwitch>> {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
         val (switchVersion, straightSwitchEdges, branchingSwitchEdges) =
             splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(branchingSwitchEdges))
@@ -1162,7 +1237,10 @@ constructor(
     // Two tracks meeting at switch1's end (joint 2), laid out as one physically continuous track. The lengthening track
     // holds switch1; the shortening track holds switch2. Both switches are relinkable.
     private fun saveConnectedTracks(): ConnectedTracks {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))

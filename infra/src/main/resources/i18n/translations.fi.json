@@ -79,7 +79,9 @@
             "track-part-of-split": "Raide {{name}} on mukana keskeneräisessä raiteen jakamisessa, joten vaihtumiskohtaa ei voi siirtää",
             "track-part-of-boundary-move": "Raide {{name}} on mukana julkaisemattomassa vaihtumiskohdan siirrossa, joten vaihtumiskohtaa ei voi siirtää",
             "switches-part-of-split": "Raiteen {{name}} vaihteita on mukana julkaisemattomissa raiteen jakamisissa, joten vaihtumiskohtaa ei voi siirtää",
-            "switch-linking-failed": "Vaihtumiskohtaa ei voitu siirtää, koska vaihteiden uudelleenlinkitys epäonnistui"
+            "switch-linking-failed": "Vaihtumiskohtaa ei voitu siirtää, koska vaihteiden uudelleenlinkitys epäonnistui",
+            "overlapping-addresses": "Raiteiden osoitealueet ovat päällekkäiset, joten vaihtumiskohtaa ei voi siirtää",
+            "geocoding-failed": "Raiteen {{name}} geokoodaus epäonnistui, joten vaihtumiskohtaa ei voi siirtää"
         },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
@@ -1050,6 +1052,8 @@
                     "part-of-boundary-move": "Raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa",
                     "switches-part-of-split": "Raiteen vaihteita on mukana julkaisemattomissa raiteen jakamisissa",
                     "on-different-track-number": "Raide on eri ratanumerolla kuin ensimmäinen raide",
+                    "overlapping-addresses": "Raiteiden osoitealueet ovat päällekkäiset",
+                    "geocoding-failed": "Raiteen geokoodaus epäonnistui",
                     "not-available-in-environment": "Ei käytettävissä tässä ympäristössä"
                 }
             }
