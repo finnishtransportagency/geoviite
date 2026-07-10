@@ -130,7 +130,10 @@ data class AlignmentAddresses<M : AnyM<M>>(
     val alignmentWalkFinished: Boolean,
 ) {
     @get:JsonIgnore
-    val allPoints: List<AddressPoint<M>> by lazy { emptyList<AddressPoint<M>>() + startPoint + midPoints + endPoint }
+    val allPoints: List<AddressPoint<M>> by lazy {
+        val end = endPoint.takeIf { it.address > startPoint.address }
+        listOf(startPoint) + midPoints + listOfNotNull(end)
+    }
 
     @get:JsonIgnore
     val integerPrecisionPoints: List<AddressPoint<M>> by lazy {
