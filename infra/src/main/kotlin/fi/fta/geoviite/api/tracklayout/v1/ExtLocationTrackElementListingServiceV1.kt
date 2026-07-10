@@ -95,8 +95,13 @@ constructor(
                 ?.takeIf { it.exists }
                 ?.let { getElementListings(it, branch, publications.from.publicationTime) } ?: emptyList()
         val newListings = getElementListings(newTrack, branch, publications.to.publicationTime)
-        val changedIntervals = diffElementListings(oldListings, newListings, coordinateSystem)
-        if (changedIntervals.isEmpty()) return null
+        val oldHasGeocodedElements = oldListings.any { it.start.address != null && it.end.address != null }
+        val newHasGeocodedElements = newListings.any { it.start.address != null && it.end.address != null }
+        if (!oldHasGeocodedElements && !newHasGeocodedElements) return null
+        val changedIntervals =
+            if (oldHasGeocodedElements && !newHasGeocodedElements) emptyList()
+            else diffElementListings(oldListings, newListings, coordinateSystem)
+        if (changedIntervals.isEmpty() && newHasGeocodedElements) return null
         return ExtLocationTrackElementListingModificationsResponseV1(
             layoutVersionFrom = ExtLayoutVersionV1(publications.from),
             layoutVersionTo = ExtLayoutVersionV1(publications.to),
