@@ -7,11 +7,17 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationInDesign
 import fi.fta.geoviite.infra.publication.validationVersions
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
+import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
@@ -33,6 +39,7 @@ constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
+    val trackNumberService: LayoutTrackNumberService,
 ) : DBTestBase() {
 
     @Test
@@ -256,4 +263,148 @@ constructor(
         // Without draft-override, the result should still be null
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions()))
     }
+
+    @Test
+    fun `Cancelled design rows are excluded from moment cache keys`() {
+        val designBranch = testDBService.createDesignBranch()
+        val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
+
+        val tnMain = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnMain.id
+        val kmp1Main = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
+
+        // The design edits one of main's km posts and adds one of its own
+        val tnDesign = officialDesignContext.copyFrom(tnMain)
+        val kmp1Design = officialDesignContext.copyFrom(kmp1Main)
+        val kmp2DesignOnly = officialDesignContext.save(kmPost(tnId, KmNumber(2)))
+
+        val beforeCancellation = testDBService.layoutChangeTime()
+        Thread.sleep(1) // Ensure the cancellations get a new changetime so that moment-fetch makes sense
+        assertEquals(
+            geocodingContextCacheKey(tnDesign, kmp1Design, kmp2DesignOnly),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, beforeCancellation),
+        )
+
+        cancelDesignOfficial(kmp1Design)
+        cancelDesignOfficial(kmp2DesignOnly)
+        val afterKmPostCancellation = testDBService.layoutChangeTime()
+        Thread.sleep(1)
+
+        // The edited km post falls back to the main row it was hiding, while the design-only one is gone entirely
+        assertEquals(
+            geocodingContextCacheKey(tnDesign, kmp1Main),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, afterKmPostCancellation),
+        )
+
+        cancelDesignOfficial(tnDesign)
+        val afterTrackNumberCancellation = testDBService.layoutChangeTime()
+
+        assertEquals(
+            geocodingContextCacheKey(tnMain, kmp1Main),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, afterTrackNumberCancellation),
+        )
+        // The moment fetch should agree with the layout context fetch, which has always skipped cancellations
+        assertEquals(
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, afterTrackNumberCancellation),
+        )
+        // Main is unaffected by any of this, and the earlier moment still sees the design's own rows
+        assertEquals(
+            geocodingContextCacheKey(tnMain, kmp1Main),
+            geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, afterTrackNumberCancellation),
+        )
+        assertEquals(
+            geocodingContextCacheKey(tnDesign, kmp1Design, kmp2DesignOnly),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, beforeCancellation),
+        )
+    }
+
+    @Test
+    fun `Cancelled design rows are excluded from validation version cache keys`() {
+        val designBranch = testDBService.createDesignBranch()
+        val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
+        val target = PublicationInDesign(designBranch)
+
+        val tnMain = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnMain.id
+        val kmp1Main = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
+
+        // The design edits one of main's km posts and adds one of its own
+        val tnDesign = officialDesignContext.copyFrom(tnMain)
+        val kmp1Design = officialDesignContext.copyFrom(kmp1Main)
+        val kmp2DesignOnly = officialDesignContext.save(kmPost(tnId, KmNumber(2)))
+
+        // Publishing nothing is the same as the design's official state
+        assertEquals(
+            geocodingContextCacheKey(tnDesign, kmp1Design, kmp2DesignOnly),
+            geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(target = target)),
+        )
+
+        val kmp1Cancellation = kmPostService.cancel(designBranch, kmp1Design.id)!!
+        val kmp2Cancellation = kmPostService.cancel(designBranch, kmp2DesignOnly.id)!!
+        val tnCancellation = trackNumberService.cancel(designBranch, tnId)!!
+
+        // Cancellation is marked by designAssetState, so a cancellation candidate still looks IN_USE
+        assertEquals(LayoutState.IN_USE, kmPostDao.fetch(kmp1Cancellation).state)
+
+        // Publishing the km post cancellations: kmp1 reverts to its main row, kmp2 has none and disappears
+        assertEquals(
+            geocodingContextCacheKey(tnDesign, kmp1Main),
+            geocodingDao.getLayoutGeocodingContextCacheKey(
+                tnId,
+                validationVersions(kmPosts = listOf(kmp1Cancellation, kmp2Cancellation), target = target),
+            ),
+        )
+
+        // Publishing the track number cancellation as well reverts it to its main row
+        assertEquals(
+            geocodingContextCacheKey(tnMain, kmp1Main),
+            geocodingDao.getLayoutGeocodingContextCacheKey(
+                tnId,
+                validationVersions(
+                    trackNumbers = listOf(tnCancellation),
+                    kmPosts = listOf(kmp1Cancellation, kmp2Cancellation),
+                    target = target,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `Cancelling creation of a new design track number yields no validation cache key`() {
+        val designBranch = testDBService.createDesignBranch()
+        val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
+        val target = PublicationInDesign(designBranch)
+
+        // Create a track number directly in the design — it has no main official counterpart
+        val tnDesignOnly = officialDesignContext.createLayoutTrackNumber()
+        val tnId = tnDesignOnly.id
+
+        // Before cancellation, the design track number has a valid cache key
+        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(tnId, validationVersions(target = target)))
+
+        // Cancel the creation of this track number
+        val tnCancellation = trackNumberService.cancel(designBranch, tnId)!!
+
+        // The cancellation resolves to null because there is no main official row to fall back to
+        assertNull(
+            geocodingDao.getLayoutGeocodingContextCacheKey(
+                tnId,
+                validationVersions(trackNumbers = listOf(tnCancellation), target = target),
+            )
+        )
+    }
+
+    /**
+     * Marks a design-official row cancelled, as publishing a cancellation does: the row stays in place, non-deleted and
+     * IN_USE, and only its designAssetState says that it no longer applies.
+     */
+    private inline fun <reified T : LayoutAsset<T>> cancelDesignOfficial(
+        version: LayoutRowVersion<T>
+    ): LayoutRowVersion<T> =
+        testDBService.update(version) { asset ->
+            asset.withContext(
+                (asset.contextData as DesignOfficialContextData<T>).copy(designAssetState = DesignAssetState.CANCELLED)
+            )
+        }
 }
