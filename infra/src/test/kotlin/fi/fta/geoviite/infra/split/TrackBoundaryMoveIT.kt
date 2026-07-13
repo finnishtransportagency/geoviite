@@ -1368,7 +1368,10 @@ constructor(
         // Reproduces GVT-3668: tracks linked independently may have slightly different segment endpoint coordinates
         // at their shared junction switch. combineEdges must bridge the gap rather than letting verifyTrackGeometry
         // throw.
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
