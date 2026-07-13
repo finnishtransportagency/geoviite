@@ -217,6 +217,73 @@ class ExtLocationTrackElementListingIT @Autowired constructor(mockMvc: MockMvc) 
         }
     }
 
+    @Test
+    fun `Same version returns 204`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 500.0)
+        val plan = insertPlan(listOf(line(start, end)))
+        val elements = plan.alignments[0].elements
+        val trackNumberId = insertTrackNumberWithReferenceLine(elements)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        val publication = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        api.locationTrackElementListing.assertNoModificationBetween(oid, publication.uuid, publication.uuid)
+    }
+
+    @Test
+    fun `Track unchanged between versions returns 204`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 500.0)
+        val plan = insertPlan(listOf(line(start, end)))
+        val elements = plan.alignments[0].elements
+        val trackNumberId = insertTrackNumberWithReferenceLine(elements)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val (otherTrackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val publication2 = testDBService.publish(trackNumbers = listOf(otherTrackNumberId))
+
+        api.locationTrackElementListing.assertNoModificationBetween(oid, publication1.uuid, publication2.uuid)
+    }
+
+    @Test
+    fun `Changed element is returned between versions`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 300.0)
+
+        val plan1 = insertPlan(listOf(line(start, end)), fileName = FileName("mod_v1.xml"))
+        val elements1 = plan1.alignments[0].elements
+        val trackNumberId = insertTrackNumberWithReferenceLine(elements1)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements1))
+        val publication1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val plan2 = insertPlan(listOf(line(start, end)), fileName = FileName("mod_v2.xml"))
+        val elements2 = plan2.alignments[0].elements
+        val (track, _) = mainDraftContext.fetchLocationTrackWithGeometry(trackId)!!
+        mainDraftContext.save(track, trackGeometryOfElements(elements2))
+        val publication2 = testDBService.publish(locationTracks = listOf(trackId))
+
+        val response = api.locationTrackElementListing.getModifiedBetween(oid, publication1.uuid, publication2.uuid)
+
+        assertEquals(publication1.uuid.toString(), response.alkuversio)
+        assertEquals(publication2.uuid.toString(), response.loppuversio)
+        assertEquals(oid.toString(), response.sijaintiraide_oid)
+        assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)
+        response.osoitevalit.single().also { interval ->
+            interval.geometriaelementit.single().also { element ->
+                assertEquals("suora", element.tyyppi)
+                assertNotNull(element.suunnitelma)
+            }
+        }
+    }
+
     private fun insertTrackNumberWithReferenceLine(
         elements: List<GeometryElement>,
         planSrid: Srid = LAYOUT_SRID,

@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.unknownSwitchName
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -27,6 +28,7 @@ class ExtLocationTrackElementListingServiceV1
 @Autowired
 constructor(
     private val publicationService: PublicationService,
+    private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
@@ -57,19 +59,7 @@ constructor(
             ?.let(locationTrackDao::fetch)
             ?.takeIf { it.exists }
             ?.let { track ->
-                val geometry = alignmentDao.fetch(track.getVersionOrThrow())
-                val geocodingContext =
-                    geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
-                        ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-                val listings =
-                    geometryService.getElementListing(
-                        track,
-                        geometry,
-                        geocodingContext.trackNumber,
-                        geocodingContext,
-                    ) { switchId ->
-                        switchNameAtMoment(branch, switchId, moment)
-                    }
+                val listings = getElementListings(track, branch, moment)
                 ExtLocationTrackElementListingResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
                     locationTrackOid = oid,
@@ -77,6 +67,118 @@ constructor(
                     trackIntervals = toElementAddressIntervals(listings, coordinateSystem),
                 )
             }
+    }
+
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
+    fun getExtLocationTrackElementListingModifications(
+        oid: ExtOidV1<LocationTrack>,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
+    ): ExtLocationTrackElementListingModificationsResponseV1? {
+        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
+        if (!publications.areDifferent()) return publicationsAreTheSame(layoutVersionFrom.value)
+        val id = idLookup(locationTrackDao, oid.value)
+        val coordinateSystem = coordinateSystem(extCoordinateSystem)
+        val branch = publications.to.layoutBranch.branch
+        val change =
+            publicationDao.fetchPublishedLocationTrackVersionsBetween(
+                id,
+                publications.from.publicationTime,
+                publications.to.publicationTime,
+            ) ?: return null
+        val newTrack = locationTrackDao.fetch(change.new)
+        if (!newTrack.exists) return null
+        val oldListings =
+            change.old
+                ?.let { locationTrackDao.fetch(it) }
+                ?.takeIf { it.exists }
+                ?.let { getElementListings(it, branch, publications.from.publicationTime) } ?: emptyList()
+        val newListings = getElementListings(newTrack, branch, publications.to.publicationTime)
+        val oldHasGeocodedElements = oldListings.any { it.start.address != null && it.end.address != null }
+        val newHasGeocodedElements = newListings.any { it.start.address != null && it.end.address != null }
+        if (!oldHasGeocodedElements && !newHasGeocodedElements) return null
+        val changedIntervals =
+            if (oldHasGeocodedElements && !newHasGeocodedElements) emptyList()
+            else diffElementListings(oldListings, newListings, coordinateSystem)
+        if (changedIntervals.isEmpty() && newHasGeocodedElements) return null
+        return ExtLocationTrackElementListingModificationsResponseV1(
+            layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+            layoutVersionTo = ExtLayoutVersionV1(publications.to),
+            locationTrackOid = oid,
+            coordinateSystem = ExtSridV1(coordinateSystem),
+            trackIntervals = changedIntervals,
+        )
+    }
+
+    private fun getElementListings(track: LocationTrack, branch: LayoutBranch, moment: Instant): List<ElementListing> {
+        val geometry = alignmentDao.fetch(track.getVersionOrThrow())
+        val geocodingContext =
+            geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
+                ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
+        return geometryService.getElementListing(track, geometry, geocodingContext.trackNumber, geocodingContext) {
+            switchId ->
+            switchNameAtMoment(branch, switchId, moment)
+        }
+    }
+
+    @Suppress("ReturnCount", "CyclomaticComplexMethod")
+    private fun diffElementListings(
+        oldListings: List<ElementListing>,
+        newListings: List<ElementListing>,
+        coordinateSystem: Srid,
+    ): List<ExtElementAddressIntervalV1> {
+        val oldGeocoded = oldListings.filter { it.start.address != null && it.end.address != null }
+        val newGeocoded = newListings.filter { it.start.address != null && it.end.address != null }
+        if (oldGeocoded.isEmpty() && newGeocoded.isEmpty()) return emptyList()
+        if (oldGeocoded.isEmpty()) return toElementAddressIntervals(newListings, coordinateSystem)
+
+        val changedIntervals = mutableListOf<ExtElementAddressIntervalV1>()
+        var currentRun = mutableListOf<ElementListing>()
+        var oldIdx = 0
+        var newIdx = 0
+
+        fun closeRun() {
+            if (currentRun.isNotEmpty()) {
+                changedIntervals.add(buildInterval(currentRun, coordinateSystem))
+                currentRun = mutableListOf()
+            }
+        }
+
+        while (oldIdx <= oldGeocoded.lastIndex || newIdx <= newGeocoded.lastIndex) {
+            val old = oldGeocoded.getOrNull(oldIdx)
+            val new = newGeocoded.getOrNull(newIdx)
+            when {
+                old == null -> {
+                    currentRun.add(new!!)
+                    newIdx++
+                }
+                new == null -> {
+                    closeRun()
+                    oldIdx++
+                }
+                old.start.address!! < new.start.address!! -> {
+                    closeRun()
+                    oldIdx++
+                }
+                old.start.address!! > new.start.address!! -> {
+                    currentRun.add(new)
+                    newIdx++
+                }
+                old == new -> {
+                    closeRun()
+                    oldIdx++
+                    newIdx++
+                }
+                else -> {
+                    currentRun.add(new)
+                    oldIdx++
+                    newIdx++
+                }
+            }
+        }
+        closeRun()
+        return changedIntervals
     }
 
     private fun switchNameAtMoment(branch: LayoutBranch, switchId: IntId<LayoutSwitch>, moment: Instant) =

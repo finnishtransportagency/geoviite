@@ -515,4 +515,59 @@ class ExtLocationTrackControllerV1(
         extLocationTrackElementListingService
             .getExtLocationTrackElementListing(oid, layoutVersion, extCoordinateSystem)
             .let(::toResponse)
+
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometriaelementit/muutokset")
+    @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
+    @Operation(summary = "Yksittäisen sijaintiraiteen geometriaelementtien muutosten haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description = "Sijaintiraiteen geometriaelementtien muutokset haettiin onnistuneesti.",
+                ),
+                ApiResponse(
+                    responseCode = "204",
+                    description = EXT_OPENAPI_NO_MODIFICATIONS_BETWEEN_VERSIONS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun getExtLocationTrackElementListingModifications(
+        @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
+        @PathVariable(LOCATION_TRACK_OID_PARAM)
+        oid: ExtOidV1<LocationTrack>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
+        @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
+        layoutVersionFrom: ExtLayoutVersionV1,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO)
+        @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
+        layoutVersionTo: ExtLayoutVersionV1? = null,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
+        extCoordinateSystem: ExtSridV1? = null,
+    ): ResponseEntity<ExtLocationTrackElementListingModificationsResponseV1> =
+        extLocationTrackElementListingService
+            .getExtLocationTrackElementListingModifications(
+                oid,
+                layoutVersionFrom,
+                layoutVersionTo,
+                extCoordinateSystem,
+            )
+            .let(::toResponse)
 }
