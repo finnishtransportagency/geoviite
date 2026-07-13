@@ -400,11 +400,10 @@ private fun getCounterpartOption(
 }
 
 private fun addressOverlapDisabledReasons(
-    headAddresses: AlignmentAddresses<LocationTrackM>?,
-    candidateAddresses: AlignmentAddresses<LocationTrackM>?,
+    headAddresses: AlignmentAddresses<LocationTrackM>,
+    candidateAddresses: AlignmentAddresses<LocationTrackM>,
 ): List<BoundaryMoveDisabledReason> =
-    if (headAddresses == null || candidateAddresses == null) listOf(BoundaryMoveDisabledReason.GEOCODING_FAILED)
-    else if (
+    if (
         headAddresses.startPoint.address < candidateAddresses.endPoint.address &&
             candidateAddresses.startPoint.address < headAddresses.endPoint.address
     ) {
