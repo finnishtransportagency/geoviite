@@ -71,10 +71,12 @@ class TrackBoundaryMoveService(
         val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutBranch)
         val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutBranch)
         val expectedTrackNumberId = lengtheningTrack.trackNumberId
+        val shorteningTrackAddresses = geocodingService.getAddressPoints(context, shorteningTrackId)?.addresses
+        val lengtheningTrackAddresses = geocodingService.getAddressPoints(context, lengtheningTrackId)?.addresses
         validateTrackForBoundaryMove(
             shorteningTrack,
             shorteningTrackGeometry,
-            geocodingService.getAddressPoints(context, shorteningTrackId)?.addresses,
+            shorteningTrackAddresses,
             unfinishedSplits,
             unpublishedBoundaryMoves,
             expectedTrackNumberId,
@@ -82,11 +84,22 @@ class TrackBoundaryMoveService(
         validateTrackForBoundaryMove(
             lengtheningTrack,
             lengtheningTrackGeometry,
-            geocodingService.getAddressPoints(context, lengtheningTrackId)?.addresses,
+            lengtheningTrackAddresses,
             unfinishedSplits,
             unpublishedBoundaryMoves,
             expectedTrackNumberId,
         )
+        if (
+            shorteningTrackAddresses != null &&
+                lengtheningTrackAddresses != null &&
+                hasOverlappingAddresses(shorteningTrackAddresses, lengtheningTrackAddresses)
+        ) {
+            throw TrackBoundaryMoveFailureException(
+                "tracks in a boundary move must not have overlapping addresses: " +
+                    "shorteningTrack=$shorteningTrackId, lengtheningTrack=$lengtheningTrackId",
+                localizedMessageKey = "overlapping-addresses",
+            )
+        }
 
         val geometries =
             getTrackBoundaryMoveGeometry(
@@ -271,9 +284,10 @@ class TrackBoundaryMoveService(
             if (
                 counterpartTrack.trackNumberId == expectedTrackNumberId &&
                     headAddressPoints != null &&
-                    addressPoints != null
+                    addressPoints != null &&
+                    hasOverlappingAddresses(headAddressPoints, addressPoints)
             ) {
-                baseReasons + addressOverlapDisabledReasons(headAddressPoints, addressPoints)
+                baseReasons + BoundaryMoveDisabledReason.OVERLAPPING_ADDRESSES
             } else {
                 baseReasons
             }
@@ -399,18 +413,12 @@ private fun getCounterpartOption(
         )
 }
 
-private fun addressOverlapDisabledReasons(
-    headAddresses: AlignmentAddresses<LocationTrackM>,
-    candidateAddresses: AlignmentAddresses<LocationTrackM>,
-): List<BoundaryMoveDisabledReason> =
-    if (
-        headAddresses.startPoint.address < candidateAddresses.endPoint.address &&
-            candidateAddresses.startPoint.address < headAddresses.endPoint.address
-    ) {
-        listOf(BoundaryMoveDisabledReason.OVERLAPPING_ADDRESSES)
-    } else {
-        emptyList()
-    }
+private fun hasOverlappingAddresses(
+    someAddresses: AlignmentAddresses<LocationTrackM>,
+    otherAddresses: AlignmentAddresses<LocationTrackM>,
+): Boolean =
+    someAddresses.startPoint.address < otherAddresses.endPoint.address &&
+        otherAddresses.startPoint.address < someAddresses.endPoint.address
 
 private data class TrackBoundaryMoveGeometry(
     val movedEdgeRange: IntRange,

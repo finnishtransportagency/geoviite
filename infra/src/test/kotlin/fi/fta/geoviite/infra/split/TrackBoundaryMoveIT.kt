@@ -999,6 +999,40 @@ constructor(
     }
 
     @Test
+    fun `saving a boundary move between tracks with overlapping addresses is an error`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+
+        // The shortening track covers addresses approximately [0+0000, 0+0150]
+        val shorteningTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(150.0, 0.0))))),
+            )
+        // The lengthening track starts within 1m of the shortening track's end but its start projects to ~0+0149.5 on
+        // the reference line, overlapping with the shortening track's address range.
+        val lengtheningTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId),
+                trackGeometry(edge(listOf(segment(Point(149.5, 0.5), Point(200.0, 0.5))))),
+            )
+
+        val exception =
+            assertThrows<TrackBoundaryMoveFailureException> {
+                trackBoundaryMoveService.saveTrackBoundaryMove(
+                    LayoutBranch.main,
+                    shorteningTrackId = shorteningTrack.id,
+                    lengtheningTrackId = lengtheningTrack.id,
+                    upToSwitchJoint = null,
+                    boundaryMoveDirection = BoundaryMoveDirection.ASCENDING,
+                )
+            }
+        assertEquals(LocalizationKey.of("error.track-boundary-move.overlapping-addresses"), exception.localizationKey)
+    }
+
+    @Test
     fun `moving the boundary to a joint that is on neither track is an error`() {
         val setup = saveConnectedTracks()
         // A switch that exists but isn't linked to either track.
