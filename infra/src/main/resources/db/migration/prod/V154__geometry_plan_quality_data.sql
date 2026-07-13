@@ -93,6 +93,10 @@ where source = 'PAIKANNUSPALVELU'
   and (select change_user from geometry.plan_version where id = plan.id order by change_time asc limit 1) != 'IM_IMPORT'
   and (measurement_method = 'UNVERIFIED_DESIGNED_GEOMETRY' or measurement_method is null);
 
+-- Migrate version history rows away from removed enum values so old rows remain readable
+update geometry.plan_version set measurement_method = 'OFFICIALLY_MEASURED_GEODETICALLY' where measurement_method = 'VERIFIED_DESIGNED_GEOMETRY';
+update geometry.plan_version set measurement_method = 'DIGITIZED_AERIAL_IMAGE'           where measurement_method = 'UNVERIFIED_DESIGNED_GEOMETRY';
+
 -- Drop old plan_applicability (now computed from quality + plan_decision in application code)
 alter table geometry.plan drop column plan_applicability;
 alter table geometry.plan_version drop column plan_applicability;

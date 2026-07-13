@@ -141,6 +141,46 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
     }
 
     @Test
+    fun `VERIFIED_DESIGNED_GEOMETRY in plan_version is migrated to OFFICIALLY`() {
+        val planId =
+            insertPlanWithLegacyVersionMm(
+                source = PlanSource.GEOMETRIAPALVELU,
+                legacyMm = "VERIFIED_DESIGNED_GEOMETRY",
+                uploader = IM_IMPORT,
+            )
+
+        runMigration()
+
+        assertResult(
+            planId,
+            expectedQuality = "PLAN",
+            expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
+            expectedSource = "GEOMETRIAPALVELU",
+        )
+        assertVersionMm(planId, "OFFICIALLY_MEASURED_GEODETICALLY")
+    }
+
+    @Test
+    fun `UNVERIFIED_DESIGNED_GEOMETRY in plan_version is migrated to DIGITIZED`() {
+        val planId =
+            insertPlanWithLegacyVersionMm(
+                source = PlanSource.PAIKANNUSPALVELU,
+                legacyMm = "UNVERIFIED_DESIGNED_GEOMETRY",
+                uploader = IM_IMPORT,
+            )
+
+        runMigration()
+
+        assertResult(
+            planId,
+            expectedQuality = "UNRELIABLE_PLAN",
+            expectedMm = "DIGITIZED_AERIAL_IMAGE",
+            expectedSource = "PAIKANNUSPALVELU",
+        )
+        assertVersionMm(planId, "DIGITIZED_AERIAL_IMAGE")
+    }
+
+    @Test
     fun `GEOVIITE source plans are not touched`() {
         val planId =
             insertPlan(
@@ -152,6 +192,21 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         runMigration()
 
         assertNull(fetchQuality(planId))
+    }
+
+    private fun insertPlanWithLegacyVersionMm(
+        source: PlanSource,
+        legacyMm: String,
+        uploader: String,
+    ): IntId<GeometryPlan> {
+        val planId = insertPlan(source = source, mm = null, uploader = uploader)
+        transactional {
+            jdbc.update(
+                "update geometry.plan_version set measurement_method = :mm::common.measurement_method where id = :id",
+                mapOf("mm" to legacyMm, "id" to planId.intValue),
+            )
+        }
+        return planId
     }
 
     private fun insertPlan(source: PlanSource, mm: MeasurementMethod?, uploader: String): IntId<GeometryPlan> {
@@ -197,6 +252,17 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         assertEquals(expectedQuality, row.first)
         assertEquals(expectedMm, row.second)
         assertEquals(expectedSource, row.third)
+    }
+
+    private fun assertVersionMm(planId: IntId<GeometryPlan>, expectedMm: String) {
+        val rows =
+            jdbc.query(
+                "select measurement_method::text from geometry.plan_version where id = :id",
+                mapOf("id" to planId.intValue),
+            ) { rs, _ ->
+                rs.getString(1)
+            }
+        rows.forEach { mm -> assertEquals(expectedMm, mm) }
     }
 
     private fun fetchQuality(planId: IntId<GeometryPlan>): String? =
