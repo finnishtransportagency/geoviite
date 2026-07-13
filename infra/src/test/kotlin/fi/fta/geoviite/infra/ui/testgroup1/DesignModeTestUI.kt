@@ -35,8 +35,7 @@ class DesignModeTestUI : SeleniumTest() {
 
         startGeoviite()
 
-        val page =
-            goToMap().switchToDesignMode().also { it.addDesign("isolation-test") }
+        val page = goToMap().switchToDesignMode().also { it.addDesign("isolation-test") }
 
         page.selectionPanel.selectLocationTrack("Original Name")
         page.toolPanel.locationTrackGeneralInfo.edit().setName("Design Name").save()
