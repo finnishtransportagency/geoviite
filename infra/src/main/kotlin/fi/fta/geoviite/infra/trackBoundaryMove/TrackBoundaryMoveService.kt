@@ -89,11 +89,7 @@ class TrackBoundaryMoveService(
             unpublishedBoundaryMoves,
             expectedTrackNumberId,
         )
-        if (
-            shorteningTrackAddresses != null &&
-                lengtheningTrackAddresses != null &&
-                hasOverlappingAddresses(shorteningTrackAddresses, lengtheningTrackAddresses)
-        ) {
+        if (hasOverlappingAddresses(shorteningTrackAddresses, lengtheningTrackAddresses)) {
             throw TrackBoundaryMoveFailureException(
                 "tracks in a boundary move must not have overlapping addresses: " +
                     "shorteningTrack=$shorteningTrackId, lengtheningTrack=$lengtheningTrackId",
@@ -281,16 +277,12 @@ class TrackBoundaryMoveService(
                     unpublishedBoundaryMoves,
                     expectedTrackNumberId,
                 )
-            if (
-                counterpartTrack.trackNumberId == expectedTrackNumberId &&
-                    headAddressPoints != null &&
-                    addressPoints != null &&
-                    hasOverlappingAddresses(headAddressPoints, addressPoints)
-            ) {
-                baseReasons + BoundaryMoveDisabledReason.OVERLAPPING_ADDRESSES
-            } else {
-                baseReasons
-            }
+            val hasOverlap =
+                (counterpartTrack.trackNumberId == expectedTrackNumberId &&
+                    hasOverlappingAddresses(headAddressPoints, addressPoints))
+            baseReasons +
+                if (hasOverlap) listOf(BoundaryMoveDisabledReason.OVERLAPPING_ADDRESSES)
+                else listOf<BoundaryMoveDisabledReason>()
         }
     }
 }
@@ -414,10 +406,12 @@ private fun getCounterpartOption(
 }
 
 private fun hasOverlappingAddresses(
-    someAddresses: AlignmentAddresses<LocationTrackM>,
-    otherAddresses: AlignmentAddresses<LocationTrackM>,
+    someAddresses: AlignmentAddresses<LocationTrackM>?,
+    otherAddresses: AlignmentAddresses<LocationTrackM>?,
 ): Boolean =
-    someAddresses.startPoint.address < otherAddresses.endPoint.address &&
+    someAddresses != null &&
+        otherAddresses != null &&
+        someAddresses.startPoint.address < otherAddresses.endPoint.address &&
         otherAddresses.startPoint.address < someAddresses.endPoint.address
 
 private data class TrackBoundaryMoveGeometry(
