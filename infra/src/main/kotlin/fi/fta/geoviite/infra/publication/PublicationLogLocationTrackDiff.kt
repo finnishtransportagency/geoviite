@@ -54,6 +54,7 @@ private fun resolveEndpointAddresses(
             },
     )
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun diffLocationTrack(
     translation: Translation,
     locationTrackChanges: LocationTrackChanges,
