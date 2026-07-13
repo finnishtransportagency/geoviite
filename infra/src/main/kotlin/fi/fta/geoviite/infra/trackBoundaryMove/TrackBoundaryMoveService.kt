@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
+import fi.fta.geoviite.infra.linking.createGapIfNeeded
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
@@ -456,15 +457,17 @@ private fun getTrackBoundaryMoveGeometry(
         )
     }
     val edgesToMove = shorteningTrackGeometry.edges.slice(edgeRangeToMove)
-    val lengthenedGeometry =
-        TmpLocationTrackGeometry.of(
-            combineEdges(
-                if (boundaryMoveDirection == BoundaryMoveDirection.DESCENDING)
-                    lengtheningTrackGeometry.edges + edgesToMove
-                else edgesToMove + lengtheningTrackGeometry.edges
-            ),
-            lengtheningTrackId,
-        )
+    val (firstEdges, secondEdges) =
+        if (boundaryMoveDirection == BoundaryMoveDirection.DESCENDING) lengtheningTrackGeometry.edges to edgesToMove
+        else edgesToMove to lengtheningTrackGeometry.edges
+    val gapSegment = createGapIfNeeded(firstEdges.last().segments, secondEdges.first().segments)
+    val mergedEdges =
+        if (gapSegment != null)
+            firstEdges +
+                secondEdges.first().withSegments(listOf(gapSegment) + secondEdges.first().segments) +
+                secondEdges.drop(1)
+        else firstEdges + secondEdges
+    val lengthenedGeometry = TmpLocationTrackGeometry.of(combineEdges(mergedEdges), lengtheningTrackId)
     val shortenedGeometry =
         TmpLocationTrackGeometry.of(
             shorteningTrackGeometry.edges.slice(
