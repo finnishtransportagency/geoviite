@@ -126,6 +126,10 @@ const boundaryMoveDisabledReasonTranslationKeys: Record<BoundaryMoveDisabledReas
         'tool-panel.location-track.track-boundary-move.validation.switches-part-of-split',
     ON_DIFFERENT_TRACK_NUMBER:
         'tool-panel.location-track.track-boundary-move.validation.on-different-track-number',
+    OVERLAPPING_ADDRESSES:
+        'tool-panel.location-track.track-boundary-move.validation.overlapping-addresses',
+    GEOCODING_FAILED:
+        'tool-panel.location-track.track-boundary-move.validation.geocoding-failed',
 };
 
 export const translatedBoundaryMoveDisabledReasons = (

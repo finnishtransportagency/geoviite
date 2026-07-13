@@ -752,7 +752,10 @@ constructor(
     Publishes a shortening and lengthening track, then saves a track boundary move over them
      */
     private fun saveTrackBoundaryMoveSetup(): TrackBoundaryMoveSetup {
-        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
 
         val (sw1Version, sw1Straight, sw1Turning) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
         mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Turning))

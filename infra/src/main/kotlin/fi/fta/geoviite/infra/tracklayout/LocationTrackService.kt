@@ -520,6 +520,7 @@ class LocationTrackService(
                 boundaryMoveDisabledReasons(
                     track,
                     geometry,
+                    geocodingService.getAddressPoints(layoutContext, id)?.addresses,
                     allUnfinishedSplits,
                     unpublishedBoundaryMoves,
                     track.trackNumberId,
