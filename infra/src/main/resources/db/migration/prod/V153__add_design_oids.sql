@@ -21,6 +21,7 @@ set external_id = design.external_id
   where design.id = design_version.id;
 
 alter table layout.design alter column external_id set not null;
+alter table layout.design add constraint design_external_id_unique unique (external_id);
 alter table layout.design_version alter column external_id set not null;
 
 alter table layout.design
