@@ -47,4 +47,40 @@ class DesignModeTestUI : SeleniumTest() {
 
         assertEquals("Original Name", page.toolPanel.locationTrackGeneralInfo.name)
     }
+
+    @Test
+    fun `Design mode location track edit can be reverted`() {
+        val trackNumberVersion = mainOfficialContext.createLayoutTrackNumber(
+            trackNumber = HKI_TRACK_NUMBER_1,
+            geometry = westReferenceLineGeometry(),
+        )
+        val (_, westGeometry) = westMainLocationTrack(trackNumberVersion.id)
+        mainOfficialContext.save(
+            locationTrack(trackNumberId = trackNumberVersion.id, name = "Original Name"),
+            westGeometry,
+        )
+
+        startGeoviite()
+
+        val page = goToMap()
+            .switchToDesignMode()
+            .also { it.addDesign("revert-test") }
+
+        page.selectionPanel.selectLocationTrack("Original Name")
+        page.toolPanel.locationTrackGeneralInfo.edit()
+            .setName("Design Name")
+            .save()
+
+        assertEquals("Design Name", page.toolPanel.locationTrackGeneralInfo.name)
+
+        val previewPage = page.goToPreview()
+        // The preview table shows the current (edited) name of the changed entity.
+        // If this call fails to find a row, try "Original Name" instead.
+        previewPage.revertChange("Design Name")
+        val mapPage = previewPage.goToTrackLayout()
+
+        mapPage.selectionPanel.selectLocationTrack("Original Name")
+
+        assertEquals("Original Name", mapPage.toolPanel.locationTrackGeneralInfo.name)
+    }
 }
