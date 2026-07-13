@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLocationTrack
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLineGeometry
@@ -50,10 +51,11 @@ class DesignModeTestUI : SeleniumTest() {
 
     @Test
     fun `Design mode location track edit can be reverted`() {
-        val trackNumberVersion = mainOfficialContext.createLayoutTrackNumber(
-            trackNumber = HKI_TRACK_NUMBER_1,
-            geometry = westReferenceLineGeometry(),
-        )
+        val trackNumberVersion =
+            mainOfficialContext.createLayoutTrackNumber(
+                trackNumber = HKI_TRACK_NUMBER_1,
+                geometry = westReferenceLineGeometry(),
+            )
         val (_, westGeometry) = westMainLocationTrack(trackNumberVersion.id)
         mainOfficialContext.save(
             locationTrack(trackNumberId = trackNumberVersion.id, name = "Original Name"),
@@ -62,21 +64,16 @@ class DesignModeTestUI : SeleniumTest() {
 
         startGeoviite()
 
-        val page = goToMap()
-            .switchToDesignMode()
-            .also { it.addDesign("revert-test") }
+        val page = goToMap().switchToDesignMode().also { it.addDesign("revert-test") }
 
         page.selectionPanel.selectLocationTrack("Original Name")
-        page.toolPanel.locationTrackGeneralInfo.edit()
-            .setName("Design Name")
-            .save()
+        page.toolPanel.locationTrackGeneralInfo.edit().setName("Design Name").save()
 
+        waitAndClearToast("location-track-dialog.modified-successfully")
         assertEquals("Design Name", page.toolPanel.locationTrackGeneralInfo.name)
 
         val previewPage = page.goToPreview()
-        // The preview table shows the current (edited) name of the changed entity.
-        // If this call fails to find a row, try "Original Name" instead.
-        previewPage.revertChange("Design Name")
+        previewPage.revertChange("Sijaintiraide Design Name")
         val mapPage = previewPage.goToTrackLayout()
 
         mapPage.selectionPanel.selectLocationTrack("Original Name")
