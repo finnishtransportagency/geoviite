@@ -584,202 +584,7 @@ constructor(
         )
     }
 
-    fun diffLocationTrack(
-        translation: Translation,
-        locationTrackChanges: LocationTrackChanges,
-        referenceChanges: PublicationReferencedAssetSetChanges,
-        switchVersionLookup: (LayoutRowVersion<LayoutSwitch>) -> LayoutSwitch,
-        operationalPointVersionLookup: (LayoutRowVersion<OperationalPoint>) -> OperationalPoint,
-        branch: LayoutBranch,
-        publicationTime: Instant,
-        previousPublicationTime: Instant,
-        trackNumberCache: List<TrackNumberAndChangeTime>,
-        changedKmNumbers: Set<KmNumber>,
-        switchOids: Map<IntId<LayoutSwitch>, Oid<LayoutSwitch>>,
-        operationalPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
-        getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
-    ): List<PublicationChange<*>> {
-        val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
-        val newAndTime = locationTrackChanges.duplicateOf.new to publicationTime
-        val oldStartPointAndM =
-            locationTrackChanges.startPoint.old?.let { oldStart ->
-                locationTrackChanges.trackNumberId.old?.let {
-                    getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldStart)
-                }
-            }
-        val oldEndPointAndM =
-            locationTrackChanges.endPoint.old?.let { oldEnd ->
-                locationTrackChanges.trackNumberId.old?.let {
-                    getGeocodingContext(it, oldAndTime.second)?.getAddressAndM(oldEnd)
-                }
-            }
-        val newStartPointAndM =
-            locationTrackChanges.startPoint.new.let { newStart ->
-                locationTrackChanges.trackNumberId.new.let {
-                    getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
-                }
-            }
-        val newEndPointAndM =
-            locationTrackChanges.endPoint.new.let { newEnd ->
-                locationTrackChanges.trackNumberId.new.let {
-                    getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
-                }
-            }
-
-        val switchLinkChanges = referenceChanges.locationTrackSwitches[locationTrackChanges.id]
-        val operationalPointLinkChanges = referenceChanges.locationTrackOperationalPoints[locationTrackChanges.id]
-
-        return listOfNotNull(
-            compareChangeValues(locationTrackChanges.oid, { it }, PropKey("oid")),
-            compareChangeValues(
-                locationTrackChanges.trackNumberId,
-                { tnIdFromChange ->
-                    trackNumberCache
-                        .findLast { tn -> tn.id == tnIdFromChange && tn.changeTime <= publicationTime }
-                        ?.number
-                },
-                PropKey("track-number"),
-            ),
-            compareChangeValues(locationTrackChanges.name, { it }, PropKey("location-track")),
-            compareChangeValues(
-                locationTrackChanges.namingScheme,
-                { it },
-                PropKey("location-track-naming-scheme"),
-                null,
-                "LocationTrackNamingScheme",
-            ),
-            compareChangeValues(locationTrackChanges.state, { it }, PropKey("state"), null, "LocationTrackState"),
-            compareChangeValues(
-                locationTrackChanges.type,
-                { it },
-                PropKey("location-track-type"),
-                null,
-                "LocationTrackType",
-            ),
-            compareChangeValues(locationTrackChanges.description, { it }, PropKey("description")),
-            compareChangeValues(locationTrackChanges.descriptionBase, { it }, PropKey("description-base")),
-            compareChangeValues(
-                locationTrackChanges.descriptionSuffix,
-                { it },
-                PropKey("description-suffix"),
-                enumLocalizationKey = "LocationTrackDescriptionSuffix",
-            ),
-            compareChangeValues(
-                locationTrackChanges.owner,
-                { locationTrackService.getLocationTrackOwners().find { owner -> owner.id == it }?.name },
-                PropKey("owner"),
-            ),
-            compareChange(
-                { oldAndTime.first != newAndTime.first },
-                oldAndTime,
-                newAndTime,
-                { (duplicateOf, timestamp) ->
-                    duplicateOf?.let { locationTrackService.getOfficialAtMoment(branch, it, timestamp)?.name }
-                },
-                PropKey("duplicate-of"),
-            ),
-            compareLength(
-                locationTrackChanges.length.old,
-                locationTrackChanges.length.new,
-                DISTANCE_CHANGE_THRESHOLD,
-                ::roundTo1Decimal,
-                PropKey("length"),
-                getLengthChangedRemarkOrNull(
-                    translation,
-                    locationTrackChanges.length.old,
-                    locationTrackChanges.length.new,
-                ),
-            ),
-            compareChange(
-                { !pointsAreSame(locationTrackChanges.startPoint.old, locationTrackChanges.startPoint.new) },
-                locationTrackChanges.startPoint.old,
-                locationTrackChanges.startPoint.new,
-                ::formatLocation,
-                PropKey("start-location"),
-                getPointMovedRemarkOrNull(
-                    translation,
-                    locationTrackChanges.startPoint.old,
-                    locationTrackChanges.startPoint.new,
-                ),
-            ),
-            compareChange(
-                { oldStartPointAndM?.address != newStartPointAndM?.address },
-                oldStartPointAndM?.address,
-                newStartPointAndM?.address,
-                { it.toString() },
-                PropKey("start-address"),
-                null,
-            ),
-            compareChange(
-                { !pointsAreSame(locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new) },
-                locationTrackChanges.endPoint.old,
-                locationTrackChanges.endPoint.new,
-                ::formatLocation,
-                PropKey("end-location"),
-                getPointMovedRemarkOrNull(
-                    translation,
-                    locationTrackChanges.endPoint.old,
-                    locationTrackChanges.endPoint.new,
-                ),
-            ),
-            compareChange(
-                { oldEndPointAndM?.address != newEndPointAndM?.address },
-                oldEndPointAndM?.address,
-                newEndPointAndM?.address,
-                { it.toString() },
-                PropKey("end-address"),
-                null,
-            ),
-            if (changedKmNumbers.isNotEmpty()) {
-                PublicationChange(
-                    PropKey("geometry"),
-                    ChangeValue(null, null),
-                    getKmNumbersChangedRemarkOrNull(
-                        translation,
-                        changedKmNumbers,
-                        locationTrackChanges.geometryChangeSummaries,
-                    ),
-                )
-            } else {
-                null
-            },
-            if (switchLinkChanges == null) {
-                null
-            } else {
-                compareChange(
-                    { switchLinkChanges[ChangeSide.OLD] != switchLinkChanges[ChangeSide.NEW] },
-                    null,
-                    null,
-                    { it },
-                    PropKey("linked-switches"),
-                    getSwitchLinksChangedRemark(
-                        translation,
-                        switchLinkChanges,
-                        switchVersionLookup,
-                        switchOids::getValue,
-                    ),
-                )
-            },
-            if (operationalPointLinkChanges == null) {
-                null
-            } else {
-                compareChange(
-                    { operationalPointLinkChanges[ChangeSide.OLD] != operationalPointLinkChanges[ChangeSide.NEW] },
-                    null,
-                    null,
-                    { it },
-                    PropKey("linked-operational-points"),
-                    getOperationalPointLinksChangedRemark(
-                        translation,
-                        operationalPointLinkChanges,
-                        operationalPointVersionLookup,
-                        operationalPointOids::getValue,
-                    ),
-                )
-            },
-        )
-    }
-
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
     fun diffKmPost(
         translation: Translation,
         changes: KmPostChanges,
@@ -1239,6 +1044,8 @@ constructor(
                             switchOids,
                             operationalPointOids,
                             geocodingContextGetter,
+                            locationTrackService::getLocationTrackOwners,
+                            locationTrackService::getOfficialAtMoment,
                         ),
                 )
             }
@@ -1349,6 +1156,8 @@ constructor(
                             switchOids,
                             operationalPointOids,
                             geocodingContextGetter,
+                            locationTrackService::getLocationTrackOwners,
+                            locationTrackService::getOfficialAtMoment,
                         ),
                 )
             }

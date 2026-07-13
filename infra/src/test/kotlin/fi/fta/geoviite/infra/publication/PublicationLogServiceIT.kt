@@ -423,7 +423,7 @@ constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff =
-            publicationLogService.diffLocationTrack(
+            diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(locationTrack.id),
                 PublicationReferencedAssetSetChanges.empty(),
@@ -436,9 +436,10 @@ constructor(
                 emptySet(),
                 switchOids = mapOf(),
                 operationalPointOids = mapOf(),
-            ) { _, _ ->
-                null
-            }
+                getGeocodingContext = { _, _ -> null },
+                getOwners = locationTrackService::getLocationTrackOwners,
+                getOfficialAtMoment = locationTrackService::getOfficialAtMoment,
+            )
         assertEquals(7, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -488,7 +489,7 @@ constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff =
-            publicationLogService.diffLocationTrack(
+            diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(locationTrack.id),
                 PublicationReferencedAssetSetChanges.empty(),
@@ -501,9 +502,10 @@ constructor(
                 emptySet(),
                 mapOf(),
                 mapOf(),
-            ) { _, _ ->
-                null
-            }
+                getGeocodingContext = { _, _ -> null },
+                getOwners = locationTrackService::getLocationTrackOwners,
+                getOfficialAtMoment = locationTrackService::getOfficialAtMoment,
+            )
         assertEquals(1, diff.size)
         assertEquals("location-track-type", diff[0].propKey.key.toString())
         assertEquals(locationTrack.type, diff[0].value.oldValue)
@@ -1025,7 +1027,7 @@ constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff =
-            publicationLogService.diffLocationTrack(
+            diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(originalLocationTrack.id),
                 PublicationReferencedAssetSetChanges.empty(),
@@ -1038,9 +1040,10 @@ constructor(
                 setOf(KmNumber(0)),
                 mapOf(),
                 mapOf(),
-            ) { _, _ ->
-                null
-            }
+                getGeocodingContext = { _, _ -> null },
+                getOwners = locationTrackService::getLocationTrackOwners,
+                getOfficialAtMoment = locationTrackService::getOfficialAtMoment,
+            )
         assertEquals(1, diff.size)
         assertEquals("Muutos välillä 0000+0001-0000+0009, sivusuuntainen muutos 10.0 m", diff[0].remark)
     }
