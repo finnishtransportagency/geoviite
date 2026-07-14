@@ -179,7 +179,8 @@ constructor(
         assertEquals(null, switchDao.fetchExternalId(someDesign, switchAtStart.id))
         assertEquals(designSwitchOid, switchDao.fetchExternalId(someDesign, switchAtEnd.id)?.oid.toString())
 
-        val latestDesignPubs = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestDesignPubs =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         assertEquals(someDesign, latestDesignPubs[0].layoutBranch.branch)
 
         val designPublicationId = latestDesignPubs[0].id

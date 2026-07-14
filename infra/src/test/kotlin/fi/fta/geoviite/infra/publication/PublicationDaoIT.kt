@@ -347,11 +347,15 @@ constructor(
         )
         assertEquals(
             listOf("in anotherDesign", "in someDesign"),
-            publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2).map { it.message.toString() },
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 2).map {
+                it.message.toString()
+            },
         )
         assertEquals(
             listOf("again in main", "in main"),
-            publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2).map { it.message.toString() },
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.MAIN, count = 2).map {
+                it.message.toString()
+            },
         )
     }
 

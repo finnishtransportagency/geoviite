@@ -636,7 +636,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
     }
 
     fun list(
-        branchType: LayoutBranchType,
+        branchType: LayoutBranchType?,
         from: IntId<Publication>? = null,
         to: IntId<Publication>? = null,
     ): List<Publication> {
@@ -653,14 +653,23 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               cause,
               parent_publication_id
             from publication.publication
-            where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
+            where case
+                    when not :filter_branch_type then true
+                    when :branch_type = 'MAIN' then design_id is null
+                    else design_id is not null end
               and (:from_id::int is null or id >= :from_id)
               and (:to_id::int is null or id <= :to_id)
             order by id desc
             """
                 .trimIndent()
 
-        val params = mapOf("branch_type" to branchType.name, "from_id" to from?.intValue, "to_id" to to?.intValue)
+        val params =
+            mapOf(
+                "filter_branch_type" to (branchType != null),
+                "branch_type" to branchType?.name,
+                "from_id" to from?.intValue,
+                "to_id" to to?.intValue,
+            )
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
@@ -677,7 +686,14 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
             .also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    fun fetchLatestPublications(branchType: LayoutBranchType, count: Int): List<Publication> {
+    fun fetchLatestPublications(
+        onlyBranch: LayoutBranch? = null,
+        onlyBranchType: LayoutBranchType? = null,
+        count: Int,
+    ): List<Publication> {
+        require(!(onlyBranch != null && onlyBranchType != null && onlyBranch.type != onlyBranchType)) {
+            "onlyBranch $onlyBranch and onlyBranchType $onlyBranchType combination can't match any publications"
+        }
         val sql =
             """
             select
@@ -691,12 +707,24 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               cause,
               parent_publication_id
             from publication.publication
-            where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
+            where case
+              when :branch_type::text is null then true
+              when :branch_type = 'MAIN' then design_id is null
+              else design_id is not null end
+             and case
+              when not :filter_by_only_branch then true
+              else :only_branch::int is not distinct from design_id end
             order by id desc limit :count
             """
                 .trimIndent()
 
-        val params = mapOf("count" to count, "branch_type" to branchType.name)
+        val params =
+            mapOf(
+                "count" to count,
+                "branch_type" to onlyBranchType?.name,
+                "filter_by_only_branch" to (onlyBranch != null),
+                "only_branch" to onlyBranch?.designId?.intValue,
+            )
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
@@ -2362,6 +2390,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
             }
             .firstOrNull()
     }
+
 
     data class TrackBoundaryChangeSegment(
         val sourceTrackVersion: LayoutRowVersion<LocationTrack>,

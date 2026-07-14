@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -98,6 +99,41 @@ constructor(
         // Verify that fetching at specific versions also show the same results
         assertVersionStateInApi(baseVersion, switch1Oid to switch1BeforeUpdate, switch2Oid to switch2BeforeUpdate)
         assertVersionStateInApi(updatedVersion, switch1Oid to switch1AfterUpdate, switch2Oid to switch2BeforeUpdate)
+    }
+
+    @Test
+    fun `Design layout version as a modification bound resolves the moment while the view stays main`() {
+        val switchSetup =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val basePublication = extTestDataService.publishInMain(listOf(switchSetup))
+        val switchOid = switchSetup.switch.oid
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(switchSetup.trackNumber.id) { tn -> tn.copy(startAddress = TrackMeter("0000+0005.000")) }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(switchSetup.trackNumber.id))
+
+        initUser()
+        mainDraftContext.mutate(switchSetup.switch.id) { s -> s.copy(name = SwitchName(s.name.toString() + "-EDIT")) }
+        val switchChangePublication = testDBService.publish(switches = listOf(switchSetup.switch.id))
+        val updatedName = mainOfficialContext.fetch(switchSetup.switch.id)!!.name
+
+        // No main-branch switch changes between the base version and the design version's moment
+        api.switch.assertNoModificationBetween(switchOid, basePublication.uuid, designPublication.uuid)
+
+        // A design version as a bound resolves the moment on the shared timeline, but the reported data stays main
+        api.switch.getModifiedBetween(switchOid, designPublication.uuid, switchChangePublication.uuid).let { response ->
+            assertEquals(designPublication.uuid.toString(), response.alkuversio)
+            assertEquals(switchChangePublication.uuid.toString(), response.loppuversio)
+            assertEquals(updatedName.toString(), response.vaihde.vaihdetunnus)
+        }
+        api.switchCollection.getModifiedBetween(designPublication.uuid, switchChangePublication.uuid).let { response ->
+            assertEquals(listOf(updatedName.toString()), response.vaihteet.map { switch -> switch.vaihdetunnus })
+        }
     }
 
     @Test
