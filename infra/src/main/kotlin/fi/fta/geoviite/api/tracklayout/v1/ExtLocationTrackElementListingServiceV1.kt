@@ -80,20 +80,21 @@ constructor(
         if (!publications.areDifferent()) return publicationsAreTheSame(layoutVersionFrom.value)
         val id = idLookup(locationTrackDao, oid.value)
         val coordinateSystem = coordinateSystem(extCoordinateSystem)
-        val branch = publications.to.layoutBranch.branch
-        val change =
-            publicationDao.fetchPublishedLocationTrackVersionsBetween(
-                id,
-                publications.from.publicationTime,
-                publications.to.publicationTime,
-            ) ?: return null
-        val newTrack = locationTrackDao.fetch(change.new)
-        if (!newTrack.exists) return null
+        // Main-only route: the layout version bounds only resolve moments in time, the view is always main
+        val branch = LayoutBranch.main
+        val startMoment = publications.from.publicationTime
+        val endMoment = publications.to.publicationTime
+        val changeTime =
+            publicationDao.fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
+                ?: return null
+        val newTrack =
+            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
+        val oldTrack =
+            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
+
         val oldListings =
-            change.old
-                ?.let { locationTrackDao.fetch(it) }
-                ?.takeIf { it.exists }
-                ?.let { getElementListings(it, branch, publications.from.publicationTime) } ?: emptyList()
+            oldTrack?.let { getElementListings(it, branch, publications.from.publicationTime) } ?: emptyList()
         val newListings = getElementListings(newTrack, branch, publications.to.publicationTime)
         val oldHasGeocodedElements = oldListings.any { it.start.address != null && it.end.address != null }
         val newHasGeocodedElements = newListings.any { it.start.address != null && it.end.address != null }

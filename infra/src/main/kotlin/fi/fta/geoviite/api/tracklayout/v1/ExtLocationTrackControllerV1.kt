@@ -3,6 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.v1.LOCATION_TRACK_OID_PARAM
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.toResponse
@@ -40,7 +41,7 @@ class ExtLocationTrackControllerV1(
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/sijaintiraiteet")
+    @GetMapping("/sijaintiraiteet", "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet")
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Sijaintiraidekokoelman haku")
     @ApiResponses(
@@ -65,6 +66,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackCollection(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         layoutVersion: ExtLayoutVersionV1?,
@@ -79,13 +81,14 @@ class ExtLocationTrackControllerV1(
         trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtLocationTrackCollectionResponseV1 =
         extLocationTrackService.getExtLocationTrackCollection(
+            designOid,
             layoutVersion,
             extCoordinateSystem,
             locationTrackNameFilter,
             trackNumberOidFilter,
         )
 
-    @GetMapping("/sijaintiraiteet/muutokset")
+    @GetMapping("/sijaintiraiteet/muutokset", "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/muutokset")
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Sijaintiraidekokoelman muutosten haku")
     @ApiResponses(
@@ -108,7 +111,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description = EXT_OPENAPI_ONE_OR_MORE_TRACK_LAYOUT_VERSION_NOT_FOUND,
+                    description = EXT_OPENAPI_ONE_OR_MORE_SEARCH_PARAMETER_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -119,6 +122,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackCollectionModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
         layoutVersionFrom: ExtLayoutVersionV1,
@@ -139,13 +143,17 @@ class ExtLocationTrackControllerV1(
             .getExtLocationTrackCollectionModifications(
                 layoutVersionFrom,
                 layoutVersionTo,
+                designOid,
                 extCoordinateSystem,
                 locationTrackNameFilter,
                 trackNumberOidFilter,
             )
             .let(::toResponse)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
+        "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}",
+    )
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Yksittäisen sijaintiraiteen haku OID-tunnuksella")
     @ApiResponses(
@@ -165,7 +173,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
+                    description = EXT_OPENAPI_ONE_OR_MORE_SEARCH_PARAMETER_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -176,6 +184,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrack(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -186,9 +195,12 @@ class ExtLocationTrackControllerV1(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtLocationTrackResponseV1> =
-        extLocationTrackService.getExtLocationTrack(oid, layoutVersion, coordinateSystem).let(::toResponse)
+        extLocationTrackService.getExtLocationTrack(oid, layoutVersion, designOid, coordinateSystem).let(::toResponse)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset")
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset",
+        "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset",
+    )
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(
         summary = "Yksittäisen sijaintiraiteen muutosten haku OID-tunnuksella",
@@ -233,6 +245,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -247,10 +260,13 @@ class ExtLocationTrackControllerV1(
         coordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> =
         extLocationTrackService
-            .getExtLocationTrackModifications(oid, layoutVersionFrom, layoutVersionTo, coordinateSystem)
+            .getExtLocationTrackModifications(oid, layoutVersionFrom, layoutVersionTo, designOid, coordinateSystem)
             .let(::toResponse)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria",
+        "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria",
+    )
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Yksittäisen sijaintiraiteen geometrian haku OID-tunnuksella")
     @ApiResponses(
@@ -281,6 +297,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackGeometry(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -302,6 +319,7 @@ class ExtLocationTrackControllerV1(
     ): ResponseEntity<ExtLocationTrackGeometryResponseV1> =
         extLocationTrackGeometryService
             .getExtLocationTrackGeometry(
+                designOid,
                 oid,
                 layoutVersion,
                 extResolution,
@@ -311,7 +329,10 @@ class ExtLocationTrackControllerV1(
             )
             .let(::toResponse)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria/muutokset")
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria/muutokset",
+        "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria/muutokset",
+    )
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Yksittäisen sijaintiraiteen geometrian muutosten haku OID-tunnuksella")
     @ApiResponses(
@@ -342,6 +363,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackGeometryModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -366,6 +388,7 @@ class ExtLocationTrackControllerV1(
     ): ResponseEntity<ExtLocationTrackModifiedGeometryResponseV1> =
         extLocationTrackGeometryService
             .getExtLocationTrackGeometryModifications(
+                designOid,
                 oid,
                 layoutVersionFrom,
                 layoutVersionTo,
@@ -376,7 +399,10 @@ class ExtLocationTrackControllerV1(
             )
             .let(::toResponse)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/pystygeometria")
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/pystygeometria",
+        "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/pystygeometria",
+    )
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Yksittäisen sijaintiraiteen pystygeometrian haku OID-tunnuksella")
     @ApiResponses(
@@ -407,6 +433,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackProfile(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -418,10 +445,13 @@ class ExtLocationTrackControllerV1(
         extCoordinateSystem: ExtSridV1? = null,
     ): ResponseEntity<ExtLocationTrackProfileResponseV1> =
         extLocationTrackProfileService
-            .getExtLocationTrackProfile(oid, layoutVersion, extCoordinateSystem)
+            .getExtLocationTrackProfile(oid, designOid, layoutVersion, extCoordinateSystem)
             .let(::toResponse)
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/pystygeometria/muutokset")
+    @GetMapping(
+        "/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/pystygeometria/muutokset",
+        "/suunnitelmat/{${DESIGN_OID}}/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/pystygeometria/muutokset",
+    )
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Yksittäisen sijaintiraiteen pystygeometrian muutosten haku OID-tunnuksella")
     @ApiResponses(
@@ -454,6 +484,7 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackProfileModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -468,7 +499,13 @@ class ExtLocationTrackControllerV1(
         extCoordinateSystem: ExtSridV1? = null,
     ): ResponseEntity<ExtLocationTrackModifiedProfileResponseV1> =
         extLocationTrackProfileService
-            .getExtLocationTrackProfileModifications(oid, layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
+            .getExtLocationTrackProfileModifications(
+                oid,
+                layoutVersionFrom,
+                layoutVersionTo,
+                designOid,
+                extCoordinateSystem,
+            )
             .let(::toResponse)
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometriaelementit")

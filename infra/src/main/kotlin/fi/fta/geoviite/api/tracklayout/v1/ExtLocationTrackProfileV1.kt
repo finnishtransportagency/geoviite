@@ -13,6 +13,9 @@ data class ExtLocationTrackProfileResponseV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(LOCATION_TRACK_OID)
     val locationTrackOid: ExtOidV1<LocationTrack>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_LOCATION_TRACK_OID)
+    val officialLocationTrackOid: ExtOidV1<LocationTrack>?,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_INTERVAL) val trackInterval: ExtProfileAddressRangeV1,
 )
@@ -25,6 +28,9 @@ data class ExtLocationTrackModifiedProfileResponseV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(LOCATION_TRACK_OID)
     val locationTrackOid: ExtOidV1<LocationTrack>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_LOCATION_TRACK_OID)
+    val officialLocationTrackOid: ExtOidV1<LocationTrack>?,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtProfileAddressRangeV1>,
 )
