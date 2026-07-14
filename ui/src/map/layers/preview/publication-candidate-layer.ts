@@ -37,6 +37,7 @@ import {
     createBaseLocationTrackFeatures,
     createBaseReferenceLineFeatures,
     createCandidateLocationTrackFeatures,
+    createCandidateOperationalPointAreaFeature,
     createCandidatePointFeatures,
     createCandidateTrackNumberFeatures,
     getSwitchLocation,
@@ -187,6 +188,14 @@ export function createPublicationCandidateLayer(
         targetLayoutContext,
         changeTimes.operationalPoints,
     );
+    const draftOperationalPointsPromise =
+        operationalPointCandidates.length > 0
+            ? getManyOperationalPoints(
+                  operationalPointCandidates.map((c) => c.id),
+                  layoutContext,
+                  changeTimes.operationalPoints,
+              )
+            : Promise.resolve([]);
 
     const createFeatures = (data: {
         candidateLocationTracks: LocationTrackCandidateAndAlignment[];
@@ -196,6 +205,7 @@ export function createPublicationCandidateLayer(
         baseSwitches: LayoutSwitch[];
         baseKmPosts: LayoutKmPost[];
         baseOperationalPoints: OperationalPoint[];
+        draftOperationalPoints: OperationalPoint[];
         switchStructures: SwitchStructure[];
     }) => {
         const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) =>
@@ -240,6 +250,18 @@ export function createPublicationCandidateLayer(
             (candidate) =>
                 data.baseOperationalPoints.find((op) => op.id === candidate.id)?.location,
         );
+        const candidateOperationalPointAreaFeatures = operationalPointCandidates.flatMap(
+            (candidate) => {
+                const opSource =
+                    candidate.operation === 'DELETE'
+                        ? data.baseOperationalPoints
+                        : data.draftOperationalPoints;
+                const polygon = opSource.find((op) => op.id === candidate.id)?.polygon;
+                return polygon
+                    ? [createCandidateOperationalPointAreaFeature(candidate, polygon)]
+                    : [];
+            },
+        );
 
         const showEndPointTicks = metersPerPixel <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
@@ -270,6 +292,7 @@ export function createPublicationCandidateLayer(
             ...candidateSwitchFeatures,
             ...candidateKmPostFeatures,
             ...candidateOperationalPointFeatures,
+            ...candidateOperationalPointAreaFeatures,
             ...baseLocationTrackFeatures,
             ...baseTrackNumberFeatures,
         ];
@@ -283,6 +306,7 @@ export function createPublicationCandidateLayer(
         baseSwitchesPromise,
         baseKmPostsPromise,
         baseOperationalPointsPromise,
+        draftOperationalPointsPromise,
         getSwitchStructures(),
     ]).then(
         ([
@@ -293,6 +317,7 @@ export function createPublicationCandidateLayer(
             baseSwitches,
             baseKmPosts,
             baseOperationalPoints,
+            draftOperationalPoints,
             switchStructures,
         ]) => {
             return {
@@ -303,6 +328,7 @@ export function createPublicationCandidateLayer(
                 baseSwitches,
                 baseKmPosts,
                 baseOperationalPoints,
+                draftOperationalPoints,
                 switchStructures,
             };
         },

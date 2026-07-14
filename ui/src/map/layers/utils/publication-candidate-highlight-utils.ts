@@ -1,4 +1,4 @@
-import { LineString, Point as OlPoint } from 'ol/geom';
+import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import { Circle, Fill, Stroke, Style } from 'ol/style';
 import Feature from 'ol/Feature';
 import { AlignmentPoint, LayoutSwitch } from 'track-layout/track-layout-model';
@@ -27,7 +27,7 @@ import {
     REFERENCE_LINE_ALIGNMENT_WIDTH,
 } from 'map/layers/utils/alignment-layer-utils';
 import mapStyles from 'map/map.module.scss';
-import { mergeRanges, Point, rangesIntersectInclusive } from 'model/geometry';
+import { mergeRanges, Point, Polygon, rangesIntersectInclusive } from 'model/geometry';
 import { Range, SwitchStructure } from 'common/common-model';
 
 export enum CandidateDataProperties {
@@ -43,7 +43,7 @@ export enum ChangeExplicitness {
     IMPLICIT = 'IMPLICIT',
 }
 
-export type PublicationCandidateFeatureType = LineString | OlPoint;
+export type PublicationCandidateFeatureType = LineString | OlPoint | OlPolygon;
 
 export type LocationTrackCandidateAndAlignment = {
     publishCandidate: LocationTrackPublicationCandidate;
@@ -477,4 +477,39 @@ export const getSwitchLocation = (
     const presentationJointNumber = structure?.presentationJointNumber;
     const presentationJoint = sw.joints.find((joint) => joint.number === presentationJointNumber);
     return presentationJoint?.location;
+};
+
+const hexToRgba = (hex: string, alpha: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+};
+
+export const createCandidateOperationalPointAreaFeature = (
+    candidate: OperationalPointPublicationCandidate,
+    polygon: Polygon,
+): Feature<OlPolygon> => {
+    const color = getHighlightColor(candidate.stage, ChangeExplicitness.EXPLICIT, candidate.operation);
+    const borderWidth = 3;
+    const zIndex = getHighlightZIndex(
+        candidate.operation,
+        DraftChangeType.OPERATIONAL_POINT,
+        candidate.stage,
+        ChangeExplicitness.EXPLICIT,
+    );
+
+    const feature = new Feature({
+        geometry: new OlPolygon([polygon.points.map(pointToCoords)]),
+    });
+    feature.setStyle([
+        new Style({
+            stroke: new Stroke({ color, width: borderWidth }),
+            fill: new Fill({ color: hexToRgba(color, 0.5) }),
+            zIndex,
+        }),
+    ]);
+    feature.set(DATA_PROPERTY_BY_CHANGE_TYPE[DraftChangeType.OPERATIONAL_POINT], candidate);
+
+    return feature;
 };
