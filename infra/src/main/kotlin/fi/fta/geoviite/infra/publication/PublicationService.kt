@@ -606,26 +606,45 @@ constructor(
     fun getPublicationsToCompare(
         layoutVersionFrom: Uuid<Publication>,
         layoutVersionTo: Uuid<Publication>?,
-        branchType: LayoutBranchType = LayoutBranchType.MAIN,
-    ): PublicationComparison =
-        PublicationComparison(
-            from = getPublicationWithType(branchType, layoutVersionFrom),
-            to = getPublicationByUuidOrLatest(branchType, layoutVersionTo),
+        branch: LayoutBranch? = null,
+        branchType: LayoutBranchType? = if (branch == null) LayoutBranchType.MAIN else null,
+    ): PublicationComparison {
+        // Layout versions are ordered across branches, so any publication is acceptable as an explicit comparison
+        // bound: the branch filters only pick which publication is the latest when no end version is given.
+        val from = publicationDao.fetchPublicationByUuid(layoutVersionFrom)
+        return PublicationComparison(
+            from = from,
+            to =
+                layoutVersionTo?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid) }
+                    ?: publicationDao.fetchLatestPublications(branch, branchType, count = 1).singleOrNull()
+                    ?: from,
         )
+    }
 
-    fun getPublicationWithType(branchType: LayoutBranchType, layoutVersion: Uuid<Publication>): Publication =
+    fun getPublicationWithType(onlyBranchType: LayoutBranchType?, layoutVersion: Uuid<Publication>): Publication =
         publicationDao.fetchPublicationByUuid(layoutVersion).also {
-            if (it.layoutBranch.branch.type != branchType) throw TrackLayoutVersionNotFound(layoutVersion)
+            if (onlyBranchType != null && it.layoutBranch.branch.type != onlyBranchType)
+                throw TrackLayoutVersionNotFound(layoutVersion)
         }
 
     fun getPublicationByUuidOrLatest(branchType: LayoutBranchType, publicationUuid: Uuid<Publication>?): Publication {
         return publicationUuid?.let { uuid -> getPublicationWithType(branchType, uuid) }
-            ?: getLatestPublication(branchType)
+            ?: getLatestPublicationByBranchType(branchType)
     }
 
-    fun getLatestPublication(branchType: LayoutBranchType): Publication =
-        publicationDao.fetchLatestPublications(branchType, count = 1).single()
+    fun getPublicationByUuidOrLatest(layoutBranch: LayoutBranch, publicationUuid: Uuid<Publication>?): Publication {
+        // Layout versions are ordered across branches, so any publication is usable as the moment in time at which
+        // to view the given branch: the branch only determines the view, not which publications are acceptable.
+        // A branch with no publications of its own (a design before its first publication) is viewed at the latest
+        // publication overall.
+        return publicationUuid?.let(publicationDao::fetchPublicationByUuid)
+            ?: publicationDao.fetchLatestPublications(layoutBranch, null, count = 1).singleOrNull()
+            ?: getLatestPublicationByBranchType(null)
+    }
 
-    fun listPublications(branchType: LayoutBranchType, comparison: PublicationComparison? = null): List<Publication> =
+    fun getLatestPublicationByBranchType(onlyBranchType: LayoutBranchType?): Publication =
+        publicationDao.fetchLatestPublications(null, onlyBranchType, count = 1).single()
+
+    fun listPublications(branchType: LayoutBranchType?, comparison: PublicationComparison? = null): List<Publication> =
         publicationDao.list(branchType, comparison?.from?.id, comparison?.to?.id).reversed()
 }

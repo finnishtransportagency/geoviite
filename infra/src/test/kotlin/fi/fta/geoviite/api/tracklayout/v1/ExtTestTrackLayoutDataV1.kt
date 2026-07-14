@@ -3,8 +3,14 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 
-data class ExtTestTrackLayoutVersionV1(val rataverkon_versio: String, val aikaleima: String, val kuvaus: String)
+data class ExtTestTrackLayoutVersionV1(
+    val rataverkon_versio: String,
+    val aikaleima: String,
+    val kuvaus: String,
+    val suunnitelma_oid: ExtOidV1<LayoutDesign>?,
+)
 
 data class ExtTestTrackLayoutVersionCollectionResponseV1(
     val alkuversio: String,

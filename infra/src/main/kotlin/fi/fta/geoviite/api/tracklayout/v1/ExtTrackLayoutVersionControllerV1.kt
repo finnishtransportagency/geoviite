@@ -3,7 +3,9 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -31,7 +33,10 @@ const val EXT_TRACK_LAYOUT_VERSIONS_TAG_V1 = "Rataverkon versiot"
         "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
     ]
 )
-class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publicationService: PublicationService) {
+class ExtTrackLayoutVersionControllerV1
+@Autowired
+constructor(private val publicationService: PublicationService, private val layoutDesignDao: LayoutDesignDao) {
+
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/versiot/{${TRACK_LAYOUT_VERSION}}")
@@ -61,12 +66,14 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
     fun getExtTrackLayoutVersion(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_DESCRIPTION)
         @PathVariable(TRACK_LAYOUT_VERSION)
-        version: ExtLayoutVersionV1
-    ): ExtTrackLayoutVersionV1 {
-        return publicationService
-            .getPublicationWithType(LayoutBranchType.MAIN, version.value)
-            .let(::ExtTrackLayoutVersionV1)
-    }
+        version: ExtLayoutVersionV1,
+        @Parameter(description = EXT_OPENAPI_INCLUDE_DESIGNS)
+        @RequestParam(name = INCLUDE_DESIGNS, required = false)
+        includeDesigns: Boolean = false,
+    ): ExtTrackLayoutVersionV1 =
+        publicationService
+            .getPublicationWithType(if (includeDesigns) null else LayoutBranchType.MAIN, version.value)
+            .let(::publicationVersion)
 
     @GetMapping("/versiot/uusin")
     @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
@@ -87,8 +94,14 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun getExtLatestTrackLayoutVersion(): ExtTrackLayoutVersionV1 {
-        return publicationService.getLatestPublication(LayoutBranchType.MAIN).let(::ExtTrackLayoutVersionV1)
+    fun getExtLatestTrackLayoutVersion(
+        @Parameter(description = EXT_OPENAPI_INCLUDE_DESIGNS)
+        @RequestParam(name = INCLUDE_DESIGNS, required = false)
+        includeDesigns: Boolean = false
+    ): ExtTrackLayoutVersionV1 {
+        return publicationService
+            .getLatestPublicationByBranchType(if (includeDesigns) null else LayoutBranchType.MAIN)
+            .let(::publicationVersion)
     }
 
     @GetMapping("/versiot")
@@ -115,15 +128,19 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun getExtTrackLayoutVersionCollection(): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
+    fun getExtTrackLayoutVersionCollection(
+        @Parameter(description = EXT_OPENAPI_INCLUDE_DESIGNS)
+        @RequestParam(name = INCLUDE_DESIGNS, required = false)
+        includeDesigns: Boolean = false
+    ): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
         return publicationService
-            .listPublications(LayoutBranchType.MAIN)
+            .listPublications(if (includeDesigns) null else LayoutBranchType.MAIN)
             .takeIf { publications -> publications.isNotEmpty() }
             ?.let { publications ->
                 ExtTrackLayoutVersionCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.first()),
                     layoutVersionTo = ExtLayoutVersionV1(publications.last()),
-                    versions = publications.map(::ExtTrackLayoutVersionV1),
+                    versions = publications.map(::publicationVersion),
                 )
             }
             .let(::toResponse)
@@ -160,19 +177,31 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO)
         @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
         layoutVersionTo: ExtLayoutVersionV1?,
+        @Parameter(description = EXT_OPENAPI_INCLUDE_DESIGNS)
+        @RequestParam(name = INCLUDE_DESIGNS, required = false)
+        includeDesigns: Boolean = false,
     ): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
         return publicationService
             .getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
             .takeIf { versions -> versions.areDifferent() }
-            ?.let { versions -> publicationService.listPublications(LayoutBranchType.MAIN, versions) }
-            ?.takeIf { publications -> publications.size > 1 }
-            ?.let { publications ->
-                ExtTrackLayoutVersionCollectionResponseV1(
-                    layoutVersionFrom = ExtLayoutVersionV1(publications.first()),
-                    layoutVersionTo = ExtLayoutVersionV1(publications.last()),
-                    versions = publications.drop(1).map(::ExtTrackLayoutVersionV1),
-                )
+            ?.let { versions ->
+                publicationService
+                    .listPublications(if (includeDesigns) null else LayoutBranchType.MAIN, versions)
+                    // The comparison start version itself is not a modification, and may also be a design
+                    // publication, in which case it is not part of the main-branch listing at all.
+                    .filter { publication -> publication.id != versions.from.id }
+                    .takeIf { publications -> publications.isNotEmpty() }
+                    ?.let { publications ->
+                        ExtTrackLayoutVersionCollectionResponseV1(
+                            layoutVersionFrom = ExtLayoutVersionV1(versions.from),
+                            layoutVersionTo = ExtLayoutVersionV1(versions.to),
+                            versions = publications.map(::publicationVersion),
+                        )
+                    }
             }
             .let(::toResponse)
     }
+
+    private fun publicationVersion(publication: Publication): ExtTrackLayoutVersionV1 =
+        ExtTrackLayoutVersionV1.of(publication, publication.layoutBranch.branch.designId?.let(layoutDesignDao::fetch))
 }

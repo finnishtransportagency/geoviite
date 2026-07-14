@@ -6,6 +6,7 @@ const val TRACK_LAYOUT_VERSION_FROM = "alkuversio"
 const val TRACK_LAYOUT_VERSION_TO = "loppuversio"
 const val TRACK_LAYOUT_VERSION = "rataverkon_versio"
 const val TRACK_LAYOUT_VERSIONS = "rataverkon_versiot"
+const val INCLUDE_DESIGNS = "suunnitelmat_mukaan"
 const val LOCATION_TRACK_OID = "sijaintiraide_oid"
 const val LOCATION_TRACK = "sijaintiraide"
 const val LOCATION_TRACK_NAME = "sijaintiraidetunnus"
@@ -178,3 +179,9 @@ const val ELEMENT_END_VALUE = "loppu"
 
 const val NOTE_PARTIAL_ELEMENT = "sisaltaa_vain_osan_elementista"
 const val NOTE_SWITCH_ELEMENT = "vaihteen_elementti"
+
+const val DESIGN_OID = "suunnitelma_oid"
+
+const val EXT_OPENAPI_INCLUDE_DESIGNS =
+    "Otetaanko myös suunnitelmien julkaisut mukaan rataverkon versioihin. Oletusarvoisesti mukana ovat vain " +
+        "virallisen paikannuspohjan versiot."

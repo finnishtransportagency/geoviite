@@ -59,9 +59,10 @@ constructor(
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
 
-        val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestPublication =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         layoutDesignService.update(designId, designForm(designId))
-        val afterUpdate = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val afterUpdate = publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         assertEquals(latestPublication.map { it.id }, afterUpdate.map { it.id })
     }
 
@@ -73,9 +74,10 @@ constructor(
 
         val trackNumber = designDraftContext.save(trackNumber()).id
         publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
-        val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestPublication =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         layoutDesignService.update(designId, designForm(designId))
-        val afterUpdate = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val afterUpdate = publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         assertNotEquals(latestPublication.map { it.id }, afterUpdate.map { it.id })
         val details = publicationLogService.getPublicationDetails(afterUpdate[0].id)
         assertEquals(listOf(), details.trackNumbers)
@@ -97,7 +99,7 @@ constructor(
         val newName = LayoutDesignName("design name after update")
         layoutDesignService.update(designId, designForm(designId).copy(name = newName))
 
-        val publication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, count = 1)[0]
+        val publication = publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)[0]
         val publishedIn = publication.layoutBranch as PublishedInDesign
         assertEquals(newName, layoutDesignDao.fetchVersion(RowVersion(designId, publishedIn.designVersion)).name)
     }
@@ -114,9 +116,11 @@ constructor(
         trackNumberService.cancel(designBranch, trackNumber)
         publicationTestSupportService.publish(designBranch, objectIds)
 
-        val latestPublicationsBeforeEdit = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestPublicationsBeforeEdit =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         layoutDesignService.update(designId, designForm(designId))
-        val latestPublicationsAfterEdit = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestPublicationsAfterEdit =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         assertNotEquals(latestPublicationsBeforeEdit.map { it.id }, latestPublicationsAfterEdit.map { it.id })
         val latestDetails = publicationLogService.getPublicationDetails(latestPublicationsAfterEdit[0].id)
         assertEquals(listOf(), latestDetails.trackNumbers)
@@ -147,7 +151,8 @@ constructor(
 
         deleteDesign(designId)
 
-        val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2)
+        val latestPublication =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 2)
         val designCancellationDetails = publicationLogService.getPublicationDetails(latestPublication[0].id)
         val designDeleteDetails = publicationLogService.getPublicationDetails(latestPublication[1].id)
 
@@ -231,9 +236,11 @@ constructor(
         testDBService.generateOid(locationTrack, designBranch)
         testDBService.generateOid(switch, designBranch)
 
-        val latestPublicationBeforeDelete = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestPublicationBeforeDelete =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         deleteDesign(designId)
-        val latestPublicationAfterDelete = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
+        val latestPublicationAfterDelete =
+            publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)
         assertNotEquals(latestPublicationBeforeDelete.map { it.id }, latestPublicationAfterDelete.map { it.id })
         val details = publicationLogService.getPublicationDetails(latestPublicationAfterDelete[0].id)
 
