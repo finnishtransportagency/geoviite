@@ -277,7 +277,8 @@
         },
         "PlanQuality": {
             "PLAN": "Suunnitelma",
-            "UNRELIABLE_PLAN": "Epäluotettava suunnitelma"
+            "UNRELIABLE_PLAN": "Epäluotettava suunnitelma",
+            "UNKNOWN": "Ei tiedossa"
         },
         "ElevationMeasurementMethod": {
             "TOP_OF_SLEEPER": "Korkeusviiva",
@@ -622,7 +623,8 @@
             "plan-uploaded": "Ladattu",
             "plan-age-content": "{{ageYears}} v sitten",
             "plan-age-under-1-year": "alle 1 v sitten",
-            "measurement-method": "Laatu",
+            "measurement-method": "Mittausmenetelmä",
+            "quality": "Laatu",
             "elevation-measurement-method": "Korkeusasema",
             "vertical-coordinate-system": "Korkeusjärjestelmä",
             "has-vertical-geometry": "Pystygeometria",

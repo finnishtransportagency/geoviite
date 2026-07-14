@@ -51,6 +51,9 @@ class E2EGeometryPlanQualityInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val measurementMethod: String
         get() = getValueForField("geometry-plan-measurement-method")
 
+    val quality: String
+        get() = getValueForField("geometry-plan-quality")
+
     val coordinateSystem: String
         get() = getValueForField("geometry-plan-coordinate-system")
 
