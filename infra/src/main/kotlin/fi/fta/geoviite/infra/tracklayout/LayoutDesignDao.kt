@@ -196,5 +196,5 @@ private fun getLayoutDesign(rs: ResultSet) =
         LayoutDesignName(rs.getString("name")),
         rs.getLocalDate("estimated_completion"),
         rs.getEnum("design_state"),
-        rs.getOid("external_id")
+        rs.getOid("external_id"),
     )
