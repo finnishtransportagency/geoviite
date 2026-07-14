@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationCause
@@ -34,6 +35,8 @@ class LayoutDesignService(
     fun getOrThrow(id: IntId<LayoutDesign>): LayoutDesign {
         return dao.fetch(id)
     }
+
+    fun getByOid(oid: Oid<LayoutDesign>): LayoutDesign? = dao.fetchByExternalId(oid)
 
     @Transactional
     fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> {

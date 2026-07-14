@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
@@ -91,6 +92,7 @@ import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
 import fi.fta.geoviite.infra.util.getPublicationMessage
 import fi.fta.geoviite.infra.util.getPublicationPublishedIn
 import fi.fta.geoviite.infra.util.getRinfIdOrNull
+import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.getStringArray
 import fi.fta.geoviite.infra.util.getStringArrayOrNull
@@ -2258,6 +2260,38 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
 
     fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication =
         fetchPublicationIdByUuid(uuid)?.let(::getPublication) ?: throw TrackLayoutVersionNotFound(uuid)
+
+    fun fetchDesignModificationsBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        designId: IntId<LayoutDesign>?,
+    ): List<RowVersion<LayoutDesign>> {
+        // A design counts as modified by its metadata-change and deletion publications, and by its first publication
+        // ever, which is what makes the design visible to the ext API in the first place
+        val sql =
+            """
+            select publication.design_id as id, publication.design_version as version
+            from publication.publication
+            where publication.design_id is not null
+              and (:design_id::int is null or :design_id = publication.design_id)
+              and publication.publication_time > :start_time
+              and publication.publication_time <= :end_time
+              and (publication.cause in ('LAYOUT_DESIGN_CHANGE', 'LAYOUT_DESIGN_DELETE')
+                   or not exists (
+                     select 1
+                     from publication.publication earlier
+                     where earlier.design_id = publication.design_id
+                       and earlier.publication_time <= :start_time))
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+                "design_id" to designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+    }
 
     fun fetchPublishedLocationTrackBetween(
         trackId: IntId<LocationTrack>,

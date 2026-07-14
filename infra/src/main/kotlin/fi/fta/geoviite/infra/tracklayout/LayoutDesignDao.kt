@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.DuplicateDesignNameException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
@@ -56,6 +57,17 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             mapOf("id" to rowVersion.id.intValue, "version" to rowVersion.version),
             mapper = { rs, _ -> getLayoutDesign(rs) },
         )
+    }
+
+    fun fetchByExternalId(oid: Oid<LayoutDesign>): LayoutDesign? {
+        val sql =
+            """
+            select id, name, estimated_completion, design_state, external_id
+            from layout.design
+            where external_id = :external_id
+            """
+                .trimIndent()
+        return jdbcTemplate.queryOptional(sql, mapOf("external_id" to oid.toString())) { rs, _ -> getLayoutDesign(rs) }
     }
 
     fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
