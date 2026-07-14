@@ -443,3 +443,26 @@ data class ExtTestRouteSectionV1(
 data class ExtTestRouteV1(val pituus: Double, val reitin_osat: List<ExtTestRouteSectionV1>)
 
 data class ExtTestRouteResponseV1(val rataverkon_versio: String, val koordinaatisto: String, val reitti: ExtTestRouteV1)
+
+data class ExtTestDesignV1(
+    val suunnitelma_oid: String,
+    val nimi: String,
+    val tila: String,
+    val suunniteltu_valmistumispaiva: String,
+)
+
+data class ExtTestDesignResponseV1(val suunnitelma: ExtTestDesignV1)
+
+data class ExtTestModifiedDesignResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val suunnitelma: ExtTestDesignV1,
+)
+
+data class ExtTestDesignCollectionResponseV1(val suunnitelmat: List<ExtTestDesignV1>)
+
+data class ExtTestModifiedDesignCollectionResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val suunnitelmat: List<ExtTestDesignV1>,
+)

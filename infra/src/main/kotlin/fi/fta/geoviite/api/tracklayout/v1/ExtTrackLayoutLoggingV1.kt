@@ -30,3 +30,10 @@ inline fun <reified T> layoutAssetCollectionWasUnmodified(publications: Publicat
     )
     return null
 }
+
+inline fun <reified T> layoutAssetWasUnmodified(assetId: IntId<T>, publications: PublicationComparison): Nothing? {
+    logger.info(
+        "The ${T::class.simpleName} was unmodified: assetId=${assetId}, fromPublication: ${publications.from.id} -> toPublication: ${publications.to.id}"
+    )
+    return null
+}
