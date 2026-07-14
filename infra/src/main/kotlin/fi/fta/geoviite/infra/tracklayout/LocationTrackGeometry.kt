@@ -833,6 +833,7 @@ data class SwitchLink(val id: IntId<LayoutSwitch>, val jointRole: SwitchJointRol
  * - If either of the edges points to a switch between them, both edges are linked to it
  * - If edges point to having different switches between them, a new combined node is placed there
  */
+@Suppress("NestedBlockDepth") // nesting mirrors a meaningful decision tree; require{} lambda is not real depth
 fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
     if (edges.isEmpty()) return edges
     val combined = mutableListOf<LayoutEdge>()

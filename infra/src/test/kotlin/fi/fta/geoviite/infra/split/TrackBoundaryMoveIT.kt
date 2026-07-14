@@ -1363,6 +1363,48 @@ constructor(
         )
     }
 
+    @Test
+    fun `boundary move succeeds when tracks have a small geometry gap at the junction switch`() {
+        // Reproduces GVT-3668: tracks linked independently may have slightly different segment endpoint coordinates
+        // at their shared junction switch. combineEdges must bridge the gap rather than letting verifyTrackGeometry
+        // throw.
+        val trackNumber =
+            mainDraftContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+
+        val (sw1Version, sw1Straight, sw1Branching) = splitTestDataService.createSwitchAndGeometry(Point(10.0, 0.0))
+        mainOfficialContext.save(locationTrack(trackNumber), trackGeometry(sw1Branching))
+        val sw1End = sw1Straight.last().lastSegmentEnd
+
+        val shorteningGeometry = trackGeometry(combineEdges(sw1Straight))
+        val shorteningTrack = testDBService.save(locationTrack(trackNumber), shorteningGeometry)
+
+        // 5mm gap at the junction switch — exceeds the 1mm tolerance in verifyTrackGeometry
+        val gap = 0.005
+        val lengtheningGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(sw1End.x + gap, sw1End.y), Point(sw1End.x + gap + 10.0, sw1End.y))),
+                    startInnerSwitch = switchLinkYV(sw1Version.id, 2),
+                )
+            )
+        val lengtheningTrack = testDBService.save(locationTrack(trackNumber), lengtheningGeometry)
+
+        // Without the fix this throws IllegalArgumentException from verifyTrackGeometry
+        trackBoundaryMoveService.saveTrackBoundaryMove(
+            LayoutBranch.main,
+            shorteningTrackId = shorteningTrack.id,
+            lengtheningTrackId = lengtheningTrack.id,
+            upToSwitchJoint = null,
+            boundaryMoveDirection = BoundaryMoveDirection.ASCENDING,
+        )
+
+        val newLengthenedGeometry =
+            locationTrackService.getWithGeometryOrThrow(LayoutBranch.main.draft, lengtheningTrack.id).second
+        assertTrue(newLengthenedGeometry.isNotEmpty)
+    }
+
     private fun assertEdgesMatch(expected: List<LayoutEdge>, actual: List<LayoutEdge>) {
         assertEquals(expected.size, actual.size, "edge count")
         expected.forEachIndexed { index, expectedEdge -> assertMatches(expectedEdge, actual[index], index) }
