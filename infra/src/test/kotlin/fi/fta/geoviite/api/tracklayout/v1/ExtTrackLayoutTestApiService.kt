@@ -110,6 +110,50 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             modifiedAssetCollectionClazz = ExtTestModifiedLocationTrackCollectionResponseV1::class,
         )
 
+    fun locationTracksInDesign(designOid: Oid<*>) =
+        AssetApi<Oid<*>, ExtTestLocationTrackResponseV1, ExtTestModifiedLocationTrackResponseV1>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/${oid}" },
+            assetClazz = ExtTestLocationTrackResponseV1::class,
+            modifiedUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/${oid}/muutokset"
+            },
+            modifiedClazz = ExtTestModifiedLocationTrackResponseV1::class,
+        )
+
+    fun locationTrackGeometryInDesign(designOid: Oid<*>) =
+        AssetApi<Oid<*>, ExtTestLocationTrackGeometryResponseV1, ExtTestModifiedLocationTrackGeometryResponseV1>(
+            assetUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/${oid}/geometria"
+            },
+            assetClazz = ExtTestLocationTrackGeometryResponseV1::class,
+            modifiedUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/${oid}/geometria/muutokset"
+            },
+            modifiedClazz = ExtTestModifiedLocationTrackGeometryResponseV1::class,
+        )
+
+    fun locationTrackProfileInDesign(designOid: Oid<*>) =
+        AssetApi<Oid<*>, ExtTestLocationTrackProfileResponseV1, ExtTestModifiedLocationTrackProfileResponseV1>(
+            assetUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/${oid}/pystygeometria"
+            },
+            assetClazz = ExtTestLocationTrackProfileResponseV1::class,
+            modifiedUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/${oid}/pystygeometria/muutokset"
+            },
+            modifiedClazz = ExtTestModifiedLocationTrackProfileResponseV1::class,
+        )
+
+    fun locationTrackCollectionInDesign(designOid: Oid<*>) =
+        AssetCollectionApi(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet" },
+            assetCollectionClazz = ExtTestLocationTrackCollectionResponseV1::class,
+            modifiedAssetCollectionUrl = {
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/sijaintiraiteet/muutokset"
+            },
+            modifiedAssetCollectionClazz = ExtTestModifiedLocationTrackCollectionResponseV1::class,
+        )
+
     val trackBoundaryCollection =
         AssetCollectionApi(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/sijaintiraiteet/rajat" },

@@ -4,8 +4,6 @@ import LazyMap
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
@@ -36,6 +34,8 @@ import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -56,41 +56,54 @@ constructor(
     private val coordinateTransformationService: CoordinateTransformationService,
     private val geometryDao: GeometryDao,
     private val heightTriangleDao: HeightTriangleDao,
+    private val layoutDesignService: LayoutDesignService,
 ) {
     fun getExtLocationTrackProfile(
         oid: ExtOidV1<LocationTrack>,
+        designOid: ExtOidV1<LayoutDesign>?,
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
     ): ExtLocationTrackProfileResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publication = publicationService.getPublicationByUuidOrLatest(branch, layoutVersion?.value)
+        val id = idLookup(locationTrackDao, oid.value)
+        val oids = branchOids(locationTrackDao, branch, oid.value, id)
         val coordinateSystem = coordinateSystem(extCoordinateSystem)
-        return createProfileResponse(oid.value, publication, coordinateSystem)
+        return createProfileResponse(oids, id, publication, branch, coordinateSystem)
     }
 
     fun getExtLocationTrackProfileModifications(
         oid: ExtOidV1<LocationTrack>,
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
+        designOid: ExtOidV1<LayoutDesign>?,
         extCoordinateSystem: ExtSridV1?,
     ): ExtLocationTrackModifiedProfileResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publications =
+            publicationService.getPublicationsToCompare(
+                layoutVersionFrom.value,
+                layoutVersionTo?.value,
+                branch = branch,
+            )
         val id = idLookup(locationTrackDao, oid.value)
+        val oids = branchOids(locationTrackDao, branch, oid.value, id)
         val coordinateSystem = coordinateSystem(extCoordinateSystem)
         return if (publications.areDifferent()) {
-            createProfileModificationResponse(oid.value, id, publications, coordinateSystem)
+            createProfileModificationResponse(oids, id, publications, branch, coordinateSystem)
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
         }
     }
 
     private fun createProfileResponse(
-        oid: Oid<LocationTrack>,
+        oids: BranchOidsV1<LocationTrack>,
+        id: IntId<LocationTrack>,
         publication: Publication,
+        branch: LayoutBranch,
         coordinateSystem: Srid,
     ): ExtLocationTrackProfileResponseV1? {
-        val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val id = idLookup(locationTrackDao, oid)
         return locationTrackDao
             .fetchOfficialVersionAtMoment(branch, id, moment)
             ?.let(locationTrackDao::fetch)
@@ -108,7 +121,8 @@ constructor(
 
                 ExtLocationTrackProfileResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
-                    locationTrackOid = ExtOidV1(oid),
+                    locationTrackOid = ExtOidV1(oids.oid),
+                    officialLocationTrackOid = oids.officialOid?.let(::ExtOidV1),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackInterval = toProfileAddressRange(startAddress, endAddress, listings, coordinateSystem),
                 )
@@ -116,33 +130,37 @@ constructor(
     }
 
     private fun createProfileModificationResponse(
-        oid: Oid<LocationTrack>,
+        oids: BranchOidsV1<LocationTrack>,
         id: IntId<LocationTrack>,
         publications: PublicationComparison,
+        branch: LayoutBranch,
         coordinateSystem: Srid,
     ): ExtLocationTrackModifiedProfileResponseV1? {
-        val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime
         val endMoment = publications.to.publicationTime
-        return publicationDao
-            .fetchPublishedLocationTrackVersionsBetween(id, startMoment, endMoment)
-            ?.map(locationTrackDao::fetch)
-            ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
-            ?.let { (oldTrack, newTrack) ->
-                val oldListings =
-                    oldTrack
-                        ?.let { getVerticalGeometryListings(it, branch, startMoment) }
-                        ?.mapNotNull(::validateAndTransformToLayout) ?: emptyList()
-                val newListings =
-                    getVerticalGeometryListings(newTrack, branch, endMoment).mapNotNull(::validateAndTransformToLayout)
-                createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
-            }
-            ?.takeIf { it.isNotEmpty() }
+        val changeTime =
+            publicationDao.fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
+                ?: return null
+        val newTrack =
+            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
+        val oldTrack =
+            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
+
+        val oldListings =
+            oldTrack
+                ?.let { getVerticalGeometryListings(it, branch, startMoment) }
+                ?.mapNotNull(::validateAndTransformToLayout) ?: emptyList()
+        val newListings =
+            getVerticalGeometryListings(newTrack, branch, endMoment).mapNotNull(::validateAndTransformToLayout)
+        return createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
+            .takeIf { it.isNotEmpty() }
             ?.let { trackIntervals ->
                 ExtLocationTrackModifiedProfileResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     layoutVersionTo = ExtLayoutVersionV1(publications.to),
-                    locationTrackOid = ExtOidV1(oid),
+                    locationTrackOid = ExtOidV1(oids.oid),
+                    officialLocationTrackOid = oids.officialOid?.let(::ExtOidV1),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackIntervals = trackIntervals,
                 )

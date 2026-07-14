@@ -31,6 +31,7 @@ data class ExtTestMeasuredAddressPointV1(
 
 data class ExtTestLocationTrackV1(
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val sijaintiraidetunnus: String,
     val ratanumero: String,
     val ratanumero_oid: String,
@@ -51,6 +52,7 @@ data class ExtTestLocationTrackResponseV1(
 data class ExtTestLocationTrackGeometryResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevali: ExtTestGeometryIntervalV1?,
 )
@@ -59,6 +61,7 @@ data class ExtTestModifiedLocationTrackGeometryResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestModifiedGeometryIntervalV1>,
 )
@@ -326,6 +329,7 @@ data class ExtTestStationLinkCollectionResponseV1(
 data class ExtTestLocationTrackProfileResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevali: ExtTestProfileAddressRangeV1,
 )
@@ -373,6 +377,7 @@ data class ExtTestModifiedLocationTrackProfileResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestProfileAddressRangeV1>,
 )
