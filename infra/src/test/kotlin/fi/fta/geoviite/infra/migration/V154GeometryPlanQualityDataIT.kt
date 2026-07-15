@@ -48,6 +48,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
             expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
             expectedSource = "GEOMETRIAPALVELU",
         )
+        assertVersionResult(
+            planId,
+            expectedQuality = "PLAN",
+            expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
+            expectedSource = "GEOMETRIAPALVELU",
+        )
     }
 
     @Test
@@ -62,6 +68,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         runMigration()
 
         assertResult(
+            planId,
+            expectedQuality = "PLAN",
+            expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
+            expectedSource = "GEOVIITE",
+        )
+        assertVersionResult(
             planId,
             expectedQuality = "PLAN",
             expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
@@ -86,6 +98,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
             expectedMm = "TRACK_INSPECTION",
             expectedSource = "GEOVIITE",
         )
+        assertVersionResult(
+            planId,
+            expectedQuality = "UNRELIABLE_PLAN",
+            expectedMm = "TRACK_INSPECTION",
+            expectedSource = "GEOVIITE",
+        )
     }
 
     @Test
@@ -95,6 +113,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         runMigration()
 
         assertResult(
+            planId,
+            expectedQuality = "UNRELIABLE_PLAN",
+            expectedMm = "DIGITIZED_AERIAL_IMAGE",
+            expectedSource = "GEOVIITE",
+        )
+        assertVersionResult(
             planId,
             expectedQuality = "UNRELIABLE_PLAN",
             expectedMm = "DIGITIZED_AERIAL_IMAGE",
@@ -119,6 +143,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
             expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
             expectedSource = "PAIKANNUSPALVELU",
         )
+        assertVersionResult(
+            planId,
+            expectedQuality = "UNRELIABLE_PLAN",
+            expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
+            expectedSource = "PAIKANNUSPALVELU",
+        )
     }
 
     @Test
@@ -133,6 +163,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         runMigration()
 
         assertResult(
+            planId,
+            expectedQuality = "UNRELIABLE_PLAN",
+            expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
+            expectedSource = "GEOVIITE",
+        )
+        assertVersionResult(
             planId,
             expectedQuality = "UNRELIABLE_PLAN",
             expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
@@ -157,7 +193,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
             expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
             expectedSource = "GEOMETRIAPALVELU",
         )
-        assertVersionMm(planId, "OFFICIALLY_MEASURED_GEODETICALLY")
+        assertVersionResult(
+            planId,
+            expectedQuality = "PLAN",
+            expectedMm = "OFFICIALLY_MEASURED_GEODETICALLY",
+            expectedSource = "GEOMETRIAPALVELU",
+        )
     }
 
     @Test
@@ -177,7 +218,12 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
             expectedMm = "DIGITIZED_AERIAL_IMAGE",
             expectedSource = "PAIKANNUSPALVELU",
         )
-        assertVersionMm(planId, "DIGITIZED_AERIAL_IMAGE")
+        assertVersionResult(
+            planId,
+            expectedQuality = "UNRELIABLE_PLAN",
+            expectedMm = "DIGITIZED_AERIAL_IMAGE",
+            expectedSource = "PAIKANNUSPALVELU",
+        )
     }
 
     @Test
@@ -227,11 +273,13 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
     private fun runMigration() {
         val sql =
             javaClass.classLoader.getResource("db/migration/prod/V154__geometry_plan_quality_data.sql")!!.readText()
-        val updates =
-            sql.split(";")
+        val dataMigrationSql = sql.substringAfter("-- DATA MIGRATION")
+        val statements =
+            dataMigrationSql
+                .split(";")
                 .map { chunk -> chunk.lines().filterNot { it.trim().startsWith("--") }.joinToString("\n").trim() }
-                .filter { it.lowercase().startsWith("update") }
-        transactional { updates.forEach { jdbc.jdbcTemplate.update(it) } }
+                .filter { it.isNotEmpty() }
+        transactional { statements.forEach { jdbc.jdbcTemplate.update(it) } }
     }
 
     private fun assertResult(
@@ -254,15 +302,24 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         assertEquals(expectedSource, row.third)
     }
 
-    private fun assertVersionMm(planId: IntId<GeometryPlan>, expectedMm: String) {
+    private fun assertVersionResult(
+        planId: IntId<GeometryPlan>,
+        expectedQuality: String,
+        expectedMm: String,
+        expectedSource: String,
+    ) {
         val rows =
             jdbc.query(
-                "select measurement_method::text from geometry.plan_version where id = :id",
+                "select quality::text, measurement_method::text, source::text from geometry.plan_version where id = :id",
                 mapOf("id" to planId.intValue),
             ) { rs, _ ->
-                rs.getString(1)
+                Triple(rs.getString(1), rs.getString(2), rs.getString(3))
             }
-        rows.forEach { mm -> assertEquals(expectedMm, mm) }
+        rows.forEach { (quality, mm, source) ->
+            assertEquals(expectedQuality, quality)
+            assertEquals(expectedMm, mm)
+            assertEquals(expectedSource, source)
+        }
     }
 
     private fun fetchQuality(planId: IntId<GeometryPlan>): String? =
