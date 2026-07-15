@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.util.processNonNulls
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -206,6 +207,11 @@ constructor(private val publicationService: PublicationService, private val layo
             .let(::toResponse)
     }
 
+    private fun publicationVersions(publications: List<Publication>): List<ExtTrackLayoutVersionV1> {
+        val designs = processNonNulls(publications.map { it.layoutBranch.branch.designId }, layoutDesignDao::fetchMany)
+        return publications.zip(designs) { publication, design -> ExtTrackLayoutVersionV1.of(publication, design) }
+    }
+
     private fun publicationVersion(publication: Publication): ExtTrackLayoutVersionV1 =
-        ExtTrackLayoutVersionV1.of(publication, publication.layoutBranch.branch.designId?.let(layoutDesignDao::fetch))
+        publicationVersions(listOf(publication)).first()
 }
