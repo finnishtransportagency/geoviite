@@ -64,6 +64,17 @@ export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE
 export type PlanQuality = 'PLAN' | 'UNRELIABLE_PLAN';
 
 export type PlanApplicability = 'PLANNING' | 'MAINTENANCE' | 'STATISTICS';
+
+export const computePlanApplicability = (
+    quality: PlanQuality | undefined,
+    decisionPhase: PlanDecisionPhase | undefined,
+): PlanApplicability => {
+    if (quality === undefined || quality === 'UNRELIABLE_PLAN') return 'STATISTICS';
+    if (decisionPhase === undefined || decisionPhase === 'OUTDATED') return 'STATISTICS';
+    if (decisionPhase === 'IN_USE') return 'MAINTENANCE';
+    return 'PLANNING';
+};
+
 export const highestApplicability = (
     applicabilities: PlanApplicability[],
 ): PlanApplicability | undefined => {
@@ -127,6 +138,7 @@ export type GeometryPlan = {
     decisionPhase?: PlanDecisionPhase;
     measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
+    quality?: PlanQuality;
     message?: string;
     name: string;
     isHidden: boolean;

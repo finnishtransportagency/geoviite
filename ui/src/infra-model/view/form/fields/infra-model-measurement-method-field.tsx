@@ -12,6 +12,7 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelExtraParameter
     setFieldInEdit,
     extraInframodelParameters,
     changeInExtraParametersField,
+    errors,
 }: InfraModelExtraParameterFieldProps) => {
     const { t } = useTranslation();
 
@@ -21,7 +22,8 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelExtraParameter
             qaId="measurement-method-im-field"
             inEditMode={fieldInEdit === 'measurementMethod'}
             onEdit={() => setFieldInEdit('measurementMethod')}
-            onClose={() => setFieldInEdit(undefined)}>
+            onClose={() => setFieldInEdit(undefined)}
+            errors={errors}>
             {fieldInEdit !== 'measurementMethod' ? (
                 extraInframodelParameters.measurementMethod ? (
                     <MeasurementMethod method={extraInframodelParameters.measurementMethod} />
@@ -33,11 +35,8 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelExtraParameter
                     value={
                         <Dropdown
                             wide
-                            placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.measurementMethod}
                             options={measurementMethods}
-                            unselectText={t('im-form.information-missing')}
-                            canUnselect
                             onChange={(measurementMethod) =>
                                 changeInExtraParametersField(measurementMethod, 'measurementMethod')
                             }

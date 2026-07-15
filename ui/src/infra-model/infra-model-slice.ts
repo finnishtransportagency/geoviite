@@ -15,6 +15,7 @@ import {
     PlanApplicability,
     PlanDecisionPhase,
     PlanPhase,
+    PlanQuality,
     PlanSource,
     ProjectId,
 } from 'geometry/geometry-model';
@@ -64,6 +65,7 @@ export type ExtraInfraModelParameters = {
     decisionPhase?: PlanDecisionPhase;
     measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
+    quality?: PlanQuality;
     message?: Message;
     name?: string;
     planApplicability?: PlanApplicability;
@@ -120,6 +122,7 @@ export const initialInfraModelState: InfraModelState = {
         decisionPhase: undefined,
         measurementMethod: undefined,
         elevationMeasurementMethod: undefined,
+        quality: undefined,
         message: undefined,
     },
     overrideInfraModelParameters: {
@@ -234,6 +237,7 @@ const infraModelSlice = createSlice({
                 decisionPhase: plan?.decisionPhase ?? undefined,
                 measurementMethod: plan?.measurementMethod ?? undefined,
                 elevationMeasurementMethod: plan?.elevationMeasurementMethod ?? undefined,
+                quality: plan?.quality ?? undefined,
                 message: plan?.message ?? undefined,
                 name: plan?.name ?? undefined,
                 planApplicability: plan?.planApplicability ?? undefined,
@@ -296,8 +300,8 @@ function validateParams(
         issues.push(
             createValidationIssue(
                 'measurementMethod',
-                'critical',
-                FieldValidationIssueType.WARNING,
+                'measurement-method-is-mandatory-field',
+                FieldValidationIssueType.ERROR,
             ),
         );
     extraParams.elevationMeasurementMethod === undefined &&
@@ -310,7 +314,19 @@ function validateParams(
         );
     extraParams.decisionPhase === undefined &&
         issues.push(
-            createValidationIssue('decisionPhase', 'critical', FieldValidationIssueType.WARNING),
+            createValidationIssue(
+                'decisionPhase',
+                'decision-phase-is-mandatory-field',
+                FieldValidationIssueType.ERROR,
+            ),
+        );
+    extraParams.quality === undefined &&
+        issues.push(
+            createValidationIssue(
+                'quality',
+                'quality-is-mandatory-field',
+                FieldValidationIssueType.ERROR,
+            ),
         );
 
     isNilOrBlank(extraParams.name) &&
