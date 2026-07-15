@@ -38,10 +38,7 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/{id}")
-    fun updateLayoutDesign(
-        @PathVariable id: IntId<LayoutDesign>,
-        @RequestBody request: LayoutDesignSaveRequest,
-    ): IntId<LayoutDesign> {
-        return layoutDesignService.update(id, request)
+    fun updateLayoutDesign(@PathVariable id: IntId<LayoutDesign>, @RequestBody request: LayoutDesignSaveRequest) {
+        layoutDesignService.update(id, request)
     }
 }

@@ -2,13 +2,29 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublishedInDesign
+import fi.fta.geoviite.infra.publication.publicationRequest
+import fi.fta.geoviite.infra.tracklayout.DesignState
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -22,7 +38,16 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
+class ExtTrackLayoutVersionIT
+@Autowired
+constructor(
+    mockMvc: MockMvc,
+    private val publicationService: PublicationService,
+    private val publicationDao: PublicationDao,
+    private val layoutDesignDao: LayoutDesignDao,
+    private val layoutDesignService: LayoutDesignService,
+) : DBTestBase() {
+
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -129,7 +154,7 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
     }
 
     @Test
-    fun `Design publications should not be returned`() {
+    fun `Design publications should not be returned by default`() {
         val (tnId, _) =
             mainDraftContext.saveWithOid(
                 trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
@@ -153,6 +178,216 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
         assertEquals(publication1.uuid.toString(), api.trackLayoutVersionLatest.get().rataverkon_versio)
     }
 
+    @Test
+    fun `modified design collection with designs included include all design changes`() {
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0000+0000.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch1 = testDBService.createDesignBranch()
+        val designCtx1 = testDBService.testContext(designBranch1, PublicationState.DRAFT)
+        designCtx1.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0001.000")) }
+        val design1StartPublication = testDBService.publish(designBranch1, trackNumbers = listOf(tnId))
+
+        val designBranch2 = testDBService.createDesignBranch()
+        val designCtx2 = testDBService.testContext(designBranch2, PublicationState.DRAFT)
+        designCtx2.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0002+0001.000")) }
+        val design2StartPublication = testDBService.publish(designBranch2, trackNumbers = listOf(tnId))
+
+        api.trackLayoutVersionCollection.getModifiedSince(mainPublication.uuid, INCLUDE_DESIGNS to "true").let { result
+            ->
+            assertEquals(mainPublication.uuid.toString(), result.alkuversio)
+            assertEquals(design2StartPublication.uuid.toString(), result.loppuversio)
+            assertMatches(listOf(design1StartPublication, design2StartPublication), result.rataverkon_versiot)
+        }
+
+        initUser()
+        val design1ChangePublicationId =
+            layoutDesignService.update(
+                designBranch1.designId,
+                LayoutDesignSaveRequest(
+                    name = LayoutDesignName("diipa daapa"),
+                    estimatedCompletion = LocalDate.parse("2022-02-02"),
+                    designState = DesignState.ACTIVE,
+                ),
+            )!!
+        val design1ChangePublication = publicationDao.getPublication(design1ChangePublicationId)
+        api.trackLayoutVersionCollection.getModifiedSince(mainPublication.uuid, INCLUDE_DESIGNS to "true").let { result
+            ->
+            assertEquals(mainPublication.uuid.toString(), result.alkuversio)
+            assertEquals(design1ChangePublication.uuid.toString(), result.loppuversio)
+            assertMatches(
+                listOf(design1StartPublication, design2StartPublication, design1ChangePublication),
+                result.rataverkon_versiot,
+            )
+        }
+    }
+
+    @Test
+    fun `Design publications should be returned as layout versions when designs are included`() {
+        initUser()
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication1 = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val designPublication1 = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        initUser()
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0003.000")) }
+        val mainPublication2 = testDBService.publish(trackNumbers = listOf(tnId))
+
+        // A design publication is a layout version, but only visible when designs are included
+        api.trackLayoutVersion.getWithExpectedError(
+            designPublication1.uuid.toString(),
+            httpStatus = HttpStatus.NOT_FOUND,
+        )
+        api.trackLayoutVersion.get(designPublication1.uuid, INCLUDE_DESIGNS to "true").let { result ->
+            assertMatches(designPublication1, result)
+            assertEquals(designOid.toString(), result.suunnitelma_oid?.toString())
+        }
+        assertMatches(mainPublication1, api.trackLayoutVersion.get(mainPublication1.uuid, INCLUDE_DESIGNS to "true"))
+
+        // All publications form an ordered layout version listing, design versions carrying their design oid
+        api.trackLayoutVersionCollection.get().let { result ->
+            assertMatches(listOf(mainPublication1, mainPublication2), result.rataverkon_versiot)
+        }
+        api.trackLayoutVersionCollection.get(INCLUDE_DESIGNS to "true").let { result ->
+            assertEquals(mainPublication1.uuid.toString(), result.alkuversio)
+            assertEquals(mainPublication2.uuid.toString(), result.loppuversio)
+            assertMatches(listOf(mainPublication1, designPublication1, mainPublication2), result.rataverkon_versiot)
+        }
+
+        // The latest layout version follows design inclusion
+        assertMatches(mainPublication2, api.trackLayoutVersionLatest.get())
+        assertMatches(mainPublication2, api.trackLayoutVersionLatest.get(INCLUDE_DESIGNS to "true"))
+
+        initUser()
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0004.000")) }
+        val designPublication2 = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        assertMatches(mainPublication2, api.trackLayoutVersionLatest.get())
+        assertMatches(designPublication2, api.trackLayoutVersionLatest.get(INCLUDE_DESIGNS to "true"))
+    }
+
+    @Test
+    fun `Design publication layout versions can be used as modification comparison bounds`() {
+        initUser()
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication1 = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val designPublication1 = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        initUser()
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0003.000")) }
+        val mainPublication2 = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0004.000")) }
+        val designPublication2 = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        initUser()
+        mainDraftContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0005.000")) }
+        val mainPublication3 = testDBService.publish(trackNumbers = listOf(tnId))
+
+        // A design layout version as the start bound returns the main versions published after it
+        api.trackLayoutVersionCollection.getModifiedSince(designPublication1.uuid).let { result ->
+            assertEquals(designPublication1.uuid.toString(), result.alkuversio)
+            assertEquals(mainPublication3.uuid.toString(), result.loppuversio)
+            assertMatches(listOf(mainPublication2, mainPublication3), result.rataverkon_versiot)
+        }
+        api.trackLayoutVersionCollection.getModifiedBetween(designPublication1.uuid, mainPublication2.uuid).let { result
+            ->
+            assertEquals(designPublication1.uuid.toString(), result.alkuversio)
+            assertEquals(mainPublication2.uuid.toString(), result.loppuversio)
+            assertMatches(listOf(mainPublication2), result.rataverkon_versiot)
+        }
+
+        // Design layout versions as bounds only delimit the listing: the listed versions are main versions
+        api.trackLayoutVersionCollection.getModifiedBetween(designPublication1.uuid, designPublication2.uuid).let {
+            result ->
+            assertEquals(designPublication1.uuid.toString(), result.alkuversio)
+            assertEquals(designPublication2.uuid.toString(), result.loppuversio)
+            assertMatches(listOf(mainPublication2), result.rataverkon_versiot)
+        }
+        api.trackLayoutVersionCollection.getModifiedBetween(mainPublication1.uuid, designPublication2.uuid).let { result
+            ->
+            assertMatches(listOf(mainPublication2), result.rataverkon_versiot)
+        }
+
+        // No main versions between a main version and the design version right after it
+        api.trackLayoutVersionCollection.assertNoModificationBetween(mainPublication1.uuid, designPublication1.uuid)
+    }
+
+    @Test
+    fun `Main publication with address changes should create an automatic design publication`() {
+        initUser()
+        val tnId =
+            mainOfficialContext
+                .save(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                )
+                .id
+        testDBService.generateOid(tnId, LayoutBranch.main)
+        val kmPostId =
+            mainOfficialContext.save(kmPost(tnId, gkLocation = kmPostGkLocation(Point(5.0, 0.0)), km = KmNumber(1))).id
+
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designDraftContext.copyFrom(mainOfficialContext.fetchVersion(tnId)!!)
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+        testDBService.generateOid(tnId, designBranch)
+
+        initUser()
+        mainDraftContext.mutate(kmPostId) { post -> post.copy(kmNumber = KmNumber(2)) }
+        val mainPublicationId =
+            requireNotNull(
+                publicationService
+                    .publishManualPublication(LayoutBranch.main, publicationRequest(kmPosts = listOf(kmPostId)))
+                    .publicationId
+            )
+        val mainPublication = publicationDao.getPublication(mainPublicationId)
+
+        // The main publication inherited an address change into the design, automatically creating a publication
+        val inheritedPublication = publicationDao.list(LayoutBranchType.DESIGN).first()
+        assertEquals(PublicationCause.CALCULATED_CHANGE, inheritedPublication.cause)
+        assertEquals(mainPublicationId, (inheritedPublication.layoutBranch as PublishedInDesign).parentPublicationId)
+
+        // The automatic design publication is a layout version like any other
+        api.trackLayoutVersionCollection.get().let { result ->
+            assertMatches(listOf(mainPublication), result.rataverkon_versiot)
+        }
+        api.trackLayoutVersionCollection.get(INCLUDE_DESIGNS to "true").let { result ->
+            assertMatches(listOf(designPublication, mainPublication, inheritedPublication), result.rataverkon_versiot)
+        }
+        assertMatches(mainPublication, api.trackLayoutVersionLatest.get())
+        assertMatches(inheritedPublication, api.trackLayoutVersionLatest.get(INCLUDE_DESIGNS to "true"))
+        assertMatches(
+            inheritedPublication,
+            api.trackLayoutVersion.get(inheritedPublication.uuid, INCLUDE_DESIGNS to "true"),
+        )
+    }
+
     private fun assertMatches(publications: List<Publication>, results: List<ExtTestTrackLayoutVersionV1>) {
         assertEquals(publications.map { p -> p.uuid.toString() }, results.map { r -> r.rataverkon_versio })
         publications.zip(results).forEach { (pub, res) -> assertMatches(pub, res) }
@@ -162,5 +397,7 @@ class ExtTrackLayoutVersionIT @Autowired constructor(mockMvc: MockMvc) : DBTestB
         assertEquals(publication.uuid.toString(), result.rataverkon_versio)
         assertEquals(publication.publicationTime.toString(), result.aikaleima)
         assertEquals(publication.message.toString(), result.kuvaus)
+        val designOid = publication.layoutBranch.branch.designId?.let { id -> layoutDesignDao.fetch(id).externalId }
+        assertEquals(designOid?.toString(), result.suunnitelma_oid?.toString())
     }
 }

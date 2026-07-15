@@ -44,8 +44,11 @@ class ExtInvalidAddressPointFilterOrderV1(
 inline fun <reified T : LayoutAsset<T>> throwOidNotFound(branch: LayoutBranch, id: DomainId<T>): Nothing =
     error("${T::class.simpleName} OID not found: branch=$branch id=$id")
 
-inline fun <reified T : LayoutAsset<T>> throwOidTargetNotFound(oid: Oid<T>): Nothing =
+inline fun <reified T> throwOidTargetNotFound(oid: Oid<T>): Nothing =
     throw ExtOidNotFoundExceptionV1("${T::class.simpleName} OID lookup failed: oid=$oid")
+
+inline fun <reified T : LayoutAsset<T>> throwOidNotFoundInBranch(oid: Oid<T>, branch: LayoutBranch): Nothing =
+    throw ExtOidNotFoundExceptionV1("${T::class.simpleName} has no OID in branch: oid=$oid branch=$branch")
 
 fun throwTrackNumberNotFound(branch: LayoutBranch, moment: Instant, id: DomainId<LayoutTrackNumber>): Nothing =
     error("${LayoutTrackNumber::class.simpleName} was not found: branch=$branch moment=$moment id=$id")

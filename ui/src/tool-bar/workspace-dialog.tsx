@@ -122,6 +122,12 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
             <FormLayout>
                 <FormLayoutColumn>
                     <Heading size={HeadingSize.SUB}>{t('workspace-dialog.basic-info')}</Heading>
+                    {existingDesign && (
+                        <FieldLayout
+                            label={t('workspace-dialog.oid')}
+                            value={existingDesign.externalId}
+                        />
+                    )}
                     <FieldLayout
                         label={`${t('workspace-dialog.name')} *`}
                         value={

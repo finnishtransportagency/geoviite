@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.DuplicateDesignNameException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
@@ -14,7 +15,9 @@ import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLocalDate
+import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.processDistinct
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
@@ -31,21 +34,28 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(readOnly = true)
 class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetch(id: IntId<LayoutDesign>): LayoutDesign {
+    fun fetchMany(ids: List<IntId<LayoutDesign>>): List<LayoutDesign> = processDistinct(ids, ::fetchManyInternal)
+
+    private fun fetchManyInternal(ids: List<IntId<LayoutDesign>>): List<LayoutDesign> {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state, external_id
             from layout.design
-            where id = :id
+              join unnest(:ids) with ordinality as ids(id, ordinality) using (id)
+            order by ordinality
             """
                 .trimIndent()
-        return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), mapper = { rs, _ -> getLayoutDesign(rs) })
+        return jdbcTemplate.query(sql, mapOf("ids" to ids.map { it.intValue }.toTypedArray())) { rs, _ ->
+            getLayoutDesign(rs)
+        }
     }
+
+    fun fetch(id: IntId<LayoutDesign>) = fetchMany(listOf(id)).first()
 
     fun fetchVersion(rowVersion: RowVersion<LayoutDesign>): LayoutDesign {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state, external_id
             from layout.design_version
             where id = :id and version = :version
             """
@@ -57,10 +67,21 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         )
     }
 
+    fun fetchByExternalId(oid: Oid<LayoutDesign>): LayoutDesign? {
+        val sql =
+            """
+            select id, name, estimated_completion, design_state, external_id
+            from layout.design
+            where external_id = :external_id
+            """
+                .trimIndent()
+        return jdbcTemplate.queryOptional(sql, mapOf("external_id" to oid.toString())) { rs, _ -> getLayoutDesign(rs) }
+    }
+
     fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
         val sql =
             """
-            select id, name, estimated_completion, design_state
+            select id, name, estimated_completion, design_state, external_id
             from layout.design
             where design_state = 'ACTIVE'::layout.design_state 
               or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
@@ -130,8 +151,8 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         jdbcTemplate.setUser()
         val sql =
             """
-            insert into layout.design (name, estimated_completion, design_state)
-            values (:name, :estimated_completion, :design_state::layout.design_state)
+            insert into layout.design (name, estimated_completion, design_state, external_id)
+            values (:name, :estimated_completion, :design_state::layout.design_state, common.generate_oid('DESIGN'))
             returning id, version
             """
                 .trimIndent()
@@ -195,4 +216,5 @@ private fun getLayoutDesign(rs: ResultSet) =
         LayoutDesignName(rs.getString("name")),
         rs.getLocalDate("estimated_completion"),
         rs.getEnum("design_state"),
+        rs.getOid("external_id"),
     )
