@@ -5,17 +5,22 @@ import * as React from 'react';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 
 export const PreviewContainer: React.FC = () => {
-    const trackLayoutState = useTrackLayoutAppSelector((state) => state);
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
+    const stagedPublicationCandidateReferences = useTrackLayoutAppSelector(
+        (state) => state.previewState.stagedPublicationCandidateReferences,
+    );
+    const showOnlyOwnUnstagedChanges = useTrackLayoutAppSelector(
+        (state) => state.previewState.showOnlyOwnUnstagedChanges,
+    );
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     const props: PreviewProps = {
-        layoutContext: trackLayoutState.layoutContext,
+        layoutContext,
         changeTimes: changeTimes,
-        stagedPublicationCandidateReferences:
-            trackLayoutState.previewState.stagedPublicationCandidateReferences,
+        stagedPublicationCandidateReferences,
         setStagedPublicationCandidateReferences: delegates.setStagedPublicationCandidateReferences,
-        showOnlyOwnUnstagedChanges: trackLayoutState.previewState.showOnlyOwnUnstagedChanges,
+        showOnlyOwnUnstagedChanges,
         setShowOnlyOwnUnstagedChanges: delegates.setShowOnlyOwnUnstagedChanges,
         onSelect: delegates.onSelect,
         onClosePreview: () => delegates.onLayoutModeChange('DEFAULT'),
