@@ -3,7 +3,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -16,6 +15,8 @@ import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -35,25 +36,30 @@ constructor(
     private val geometryService: GeometryService,
     private val coordinateTransformationService: CoordinateTransformationService,
     private val switchDao: LayoutSwitchDao,
+    private val layoutDesignService: LayoutDesignService,
 ) {
     fun getExtLocationTrackElementListing(
         oid: ExtOidV1<LocationTrack>,
+        designOid: ExtOidV1<LayoutDesign>?,
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
     ): ExtLocationTrackElementListingResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publication = publicationService.getPublicationByUuidOrLatest(branch, layoutVersion?.value)
+        val id = idLookup(locationTrackDao, oid.value)
+        val oids = branchOids(locationTrackDao, branch, oid.value, id)
         val coordinateSystem = coordinateSystem(extCoordinateSystem)
-        return createElementListingResponse(oid, publication, coordinateSystem)
+        return createElementListingResponse(oids, id, publication, branch, coordinateSystem)
     }
 
     private fun createElementListingResponse(
-        oid: ExtOidV1<LocationTrack>,
+        oids: BranchOidsV1<LocationTrack>,
+        id: IntId<LocationTrack>,
         publication: Publication,
+        branch: LayoutBranch,
         coordinateSystem: Srid,
     ): ExtLocationTrackElementListingResponseV1? {
-        val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val id = idLookup(locationTrackDao, oid.value)
         return locationTrackDao
             .fetchOfficialVersionAtMoment(branch, id, moment)
             ?.let(locationTrackDao::fetch)
@@ -62,7 +68,8 @@ constructor(
                 val listings = getElementListings(track, branch, moment)
                 ExtLocationTrackElementListingResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
-                    locationTrackOid = oid,
+                    locationTrackOid = ExtOidV1(oids.oid),
+                    officialLocationTrackOid = oids.officialOid?.let(::ExtOidV1),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackIntervals = toElementAddressIntervals(listings, coordinateSystem),
                 )
@@ -74,14 +81,21 @@ constructor(
         oid: ExtOidV1<LocationTrack>,
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
+        designOid: ExtOidV1<LayoutDesign>?,
         extCoordinateSystem: ExtSridV1?,
     ): ExtLocationTrackElementListingModificationsResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
-        if (!publications.areDifferent()) return publicationsAreTheSame(layoutVersionFrom.value)
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publications =
+            publicationService.getPublicationsToCompare(
+                layoutVersionFrom.value,
+                layoutVersionTo?.value,
+                branch = branch,
+            )
+        // Lookup before change check to produce consistent error if oid is not found
         val id = idLookup(locationTrackDao, oid.value)
+        val oids = branchOids(locationTrackDao, branch, oid.value, id)
+        if (!publications.areDifferent()) return publicationsAreTheSame(layoutVersionFrom.value)
         val coordinateSystem = coordinateSystem(extCoordinateSystem)
-        // Main-only route: the layout version bounds only resolve moments in time, the view is always main
-        val branch = LayoutBranch.main
         val startMoment = publications.from.publicationTime
         val endMoment = publications.to.publicationTime
         val changeTime =
@@ -106,7 +120,8 @@ constructor(
         return ExtLocationTrackElementListingModificationsResponseV1(
             layoutVersionFrom = ExtLayoutVersionV1(publications.from),
             layoutVersionTo = ExtLayoutVersionV1(publications.to),
-            locationTrackOid = oid,
+            locationTrackOid = ExtOidV1(oids.oid),
+            officialLocationTrackOid = oids.officialOid?.let(::ExtOidV1),
             coordinateSystem = ExtSridV1(coordinateSystem),
             trackIntervals = changedIntervals,
         )
