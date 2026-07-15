@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLocalDate
 import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.processDistinct
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
@@ -33,16 +34,23 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(readOnly = true)
 class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetch(id: IntId<LayoutDesign>): LayoutDesign {
+    fun fetchMany(ids: List<IntId<LayoutDesign>>): List<LayoutDesign> = processDistinct(ids, ::fetchManyInternal)
+
+    private fun fetchManyInternal(ids: List<IntId<LayoutDesign>>): List<LayoutDesign> {
         val sql =
             """
             select id, name, estimated_completion, design_state, external_id
             from layout.design
-            where id = :id
+              join unnest(:ids) with ordinality as ids(id, ordinality) using (id)
+            order by ordinality
             """
                 .trimIndent()
-        return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), mapper = { rs, _ -> getLayoutDesign(rs) })
+        return jdbcTemplate.query(sql, mapOf("ids" to ids.map { it.intValue }.toTypedArray())) { rs, _ ->
+            getLayoutDesign(rs)
+        }
     }
+
+    fun fetch(id: IntId<LayoutDesign>) = fetchMany(listOf(id)).first()
 
     fun fetchVersion(rowVersion: RowVersion<LayoutDesign>): LayoutDesign {
         val sql =

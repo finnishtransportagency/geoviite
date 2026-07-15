@@ -1,9 +1,29 @@
 package fi.fta.geoviite.infra.util
 
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import org.junit.jupiter.api.Test
 
 class ListTest {
+
+    @Test
+    fun `processDistinct broadcasts results back to every original position`() {
+        val processed = mutableListOf<List<String>>()
+        val result =
+            processDistinct(listOf("a", "b", "a", "c", "b", "a")) { distinct ->
+                processed.add(distinct)
+                distinct.map { it.uppercase() }
+            }
+        assertEquals(listOf(listOf("a", "b", "c")), processed)
+        assertEquals(listOf("A", "B", "A", "C", "B", "A"), result)
+    }
+
+    @Test
+    fun `processDistinct throws when process returns the wrong number of results`() {
+        assertFailsWith<IllegalArgumentException> {
+            processDistinct(listOf("a", "b", "a")) { distinct -> distinct.drop(1) }
+        }
+    }
 
     @Test
     fun `rangesOfConsecutiveIndicesOf returns proper ranges`() {
