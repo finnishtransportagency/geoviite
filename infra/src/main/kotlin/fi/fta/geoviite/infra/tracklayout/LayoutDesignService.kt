@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationInDesign
 import fi.fta.geoviite.infra.publication.PublicationMessage
@@ -38,8 +39,9 @@ class LayoutDesignService(
 
     fun getByOid(oid: Oid<LayoutDesign>): LayoutDesign? = dao.fetchByExternalId(oid)
 
+    /** @return The publication ID reporting this design change, if one was made */
     @Transactional
-    fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> {
+    fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<Publication>? {
         try {
             dao.update(id, request)
         } catch (e: DataIntegrityViolationException) {
@@ -52,13 +54,16 @@ class LayoutDesignService(
         }
         if (dao.designHasPublications(id)) {
             if (request.designState == DesignState.DELETED) {
-                makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_DELETE)
+                val publicationId =
+                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_DELETE).publicationId
                 cancelUnpublishedObjectsInDesign(designBranch)
+                return publicationId
             } else {
-                makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_CHANGE)
+                return makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_CHANGE).publicationId
             }
+        } else {
+            return null
         }
-        return id
     }
 
     @Transactional

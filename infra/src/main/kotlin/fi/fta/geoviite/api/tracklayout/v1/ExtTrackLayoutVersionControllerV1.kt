@@ -182,7 +182,11 @@ constructor(private val publicationService: PublicationService, private val layo
         includeDesigns: Boolean = false,
     ): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
         return publicationService
-            .getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
+            .getPublicationsToCompare(
+                layoutVersionFrom.value,
+                layoutVersionTo?.value,
+                branchType = if (includeDesigns) null else LayoutBranchType.MAIN,
+            )
             .takeIf { versions -> versions.areDifferent() }
             ?.let { versions ->
                 publicationService

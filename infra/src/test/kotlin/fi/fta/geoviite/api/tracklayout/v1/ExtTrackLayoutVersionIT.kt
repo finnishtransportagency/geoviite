@@ -14,12 +14,17 @@ import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.publicationRequest
+import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -40,7 +45,9 @@ constructor(
     private val publicationService: PublicationService,
     private val publicationDao: PublicationDao,
     private val layoutDesignDao: LayoutDesignDao,
+    private val layoutDesignService: LayoutDesignService,
 ) : DBTestBase() {
+
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -147,7 +154,7 @@ constructor(
     }
 
     @Test
-    fun `Design publications should not be returned`() {
+    fun `Design publications should not be returned by default`() {
         val (tnId, _) =
             mainDraftContext.saveWithOid(
                 trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
@@ -169,6 +176,55 @@ constructor(
             httpStatus = HttpStatus.NOT_FOUND,
         )
         assertEquals(publication1.uuid.toString(), api.trackLayoutVersionLatest.get().rataverkon_versio)
+    }
+
+    @Test
+    fun `modified design collection with designs included include all design changes`() {
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0000+0000.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch1 = testDBService.createDesignBranch()
+        val designCtx1 = testDBService.testContext(designBranch1, PublicationState.DRAFT)
+        designCtx1.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0001.000")) }
+        val design1StartPublication = testDBService.publish(designBranch1, trackNumbers = listOf(tnId))
+
+        val designBranch2 = testDBService.createDesignBranch()
+        val designCtx2 = testDBService.testContext(designBranch2, PublicationState.DRAFT)
+        designCtx2.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0002+0001.000")) }
+        val design2StartPublication = testDBService.publish(designBranch2, trackNumbers = listOf(tnId))
+
+        api.trackLayoutVersionCollection.getModifiedSince(mainPublication.uuid, INCLUDE_DESIGNS to "true").let { result
+            ->
+            assertEquals(mainPublication.uuid.toString(), result.alkuversio)
+            assertEquals(design2StartPublication.uuid.toString(), result.loppuversio)
+            assertMatches(listOf(design1StartPublication, design2StartPublication), result.rataverkon_versiot)
+        }
+
+        initUser()
+        val design1ChangePublicationId =
+            layoutDesignService.update(
+                designBranch1.designId,
+                LayoutDesignSaveRequest(
+                    name = LayoutDesignName("diipa daapa"),
+                    estimatedCompletion = LocalDate.parse("2022-02-02"),
+                    designState = DesignState.ACTIVE,
+                ),
+            )!!
+        val design1ChangePublication = publicationDao.getPublication(design1ChangePublicationId)
+        api.trackLayoutVersionCollection.getModifiedSince(mainPublication.uuid, INCLUDE_DESIGNS to "true").let { result
+            ->
+            assertEquals(mainPublication.uuid.toString(), result.alkuversio)
+            assertEquals(design1ChangePublication.uuid.toString(), result.loppuversio)
+            assertMatches(
+                listOf(design1StartPublication, design2StartPublication, design1ChangePublication),
+                result.rataverkon_versiot,
+            )
+        }
     }
 
     @Test
