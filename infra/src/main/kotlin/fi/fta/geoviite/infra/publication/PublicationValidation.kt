@@ -1149,7 +1149,7 @@ fun validateEdges(
         .flatMap { edge -> getEdgePartialSwitchIds(edge) }
         .distinct()
         .map { partial ->
-            validationWarning("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
+            validationError("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
         }
 
 fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
