@@ -17,9 +17,9 @@ const ApplicabilityIcon: React.FC<ApplicabilityIconProps> = ({ applicability, di
     switch (applicability) {
         case 'STATISTICS':
             return <Icons.BarsI size={IconSize.SMALL} color={iconColor} />;
-        case 'MAINTENANCE':
-            return <Icons.BarsII size={IconSize.SMALL} color={iconColor} />;
         case 'PLANNING':
+            return <Icons.BarsII size={IconSize.SMALL} color={iconColor} />;
+        case 'MAINTENANCE':
             return <Icons.BarsIII size={IconSize.SMALL} color={iconColor} />;
         case undefined:
             return <React.Fragment>?</React.Fragment>;
