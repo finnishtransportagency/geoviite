@@ -33,6 +33,7 @@ import { LocationTrackOperationalPointLinksInfobox } from 'tool-panel/location-t
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
 import { LocationTrackBoundaryMoveInfoboxContainer } from 'tool-panel/location-track/location-track-track-boundary-move-infobox';
+import { LocationTrackGeometryExtensionInfoboxContainer } from 'tool-panel/location-track/location-track-geometry-extension-infobox';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -150,6 +151,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     layoutContext={layoutContext}
                 />
             )}
+            {linkingState?.type === LinkingType.ExtendingAlignment && (
+                <LocationTrackGeometryExtensionInfoboxContainer
+                    locationTrack={locationTrack}
+                    linkingState={linkingState}
+                    layoutContext={layoutContext}
+                />
+            )}
             <LocationTrackLocationInfoboxContainer
                 locationTrack={locationTrack}
                 trackNumber={trackNumber}
@@ -224,7 +232,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     setShowRatkoPushDialog={setShowRatkoPushDialog}
                 />
             )}
-
             {layoutContext.branch === 'MAIN' && showRatkoPushDialog && (
                 <LocationTrackRatkoPushDialog
                     layoutContext={layoutContext}
@@ -233,7 +240,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     changeTimes={changeTimes}
                 />
             )}
-
             {showEditDialog && (
                 <LocationTrackEditDialogContainer
                     onClose={closeEditLocationTrackDialog}
@@ -241,7 +247,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     locationTrackId={locationTrack.id}
                 />
             )}
-
             {confirmingSwitchRelinking && (
                 <LocationTrackSwitchRelinkingDialogContainer
                     locationTrackId={locationTrack.id}

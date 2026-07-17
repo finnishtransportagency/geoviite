@@ -1,5 +1,9 @@
 import { RegularShape, Stroke, Style } from 'ol/style';
-import { AlignmentDataHolder, LayoutAlignmentDataHolder, LayoutAlignmentHeader, } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    LayoutAlignmentDataHolder,
+    LayoutAlignmentHeader,
+} from 'track-layout/layout-map-api';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import Feature from 'ol/Feature';
@@ -241,6 +245,32 @@ export function getAlignmentHeaderStates(
     };
 }
 
+const ENDPOINT_TICK_LENGTH = 6;
+
+/**
+ * Style for a tick drawn across a line at one of its ends. The tick is angled by the direction of
+ * point1..point2, and `position` picks which of the two it sits on.
+ */
+export function getEndPointTickStyle(
+    point1: Coordinate,
+    point2: Coordinate,
+    position: 'start' | 'end',
+    tickStyle: Style,
+): Style {
+    return getTickStyle(point1, point2, ENDPOINT_TICK_LENGTH, position, tickStyle);
+}
+
+export function createEndPointTick(
+    point1: Coordinate,
+    point2: Coordinate,
+    position: 'start' | 'end',
+    tickStyle: Style,
+): Feature<OlPoint> {
+    const tick = new Feature({ geometry: new OlPoint(position === 'start' ? point1 : point2) });
+    tick.setStyle(getEndPointTickStyle(point1, point2, position, tickStyle));
+    return tick;
+}
+
 export function createEndPointTicks(
     alignment: AlignmentDataHolder,
     tickStyle: Style,
@@ -251,27 +281,22 @@ export function createEndPointTicks(
 
     if (first && second) {
         if (first.m === 0) {
-            const fP = pointToCoords(first);
-            const sP = pointToCoords(second);
-
-            const startF = new Feature({ geometry: new OlPoint(fP) });
-
-            startF.setStyle(getTickStyle(fP, sP, 6, 'start', tickStyle));
-
-            ticks.push(startF);
+            ticks.push(
+                createEndPointTick(pointToCoords(first), pointToCoords(second), 'start', tickStyle),
+            );
         }
 
         const last = alignment.points[alignment.points.length - 1];
         const secondToLast = alignment.points[alignment.points.length - 2];
         if (last?.m === alignment.header.length && secondToLast) {
-            const lP = pointToCoords(last);
-            const sLP = pointToCoords(secondToLast);
-
-            const endF = new Feature({ geometry: new OlPoint(lP) });
-
-            endF.setStyle(getTickStyle(sLP, lP, 6, 'end', tickStyle));
-
-            ticks.push(endF);
+            ticks.push(
+                createEndPointTick(
+                    pointToCoords(secondToLast),
+                    pointToCoords(last),
+                    'end',
+                    tickStyle,
+                ),
+            );
         }
     }
 

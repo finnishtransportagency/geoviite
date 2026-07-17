@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
@@ -356,5 +357,16 @@ class LocationTrackController(
         @PathVariable("switchId") switchId: IntId<LayoutSwitch>,
     ): IntId<LocationTrack> {
         return locationTrackService.detachSwitch(layoutBranch, id, switchId).id
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/{id}/extend/{endpointType}")
+    fun extendLocationTrack(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @PathVariable("endpointType") endpointType: EndpointType,
+        @RequestBody extendTo: Point,
+    ): IntId<LocationTrack> {
+        return locationTrackService.extendTrack(layoutBranch, id, endpointType, extendTo).id
     }
 }

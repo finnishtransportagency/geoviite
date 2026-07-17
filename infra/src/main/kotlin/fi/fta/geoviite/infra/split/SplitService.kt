@@ -31,8 +31,8 @@ import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMove
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
-import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType
 import fi.fta.geoviite.infra.tracklayout.EndpointSplitPoint
+import fi.fta.geoviite.infra.tracklayout.EndpointType
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
@@ -1018,8 +1018,8 @@ private fun findNodeIndex(geometry: LocationTrackGeometry, startIndex: Int, spli
                     is EndpointSplitPoint -> {
                         val trackBoundaryType =
                             when (splitPoint.endPointType) {
-                                DuplicateEndPointType.START -> TrackBoundaryType.START
-                                DuplicateEndPointType.END -> TrackBoundaryType.END
+                                EndpointType.START -> TrackBoundaryType.START
+                                EndpointType.END -> TrackBoundaryType.END
                             }
                         node.ports.any { port -> port is TrackBoundary && port.type == trackBoundaryType }
                     }

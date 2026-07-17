@@ -25,6 +25,7 @@ import { RouteLocation } from 'track-layout/track-layout-slice';
 import { useLoader } from 'utils/react-utils';
 import { getRoute } from 'track-layout/layout-routing-api';
 import { getChangeTimes } from 'common/change-time-api';
+import { alignmentExtensionTool } from 'map/tools/alignment-extension-tool';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -55,6 +56,9 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         linkingState?.type === LinkingType.PlacingOperationalPointArea;
     const isPlacingOperationalPointLocation =
         linkingState?.type === LinkingType.PlacingOperationalPoint;
+    const isExtendingAlignmentGeometry = linkingState?.type === LinkingType.ExtendingAlignment;
+    const isLinking = !!linkingState;
+    const isSplitting = !!splittingState;
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
@@ -100,7 +104,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         }));
         const routeTool = {
             ...routeFindingTool,
-            disabled: !!linkingState || !!splittingState,
+            disabled: isLinking || isSplitting,
             hidden: false,
         };
 
@@ -109,8 +113,25 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
             disabled: !isPlacingOperationalPointArea,
             hidden: !isPlacingOperationalPointArea,
         };
-        return [...selectableTools, routeTool, operationalPointTool];
-    }, [isPlacingOperationalPointArea, linkingState, splittingState, routeFindingTool]);
+
+        const alignmentExtension = {
+            ...alignmentExtensionTool,
+            disabled: !isExtendingAlignmentGeometry,
+            hidden: !isExtendingAlignmentGeometry,
+        };
+
+        return [...selectableTools, routeTool, operationalPointTool, alignmentExtension];
+        // Depend on the booleans the tools actually derive from rather than on the linking state
+        // itself: a new tool object identity re-activates the active tool, discarding the state it
+        // keeps for the duration of an interaction.
+    }, [
+        isPlacingOperationalPointArea,
+        isPlacingOperationalPointLocation,
+        isExtendingAlignmentGeometry,
+        isLinking,
+        isSplitting,
+        routeFindingTool,
+    ]);
 
     return (
         <div className={className} qa-id="track-layout-content">

@@ -1,5 +1,6 @@
 import {
     AlignmentPoint,
+    EndpointType,
     LayoutKmPostGkLocation,
     LayoutKmPostId,
     LayoutState,
@@ -71,7 +72,8 @@ export type LinkingState =
     | PlacingOperationalPointArea
     | LinkingOperationalPointSwitches
     | LinkingOperationalPointTracks
-    | ChangingTrackBoundary;
+    | ChangingTrackBoundary
+    | ExtendingAlignment;
 
 export type PreliminaryLinkingGeometry = {
     type: LinkingType.UnknownAlignment;
@@ -235,6 +237,16 @@ export type ChangingTrackBoundary = LinkingBaseType & {
     selectedTarget: SelectedBoundaryMoveTarget | undefined;
 };
 
+export type AlignmentExtension = { end: EndpointType; location: Point };
+
+export type ExtendingAlignment = LinkingBaseType & {
+    type: LinkingType.ExtendingAlignment;
+    alignment: LayoutAlignmentTypeAndId;
+    // When true, the extension is constrained to continue in the direction the alignment ended.
+    directionSnap: boolean;
+    extension: AlignmentExtension | undefined;
+};
+
 export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
@@ -269,6 +281,7 @@ export enum LinkingType {
     LinkingOperationalPointTracks = 'LinkingOperationalPointTracks',
     UnknownAlignment = 'UnknownAlignment',
     TrackBoundaryMove = 'TrackBoundaryMove',
+    ExtendingAlignment = 'ExtendingAlignment',
 }
 
 export type IntervalRequest = {

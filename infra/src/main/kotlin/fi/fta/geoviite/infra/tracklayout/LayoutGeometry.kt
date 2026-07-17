@@ -56,6 +56,7 @@ enum class GeometrySource {
     IMPORTED,
     PLAN,
     GENERATED,
+    MANUAL,
 }
 
 data class SegmentGeometryAndMetadata<M : AlignmentM<M>>(

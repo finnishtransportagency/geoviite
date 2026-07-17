@@ -169,13 +169,13 @@ fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
     val geometryStart = geometry.start
     val nonSwitchStartPoint =
         if (geometryStart != null && geometry.startSwitchLink == null)
-            EndpointSplitPoint(geometryStart, null, DuplicateEndPointType.START)
+            EndpointSplitPoint(geometryStart, null, EndpointType.START)
         else null
 
     val geometryEnd = geometry.end
     val nonSwitchEndPoint =
         if (geometryEnd != null && geometry.endSwitchLink == null)
-            EndpointSplitPoint(geometryEnd, null, DuplicateEndPointType.END)
+            EndpointSplitPoint(geometryEnd, null, EndpointType.END)
         else null
 
     val switchSplitPoints =

@@ -1070,6 +1070,18 @@
                     "geocoding-failed": "Raiteen geokoodaus epäonnistui",
                     "not-available-in-environment": "Ei käytettävissä tässä ympäristössä"
                 }
+            },
+            "geometry-extension": {
+                "menu-item": "Jatka raiteen geometriaa",
+                "title": "Raiteen jatkaminen",
+                "track": "Raide",
+                "extension-end": "Jatkettava pää",
+                "draw-hint": "Klikkaa kartalta jatkeen päätepiste",
+                "clear": "Tyhjennä",
+                "direction-snap": "Suunnan rajoitus",
+                "no-direction-snap": "Ei rajoitusta",
+                "snap-to-end-direction": "Raiteen pään mukaan",
+                "extension-saved": "Raidetta {{track}} jatkettu"
             }
         },
         "operational-point": {

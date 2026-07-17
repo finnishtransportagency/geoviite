@@ -34,6 +34,8 @@ import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import {
+    AlignmentExtension,
+    ExtendingAlignment,
     LinkingState,
     LinkingSwitch,
     LinkingType,
@@ -43,11 +45,7 @@ import {
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import {
-    GeometryPlanLayout,
-    LAYOUT_SRID,
-    LayoutGraphLevel,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
 import { SelectedBoundaryMoveTarget } from 'track-layout/track-boundary-move-api';
 import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
@@ -129,6 +127,8 @@ import {
     createLocationTrackBoundaryMoveLayer,
     LocationTrackBoundaryMoveLayer,
 } from 'map/layers/location-track-boundary-move-layer';
+import { alignmentExtensionTool } from 'map/tools/alignment-extension-tool';
+import { createAlignmentExtensionLayer } from 'map/layers/alignment-extension-layer';
 
 declare global {
     interface Window {
@@ -158,6 +158,8 @@ export type MapViewProps = {
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     onClosePlanDownloadPopup: () => void;
     onSetOperationalPointPolygon: (polygon: Polygon) => void;
+    onSetAlignmentExtension: (extension: AlignmentExtension) => void;
+    onStopExtendingAlignment: () => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     routeResult?: RouteResult | undefined;
     manuallySetPlan?: GeometryPlanLayout;
@@ -286,6 +288,8 @@ const MapView: React.FC<MapViewProps> = ({
     onSetTrackBoundaryMoveTarget,
     onMapLayerChange,
     onSetOperationalPointPolygon,
+    onSetAlignmentExtension,
+    onStopExtendingAlignment,
     publicationCandidates,
     customActiveMapToolId,
     designPublicationMode,
@@ -774,6 +778,14 @@ const MapView: React.FC<MapViewProps> = ({
                             onSetTrackBoundaryMoveTarget,
                             (loading) => onLayerLoading(layerName, loading),
                         );
+                    case 'alignment-extension-layer':
+                        return createAlignmentExtensionLayer(
+                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
+                            linkingState as ExtendingAlignment | undefined,
+                            layoutContext,
+                            changeTimes,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
@@ -862,7 +874,10 @@ const MapView: React.FC<MapViewProps> = ({
         onHoverLocation: (p) => setHoveredLocation(p),
         onClickLocation: onClickLocation,
         onSetOperationalPointPolygon: onSetOperationalPointPolygon,
+        onSetAlignmentExtension: onSetAlignmentExtension,
+        onStopExtendingAlignment: onStopExtendingAlignment,
         linkingState: linkingState,
+        layoutContext,
     };
 
     // Point location tool is always active, independent of the selected tool, and doesn't need updates on layersChanged
@@ -874,6 +889,7 @@ const MapView: React.FC<MapViewProps> = ({
     }, [olMap]);
 
     const activeToolHandleRef = React.useRef<MapToolHandle | undefined>(undefined);
+
     React.useEffect(() => {
         if (!olMap || !activeTool) {
             activeToolHandleRef.current = undefined;
@@ -901,9 +917,15 @@ const MapView: React.FC<MapViewProps> = ({
             if (areaTool) {
                 setActiveToolId(areaTool?.id);
             }
+        } else if (linkingState?.type === LinkingType.ExtendingAlignment) {
+            const extensionTool = mapTools?.find((tool) => tool.id === alignmentExtensionTool.id);
+            if (extensionTool) {
+                setActiveToolId(extensionTool.id);
+            }
         } else if (
             activeTool?.id === 'operational-point-area' ||
-            (activeTool?.id === 'route-finding' && (!!linkingState || !!splittingState))
+            (activeTool?.id === 'route-finding' && (!!linkingState || !!splittingState)) ||
+            activeTool?.id === 'alignment-extension'
         ) {
             // Revert to select-or-highlight when leaving operational point area mode or when entering a linking or splitting state
             const selectTool = mapTools?.find((tool) => tool.id === 'select-or-highlight');

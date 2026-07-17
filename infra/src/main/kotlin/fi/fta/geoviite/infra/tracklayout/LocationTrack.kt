@@ -355,7 +355,7 @@ data class SwitchOnLocationTrack(
     val nearestOperationalPoint: OperationalPoint?,
 )
 
-enum class DuplicateEndPointType {
+enum class EndpointType {
     START,
     END,
 }
@@ -397,7 +397,7 @@ data class SwitchSplitPoint(
 data class EndpointSplitPoint(
     override val location: AlignmentPoint<LocationTrackM>,
     override val address: TrackMeter?,
-    val endPointType: DuplicateEndPointType,
+    val endPointType: EndpointType,
 ) : SplitPoint() {
     companion object {
         private const val LOCATION_TOLERANCE_METERS = 2

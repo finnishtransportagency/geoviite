@@ -337,6 +337,7 @@ export function getSelectableItemTypes(
         case LinkingType.PlacingOperationalPointArea:
         case LinkingType.LinkingOperationalPointSwitches:
         case LinkingType.LinkingOperationalPointTracks:
+        case LinkingType.ExtendingAlignment:
             return [];
         case LinkingType.LinkingGeometrySwitch:
             return ['switches'];
@@ -557,6 +558,7 @@ const trackLayoutSlice = createSlice({
                     case LinkingType.PlacingOperationalPointArea:
                     case LinkingType.LinkingOperationalPointSwitches:
                     case LinkingType.LinkingOperationalPointTracks:
+                    case LinkingType.ExtendingAlignment:
                         break;
                     default:
                         return exhaustiveMatchingGuard(linkingStateType);

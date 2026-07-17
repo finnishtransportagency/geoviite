@@ -62,7 +62,8 @@ export type MapLayerName =
     | 'signal-asset-layer'
     | 'property-boundary-layer'
     | 'virtual-hide-signal-asset-layer'
-    | 'location-track-boundary-move-layer';
+    | 'location-track-boundary-move-layer'
+    | 'alignment-extension-layer';
 
 export type MapViewportSource = 'Map';
 

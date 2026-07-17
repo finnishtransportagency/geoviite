@@ -36,6 +36,8 @@ export function useUserHasPrivilege(code: PrivilegeCode): boolean {
     );
 }
 
-export function useLayoutDelegates() {
+export type LayoutDelegates = typeof trackLayoutActionCreators;
+
+export function useLayoutDelegates(): LayoutDelegates {
     return React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 }

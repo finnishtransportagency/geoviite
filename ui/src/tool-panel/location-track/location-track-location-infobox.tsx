@@ -93,6 +93,13 @@ export const LocationTrackLocationInfoboxContainer: React.FC<
                 delegates.addForcedVisibleLayer(['location-track-boundary-move-layer']);
                 delegates.startTrackBoundaryMove(headTrack);
             }}
+            onStartExtendTrack={(id) => {
+                delegates.addForcedVisibleLayer(['alignment-extension-layer']);
+                delegates.startExtendingAlignment({
+                    type: MapAlignmentType.LocationTrack,
+                    id,
+                });
+            }}
         />
     );
 };
@@ -104,6 +111,7 @@ type LocationTrackLocationInfoboxProps = LocationTrackLocationInfoboxContainerPr
     onStartSplitting: (splitStartParams: SplitStart) => void;
     addForcedVisibleLayer: (layers: MapLayerName[]) => void;
     onStartTrackBoundaryMove: (id: LocationTrackId) => void;
+    onStartExtendTrack: (id: LocationTrackId) => void;
 };
 
 const isSplittablePoint = (
@@ -155,6 +163,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     layoutContext,
     onStartSplitting,
     onStartTrackBoundaryMove,
+    onStartExtendTrack,
 }: LocationTrackLocationInfoboxProps) => {
     const { t } = useTranslation();
     const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
@@ -261,8 +270,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const [modifyMenuOpen, setModifyMenuOpen] = React.useState<boolean>(false);
     const modifyButtonRef = React.useRef<HTMLDivElement>(null);
     const environmentInfo = useEnvironmentInfo();
-    const showBoundaryMoveOption = ['local', 'dev'].includes(environmentInfo?.environmentName ?? '');
-
+    const showBoundaryMoveOption = ['local', 'dev'].includes(
+        environmentInfo?.environmentName ?? '',
+    );
 
     React.useEffect(() => {
         setCanUpdate(
@@ -425,7 +435,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
     const getTrackBoundaryMoveDisabledReasonsTranslated = () => {
         if (!showBoundaryMoveOption) {
-            return t('tool-panel.location-track.track-boundary-move.validation.not-available-in-environment');
+            return t(
+                'tool-panel.location-track.track-boundary-move.validation.not-available-in-environment',
+            );
         }
         if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
@@ -445,7 +457,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SMALL}
                 qa-id="modify-start-or-end"
-                disabled={shorteningDisabled && (trackBoundaryMoveDisabled || !showBoundaryMoveOption)}
+                disabled={
+                    shorteningDisabled && (trackBoundaryMoveDisabled || !showBoundaryMoveOption)
+                }
                 title={
                     shorteningDisabled && (trackBoundaryMoveDisabled || !showBoundaryMoveOption)
                         ? getModifyStartOrEndDisabledReasonTranslated()
@@ -484,6 +498,15 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             'CLOSE_AFTER_SELECT',
                             undefined,
                             getTrackBoundaryMoveDisabledReasonsTranslated(),
+                        ),
+                        menuOption(
+                            () => onStartExtendTrack(locationTrack.id),
+                            t('tool-panel.location-track.geometry-extension.menu-item'),
+                            'extend-track',
+                            false,
+                            'CLOSE_AFTER_SELECT',
+                            undefined,
+                            '',
                         ),
                     ]}
                 />
@@ -535,9 +558,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             </MessageBox>
                                         </InfoboxContentSpread>
                                     )}
-                                    <InfoboxButtons>
-                                        {modifyStartOrEndButton}
-                                    </InfoboxButtons>
+                                    <InfoboxButtons>{modifyStartOrEndButton}</InfoboxButtons>
                                 </PrivilegeRequired>
                             )}
                             {linkingState?.type === LinkingType.LinkingAlignment && (

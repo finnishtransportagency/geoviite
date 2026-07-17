@@ -320,7 +320,7 @@ fun startPoint(point: IPoint): EndpointSplitPoint {
     return EndpointSplitPoint(
         location = AlignmentPoint(point.x, point.y, null, LineM(0.0), null),
         address = null,
-        DuplicateEndPointType.START,
+        EndpointType.START,
     )
 }
 
@@ -328,7 +328,7 @@ fun endPoint(point: IPoint): EndpointSplitPoint {
     return EndpointSplitPoint(
         location = AlignmentPoint(point.x, point.y, null, LineM(0.0), null),
         address = null,
-        DuplicateEndPointType.END,
+        EndpointType.END,
     )
 }
 

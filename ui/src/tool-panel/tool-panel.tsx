@@ -580,6 +580,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             t.asset.type === 'LOCATION_TRACK' &&
                             t.asset.id === linkingState.headTrack,
                     )?.asset;
+                case LinkingType.ExtendingAlignment:
+                    return tabs.find(
+                        (t) =>
+                            t.asset.id === linkingState.alignment.id &&
+                            ((t.asset.type === 'TRACK_NUMBER' &&
+                                linkingState.alignment.type === 'REFERENCE_LINE') ||
+                                (t.asset.type === 'LOCATION_TRACK' &&
+                                    linkingState.alignment.type === 'LOCATION_TRACK')),
+                    )?.asset;
                 default:
                     return exhaustiveMatchingGuard(type);
             }

@@ -2,6 +2,7 @@ import {
     AlignmentPoint,
     AlignmentStartAndEnd,
     DuplicateStatus,
+    EndpointType,
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
@@ -38,7 +39,7 @@ import {
     layoutUriWithoutContext,
 } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { bboxString } from 'common/common-api';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { getChangeTimes, updateLocationTrackChangeTime } from 'common/change-time-api';
@@ -436,6 +437,22 @@ export async function detachSwitchFromLocationTrack(
         `${layoutUriByBranch('location-tracks', branch)}/${locationTrackId}/detach-switch/${switchId}`,
         +'',
     );
+}
+
+export async function extendLocationTrack(
+    branch: LayoutBranch,
+    locationTrackId: LocationTrackId,
+    endpointType: EndpointType,
+    extendTo: Point,
+): Promise<LocationTrackId> {
+    const result = await postNonNull<Point, LocationTrackId>(
+        `${layoutUriByBranch('location-tracks', branch)}/draft/${locationTrackId}/extend/${endpointType}`,
+        extendTo,
+    );
+
+    await updateLocationTrackChangeTime();
+
+    return result;
 }
 
 export async function getLocationTrackSwitchJoints(
