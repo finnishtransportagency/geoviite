@@ -10,10 +10,10 @@ import fi.fta.geoviite.infra.error.HasLocalizedMessage
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
-import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
 import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.geometry.PlanQuality
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -37,7 +37,7 @@ data class ExtraInfoParameters(
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeTextWithNewLines?,
     val name: PlanName,
-    val planApplicability: PlanApplicability?,
+    val quality: PlanQuality?,
 )
 
 data class OverrideParameters(

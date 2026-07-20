@@ -477,11 +477,13 @@ private fun getEndJoints(matchesByLocationTrack: Map<LocationTrack, List<FittedS
 
 private fun mapMeasurementMethodToLocationAccuracy(mm: MeasurementMethod): LocationAccuracy =
     when (mm) {
-        MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY -> LocationAccuracy.DESIGNED_GEOLOCATION
         MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
         MeasurementMethod.TRACK_INSPECTION -> LocationAccuracy.MEASURED_GEODETICALLY
         MeasurementMethod.DIGITIZED_AERIAL_IMAGE -> LocationAccuracy.DIGITIZED_AERIAL_IMAGE
-        MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> LocationAccuracy.MEASURED_GEODETICALLY
+        MeasurementMethod.POINT_CLOUD_SIGNALED -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.POINT_CLOUD_UNSIGNALED -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.GNSS_IMU -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.RTK_GNSS -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
     }
 
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5

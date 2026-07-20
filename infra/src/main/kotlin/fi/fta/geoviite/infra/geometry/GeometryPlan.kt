@@ -30,9 +30,19 @@ import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
 
+fun computePlanApplicability(quality: PlanQuality?, decisionPhase: PlanDecisionPhase?): PlanApplicability =
+    when {
+        quality == null -> PlanApplicability.STATISTICS
+        quality == PlanQuality.UNRELIABLE_PLAN -> PlanApplicability.STATISTICS
+        decisionPhase == PlanDecisionPhase.OUTDATED || decisionPhase == null -> PlanApplicability.STATISTICS
+        decisionPhase == PlanDecisionPhase.IN_USE -> PlanApplicability.MAINTENANCE
+        else -> PlanApplicability.PLANNING
+    }
+
 enum class PlanSource {
     GEOMETRIAPALVELU,
     PAIKANNUSPALVELU,
+    GEOVIITE,
 }
 
 /** GeometryPlanHeader is a lightweight object to be us ed as list items etc. */
@@ -58,8 +68,11 @@ data class GeometryPlanHeader(
     val hasCant: Boolean,
     val isHidden: Boolean,
     val name: PlanName,
-    val planApplicability: PlanApplicability?,
+    val quality: PlanQuality?,
 ) : Loggable {
+    val planApplicability: PlanApplicability
+        get() = computePlanApplicability(quality, decisionPhase)
+
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
         listOfNotNull(fileName, project.name, message, name).map { o -> o.toString().lowercase() }
@@ -95,11 +108,14 @@ data class GeometryPlan(
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
     val message: FreeTextWithNewLines?,
     val name: PlanName,
+    val quality: PlanQuality? = null,
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
-    val planApplicability: PlanApplicability?,
 ) : Loggable {
+    val planApplicability: PlanApplicability
+        get() = computePlanApplicability(quality, decisionPhase)
+
     @get:JsonIgnore val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
 
     override fun toLog(): String =

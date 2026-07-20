@@ -181,7 +181,6 @@ fun toGvtPlan(
         uploadTime = null,
         isHidden = false,
         name = getPlanNameByFileName(fileName),
-        planApplicability = null,
     )
 }
 

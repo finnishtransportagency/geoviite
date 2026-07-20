@@ -159,7 +159,7 @@ constructor(
               message,
               hidden,
               name,
-              plan_applicability
+              quality
             )
             values(
               :track_number,
@@ -184,7 +184,7 @@ constructor(
               :message,
               :hidden,
               :name,
-              :plan_applicability::geometry.plan_applicability
+              :quality::geometry.plan_quality
             )
             returning id, version
             """
@@ -214,7 +214,7 @@ constructor(
                 "message" to plan.message,
                 "hidden" to plan.isHidden,
                 "name" to plan.name,
-                "plan_applicability" to plan.planApplicability?.name,
+                "quality" to plan.quality?.name,
             )
 
         val planId: RowVersion<GeometryPlan> =
@@ -396,7 +396,7 @@ constructor(
               source = :source::geometry.plan_source,
               hidden = :hidden,
               name = :name,
-              plan_applicability = :plan_applicability::geometry.plan_applicability
+              quality = :quality::geometry.plan_quality
             where id = :id
             returning id, version
             """
@@ -422,7 +422,7 @@ constructor(
                 "source" to geometryPlan.source.name,
                 "hidden" to geometryPlan.isHidden,
                 "name" to geometryPlan.name,
-                "plan_applicability" to geometryPlan.planApplicability?.name,
+                "quality" to geometryPlan.quality?.name,
             )
 
         return getOne(
@@ -786,7 +786,7 @@ constructor(
               has_cant,
               plan.hidden,
               plan.name,
-              plan.plan_applicability
+              plan.quality
             from geometry.plan
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -849,7 +849,7 @@ constructor(
               has_cant,
               plan.hidden,
               plan.name,
-              plan.plan_applicability
+              plan.quality
             from geometry.plan_version plan
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_project project on project.id = plan.plan_project_id
@@ -910,7 +910,7 @@ constructor(
             hasCant = rs.getBoolean("has_cant"),
             isHidden = rs.getBoolean("hidden"),
             name = rs.getPlanName("name"),
-            planApplicability = rs.getEnumOrNull<PlanApplicability>("plan_applicability"),
+            quality = rs.getEnumOrNull<PlanQuality>("quality"),
         )
     }
 
@@ -1052,7 +1052,7 @@ constructor(
               plan.message,
               plan.hidden,
               plan.name,
-              plan.plan_applicability
+              plan.quality
             from geometry.plan
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_author on plan.plan_author_id = plan_author.id
@@ -1113,7 +1113,7 @@ constructor(
                             uploadTime = rs.getInstant("upload_time"),
                             isHidden = rs.getBoolean("hidden"),
                             name = rs.getPlanName("name"),
-                            planApplicability = rs.getEnumOrNull<PlanApplicability>("plan_applicability"),
+                            quality = rs.getEnumOrNull<PlanQuality>("quality"),
                         )
                     geometryPlan
                 }

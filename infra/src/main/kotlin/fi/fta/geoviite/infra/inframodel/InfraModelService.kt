@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
-import fi.fta.geoviite.infra.geometry.PlanApplicability
 import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
@@ -177,12 +176,6 @@ constructor(
         return geometryDao.updatePlan(planId, overriddenPlan)
     }
 
-    @Transactional
-    fun setPlanApplicability(planId: IntId<GeometryPlan>, applicability: PlanApplicability?): RowVersion<GeometryPlan> =
-        geometryService.getGeometryPlan(planId).let { plan ->
-            geometryDao.updatePlan(planId, plan.copy(planApplicability = applicability))
-        }
-
     fun getInfraModelBatchSummaryCsv(headers: List<GeometryPlanHeader>, translation: Translation): String {
         return printCsv(
             mapOf<String, (item: GeometryPlanHeader) -> Any?>(
@@ -243,7 +236,7 @@ constructor(
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,
-            planApplicability = extraInfoParameters?.planApplicability,
+            quality = extraInfoParameters?.quality,
         )
     }
 

@@ -30,6 +30,12 @@ enum class PlanDecisionPhase {
     APPROVED_PLAN,
     UNDER_CONSTRUCTION,
     IN_USE,
+    OUTDATED,
+}
+
+enum class PlanQuality {
+    PLAN,
+    UNRELIABLE_PLAN,
 }
 
 enum class PlanApplicability {

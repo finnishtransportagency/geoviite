@@ -455,7 +455,7 @@ fun plan(
     srid: Srid? = Srid(3879),
     alignments: List<GeometryAlignment> = listOf(geometryAlignment()),
     switches: List<GeometrySwitch> = listOf(),
-    measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    measurementMethod: MeasurementMethod? = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
     elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
@@ -466,7 +466,7 @@ fun plan(
     kmPosts: List<GeometryKmPost> = kmPosts(srid),
     project: Project = project(),
     units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
-    planApplicability: PlanApplicability? = null,
+    quality: PlanQuality? = null,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
@@ -489,14 +489,14 @@ fun plan(
         message = FreeTextWithNewLines.of("test text \n description"),
         uploadTime = null,
         name = getPlanNameByFileName(fileName),
-        planApplicability = planApplicability,
+        quality = quality,
     )
 }
 
 fun planHeader(
     id: IntId<GeometryPlan> = IntId(1),
     fileName: FileName = FileName("test_file.xml"),
-    measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    measurementMethod: MeasurementMethod? = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
     elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,
@@ -526,7 +526,7 @@ fun planHeader(
         author = "Test Company",
         isHidden = false,
         name = getPlanNameByFileName(fileName),
-        planApplicability = null,
+        quality = null,
     )
 
 fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
@@ -556,7 +556,6 @@ fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
         trackNumber = null,
         uploadTime = null,
         name = getPlanNameByFileName(fileName),
-        planApplicability = null,
     )
 
 fun geometryLine(

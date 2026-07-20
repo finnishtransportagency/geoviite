@@ -255,11 +255,13 @@
             "APPROVED_PLAN": "Suunniteltu",
             "UNDER_CONSTRUCTION": "Toteutuksessa",
             "IN_USE": "Valmis",
+            "OUTDATED": "Vanhentunut",
             "UNKNOWN": "Ei tiedossa"
         },
         "PlanSource": {
             "GEOMETRIAPALVELU": "Geometriapalvelu",
-            "PAIKANNUSPALVELU": "Paikannuspalvelu"
+            "PAIKANNUSPALVELU": "Paikannuspalvelu",
+            "GEOVIITE": "Geoviite"
         },
         "MeasurementMethod": {
             "VERIFIED_DESIGNED_GEOMETRY": "Suunnitelma",
@@ -267,7 +269,15 @@
             "TRACK_INSPECTION": "Radantarkastusvaunu",
             "DIGITIZED_AERIAL_IMAGE": "Digitoitu ilmakuvasta",
             "UNVERIFIED_DESIGNED_GEOMETRY": "Epäluotettava suunnitelma",
+            "POINT_CLOUD_SIGNALED": "Pistepilvi, signaloitu",
+            "POINT_CLOUD_UNSIGNALED": "Pistepilvi, ei signaloitu",
+            "GNSS_IMU": "GNSS + IMU",
+            "RTK_GNSS": "RTK GNSS",
             "UNKNOWN": "Ei tiedossa"
+        },
+        "PlanQuality": {
+            "PLAN": "Suunnitelma",
+            "UNRELIABLE_PLAN": "Epäluotettava suunnitelma"
         },
         "ElevationMeasurementMethod": {
             "TOP_OF_SLEEPER": "Korkeusviiva",

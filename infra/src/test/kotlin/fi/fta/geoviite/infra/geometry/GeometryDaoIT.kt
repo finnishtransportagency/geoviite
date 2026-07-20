@@ -291,4 +291,24 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
         val planOut = geometryDao.fetchPlan(version)
         assertEquals(null, planOut.alignments.first().profile?.groupNumber)
     }
+
+    @Test
+    fun `quality field roundtrips through insert and fetch`() {
+        val trackNumber = testDBService.getUnusedTrackNumber()
+
+        val planWithQuality = plan(trackNumber, quality = PlanQuality.PLAN)
+        val planVersion = geometryDao.insertPlan(planWithQuality, infraModelFile(), null)
+        val fetchedHeader = geometryDao.getPlanHeader(planVersion.id)
+
+        assertEquals(PlanQuality.PLAN, fetchedHeader.quality)
+        // PLAN + APPROVED_PLAN (default in plan()) → PLANNING
+        assertEquals(PlanApplicability.PLANNING, fetchedHeader.planApplicability)
+
+        val planWithUnreliable = plan(trackNumber, quality = PlanQuality.UNRELIABLE_PLAN)
+        val planVersion2 = geometryDao.insertPlan(planWithUnreliable, infraModelFile("test_file_2.xml"), null)
+        val fetchedHeader2 = geometryDao.getPlanHeader(planVersion2.id)
+
+        assertEquals(PlanQuality.UNRELIABLE_PLAN, fetchedHeader2.quality)
+        assertEquals(PlanApplicability.STATISTICS, fetchedHeader2.planApplicability)
+    }
 }
