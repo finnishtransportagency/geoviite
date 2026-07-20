@@ -127,7 +127,7 @@ class HelsinkiTestData private constructor() {
                 toSegmentPoints(
                     Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), // etelä
                     Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
-                    Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 560.00), // pohjoinen
+                    Point(x = HKI_BASE_POINT_X + 696.00, y = HKI_BASE_POINT_Y + 562.00), // pohjoinen
                 )
             return referenceLineGeometry(segment(points))
         }
