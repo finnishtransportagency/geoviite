@@ -1,6 +1,6 @@
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { getNonNull, postNonNull, putNonNull, queryParams } from 'api/api-fetch';
-import { designBranch, DesignBranch, LayoutDesignId, TimeStamp } from 'common/common-model';
+import { designBranch, DesignBranch, LayoutDesignId, Oid, TimeStamp } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 
 const designCache = asyncCache<string, LayoutDesign[]>();
@@ -14,6 +14,7 @@ export type LayoutDesignSaveRequest = {
 };
 export type LayoutDesign = {
     id: LayoutDesignId;
+    externalId: Oid;
 } & LayoutDesignSaveRequest;
 
 export const getLayoutDesigns = async (
