@@ -36,6 +36,8 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import java.math.BigDecimal
 import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -706,7 +708,7 @@ class GeocodingTest {
                 kmNumber = startAddress.kmNumber,
                 startMeters = startAddress.meters,
                 referenceLineM = Range(LineM(0.0), kmPoints.firstOrNull()?.second?.let(::LineM) ?: geometry.length),
-                endInclusive = false,
+                endInclusive = kmPoints.isEmpty(),
             )
         val combinedKms =
             listOf(startKm) +
@@ -1300,6 +1302,37 @@ class GeocodingTest {
         assertEquals(context.startAddress.round(3), context.getAddress(nearStart)?.first)
         assertEquals(context.endAddress.round(3), context.getAddress(nearEnd)?.first)
         assertEquals(null, context.getAddress(farFromEnd)?.first)
+    }
+
+    @Test
+    fun `getTrackLocations works on a reference line partially looping in on itself`() {
+        // The reference line is a circle arc of radius 20 going from 0 to 6 radians (nearly a full circle), making it
+        // 120 m long. We geocode the reference line's own geometry: a projection line (radial to the circle) hits the
+        // arc on both sides of the circle, so finding the right intersection requires getManyTrackLocations to keep
+        // the alignment walk in sync.
+        val context =
+            createContext(
+                geometryPoints = (0..60).map { i -> Point(20 * cos(i / 10.0), 20 * sin(i / 10.0)) },
+                startAddress = TrackMeter(1, 0),
+                kmPoints = listOf(),
+            )
+        val geometry = context.referenceLineGeometry
+        val earlyPoints =
+            context.getTrackLocations(geometry, (0..20).map { i -> TrackMeter(KmNumber(1), i) }).map { p ->
+                assertNotNull(p)
+            }
+        val latePoints =
+            context.getTrackLocations(geometry, (90..110).map { i -> TrackMeter(KmNumber(1), i) }).map { p ->
+                assertNotNull(p)
+            }
+        // all points should be found at the exact addresses we asked for...
+        assertEquals((0..20).toList(), earlyPoints.map { p -> p.address.meters.intValueExact() })
+        assertEquals((90..110).toList(), latePoints.map { p -> p.address.meters.intValueExact() })
+        // ... and on the correct side of the circle: the early points on the first quadrant (arc length under
+        // 10*pi = 31.4), the late points on the lower half (arc length over 20*pi = 62.8). If a projection hit the
+        // wrong side of the circle, its point would land in the upper half instead.
+        assertTrue(earlyPoints.all { p -> p.point.x >= 0.0 && p.point.y >= 0.0 })
+        assertTrue(latePoints.all { p -> p.point.y < 0.0 })
     }
 
     private fun <M : AlignmentM<M>> assertEqualsRounded(

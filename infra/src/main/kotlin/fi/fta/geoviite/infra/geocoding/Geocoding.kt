@@ -735,8 +735,13 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     ) =
         processSortedBy(
                 projectionLinesWithinAlignment +
-                    // add some extra projection lines to make sure we don't go out of sync when the
-                    // track and reference line loop in on themselves
+                    // If the track loops in on itself, a single projection line can intersect it multiple times.
+                    // The alignment walk picks the right intersection by advancing monotonically along the track,
+                    // taking the first intersection it finds for each projection line in address order -- but that
+                    // is only the correct one if consecutive projection lines are close enough together that the
+                    // walk can't skip onto a later pass of the track (or start on a wrong intersection when the
+                    // first requested address is far from the track start). So we add some extra projection lines
+                    // along the full length of the alignment to make sure the alignment walk stays in sync.
                     getProjectionLinesForRange(
                             exclusiveRange = Range(alignmentStartAddress, alignmentEndAddress),
                             Resolution.ONE_METER,
