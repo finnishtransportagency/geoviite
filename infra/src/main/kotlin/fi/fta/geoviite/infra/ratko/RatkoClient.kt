@@ -9,8 +9,10 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.treeToValue
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -144,8 +146,13 @@ data class RatkoPushTargetSwitch(override val oid: Oid<LayoutSwitch>) : RatkoPus
 @ConditionalOnBean(RatkoFakeOidGeneratorConfiguration::class)
 class RatkoFakeOidGenerator {
 
-    fun <T> generateFakeRatkoOID(contextId: Int, uniqueIdInContext: Int): RatkoOid<T> {
-        return RatkoOid("${FAKE_OID_PREFIX}.${contextId}.${uniqueIdInContext}")
+    fun <T> generateFakeRatkoOID(
+        contextId: Int,
+        uniqueIdInContext: Int,
+        branch: LayoutBranch = LayoutBranch.main,
+    ): RatkoOid<T> {
+        val designSuffix = if (branch is DesignBranch) ".${branch.designId.intValue}" else ""
+        return RatkoOid("${FAKE_OID_PREFIX}.${contextId}.${uniqueIdInContext}${designSuffix}")
     }
 }
 
