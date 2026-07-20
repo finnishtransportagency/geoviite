@@ -70,6 +70,10 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westLayoutKmPosts
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLocationTrack
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLineGeometry
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -3066,21 +3070,17 @@ constructor(
 
     @Test
     fun `design mode location track rename can be merged to main`() {
-        val HelsinkiTestData = fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
         val tnId =
             mainOfficialContext
-                .createLayoutTrackNumber(
-                    trackNumber = HelsinkiTestData.HKI_TRACK_NUMBER_1,
-                    geometry = HelsinkiTestData.westReferenceLineGeometry(),
-                )
+                .createLayoutTrackNumber(trackNumber = HKI_TRACK_NUMBER_1, geometry = westReferenceLineGeometry())
                 .id
         testDBService.generateOid(tnId, LayoutBranch.main)
         val (ltId, _) =
             mainOfficialContext.saveWithOid(
                 locationTrack(trackNumberId = tnId, name = "Original Name"),
-                HelsinkiTestData.westMainLocationTrack(tnId).second,
+                westMainLocationTrack(tnId).second,
             )
-        HelsinkiTestData.westLayoutKmPosts(tnId).forEach(kmPostDao::save)
+        westLayoutKmPosts(tnId).forEach(kmPostDao::save)
 
         val design = testDBService.createDesignBranch()
         val designDraftCtx = testDBService.testContext(design, DRAFT)
@@ -3093,7 +3093,7 @@ constructor(
             locationTrackDao
                 .fetch(mainVersion)
                 .copy(nameStructure = trackNameStructure("Design Name", LocationTrackNamingScheme.FREE_TEXT, null)),
-            HelsinkiTestData.westMainLocationTrack(tnId).second,
+            westMainLocationTrack(tnId).second,
         )
 
         // Publish within design (design_draft → design_official), mirrors the "stage" step in UI
