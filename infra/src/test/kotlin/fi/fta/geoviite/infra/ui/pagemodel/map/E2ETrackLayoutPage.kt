@@ -184,6 +184,15 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
             .clickPrimaryButton()
     }
 
+    fun selectDesign(name: String): E2ETrackLayoutPage = apply {
+        val workspaceSelectionDropdownQaId = byQaId("workspace-selection")
+        if (!exists(workspaceSelectionDropdownQaId)) {
+            clickChild(byQaId("workspace-selection-dropdown-toggle"))
+        }
+        waitUntilExists(workspaceSelectionDropdownQaId)
+        E2EDropdown(workspaceSelectionDropdownQaId).selectByName(name)
+    }
+
     fun removeActiveDesign() {
         clickChild(byQaId("workspace-delete-button"))
         E2EDialog().clickPrimaryWarningButton()
