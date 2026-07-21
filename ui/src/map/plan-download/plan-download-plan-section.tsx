@@ -60,6 +60,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
             <div className={styles['plan-download-popup__buttons']}>
                 {selectedPlans.length === plans.length ? (
                     <Button
+                        qa-id="plan-download-unselect-all"
                         disabled={disabled}
                         size={ButtonSize.SMALL}
                         variant={ButtonVariant.SECONDARY}
@@ -68,6 +69,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                     </Button>
                 ) : (
                     <Button
+                        qa-id="plan-download-select-all"
                         disabled={disabled}
                         size={ButtonSize.SMALL}
                         variant={ButtonVariant.SECONDARY}
@@ -76,6 +78,7 @@ export const PlanDownloadPlanSection: React.FC<PlanDownloadPlanSectionProps> = (
                     </Button>
                 )}
                 <Button
+                    qa-id="plan-download-download"
                     size={ButtonSize.SMALL}
                     disabled={disabled || selectedPlans.length === 0}
                     onClick={() => {

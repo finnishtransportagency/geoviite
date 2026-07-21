@@ -5,6 +5,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type PlanDownloadPopupSectionProps = {
+    qaId: string;
     selected: boolean;
     toggleOpen: () => void;
     title: React.ReactNode;
@@ -12,6 +13,7 @@ type PlanDownloadPopupSectionProps = {
     children?: React.ReactNode;
 };
 export const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> = ({
+    qaId,
     selected,
     toggleOpen,
     title,
@@ -32,7 +34,7 @@ export const PlanDownloadPopupSection: React.FC<PlanDownloadPopupSectionProps> =
     return (
         <React.Fragment>
             <div className={styles['plan-download-popup__title-container']}>
-                <h2 className={titleClasses} onClick={() => toggleOpen()}>
+                <h2 qa-id={qaId} className={titleClasses} onClick={() => toggleOpen()}>
                     <Button
                         size={ButtonSize.X_SMALL}
                         className={chevronClasses}
