@@ -9,11 +9,13 @@ type MeasurementMethodProps = {
 
 function getTranslationKey(method: MeasurementMethodModel | undefined) {
     switch (method) {
-        case 'VERIFIED_DESIGNED_GEOMETRY':
         case 'OFFICIALLY_MEASURED_GEODETICALLY':
         case 'TRACK_INSPECTION':
         case 'DIGITIZED_AERIAL_IMAGE':
-        case 'UNVERIFIED_DESIGNED_GEOMETRY':
+        case 'POINT_CLOUD_SIGNALED':
+        case 'POINT_CLOUD_UNSIGNALED':
+        case 'GNSS_IMU':
+        case 'RTK_GNSS':
             return method;
         case undefined:
             return 'UNKNOWN';

@@ -59,7 +59,9 @@ export type KmNumberRange = {
     max: KmNumber;
 };
 
-export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE';
+export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE' | 'OUTDATED';
+
+export type PlanQuality = 'PLAN' | 'UNRELIABLE_PLAN';
 
 export type PlanApplicability = 'PLANNING' | 'MAINTENANCE' | 'STATISTICS';
 export const highestApplicability = (
@@ -101,6 +103,7 @@ export type GeometryPlanHeader = {
     hasCant: boolean;
     isHidden: boolean;
     name: string;
+    quality?: PlanQuality;
     planApplicability?: PlanApplicability;
 };
 

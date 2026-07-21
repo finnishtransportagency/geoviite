@@ -2,6 +2,7 @@ import {
     PlanApplicability,
     PlanDecisionPhase,
     PlanPhase,
+    PlanQuality,
     PlanSource,
 } from 'geometry/geometry-model';
 import {
@@ -121,14 +122,22 @@ export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = values('Pl
     'APPROVED_PLAN',
     'UNDER_CONSTRUCTION',
     'IN_USE',
+    'OUTDATED',
 ]);
 
 export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('MeasurementMethod', [
-    'VERIFIED_DESIGNED_GEOMETRY',
     'OFFICIALLY_MEASURED_GEODETICALLY',
     'TRACK_INSPECTION',
     'DIGITIZED_AERIAL_IMAGE',
-    'UNVERIFIED_DESIGNED_GEOMETRY',
+    'POINT_CLOUD_SIGNALED',
+    'POINT_CLOUD_UNSIGNALED',
+    'GNSS_IMU',
+    'RTK_GNSS',
+]);
+
+export const planQualities: LocalizedEnum<PlanQuality>[] = values('PlanQuality', [
+    'PLAN',
+    'UNRELIABLE_PLAN',
 ]);
 
 export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMethod>[] = values(

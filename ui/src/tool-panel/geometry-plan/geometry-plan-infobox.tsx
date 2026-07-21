@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
 import PlanDecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
+import PlanQualityView from 'geoviite-design-lib/geometry-plan/plan-quality';
 import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -193,6 +194,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                         qaId="geometry-plan-measurement-method"
                         label={t('tool-panel.geometry-plan.measurement-method')}
                         value={<MeasurementMethod method={planHeader.measurementMethod} />}
+                    />
+                    <InfoboxField
+                        qaId="geometry-plan-quality"
+                        label={t('tool-panel.geometry-plan.quality')}
+                        value={<PlanQualityView quality={planHeader.quality} />}
                     />
                     <InfoboxField
                         qaId="geometry-plan-coordinate-system"

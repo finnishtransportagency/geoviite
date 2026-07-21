@@ -12,6 +12,7 @@ function getTranslationKey(decision: PlanDecisionPhase | undefined) {
         case 'APPROVED_PLAN':
         case 'UNDER_CONSTRUCTION':
         case 'IN_USE':
+        case 'OUTDATED':
             return decision;
         case undefined:
             return 'UNKNOWN';

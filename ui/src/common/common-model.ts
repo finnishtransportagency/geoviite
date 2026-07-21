@@ -94,11 +94,13 @@ export type LocationAccuracy =
     | 'GEOMETRY_CALCULATED';
 
 export type MeasurementMethod =
-    | 'VERIFIED_DESIGNED_GEOMETRY'
     | 'OFFICIALLY_MEASURED_GEODETICALLY'
     | 'TRACK_INSPECTION'
     | 'DIGITIZED_AERIAL_IMAGE'
-    | 'UNVERIFIED_DESIGNED_GEOMETRY';
+    | 'POINT_CLOUD_SIGNALED'
+    | 'POINT_CLOUD_UNSIGNALED'
+    | 'GNSS_IMU'
+    | 'RTK_GNSS';
 
 export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL';
 
