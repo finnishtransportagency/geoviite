@@ -316,14 +316,14 @@ constructor(
     private fun insertExternalIdForLocationTrack(branch: LayoutBranch, id: IntId<LocationTrack>) {
         val locationTrackOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" } }
-                ?: ratkoFakeOidGenerator?.generateFakeRatkoOID(LOCATION_TRACK_FAKE_OID_CONTEXT, id.intValue)
+                ?: ratkoFakeOidGenerator?.generateFakeRatkoOID(LOCATION_TRACK_FAKE_OID_CONTEXT, id.intValue, branch)
         locationTrackOid?.let { oid -> locationTrackService.insertExternalId(branch, id, Oid(oid.id)) }
     }
 
     private fun insertExternalIdForTrackNumber(branch: LayoutBranch, id: IntId<LayoutTrackNumber>) {
         val routeNumberOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" } }
-                ?: ratkoFakeOidGenerator?.generateFakeRatkoOID(TRACK_NUMBER_FAKE_OID_CONTEXT, id.intValue)
+                ?: ratkoFakeOidGenerator?.generateFakeRatkoOID(TRACK_NUMBER_FAKE_OID_CONTEXT, id.intValue, branch)
         routeNumberOid?.let { oid -> trackNumberService.insertExternalId(branch, id, Oid(oid.id)) }
     }
 
@@ -332,7 +332,7 @@ constructor(
             switchDao.get(branch.draft, id)?.draftOid?.also { ensureDraftIdExists(it) }?.toString()
                 ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid().id) { "No OID received from RATKO" } }
                 ?: ratkoFakeOidGenerator
-                    ?.generateFakeRatkoOID<LayoutSwitch>(SWITCH_FAKE_OID_CONTEXT, id.intValue)
+                    ?.generateFakeRatkoOID<LayoutSwitch>(SWITCH_FAKE_OID_CONTEXT, id.intValue, branch)
                     ?.toString()
         switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, id, Oid(oid)) }
     }
