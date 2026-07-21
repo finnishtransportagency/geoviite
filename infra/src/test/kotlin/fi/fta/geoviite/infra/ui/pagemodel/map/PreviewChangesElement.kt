@@ -21,6 +21,12 @@ class E2EChangePreviewTable(tableBy: By) : E2ETable<E2EChangePreviewRow>(tableBy
 
     fun hasWarnings(): Boolean = warningRows.isNotEmpty()
 
+    fun getRowErrorMessages(change: E2EChangePreviewRow): List<String> {
+        val (rowElement, _) = getElementWhenMatches { it == change }
+        rowElement.findElement(By.className("preview-table-item__error-status")).click()
+        return childElements(By.className("preview-table-item__msg")).map { it.text }
+    }
+
     fun stageChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
         logger.info("Stage change $change")
 

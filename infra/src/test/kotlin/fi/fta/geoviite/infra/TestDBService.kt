@@ -418,6 +418,8 @@ class TestDBService(
 
     fun createDesignBranch(): DesignBranch = LayoutBranch.design(createLayoutDesign())
 
+    fun createDesignBranch(name: String): DesignBranch = LayoutBranch.design(layoutDesignDao.insert(layoutDesign(name)))
+
     fun layoutChangeTime(): Instant =
         listOf(
                 trackNumberDao.fetchChangeTime(),

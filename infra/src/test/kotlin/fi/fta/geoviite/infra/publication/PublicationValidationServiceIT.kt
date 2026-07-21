@@ -68,7 +68,12 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westLayoutKmPosts
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLocationTrack
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLineGeometry
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -3061,5 +3066,54 @@ constructor(
             )
 
         return validation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues }
+    }
+
+    @Test
+    fun `design mode location track rename can be merged to main`() {
+        val tnId =
+            mainOfficialContext
+                .createLayoutTrackNumber(trackNumber = HKI_TRACK_NUMBER_1, geometry = westReferenceLineGeometry())
+                .id
+        testDBService.generateOid(tnId, LayoutBranch.main)
+        val (ltId, _) =
+            mainOfficialContext.saveWithOid(
+                locationTrack(trackNumberId = tnId, name = "Original Name"),
+                westMainLocationTrack(tnId).second,
+            )
+        westLayoutKmPosts(tnId).forEach(kmPostDao::save)
+
+        val design = testDBService.createDesignBranch()
+        val designDraftCtx = testDBService.testContext(design, DRAFT)
+
+        // Rename the track in design draft (mirrors what the UI does in design mode)
+        val mainVersion =
+            locationTrackDao.fetchVersion(designDraftCtx.context, ltId)
+                ?: error("Could not fetch LT $ltId in design_draft")
+        designDraftCtx.save(
+            locationTrackDao
+                .fetch(mainVersion)
+                .copy(nameStructure = trackNameStructure("Design Name", LocationTrackNamingScheme.FREE_TEXT, null)),
+            westMainLocationTrack(tnId).second,
+        )
+
+        // Publish within design (design_draft → design_official), mirrors the "stage" step in UI
+        testDBService.publish(design, locationTracks = listOf(ltId))
+
+        // Now validate the merge to main — this is what the E2E "Julkaise" button triggers
+        val mergeIssues =
+            publicationValidationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(MergeFromDesign(design)),
+                    publicationRequestIds(locationTracks = listOf(ltId)),
+                )
+                .validatedAsPublicationUnit
+                .locationTracks
+                .flatMap { it.issues }
+
+        assertEquals(
+            emptyList<LayoutValidationIssue>(),
+            mergeIssues,
+            "Expected no validation issues but got: ${mergeIssues.map { it.localizationKey }}",
+        )
     }
 }
