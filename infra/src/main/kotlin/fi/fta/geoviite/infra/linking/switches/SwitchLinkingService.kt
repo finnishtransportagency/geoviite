@@ -239,7 +239,10 @@ constructor(
             )
         val recalc = locationTrackService.recalculateTopology(branch.draft, changedTracks, layoutSwitchId)
         saveLocationTrackChanges(branch, recalc, originalTracks)
-        return updateLayoutSwitch(branch, suggestedSwitch, layoutSwitchId)
+        return switchService.saveDraft(
+            branch,
+            createModifiedLayoutSwitchLinking(suggestedSwitch, originalSwitch, geometrySwitchId),
+        )
     }
 
     private fun collectSuggestedSwitchTracks(

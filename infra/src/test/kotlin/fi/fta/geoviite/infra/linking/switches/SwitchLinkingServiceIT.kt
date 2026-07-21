@@ -142,6 +142,26 @@ constructor(
     }
 
     @Test
+    fun `saveSwitchLinking sets sourceId when geometrySwitchId is provided`() {
+        val geometrySwitchId = setupJointLocationAccuracyTest()
+        val layoutSwitchId = switchDao.save(switch(structureId = switchStructure.id, draft = true)).id
+        val suggestedSwitch =
+            (switchLinkingService.getSuggestedSwitch(LayoutBranch.main, geometrySwitchId, layoutSwitchId)
+                    as GeometrySwitchSuggestionSuccess)
+                .switch
+        val rowVersion =
+            switchLinkingService.saveSwitchLinking(
+                LayoutBranch.main,
+                suggestedSwitch,
+                layoutSwitchId,
+                geometrySwitchId = geometrySwitchId,
+            )
+        val saved = switchDao.fetch(rowVersion)
+        assertEquals(geometrySwitchId, saved.sourceId)
+        assertEquals(GeometrySource.PLAN, saved.source)
+    }
+
+    @Test
     fun linkingExistingGeometrySwitchGetsSwitchAccuracyForJoints() {
         val geometrySwitchId = setupJointLocationAccuracyTest()
         val suggestedSwitch =
