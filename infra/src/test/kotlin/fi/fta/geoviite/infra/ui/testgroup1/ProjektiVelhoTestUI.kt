@@ -100,10 +100,11 @@ constructor(
             fakeProjektiVelho.login()
             startGeoviite()
             val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
-            velhoPage
-                // project name comes from PV metadata here
-                .acceptFirstMatching { item -> item.projectName == "testi_projekti" }
-                .save(true)
+            val importForm = velhoPage.acceptFirstMatching { item -> item.projectName == "testi_projekti" }
+            importForm.qualityFormGroup.selectDecisionPhase("Valmis")
+            importForm.qualityFormGroup.selectMeasurementMethod("Digitoitu ilmakuvasta")
+            importForm.qualityFormGroup.selectQuality("Suunnitelma")
+            importForm.save(true)
 
             waitAndClearToast("infra-model.import.success")
 

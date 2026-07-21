@@ -172,7 +172,7 @@ constructor(
         assertEquals("Sijaintiraide R36240", changedAlignment.name)
 
         previewChangesPage.stageChange("Sijaintiraide R36240").publish()
-        // selectionPanel.selectLocationTrack("R36240")
+        selectionPanel.selectLocationTrack("R36240")
 
         assertEquals("R36240", locationTrackInfobox.name)
         locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
