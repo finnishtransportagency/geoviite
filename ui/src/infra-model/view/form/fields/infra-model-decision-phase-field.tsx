@@ -12,6 +12,7 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelExtraParameterFiel
     setFieldInEdit,
     extraInframodelParameters,
     changeInExtraParametersField,
+    errors,
 }: InfraModelExtraParameterFieldProps) => {
     const { t } = useTranslation();
 
@@ -21,7 +22,8 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelExtraParameterFiel
             qaId="decision-phase-im-field"
             inEditMode={fieldInEdit === 'planDecisionPhase'}
             onEdit={() => setFieldInEdit('planDecisionPhase')}
-            onClose={() => setFieldInEdit(undefined)}>
+            onClose={() => setFieldInEdit(undefined)}
+            errors={errors}>
             {fieldInEdit !== 'planDecisionPhase' ? (
                 extraInframodelParameters.decisionPhase ? (
                     <DecisionPhase decision={extraInframodelParameters.decisionPhase} />
@@ -33,11 +35,8 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelExtraParameterFiel
                     value={
                         <Dropdown
                             wide
-                            placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.decisionPhase}
                             options={planDecisionPhases}
-                            unselectText={t('im-form.information-missing')}
-                            canUnselect
                             onChange={(decision) =>
                                 changeInExtraParametersField(decision, 'decisionPhase')
                             }

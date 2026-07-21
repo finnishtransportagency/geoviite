@@ -12,4 +12,5 @@ export type InfraModelExtraParameterFieldProps = {
         value: TValue,
         fieldName: TKey,
     ) => void;
+    errors?: string[];
 };

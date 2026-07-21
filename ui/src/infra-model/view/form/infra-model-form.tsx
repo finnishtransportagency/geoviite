@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    computePlanApplicability,
     GeometryAlignment,
     GeometryKmPost,
     GeometryPlan,
@@ -61,6 +62,7 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
 import { InfraModelPlanApplicabilityField } from 'infra-model/view/form/fields/infra-model-plan-applicability';
+import { InfraModelQualityField } from 'infra-model/view/form/fields/infra-model-quality-field';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 export type InfraModelFileSource = 'STORED' | 'PV_IMPORT' | 'FILE_UPLOAD';
@@ -97,11 +99,11 @@ export type EditablePlanField =
     | 'planDecisionPhase'
     | 'measurementMethod'
     | 'elevationMeasurementMethod'
+    | 'quality'
     | 'heightSystem'
     | 'author'
     | 'createdTime'
-    | 'source'
-    | 'planApplicability';
+    | 'source';
 
 function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
     const sorted = kmPosts
@@ -267,6 +269,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                       return t(`im-form.${error.reason}`);
                   })
             : [];
+    }
+
+    function getErrorsByProp(prop: InfraModelParametersProp) {
+        return validationIssues
+            .filter((error) => error.field === prop && error.type === FieldValidationIssueType.ERROR)
+            .map((error) => t(`im-form.${error.reason}`));
     }
 
     function selectCustomTrackNumber(tn: TrackNumber) {
@@ -595,12 +603,14 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         setFieldInEdit={setFieldInEdit}
                         extraInframodelParameters={extraInframodelParameters}
                         changeInExtraParametersField={changeInExtraParametersField}
+                        errors={getErrorsByProp('decisionPhase')}
                     />
                     <InfraModelMeasurementMethodField
                         fieldInEdit={fieldInEdit}
                         setFieldInEdit={setFieldInEdit}
                         extraInframodelParameters={extraInframodelParameters}
                         changeInExtraParametersField={changeInExtraParametersField}
+                        errors={getErrorsByProp('measurementMethod')}
                     />
                     <InfraModelElevationMeasurementMethodField
                         fieldInEdit={fieldInEdit}
@@ -636,11 +646,18 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             />
                         )}
                     </FormgroupField>
-                    <InfraModelPlanApplicabilityField
+                    <InfraModelQualityField
                         fieldInEdit={fieldInEdit}
                         setFieldInEdit={setFieldInEdit}
                         extraInframodelParameters={extraInframodelParameters}
                         changeInExtraParametersField={changeInExtraParametersField}
+                        errors={getErrorsByProp('quality')}
+                    />
+                    <InfraModelPlanApplicabilityField
+                        planApplicability={computePlanApplicability(
+                            extraInframodelParameters.quality,
+                            extraInframodelParameters.decisionPhase,
+                        )}
                     />
                 </FormgroupContent>
             </Formgroup>
