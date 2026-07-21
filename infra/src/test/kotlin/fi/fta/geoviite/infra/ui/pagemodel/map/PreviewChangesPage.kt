@@ -4,18 +4,15 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import java.time.Duration
 import org.openqa.selenium.By
 
 class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
     val changesTable: E2EChangePreviewTable by lazy {
-        waitUntilChildInvisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
         E2EChangePreviewTable(childBy(By.cssSelector("[qa-id='unstaged-changes'] table")))
     }
 
     val stagedChangesTable: E2EChangePreviewTable by lazy {
-        waitUntilChildInvisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
         E2EChangePreviewTable(childBy(By.cssSelector("[qa-id='staged-changes'] table")))
     }
 
@@ -34,7 +31,6 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
         logger.info("Switch to merge-to-main mode")
 
         clickChild(byQaId("preview-mode-merge-to-main"))
-        waitUntilChildInvisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
     }
 
     fun mergeToMain(): E2ETrackLayoutPage {

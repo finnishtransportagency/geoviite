@@ -167,8 +167,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
     const user = useLoader(getOwnUser, []);
 
-    const [showPreview, setShowPreview] = React.useState<boolean>(true);
-
     const latestValidationIdRef = React.useRef<number>(0);
     const [publicationValidationState, setPublicationValidationState] =
         React.useState<PublicationValidationState>('IN_PROGRESS');
@@ -227,8 +225,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
             setPublicationCandidates(dispatchPrevIfObjectsEqual(candidatesWithUpdatedStage));
             props.setStagedPublicationCandidateReferences(candidatesWithUpdatedStage);
-
-            setShowPreview(true);
         },
         [props.changeTimes, props.layoutContext.branch, designPublicationMode],
     );
@@ -556,11 +552,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         !showCalculatedChanges &&
                             styles['preview-view__changes--no-calculated-changes'],
                     )}>
-                    {(showPreview && (
-                        <>
-                            <section
-                                qa-id={'unstaged-changes'}
-                                className={styles['preview-section']}>
+                    <section
+                        qa-id={'unstaged-changes'}
+                        className={styles['preview-section']}>
                                 {hasDesignDraftsInDesign && (
                                     <DesignDraftsExistError
                                         goToPublishChangesMode={() =>
@@ -642,24 +636,18 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     canRevertChanges={canRevertChanges}
                                     canCancelChanges={canCancelChanges}
                                 />
-                            </section>
-                            <div className={styles['preview-section']}>
-                                {showCalculatedChanges &&
-                                    calculatedChanges &&
-                                    designPublicationMode !== 'MERGE_TO_MAIN' && (
-                                        <CalculatedChangesView
-                                            layoutContext={props.layoutContext}
-                                            calculatedChanges={calculatedChanges}
-                                        />
-                                    )}
-                                {!calculatedChanges && <Spinner />}
-                            </div>
-                        </>
-                    )) || (
-                        <div className={styles['preview-section__spinner-container']}>
-                            <Spinner />
-                        </div>
-                    )}
+                    </section>
+                    <div className={styles['preview-section']}>
+                        {showCalculatedChanges &&
+                            calculatedChanges &&
+                            designPublicationMode !== 'MERGE_TO_MAIN' && (
+                                <CalculatedChangesView
+                                    layoutContext={props.layoutContext}
+                                    calculatedChanges={calculatedChanges}
+                                />
+                            )}
+                        {!calculatedChanges && <Spinner />}
+                    </div>
                 </div>
                 <MapContext.Provider value="track-layout">
                     <MapViewContainer
