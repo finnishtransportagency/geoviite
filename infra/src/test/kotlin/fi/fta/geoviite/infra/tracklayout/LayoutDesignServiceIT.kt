@@ -6,11 +6,13 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationLogService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
+import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
@@ -81,6 +83,23 @@ constructor(
         assertEquals(listOf(), details.switches)
         assertEquals(listOf(), details.kmPosts)
         assertEquals(designId, details.layoutBranch.branch.designId)
+    }
+
+    @Test
+    fun `design publication caused by an update refers to the updated design version`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designId = designBranch.designId
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val trackNumber = designDraftContext.save(trackNumber()).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
+
+        val newName = LayoutDesignName("design name after update")
+        layoutDesignService.update(designId, designForm(designId).copy(name = newName))
+
+        val publication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, count = 1)[0]
+        val publishedIn = publication.layoutBranch as PublishedInDesign
+        assertEquals(newName, layoutDesignDao.fetchVersion(RowVersion(designId, publishedIn.designVersion)).name)
     }
 
     @Test
