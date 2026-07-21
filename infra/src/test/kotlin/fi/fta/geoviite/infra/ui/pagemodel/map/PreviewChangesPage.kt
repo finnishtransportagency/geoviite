@@ -27,7 +27,25 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
 
         waitAndClearToast("publish-success")
 
-        return E2ETrackLayoutPage()
+        return E2ETrackLayoutPage().also { map -> map.scrollMap(1, 1) }.also { map -> map.scrollMap(-1, -1) }
+    }
+
+    fun switchToMergeToMainMode(): E2EPreviewChangesPage = apply {
+        logger.info("Switch to merge-to-main mode")
+
+        clickChild(byQaId("preview-mode-merge-to-main"))
+        waitUntilChildInvisible(By.className("preview-section__spinner-container"), Duration.ofSeconds(10L))
+    }
+
+    fun mergeToMain(): E2ETrackLayoutPage {
+        logger.info("Merge changes to main")
+
+        clickChild(By.cssSelector(".preview-footer__action-buttons button"))
+        E2EPreviewMergeToMainConfirmDialog().confirm()
+
+        waitAndClearToast("merge-to-main-success")
+
+        return E2ETrackLayoutPage().also { map -> map.scrollMap(1, 1) }.also { map -> map.scrollMap(-1, -1) }
     }
 
     fun stageChanges(): E2EPreviewChangesPage = apply {
@@ -86,5 +104,14 @@ class E2EPreviewChangesSaveOrDiscardDialog : E2EDialog() {
         logger.info("Reject changes")
 
         clickWarningButton()
+    }
+}
+
+class E2EPreviewMergeToMainConfirmDialog : E2EDialog() {
+
+    fun confirm() {
+        logger.info("Confirm merge to main")
+
+        waitUntilClosed { clickChild(byQaId("publication-confirm")) }
     }
 }

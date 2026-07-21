@@ -33,11 +33,13 @@ export const PreviewToolBar: React.FC<PreviewToolBarParams> = (props: PreviewToo
                 {showingDesignProject && (
                     <span className={styles['preview-tool-bar__radio-buttons']}>
                         <Radio
+                            qaId='preview-mode-publish-changes'
                             checked={props.designPublicationMode === 'PUBLISH_CHANGES'}
                             onChange={() => props.onChangeDesignPublicationMode('PUBLISH_CHANGES')}>
                             {t('preview-toolbar.publish-changes')}
                         </Radio>
                         <Radio
+                            qaId='preview-mode-merge-to-main'
                             checked={props.designPublicationMode === 'MERGE_TO_MAIN'}
                             onChange={() => props.onChangeDesignPublicationMode('MERGE_TO_MAIN')}>
                             {t('preview-toolbar.design-to-draft')}

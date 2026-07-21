@@ -119,7 +119,15 @@ class DesignModeTestUI : SeleniumTest() {
             val errors = previewPage.stagedChangesTable.getRowErrorMessages(stagedRow)
             assertEquals(emptyList<String>(), errors, "Staged change has validation errors")
         }
-        val mapPage = previewPage.publish()
+        // PublicationInDesign: design_draft -> design_official
+        val mapPageAfterDesignPublish = previewPage.publish()
+
+        // MergeFromDesign: design_official -> main_draft
+        val mergePreviewPage = mapPageAfterDesignPublish.goToPreview()
+        mergePreviewPage.switchToMergeToMainMode()
+        mergePreviewPage.stageChange("Sijaintiraide Design Name")
+        mergePreviewPage.waitForAllTableValidationsToComplete()
+        val mapPage = mergePreviewPage.mergeToMain()
 
         mapPage.switchToDraftMode()
         mapPage.selectionPanel.selectLocationTrack("Design Name")
