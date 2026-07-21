@@ -10,13 +10,17 @@ class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
 
     fun openAreaSection(): E2EPlanDownloadPopup = apply {
         logger.info("Open plan download area section")
-        clickChild(byQaId("plan-download-section-area"))
+        if (!childExists(By.className("plan-download-popup__area-grid"))) {
+            clickChild(byQaId("plan-download-section-area"))
+        }
         waitUntilChildVisible(By.className("plan-download-popup__area-grid"))
     }
 
     fun openPlanSection(): E2EPlanDownloadPopup = apply {
         logger.info("Open plan download plan section")
-        clickChild(byQaId("plan-download-section-plan"))
+        if (!childExists(By.className("plan-download-popup__plans-container"))) {
+            clickChild(byQaId("plan-download-section-plan"))
+        }
         waitUntilChildVisible(By.className("plan-download-popup__plans-container"))
     }
 
@@ -42,7 +46,7 @@ class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
 
     fun togglePlan(name: String): E2EPlanDownloadPopup = apply {
         logger.info("Toggle plan $name selection")
-        clickChild(By.cssSelector("[qa-id='plan-download-row-$name'] input[type='checkbox']"))
+        clickChild(By.cssSelector("[qa-id='plan-download-row-$name'] label.checkbox"))
     }
 
     fun selectAll(): E2EPlanDownloadPopup = apply {
@@ -54,6 +58,12 @@ class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
         logger.info("Unselect all plans")
         clickChild(byQaId("plan-download-unselect-all"))
     }
+
+    val isAreaSectionToggleVisible: Boolean
+        get() = childExists(byQaId("plan-download-section-area"))
+
+    val isPlanSectionToggleVisible: Boolean
+        get() = childExists(byQaId("plan-download-section-plan"))
 
     val isDownloadEnabled: Boolean
         get() = getElementWhenExists(childBy(byQaId("plan-download-download"))).isEnabled
