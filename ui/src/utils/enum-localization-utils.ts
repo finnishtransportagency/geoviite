@@ -146,8 +146,8 @@ export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMeth
 );
 
 export const planApplicabilities: LocalizedEnum<PlanApplicability>[] = values('PlanApplicability', [
-    'PLANNING',
     'MAINTENANCE',
+    'PLANNING',
     'STATISTICS',
 ]);
 

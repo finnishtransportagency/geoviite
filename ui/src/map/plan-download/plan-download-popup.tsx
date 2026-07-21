@@ -195,21 +195,20 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
         filterMenuOption(
             () =>
                 delegates.setPlanDownloadApplicabilities(
-                    toggleApplicability('PLANNING', planDownloadState.selectedApplicabilities),
-                ),
-            t('plan-download.applicable-for-plans'),
-            'applicability-planning-filter',
-            planDownloadState.selectedApplicabilities.includes('PLANNING'),
-        ),
-        menuDivider(),
-        filterMenuOption(
-            () =>
-                delegates.setPlanDownloadApplicabilities(
                     toggleApplicability('MAINTENANCE', planDownloadState.selectedApplicabilities),
                 ),
             t('plan-download.applicable-for-maintenance'),
-            'applicability-planning-filter',
+            'applicability-maintenance-filter',
             planDownloadState.selectedApplicabilities.includes('MAINTENANCE'),
+        ),
+        filterMenuOption(
+            () =>
+                delegates.setPlanDownloadApplicabilities(
+                    toggleApplicability('PLANNING', planDownloadState.selectedApplicabilities),
+                ),
+            t('plan-download.applicable-for-plans'),
+            'applicability-registry-filter',
+            planDownloadState.selectedApplicabilities.includes('PLANNING'),
         ),
         filterMenuOption(
             () =>
@@ -217,7 +216,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                     toggleApplicability('STATISTICS', planDownloadState.selectedApplicabilities),
                 ),
             t('plan-download.applicable-for-statistics'),
-            'applicability-planning-filter',
+            'applicability-statistics-filter',
             planDownloadState.selectedApplicabilities.includes('STATISTICS'),
         ),
     ];

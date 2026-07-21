@@ -78,8 +78,8 @@ export const computePlanApplicability = (
 export const highestApplicability = (
     applicabilities: PlanApplicability[],
 ): PlanApplicability | undefined => {
-    if (applicabilities.includes('PLANNING')) return 'PLANNING';
     if (applicabilities.includes('MAINTENANCE')) return 'MAINTENANCE';
+    if (applicabilities.includes('PLANNING')) return 'PLANNING';
     if (applicabilities.includes('STATISTICS')) return 'STATISTICS';
     return undefined;
 };
