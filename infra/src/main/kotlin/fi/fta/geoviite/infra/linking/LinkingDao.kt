@@ -188,8 +188,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                                 and e.start_node_port = start_n.port
                     left join layout.node_port end_n
                               on es.segment_index = (e.segment_count - 1)
-                                and e.start_node_id = end_n.node_id
-                                and e.start_node_port = end_n.port
+                                and e.end_node_id = end_n.node_id
+                                and e.end_node_port = end_n.port
                   where switch.plan_id in (:plan_ids)
                     and (start_n.switch_id is not null or end_n.switch_id is not null)
               ),
