@@ -32,12 +32,16 @@ linked_switch_pairs as (
     select distinct le.geometry_switch_id, le.layout_switch_id
     from linked_edge le
         inner join layout.location_track_version_edge ltve on ltve.edge_id = le.edge_id
-        inner join layout.switch_in_layout_context('OFFICIAL'::layout.publication_state, null::int) ls
+        inner join layout.switch ls
                    on ls.id = le.layout_switch_id
-        inner join layout.location_track_in_layout_context('OFFICIAL'::layout.publication_state, null::int) lt
+                     and ls.design_id is null
+                     and not ls.draft
+        inner join layout.location_track lt
                    on ltve.location_track_id = lt.id
                      and ltve.location_track_layout_context_id = lt.layout_context_id
                      and ltve.location_track_version = lt.version
+                     and lt.design_id is null
+                     and not lt.draft
                      and lt.state != 'DELETED'
 ),
 unambiguous_pairs as (
