@@ -91,11 +91,12 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
     val value: String
         get() {
             val dropdownValueBy = By.className("field-layout__value")
-
-            val valueClass =
-                if (childExists(dropdownValueBy)) dropdownValueBy else By.className("formgroup__field-value")
-
-            return childText(valueClass)
+            if (childExists(dropdownValueBy)) return childText(dropdownValueBy)
+            // formgroup__field-value-content may be invisible when empty, so reach it via the
+            // always-visible parent to avoid a visibility timeout
+            return childElement(By.className("formgroup__field-value"))
+                .findElement(By.className("formgroup__field-value-content"))
+                .text
         }
 
     fun selectValues(values: List<String>) = apply {

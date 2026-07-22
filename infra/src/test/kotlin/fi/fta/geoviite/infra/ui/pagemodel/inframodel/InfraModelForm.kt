@@ -115,6 +115,7 @@ class E2EQualityFormGroup(formBy: By) : E2EFormGroup(formBy) {
     private val measurementMethodField: E2EFormGroupField = formGroupField("measurement-method-im-field")
     private val elevationMeasurementMethodField: E2EFormGroupField =
         formGroupField("elevation-measurement-method-im-field")
+    private val qualityField: E2EFormGroupField = formGroupField("quality-im-field")
 
     val planPhase: String
         get() = planPhaseField.value
@@ -127,6 +128,9 @@ class E2EQualityFormGroup(formBy: By) : E2EFormGroup(formBy) {
 
     val elevationMeasurementMethod: String
         get() = elevationMeasurementMethodField.value
+
+    val quality: String
+        get() = qualityField.value
 
     fun selectPlanPhase(phase: String): E2EQualityFormGroup = apply {
         logger.info("Select plan phase $phase")
@@ -150,6 +154,12 @@ class E2EQualityFormGroup(formBy: By) : E2EFormGroup(formBy) {
         logger.info("Select elevation measurement method $method")
 
         elevationMeasurementMethodField.selectValue(method)
+    }
+
+    fun selectQuality(quality: String): E2EQualityFormGroup = apply {
+        logger.info("Select quality $quality")
+
+        qualityField.selectValue(quality)
     }
 }
 

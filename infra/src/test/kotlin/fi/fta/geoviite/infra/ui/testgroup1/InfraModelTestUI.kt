@@ -37,7 +37,11 @@ class InfraModelTestUI : SeleniumTest() {
         val file = File(TESTFILE_SIMPLE_PATH)
         val infraModelPage = startGeoviiteAndGoToWork()
 
-        infraModelPage.upload(file.absolutePath).saveAsNew()
+        val uploadForm = infraModelPage.upload(file.absolutePath)
+        uploadForm.qualityFormGroup.selectDecisionPhase("Valmis")
+        uploadForm.qualityFormGroup.selectMeasurementMethod("Digitoitu ilmakuvasta")
+        uploadForm.qualityFormGroup.selectQuality("Suunnitelma")
+        uploadForm.saveAsNew()
         val infraModelEditPage = infraModelPage.openInfraModel("testfile_simple.xml")
 
         val newProjectName = "Test"
@@ -76,6 +80,9 @@ class InfraModelTestUI : SeleniumTest() {
         // val lokiJaLinkitystiedot = uploadForm.lokiJaLinkitystiedot()
         // assertEquals("11.02.2021", lokiJaLinkitystiedot.laadittu())
 
+        tilanneJaLaatutiedot.selectDecisionPhase("Valmis")
+        tilanneJaLaatutiedot.selectMeasurementMethod("Digitoitu ilmakuvasta")
+        tilanneJaLaatutiedot.selectQuality("Suunnitelma")
         uploadForm.saveAsNew()
         val infraModelPageAfterUpload = E2EInfraModelPage()
         val infraModelRowsAfterUpload = infraModelPageAfterUpload.infraModelsList
@@ -129,6 +136,9 @@ class InfraModelTestUI : SeleniumTest() {
         val korkeusasema = "Kiskon selkä"
         tilanneJaLaatutiedot.selectElevationMeasurementMethod(korkeusasema)
         assertEquals(korkeusasema, tilanneJaLaatutiedot.elevationMeasurementMethod)
+        val planQuality = "Suunnitelma"
+        tilanneJaLaatutiedot.selectQuality(planQuality)
+        assertEquals(planQuality, tilanneJaLaatutiedot.quality)
 
         // Loki- ja linkitysdata
         val lokiJaLinkitystiedotFormGroup = uploadForm.logFormGroup
@@ -157,12 +167,21 @@ class InfraModelTestUI : SeleniumTest() {
         val infraModelPage = startGeoviiteAndGoToWork()
 
         val uploadForm1 = infraModelPage.upload(file1.absolutePath)
+        uploadForm1.qualityFormGroup.selectDecisionPhase("Valmis")
+        uploadForm1.qualityFormGroup.selectMeasurementMethod("Digitoitu ilmakuvasta")
+        uploadForm1.qualityFormGroup.selectQuality("Suunnitelma")
         uploadForm1.saveAsNew()
 
         val uploadForm2 = infraModelPage.upload(file2.absolutePath)
+        uploadForm2.qualityFormGroup.selectDecisionPhase("Valmis")
+        uploadForm2.qualityFormGroup.selectMeasurementMethod("Digitoitu ilmakuvasta")
+        uploadForm2.qualityFormGroup.selectQuality("Suunnitelma")
         uploadForm2.saveAsNew()
 
         val uploadForm3 = infraModelPage.upload(file3.absolutePath)
+        uploadForm3.qualityFormGroup.selectDecisionPhase("Valmis")
+        uploadForm3.qualityFormGroup.selectMeasurementMethod("Digitoitu ilmakuvasta")
+        uploadForm3.qualityFormGroup.selectQuality("Suunnitelma")
         uploadForm3.saveAsNew()
 
         val table = infraModelPage.infraModelsList
