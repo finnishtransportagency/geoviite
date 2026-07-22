@@ -1081,7 +1081,11 @@
                 "direction-snap": "Suunnan rajoitus",
                 "no-direction-snap": "Ei rajoitusta",
                 "snap-to-end-direction": "Raiteen pään mukaan",
-                "extension-saved": "Raidetta {{track}} jatkettu"
+                "extension-saved": "Raidetta {{track}} jatkettu",
+                "validation": {
+                    "track-part-of-boundary-move": "Raiteen geometriaa ei voi jatkaa, koska raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa.",
+                    "track-deleted": "Poistetun raiteen geometriaa ei voi jatkaa"
+                }
             }
         },
         "operational-point": {

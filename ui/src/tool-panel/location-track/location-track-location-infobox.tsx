@@ -264,6 +264,24 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         }
     };
 
+    const getExtendTrackDisabledReasonTranslated = () => {
+        if (!isDraft) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        } else if (splittingState || isPartOfUnfinishedSplit(extraInfo?.partOfSplit)) {
+            return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        } else if (partOfUnpublishedBoundaryMove) {
+            return t(
+                'tool-panel.location-track.geometry-extension.validation.track-part-of-boundary-move',
+            );
+        } else if (locationTrack.state === 'DELETED') {
+            return t('tool-panel.location-track.geometry-extension.validation.track-deleted');
+        } else if (!startAndEndPoints?.start?.point || !startAndEndPoints?.end?.point) {
+            return t('tool-panel.location-track.no-geometry');
+        } else {
+            return undefined;
+        }
+    };
+
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [startingSplitting, setStartingSplitting] = React.useState<boolean>(false);
@@ -413,6 +431,15 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         !startAndEndPoints?.end?.point ||
         startingSplitting;
 
+    const extendTrackDisabled =
+        !isDraft ||
+        !!splittingState ||
+        isPartOfUnfinishedSplit(extraInfo?.partOfSplit) ||
+        partOfUnpublishedBoundaryMove ||
+        locationTrack.state === 'DELETED' ||
+        !startAndEndPoints?.start?.point ||
+        !startAndEndPoints?.end?.point;
+
     const splittingDisabled =
         locationTrack.state !== 'IN_USE' ||
         !isDraft ||
@@ -451,17 +478,20 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         );
     };
 
+    const allModifyOptionsDisabled =
+        shorteningDisabled &&
+        (trackBoundaryMoveDisabled || !showBoundaryMoveOption) &&
+        extendTrackDisabled;
+
     const modifyStartOrEndButton = (
         <div ref={modifyButtonRef}>
             <Button
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SMALL}
                 qa-id="modify-start-or-end"
-                disabled={
-                    shorteningDisabled && (trackBoundaryMoveDisabled || !showBoundaryMoveOption)
-                }
+                disabled={allModifyOptionsDisabled}
                 title={
-                    shorteningDisabled && (trackBoundaryMoveDisabled || !showBoundaryMoveOption)
+                    allModifyOptionsDisabled
                         ? getModifyStartOrEndDisabledReasonTranslated()
                         : undefined
                 }
@@ -503,10 +533,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             () => onStartExtendTrack(locationTrack.id),
                             t('tool-panel.location-track.geometry-extension.menu-item'),
                             'extend-track',
-                            false,
+                            extendTrackDisabled,
                             'CLOSE_AFTER_SELECT',
                             undefined,
-                            '',
+                            getExtendTrackDisabledReasonTranslated(),
                         ),
                     ]}
                 />
