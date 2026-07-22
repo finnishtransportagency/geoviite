@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.testdata.locationTrack
 import fi.fta.geoviite.infra.ui.testdata.referenceLineGeometryFromPoints
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -88,12 +87,12 @@ class PlanDownloadTestUI @Autowired constructor(private val testGeometryPlanServ
                 .selectAsset(locationTrackName)
                 .openPlanSection()
 
-        assertFalse(popup.isDownloadEnabled, "Download button should be disabled with nothing selected")
+        popup.waitUntilDownloadDisabled()
 
         val planName = popup.planRows.first()
         popup.togglePlan(planName)
 
-        assertTrue(popup.isDownloadEnabled, "Download button should be enabled after selecting a plan")
+        popup.waitUntilDownloadEnabled()
     }
 
     @Test
@@ -111,10 +110,8 @@ class PlanDownloadTestUI @Autowired constructor(private val testGeometryPlanServ
         val planCount = popup.planRows.size
         assertTrue(planCount > 0)
 
-        popup.selectAll()
-        assertTrue(popup.isDownloadEnabled, "Download button should be enabled after select all")
+        popup.selectAll().waitUntilDownloadEnabled()
 
-        popup.unselectAll()
-        assertFalse(popup.isDownloadEnabled, "Download button should be disabled after unselect all")
+        popup.unselectAll().waitUntilDownloadDisabled()
     }
 }

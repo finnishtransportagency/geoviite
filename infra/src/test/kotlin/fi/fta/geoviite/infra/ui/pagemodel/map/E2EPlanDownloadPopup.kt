@@ -5,6 +5,10 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import org.openqa.selenium.By
+import org.openqa.selenium.support.ui.ExpectedCondition
+import org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable
+import org.openqa.selenium.support.ui.ExpectedConditions.not
+import tryWait
 
 class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
 
@@ -46,7 +50,7 @@ class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
 
     fun togglePlan(name: String): E2EPlanDownloadPopup = apply {
         logger.info("Toggle plan $name selection")
-        clickChild(By.cssSelector("[qa-id='plan-download-row-$name'] label.checkbox"))
+        clickChild(By.cssSelector("[qa-id='plan-download-row-$name'] label"))
     }
 
     fun selectAll(): E2EPlanDownloadPopup = apply {
@@ -67,6 +71,22 @@ class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
 
     val isDownloadEnabled: Boolean
         get() = getElementWhenExists(childBy(byQaId("plan-download-download"))).isEnabled
+
+    fun waitUntilDownloadEnabled(): E2EPlanDownloadPopup = apply {
+        tryWait(
+            elementToBeClickable(childBy(byQaId("plan-download-download"))).let { cond ->
+                ExpectedCondition { cond.apply(it) != null }
+            }
+        ) {
+            "Download button did not become enabled"
+        }
+    }
+
+    fun waitUntilDownloadDisabled(): E2EPlanDownloadPopup = apply {
+        tryWait(not(elementToBeClickable(childBy(byQaId("plan-download-download"))))) {
+            "Download button did not become disabled"
+        }
+    }
 
     fun close(): Unit {
         logger.info("Close plan download popup")
