@@ -168,9 +168,19 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, List<GeometrySwitchLinkStatus>> {
+        // Hybrid: geometry switches with geometry_switch_id set on the layout switch are resolved via direct join.
+        // The remaining switches (ambiguous backfill cases where multiple geometry plans link to the same layout
+        // switch) fall back to the topology traversal. See GVT-3030.
         val sql =
             """
             with
+              direct_linked as (
+                select gs.id as geometry_switch_id
+                  from geometry.switch gs
+                    inner join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) ls
+                               on ls.geometry_switch_id = gs.id
+                  where gs.plan_id in (:plan_ids)
+              ),
               linked_edge as (
                 select
                   switch.id as geometry_switch_id,
@@ -191,10 +201,11 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                                 and e.start_node_id = end_n.node_id
                                 and e.start_node_port = end_n.port
                   where switch.plan_id in (:plan_ids)
+                    and switch.id not in (select geometry_switch_id from direct_linked)
                     and (start_n.switch_id is not null or end_n.switch_id is not null)
               ),
-              linked_switch as (
-                select distinct switch.id
+              traversal_linked as (
+                select distinct switch.id as geometry_switch_id
                   from geometry.switch
                     inner join linked_edge on linked_edge.geometry_switch_id = switch.id
                     inner join layout.location_track_version_edge ltve on ltve.edge_id = linked_edge.edge_id
@@ -206,11 +217,15 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                     inner join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) layout_switch
                               on layout_switch.id = linked_edge.layout_switch_id
                   where switch.plan_id in (:plan_ids)
-                  group by switch.id
+              ),
+              linked_switch as (
+                select geometry_switch_id from direct_linked
+                union
+                select geometry_switch_id from traversal_linked
               )
-            select switch.plan_id, switch.id, (linked_switch.id is not null) as is_linked
+            select switch.plan_id, switch.id, (ls.geometry_switch_id is not null) as is_linked
               from geometry.switch
-                left join linked_switch on switch.id = linked_switch.id
+                left join linked_switch ls on switch.id = ls.geometry_switch_id
               where switch.plan_id in (:plan_ids);
             """
                 .trimIndent()

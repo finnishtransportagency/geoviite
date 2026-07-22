@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
+import fi.fta.geoviite.infra.linking.LinkingService
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -97,6 +98,7 @@ constructor(
     private val transformationService: CoordinateTransformationService,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackDao: LocationTrackDao,
+    private val linkingService: LinkingService,
 ) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
@@ -159,6 +161,32 @@ constructor(
         val saved = switchDao.fetch(rowVersion)
         assertEquals(geometrySwitchId, saved.sourceId)
         assertEquals(GeometrySource.PLAN, saved.source)
+    }
+
+    @Test
+    fun `geometry switch is reported as linked in getGeometryPlanLinkStatuses after saveSwitchLinking`() {
+        val geometrySwitchId = setupJointLocationAccuracyTest()
+        val planId = geometryDao.getSwitchPlanId(geometrySwitchId)
+        val layoutSwitchId = switchDao.save(switch(structureId = switchStructure.id, draft = true)).id
+        val suggestedSwitch =
+            (switchLinkingService.getSuggestedSwitch(LayoutBranch.main, geometrySwitchId, layoutSwitchId)
+                    as GeometrySwitchSuggestionSuccess)
+                .switch
+        switchLinkingService.saveSwitchLinking(
+            LayoutBranch.main,
+            suggestedSwitch,
+            layoutSwitchId,
+            geometrySwitchId = geometrySwitchId,
+        )
+
+        val switchStatus =
+            linkingService
+                .getGeometryPlanLinkStatuses(mainDraftContext.context, listOf(planId))
+                .single()
+                .switches
+                .single()
+        assertEquals(geometrySwitchId, switchStatus.id)
+        assertTrue(switchStatus.isLinked)
     }
 
     @Test
