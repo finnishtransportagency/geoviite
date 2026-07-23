@@ -1,13 +1,26 @@
-# Vertical geometry diagram demo
-
-A reference implementation for drawing a railway track height (vertical geometry)
-diagram from the Geoviite _paikannuspohja v1_ API. The user picks a track number and a
-set of its location tracks; the app fetches each track's vertical profile and draws the
-height graph with PVI annotations, in the style of Geoviite's own vertical geometry
-diagram.
-
 [`vertical_geometry_api_doc.md`](vertical_geometry_api_doc.md) documents the API and
 the domain terms (PVI, tangent point, track address, …) used throughout the code.
+
+## Running
+
+```sh
+npm install
+npm run dev    # dev server; proxies API calls, see vite.config.ts
+npm test       # unit tests for the math
+npm run build  # type-check and produce dist/
+```
+
+Configure `vite.config.ts` with the URLs to the API endpoints that will be used for
+the different environments (`dev`, `test` and `prod`). The queries need to be proxied
+as Geoviite's ext API does not allow CORS.
+
+## Embedding
+
+The diagram proper (`Diagram` in
+[`src/components/diagram.tsx`](src/components/diagram.tsx)) takes everything it needs as
+props and does not touch the Redux store. Its sizes and positions are centralized in
+`DiagramDimensions` ([`src/math/coordinates.ts`](src/math/coordinates.ts)) and can be
+overridden through the `Diagram` component's `dimensions` prop to fit a host site.
 
 ## From the API to a height at a point
 
@@ -42,29 +55,3 @@ be as short as possible to follow:
    and draws the profile by sampling `profileHeightAtM` once per pixel
    ([`src/components/height-graph.tsx`](src/components/height-graph.tsx)), plus the PVI
    annotations ([`src/components/track-pvi-geometry.tsx`](src/components/track-pvi-geometry.tsx)).
-
-## Embedding
-
-The diagram proper (`Diagram` in
-[`src/components/diagram.tsx`](src/components/diagram.tsx)) takes everything it needs as
-props and does not touch the Redux store. Its sizes and positions are centralized in
-`DiagramDimensions` ([`src/math/coordinates.ts`](src/math/coordinates.ts)) and can be
-overridden through the `Diagram` component's `dimensions` prop to fit a host site.
-
-The surrounding UI (track number search, address range, location track list) is
-demo scaffolding: the eventual plan is to replace it with a routing API that returns
-the list of location tracks along a route.
-
-## Running
-
-```sh
-npm install
-npm run dev    # dev server; proxies API calls, see vite.config.ts
-npm test       # unit tests for the math
-npm run build  # type-check and produce dist/
-```
-
-The backends do not allow CORS from the dev server origin, so `vite.config.ts` proxies
-the environments under `/local`, `/dev`, `/test` and `/prod`; the environment chosen in
-the app's settings picks the proxy path. `local` expects a Geoviite backend at
-`http://localhost:8080`; the others need an API key, entered in the app.

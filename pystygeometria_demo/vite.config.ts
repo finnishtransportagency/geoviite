@@ -12,8 +12,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/local/, "/geoviite"),
         changeOrigin: true,
       },
-      // the app expects /prod, /test, and /dev to be similarly proxied to the respective
-      // Geoviite environments' APIs
+      "/test": {
+        target: "<test-geoviite-swagger url>",
+        rewrite: (path) => path.replace(/^\/local/, "/geoviite"),
+        changeOrigin: true,
+      }
+      // set up "/dev", "/prod" same as test
     },
   },
   test: {
