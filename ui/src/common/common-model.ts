@@ -100,9 +100,10 @@ export type MeasurementMethod =
     | 'POINT_CLOUD_SIGNALED'
     | 'POINT_CLOUD_UNSIGNALED'
     | 'GNSS_IMU'
-    | 'RTK_GNSS';
+    | 'RTK_GNSS'
+    | 'UNKNOWN';
 
-export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL';
+export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL' | 'UNKNOWN';
 
 export type TrackNumber = Brand<string, 'TrackNumber'>;
 

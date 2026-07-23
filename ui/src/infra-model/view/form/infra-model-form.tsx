@@ -655,8 +655,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     />
                     <InfraModelPlanApplicabilityField
                         planApplicability={computePlanApplicability(
-                            extraInframodelParameters.quality,
-                            extraInframodelParameters.decisionPhase,
+                            extraInframodelParameters.quality ?? 'UNKNOWN',
+                            extraInframodelParameters.decisionPhase ?? 'UNKNOWN',
                         )}
                     />
                 </FormgroupContent>

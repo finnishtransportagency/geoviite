@@ -16,6 +16,7 @@ function getTranslationKey(phase: PlanPhaseModel | undefined) {
         case 'MAINTENANCE':
         case 'NEW_INVESTMENT':
         case 'REMOVED_FROM_USE':
+        case 'UNKNOWN':
             return phase;
         case undefined:
             return 'UNKNOWN';
