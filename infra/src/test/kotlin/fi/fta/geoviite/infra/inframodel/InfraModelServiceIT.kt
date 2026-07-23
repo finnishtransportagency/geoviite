@@ -134,7 +134,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
                 message = FreeTextWithNewLines.of("test message 2"),
                 name = PlanName("test name 2"),
-                quality = null,
+                quality = PlanQuality.UNKNOWN,
             )
 
         val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id
