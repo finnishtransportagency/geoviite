@@ -42,8 +42,9 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchItemType } from 'asset-search/search-dropdown';
-import { useAppNavigate } from 'common/navigate';
+import { useNavigate } from 'react-router-dom';
 import { useHasPublicationLog } from 'publication/publication-utils';
+import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -105,7 +106,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     isLinkingOrSplitting,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
     const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -168,12 +169,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         : t('tool-panel.km-post.layout.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
-        delegates.startFreshSpecificItemPublicationLogSearch({
-            type: SearchItemType.KM_POST,
-            kmPost,
-        });
-        navigate('publication-search');
-    }, [kmPost, kmPostChangeTime, kmPostCreatedAndChangedTime]);
+        navigate(publicationLogUrlForItem({ type: SearchItemType.KM_POST, kmPost }));
+    }, [kmPost, navigate]);
 
     const kmPostLengthText =
         infoboxExtras?.kmLength === undefined

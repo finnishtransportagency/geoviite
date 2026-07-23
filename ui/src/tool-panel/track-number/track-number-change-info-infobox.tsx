@@ -7,13 +7,12 @@ import Infobox from 'tool-panel/infobox/infobox';
 import { useTrackNumberChangeTimes } from 'track-layout/track-layout-react-utils';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { createDelegates } from 'store/store-utils';
-import { useAppNavigate } from 'common/navigate';
+import { useNavigate } from 'react-router-dom';
 import { SearchItemType } from 'asset-search/search-dropdown';
 import { useHasPublicationLog } from 'publication/publication-utils';
 import { getTrackNumber } from 'track-layout/layout-track-number-api';
+import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 
 type TrackNumberChangeInfoInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -33,8 +32,7 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
     const createdTime = trackNumberChangeInfo?.created;
     const changedTime = trackNumberChangeInfo?.changed;
 
-    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
 
     const hasPublicationLog = useHasPublicationLog(trackNumber.id, getTrackNumber, changedTime);
     const openPublicationLogButtonTitle = hasPublicationLog
@@ -42,12 +40,8 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
         : t('tool-panel.track-number.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
-        delegates.startFreshSpecificItemPublicationLogSearch({
-            type: SearchItemType.TRACK_NUMBER,
-            trackNumber,
-        });
-        navigate('publication-search');
-    }, [trackNumber, createdTime, changedTime]);
+        navigate(publicationLogUrlForItem({ type: SearchItemType.TRACK_NUMBER, trackNumber }));
+    }, [trackNumber, navigate]);
 
     return (
         trackNumberChangeInfo && (

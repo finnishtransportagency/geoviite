@@ -25,7 +25,6 @@ import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { PublishedAsset } from 'publication/publication-api';
 
 export type LayoutValidationIssue = {
@@ -381,14 +380,6 @@ export type PublicationTableItem = {
     message: string;
     ratkoPushTime: TimeStamp;
     propChanges: PublicationChange[];
-};
-
-export type PublicationSearch = {
-    globalStartDate: TimeStamp | undefined;
-    globalEndDate: TimeStamp | undefined;
-    specificItemStartDate: TimeStamp | undefined;
-    specificItemEndDate: TimeStamp | undefined;
-    specificItem: SearchItemValue<SearchItemType> | undefined;
 };
 
 export type SplitInPublication = {

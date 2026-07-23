@@ -20,7 +20,7 @@ import {
 } from 'linking/linking-model';
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
-import { PublicationId, PublicationSearch } from 'publication/publication-model';
+import { PublicationId } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trackNumber';
@@ -92,7 +92,6 @@ export type Selection = {
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     publicationId: PublicationId | undefined;
-    publicationSearch: PublicationSearch | undefined;
 };
 
 export type VisiblePlanLayout = {

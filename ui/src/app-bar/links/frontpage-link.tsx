@@ -15,10 +15,6 @@ export const FrontpageLink: React.FC = () => {
         (state) => state.selection.publicationId,
     );
 
-    const selectedPublicationSearch = useTrackLayoutAppSelector(
-        (state) => state.selection.publicationSearch,
-    );
-
     const ratkoStatus = useCommonDataAppSelector((state) => state.ratkoStatus);
     const changeTimes = getChangeTimes();
 
@@ -35,10 +31,7 @@ export const FrontpageLink: React.FC = () => {
     function getFrontpageLink(): string {
         if (selectedPublicationId) {
             return `/publications/${selectedPublicationId}`;
-        } else if (selectedPublicationSearch) {
-            return '/publications';
         }
-
         return `/`;
     }
 
