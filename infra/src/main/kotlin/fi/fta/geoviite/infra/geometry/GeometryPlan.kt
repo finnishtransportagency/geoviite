@@ -33,7 +33,8 @@ import java.time.Instant
 fun computePlanApplicability(quality: PlanQuality, decisionPhase: PlanDecisionPhase): PlanApplicability =
     when {
         quality == PlanQuality.UNKNOWN || quality == PlanQuality.UNRELIABLE_PLAN -> PlanApplicability.STATISTICS
-        decisionPhase == PlanDecisionPhase.OUTDATED || decisionPhase == PlanDecisionPhase.UNKNOWN -> PlanApplicability.STATISTICS
+        decisionPhase == PlanDecisionPhase.OUTDATED || decisionPhase == PlanDecisionPhase.UNKNOWN ->
+            PlanApplicability.STATISTICS
         decisionPhase == PlanDecisionPhase.IN_USE -> PlanApplicability.MAINTENANCE
         else -> PlanApplicability.PLANNING
     }

@@ -14,7 +14,10 @@ class PlanApplicabilityTest {
 
     @Test
     fun `PLAN quality with UNKNOWN decision phase gives STATISTICS`() {
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.PLAN, PlanDecisionPhase.UNKNOWN))
+        assertEquals(
+            PlanApplicability.STATISTICS,
+            computePlanApplicability(PlanQuality.PLAN, PlanDecisionPhase.UNKNOWN),
+        )
     }
 
     @Test

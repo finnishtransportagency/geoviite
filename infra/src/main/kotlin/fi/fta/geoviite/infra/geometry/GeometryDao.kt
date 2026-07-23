@@ -891,7 +891,9 @@ constructor(
             planTime = rs.getInstantOrNull("plan_time"),
             trackNumber = rs.getTrackNumberOrNull("track_number"),
             measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method") ?: MeasurementMethod.UNKNOWN,
-            elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method") ?: ElevationMeasurementMethod.UNKNOWN,
+            elevationMeasurementMethod =
+                rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method")
+                    ?: ElevationMeasurementMethod.UNKNOWN,
             decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision") ?: PlanDecisionPhase.UNKNOWN,
             planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase") ?: PlanPhase.UNKNOWN,
             message = rs.getFreeTextWithNewLinesOrNull("message"),
@@ -1104,10 +1106,13 @@ constructor(
                             fileName = rs.getFileName("file_name"),
                             pvDocumentId = rs.getIntIdOrNull("projektivelho_document_id"),
                             planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase") ?: PlanPhase.UNKNOWN,
-                            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision") ?: PlanDecisionPhase.UNKNOWN,
-                            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method") ?: MeasurementMethod.UNKNOWN,
+                            decisionPhase =
+                                rs.getEnumOrNull<PlanDecisionPhase>("plan_decision") ?: PlanDecisionPhase.UNKNOWN,
+                            measurementMethod =
+                                rs.getEnumOrNull<MeasurementMethod>("measurement_method") ?: MeasurementMethod.UNKNOWN,
                             elevationMeasurementMethod =
-                                rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method") ?: ElevationMeasurementMethod.UNKNOWN,
+                                rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method")
+                                    ?: ElevationMeasurementMethod.UNKNOWN,
                             dataType = DataType.STORED,
                             message = rs.getFreeTextWithNewLinesOrNull("message"),
                             uploadTime = rs.getInstant("upload_time"),
