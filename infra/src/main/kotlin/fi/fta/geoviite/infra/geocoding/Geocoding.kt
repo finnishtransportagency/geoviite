@@ -160,18 +160,26 @@ data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoin
         ): AlignmentStartAndEnd<T> {
             val start =
                 alignment.start?.let { p ->
-                    AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin))
+                    AlignmentEndPoint(
+                        p,
+                        geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin),
+                        alignment.segments.first().startDirection,
+                    )
                 }
             val end =
                 alignment.end?.let { p ->
-                    AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin))
+                    AlignmentEndPoint(
+                        p,
+                        geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin),
+                        alignment.segments.last().endDirection,
+                    )
                 }
             return AlignmentStartAndEnd(id, start, end)
         }
     }
 }
 
-data class AlignmentEndPoint(val point: AlignmentPoint<*>, val address: TrackMeter?)
+data class AlignmentEndPoint(val point: AlignmentPoint<*>, val address: TrackMeter?, val direction: Double)
 
 data class ProjectionLine<M : GeocodingAlignmentM<M>>(
     val address: TrackMeter,

@@ -8,10 +8,12 @@ import fi.fta.geoviite.infra.linking.createGapIfNeeded
 import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.interpolateToPoint
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -246,6 +248,89 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             }
             .takeIf { it >= 0 }
             ?.let(edgesWithM::getOrNull)
+}
+
+/** The default spacing (in meters) of the geometry points that are generated for a manual track extension. */
+const val MANUAL_GEOMETRY_POINT_SPACING = 1.0
+
+fun extendGeometry(
+    geometry: LocationTrackGeometry,
+    endpointType: EndpointType,
+    extendTo: IPoint,
+): LocationTrackGeometry {
+    require(geometry.isNotEmpty) { "Cannot extend an empty track geometry: track=${geometry.trackId}" }
+    val trackId = geometry.trackId
+    val edges =
+        when (endpointType) {
+            EndpointType.START -> extendEdgeStart(geometry.edges.first(), extendTo, trackId) + geometry.edges.drop(1)
+            EndpointType.END -> geometry.edges.dropLast(1) + extendEdgeEnd(geometry.edges.last(), extendTo, trackId)
+        }
+    return TmpLocationTrackGeometry.of(edges, trackId)
+}
+
+private fun extendEdgeStart(edge: LayoutEdge, extendTo: IPoint, trackId: IntId<LocationTrack>?): List<LayoutEdge> {
+    val node = edge.startNode
+    val segment = manualSegment(extendTo, edge.firstSegmentStart)
+    val switchIn = node.switchIn
+    return when {
+        switchIn != null ->
+            listOf(
+                TmpLayoutEdge(
+                    startNode = trackBoundaryConnection(trackId, START),
+                    endNode = NodeConnection.switch(inner = null, outer = switchIn),
+                    segments = listOf(segment),
+                ),
+                edge.withStartNode(NodeConnection.switch(inner = switchIn, outer = null)),
+            )
+        else ->
+            listOf(
+                edge
+                    .withSegments(listOf(segment) + edge.segments)
+                    .withStartNode(trackBoundaryConnection(trackId, START))
+            )
+    }
+}
+
+private fun extendEdgeEnd(edge: LayoutEdge, extendTo: IPoint, trackId: IntId<LocationTrack>?): List<LayoutEdge> {
+    val node = edge.endNode
+    val segment = manualSegment(edge.lastSegmentEnd, extendTo)
+    val switchIn = node.switchIn
+    return when {
+        switchIn != null ->
+            listOf(
+                edge.withEndNode(NodeConnection.switch(inner = switchIn, outer = null)),
+                TmpLayoutEdge(
+                    startNode = NodeConnection.switch(inner = null, outer = switchIn),
+                    endNode = trackBoundaryConnection(trackId, END),
+                    segments = listOf(segment),
+                ),
+            )
+        else -> listOf(edge.withSegments(edge.segments + segment).withEndNode(trackBoundaryConnection(trackId, END)))
+    }
+}
+
+private fun trackBoundaryConnection(trackId: IntId<LocationTrack>?, type: TrackBoundaryType): NodeConnection =
+    if (trackId == null) PlaceHolderNodeConnection else NodeConnection.trackBoundary(trackId, type)
+
+fun manualSegment(from: IPoint, to: IPoint): LayoutSegment {
+    val length = lineLength(from, to)
+    require(length > LAYOUT_M_DELTA) {
+        "Cannot create a manual segment between points that are in the same location: from=$from to=$to"
+    }
+    val mValues =
+        generateSequence(0.0) { m -> m + MANUAL_GEOMETRY_POINT_SPACING }
+            .takeWhile { m -> m < length - LAYOUT_M_DELTA }
+            .toList() + length
+    val points = mValues.map { m ->
+        val point = if (m < length) interpolateToPoint(from, to, m / length) else to
+        SegmentPoint(x = point.x, y = point.y, z = null, m = LineM(m), cant = null)
+    }
+    return LayoutSegment(
+        geometry = SegmentGeometry(resolution = 1, segmentPoints = points),
+        sourceId = null,
+        sourceStartM = null,
+        source = GeometrySource.MANUAL,
+    )
 }
 
 fun calculateEdgeMValues(edges: List<LayoutEdge>): List<Range<LineM<LocationTrackM>>> {

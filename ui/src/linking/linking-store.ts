@@ -2,10 +2,12 @@ import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { fieldComparator, filterNotEmpty, first, last } from 'utils/array-utils';
 import {
+    AlignmentExtension,
     AlignmentTypeAndId,
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
     GeometryPreliminaryLinkingParameters,
+    LayoutAlignmentTypeAndId,
     LinkingAlignment,
     LinkingGeometrySwitch,
     LinkingGeometryWithAlignment,
@@ -387,6 +389,42 @@ export const linkingReducers = {
             selectedTarget: undefined,
         };
     },
+    startExtendingAlignment: (
+        state: TrackLayoutState,
+        { payload: alignment }: PayloadAction<LayoutAlignmentTypeAndId>,
+    ) => {
+        state.linkingState = {
+            type: LinkingType.ExtendingAlignment,
+            alignment,
+            state: 'preliminary',
+            issues: [],
+            directionSnap: true,
+            extension: undefined,
+        };
+    },
+    setAlignmentExtension: (
+        state: TrackLayoutState,
+        { payload: extension }: PayloadAction<AlignmentExtension>,
+    ) => {
+        if (state.linkingState?.type === LinkingType.ExtendingAlignment) {
+            state.linkingState.extension = extension;
+        }
+    },
+    clearAlignmentExtension: (state: TrackLayoutState): void => {
+        if (state.linkingState?.type === LinkingType.ExtendingAlignment) {
+            state.linkingState.extension = undefined;
+        }
+    },
+    setAlignmentDirectionSnap: (
+        state: TrackLayoutState,
+        { payload: directionSnap }: PayloadAction<boolean>,
+    ) => {
+        if (state.linkingState?.type === LinkingType.ExtendingAlignment) {
+            state.linkingState.directionSnap = directionSnap;
+            // The placed extension is stored already snapped, so it no longer matches the new mode.
+            state.linkingState.extension = undefined;
+        }
+    },
     setTrackBoundaryMoveCounterpartOptions: (
         state: TrackLayoutState,
         { payload: counterpartOptions }: PayloadAction<BoundaryMoveCounterpart[]>,
@@ -521,6 +559,7 @@ function validateLinkingState(state: LinkingState): LinkingState {
         case LinkingType.LinkingOperationalPointSwitches:
         case LinkingType.LinkingOperationalPointTracks:
         case LinkingType.TrackBoundaryMove:
+        case LinkingType.ExtendingAlignment:
             return state;
         default:
             return exhaustiveMatchingGuard(state);

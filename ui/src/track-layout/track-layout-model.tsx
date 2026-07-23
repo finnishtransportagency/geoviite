@@ -81,7 +81,7 @@ export function AlignmentPoint(
 }
 
 export type LayoutSegmentId = string;
-export type GeometrySource = 'IMPORTED' | 'GENERATED' | 'PLAN';
+export type GeometrySource = 'IMPORTED' | 'GENERATED' | 'PLAN' | 'MANUAL';
 
 export function filterAlignmentPoints(
     desiredResolution: number,
@@ -556,6 +556,8 @@ export type AddressPoint = {
 export type AlignmentEndPoint = {
     point: AlignmentPoint;
     address?: TrackMeter;
+    /** Direction of travel along the alignment at this end, in radians (atan2, 0 = +x, CCW). */
+    direction: number;
 };
 export type AlignmentStartAndEnd = {
     id: AlignmentId;

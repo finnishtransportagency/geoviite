@@ -47,6 +47,7 @@ const mapLayerOrder: MapLayerName[] = [
     'operational-points-badge-layer',
     'operational-points-placing-layer',
     'operational-points-area-placing-layer',
+    'alignment-extension-layer',
     'route-marker-layer',
     'debug-1m-points-layer',
     'debug-layer',

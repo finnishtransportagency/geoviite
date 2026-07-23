@@ -8,8 +8,9 @@ import {
 } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import type * as CssType from 'csstype';
-import { LinkingState } from 'linking/linking-model';
+import { AlignmentExtension, LinkingState } from 'linking/linking-model';
 import { Polygon } from 'model/geometry';
+import { LayoutContext } from 'common/common-model';
 
 export type DeactivateToolFn = () => void;
 
@@ -21,7 +22,8 @@ export type MapToolId =
     | 'point-location'
     | 'area-select'
     | 'route-finding'
-    | 'operational-point-area';
+    | 'operational-point-area'
+    | 'alignment-extension';
 
 export type MapToolActivateOptions = {
     onSelect: OnSelectFunction;
@@ -29,7 +31,10 @@ export type MapToolActivateOptions = {
     onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onSetOperationalPointPolygon: (polygon: Polygon) => void;
+    onSetAlignmentExtension: (extension: AlignmentExtension) => void;
+    onStopExtendingAlignment: () => void;
     linkingState: LinkingState | undefined;
+    layoutContext: LayoutContext;
 };
 
 // Returned by activate() so map-view can push updates without re-activating the tool.

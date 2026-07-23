@@ -44,8 +44,8 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveDao
 import fi.fta.geoviite.infra.trackBoundaryMove.boundaryMoveDisabledReasons
-import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
-import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
+import fi.fta.geoviite.infra.tracklayout.EndpointType.END
+import fi.fta.geoviite.infra.tracklayout.EndpointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
@@ -583,7 +583,7 @@ class LocationTrackService(
     private fun createSplitPoint(
         point: AlignmentPoint<LocationTrackM>?,
         switchId: IntId<LayoutSwitch>?,
-        endPointType: DuplicateEndPointType,
+        endPointType: EndpointType,
         geocodingContext: GeocodingContext<*>?,
     ): SplitPoint? {
         val address = point?.let { p -> geocodingContext?.getAddress(p)?.first }
@@ -897,6 +897,17 @@ class LocationTrackService(
     ): LayoutRowVersion<LocationTrack> {
         val (track, geometry) = getWithGeometryOrThrow(branch.draft, locationTrackId)
         return saveDraft(branch, track, geometry.withoutSwitch(switchId))
+    }
+
+    @Transactional
+    fun extendTrack(
+        branch: LayoutBranch,
+        locationTrackId: IntId<LocationTrack>,
+        endpointType: EndpointType,
+        extendTo: Point,
+    ): LayoutRowVersion<LocationTrack> {
+        val (track, geometry) = getWithGeometryOrThrow(branch.draft, locationTrackId)
+        return saveDraft(branch, track, extendGeometry(geometry, endpointType, extendTo))
     }
 }
 

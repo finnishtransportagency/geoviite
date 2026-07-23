@@ -1338,6 +1338,204 @@ constructor(
         }
     }
 
+    @Test
+    fun `extendTrack extends the track end and creates manual geometry`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val trackId =
+            mainDraftContext
+                .save(locationTrack(trackNumberId), trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+
+        val geometry = extendAndFetch(trackId, EndpointType.END, Point(12.5, 0.0))
+
+        // The original edge is simply extended, as it ends in a track boundary
+        assertEquals(1, geometry.edges.size)
+        assertEquals(2, geometry.segments.size)
+        assertEquals(Point(0.0, 0.0), geometry.start?.toPoint())
+        assertEquals(Point(12.5, 0.0), geometry.end?.toPoint())
+
+        val newSegment = geometry.segments.last()
+        assertEquals(GeometrySource.MANUAL, newSegment.source)
+        // Points are 1m apart, with the remainder in the last point
+        assertEquals(
+            listOf(Point(10.0, 0.0), Point(11.0, 0.0), Point(12.0, 0.0), Point(12.5, 0.0)),
+            newSegment.segmentPoints.map { p -> p.toPoint() },
+        )
+        assertEquals(listOf(0.0, 1.0, 2.0, 2.5), newSegment.segmentPoints.map { p -> p.m.distance })
+    }
+
+    @Test
+    fun `extendTrack extends the track start and creates manual geometry`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId),
+                    trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                )
+                .id
+
+        val geometry = extendAndFetch(trackId, EndpointType.START, Point(7.5, 0.0))
+
+        assertEquals(1, geometry.edges.size)
+        assertEquals(2, geometry.segments.size)
+        assertEquals(Point(7.5, 0.0), geometry.start?.toPoint())
+        assertEquals(Point(20.0, 0.0), geometry.end?.toPoint())
+
+        val newSegment = geometry.segments.first()
+        assertEquals(GeometrySource.MANUAL, newSegment.source)
+        // The points go in the track direction: from the new start towards the original one
+        assertEquals(
+            listOf(Point(7.5, 0.0), Point(8.5, 0.0), Point(9.5, 0.0), Point(10.0, 0.0)),
+            newSegment.segmentPoints.map { p -> p.toPoint() },
+        )
+        assertEquals(listOf(0.0, 1.0, 2.0, 2.5), newSegment.segmentPoints.map { p -> p.m.distance })
+    }
+
+    @Test
+    fun `extendTrack connects to an inner switch link topologically with a new edge`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val switchId =
+            mainDraftContext
+                .createSwitch(joints = listOf(switchJoint(1, Point(0.0, 0.0)), switchJoint(2, Point(10.0, 0.0))))
+                .id
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                        )
+                    ),
+                )
+                .id
+
+        val geometry = extendAndFetch(trackId, EndpointType.END, Point(13.0, 0.0))
+
+        // The switch stays where it is: a new edge is added, connecting to the same joint topologically
+        assertEquals(2, geometry.edges.size)
+        assertEquals(Point(13.0, 0.0), geometry.end?.toPoint())
+        assertEquals(switchLinkYV(switchId, 2), geometry.edges[0].endNode.switchIn)
+        assertEquals(null, geometry.edges[1].startNode.switchIn)
+        assertEquals(switchLinkYV(switchId, 2), geometry.edges[1].startNode.switchOut)
+        assertEquals(TrackBoundary(trackId, TrackBoundaryType.END), geometry.edges[1].endNode.trackBoundaryIn)
+        assertEquals(GeometrySource.MANUAL, geometry.edges[1].segments.single().source)
+    }
+
+    @Test
+    fun `extendTrack connects to an inner switch link topologically with a new edge at track start`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val switchId =
+            mainDraftContext
+                .createSwitch(joints = listOf(switchJoint(1, Point(10.0, 0.0)), switchJoint(2, Point(20.0, 0.0))))
+                .id
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                        )
+                    ),
+                )
+                .id
+
+        val geometry = extendAndFetch(trackId, EndpointType.START, Point(7.0, 0.0))
+
+        assertEquals(2, geometry.edges.size)
+        assertEquals(Point(7.0, 0.0), geometry.start?.toPoint())
+        assertEquals(TrackBoundary(trackId, TrackBoundaryType.START), geometry.edges[0].startNode.trackBoundaryIn)
+        assertEquals(null, geometry.edges[0].endNode.switchIn)
+        assertEquals(switchLinkYV(switchId, 1), geometry.edges[0].endNode.switchOut)
+        assertEquals(switchLinkYV(switchId, 1), geometry.edges[1].startNode.switchIn)
+        assertEquals(GeometrySource.MANUAL, geometry.edges[0].segments.single().source)
+    }
+
+    @Test
+    fun `extendTrack breaks a topological switch link at the extended end`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val switchId =
+            mainDraftContext
+                .createSwitch(joints = listOf(switchJoint(1, Point(10.0, 0.0)), switchJoint(2, Point(20.0, 0.0))))
+                .id
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            endOuterSwitch = switchLinkYV(switchId, 1),
+                        )
+                    ),
+                )
+                .id
+
+        val geometry = extendAndFetch(trackId, EndpointType.END, Point(12.0, 0.0))
+
+        // The edge is extended and the topology link is dropped: the user has to re-link the switch
+        assertEquals(1, geometry.edges.size)
+        assertEquals(Point(12.0, 0.0), geometry.end?.toPoint())
+        assertEquals(listOf<IntId<LayoutSwitch>>(), geometry.switchIds)
+        assertEquals(TrackBoundary(trackId, TrackBoundaryType.END), geometry.edges[0].endNode.trackBoundaryIn)
+    }
+
+    @Test
+    fun `extendTrack breaks only the outer one of head-to-head switch links at the extended end`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val innerSwitchId =
+            mainDraftContext
+                .createSwitch(joints = listOf(switchJoint(1, Point(0.0, 0.0)), switchJoint(2, Point(10.0, 0.0))))
+                .id
+        val outerSwitchId =
+            mainDraftContext
+                .createSwitch(joints = listOf(switchJoint(1, Point(10.0, 0.0)), switchJoint(2, Point(20.0, 0.0))))
+                .id
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            endInnerSwitch = switchLinkYV(innerSwitchId, 2),
+                            endOuterSwitch = switchLinkYV(outerSwitchId, 1),
+                        )
+                    ),
+                )
+                .id
+
+        val geometry = extendAndFetch(trackId, EndpointType.END, Point(12.0, 0.0))
+
+        // The inner switch link stays and the new edge connects to it topologically: only the outer
+        // link (the following switch) is dropped
+        assertEquals(2, geometry.edges.size)
+        assertEquals(Point(12.0, 0.0), geometry.end?.toPoint())
+        assertEquals(listOf(innerSwitchId), geometry.switchIds)
+        assertEquals(switchLinkYV(innerSwitchId, 2), geometry.edges[0].endNode.switchIn)
+        assertEquals(null, geometry.edges[0].endNode.switchOut)
+        assertEquals(null, geometry.edges[1].startNode.switchIn)
+        assertEquals(switchLinkYV(innerSwitchId, 2), geometry.edges[1].startNode.switchOut)
+        assertEquals(TrackBoundary(trackId, TrackBoundaryType.END), geometry.edges[1].endNode.trackBoundaryIn)
+        assertEquals(GeometrySource.MANUAL, geometry.edges[1].segments.single().source)
+    }
+
+    private fun extendAndFetch(
+        trackId: IntId<LocationTrack>,
+        endpointType: EndpointType,
+        extendTo: Point,
+    ): LocationTrackGeometry {
+        val version = locationTrackService.extendTrack(LayoutBranch.main, trackId, endpointType, extendTo)
+        assertEquals(trackId, version.id)
+        return alignmentDao.fetch(version)
+    }
+
     private fun updateDraft(
         id: IntId<LocationTrack>,
         op: (LocationTrack, LocationTrackGeometry) -> Pair<LocationTrack, LocationTrackGeometry>,

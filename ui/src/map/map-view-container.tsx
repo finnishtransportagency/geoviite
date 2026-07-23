@@ -17,6 +17,7 @@ import { MapToolMenuItem, MapToolId } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
 import { RouteLocation } from 'track-layout/track-layout-slice';
+import { stopExtendingAlignment } from 'linking/alignment-extension-utils';
 
 const emptyFn = () => void 0;
 
@@ -44,6 +45,8 @@ const getTrackLayoutProps = (): MapViewProps => {
         onShownLayerItemsChange: delegates.onShownItemsChange,
         onViewportUpdate: delegates.onViewportChange,
         onSetOperationalPointPolygon: delegates.setOperationalPointArea,
+        onSetAlignmentExtension: delegates.setAlignmentExtension,
+        onStopExtendingAlignment: () => stopExtendingAlignment(delegates),
         layoutContext: store.layoutContext,
         selection: store.selection,
         onMapLayerChange: delegates.onLayerMenuItemChange,
@@ -78,6 +81,8 @@ const getInfraModelProps = (): MapViewProps => {
         onShownLayerItemsChange: emptyFn,
         onClosePlanDownloadPopup: emptyFn,
         onSetOperationalPointPolygon: emptyFn,
+        onSetAlignmentExtension: emptyFn,
+        onStopExtendingAlignment: emptyFn,
         onViewportUpdate: delegates.onViewportChange,
         layoutContext: officialMainLayoutContext(),
         selection: store.selection,
