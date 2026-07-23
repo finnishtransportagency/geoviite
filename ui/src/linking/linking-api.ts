@@ -19,6 +19,7 @@ import {
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     SuggestedSwitch,
+    SuggestedSwitchesAtGridPoints,
     SwitchLinkingParameters,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
@@ -223,6 +224,31 @@ export async function getSuggestedSwitchForLayoutSwitchPlacing(
             location: pointString(point),
             layoutSwitchId,
         }),
+    );
+}
+
+// The suggested switch (if any) obtained by placing the given switch at each given point, in query
+// order. The wire format deduplicates identical suggestions; this decompresses it back into one
+// suggestion per query point.
+export async function getSuggestedSwitchesForLayoutSwitchPlacing(
+    layoutBranch: LayoutBranch,
+    points: Point[],
+    switchId: LayoutSwitchId,
+): Promise<(SuggestedSwitch | undefined)[]> {
+    const uri = linkingUri(layoutBranch, 'switches', 'suggested');
+    const params = queryParams({
+        points: points.map(pointString),
+        switchId,
+    });
+    const response = await getNonNull<SuggestedSwitchesAtGridPoints>(`${uri}${params}`);
+    if (response.gridSwitchIndices.length !== points.length) {
+        throw new Error(
+            `switch placing suggestion query for ${points.length} points got ` +
+                `${response.gridSwitchIndices.length} responses`,
+        );
+    }
+    return response.gridSwitchIndices.map((index) =>
+        index === null || index === undefined ? undefined : response.suggestedSwitches[index],
     );
 }
 

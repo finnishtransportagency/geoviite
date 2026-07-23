@@ -18,11 +18,16 @@ import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 
 type LayoutSwitchLinkingInfoboxProps = {
     layoutSwitch: LayoutSwitch;
-    suggestedSwitch: SuggestedSwitch;
+    // Undefined while placing the switch with no suggestion resolved at the hovered location yet.
+    suggestedSwitch: SuggestedSwitch | undefined;
     visibilities: SwitchLinkingInfoboxVisibilities;
     onVisibilityChange: (visibilities: SwitchLinkingInfoboxVisibilities) => void;
     layoutContext: LayoutContext;
     onStopLinking: () => void;
+    // False while placing, when the infobox only previews the suggestion and committing it happens
+    // by clicking the map.
+    showLinkingButtons?: boolean;
+    showJointFit?: boolean;
 };
 
 export const LayoutSwitchLinkingInfobox: React.FC<LayoutSwitchLinkingInfoboxProps> = ({
@@ -32,13 +37,18 @@ export const LayoutSwitchLinkingInfobox: React.FC<LayoutSwitchLinkingInfoboxProp
     onVisibilityChange,
     layoutContext,
     onStopLinking,
+    showLinkingButtons = true,
+    showJointFit,
 }) => {
     const { t } = useTranslation();
     const switchStructure = useSwitchStructure(layoutSwitch.switchStructureId);
-    const canLink = layoutSwitch.stateCategory !== 'NOT_EXISTING';
+    const canLink = layoutSwitch.stateCategory !== 'NOT_EXISTING' && suggestedSwitch !== undefined;
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
 
     async function link() {
+        if (suggestedSwitch === undefined) {
+            return;
+        }
         setLinkingCallInProgress(true);
         try {
             await linkSwitch(
@@ -73,30 +83,33 @@ export const LayoutSwitchLinkingInfobox: React.FC<LayoutSwitchLinkingInfoboxProp
                             status={SwitchBadgeStatus.SELECTED}
                         />
                     </InfoboxField>
-                    {switchStructure && (
+                    {switchStructure && suggestedSwitch && (
                         <SwitchJointInfoboxContainer
                             suggestedSwitch={suggestedSwitch}
                             suggestedSwitchStructure={switchStructure}
                             layoutContext={layoutContext}
+                            showFit={showJointFit}
                         />
                     )}
-                    <InfoboxButtons>
-                        <Button
-                            size={ButtonSize.SMALL}
-                            variant={ButtonVariant.SECONDARY}
-                            disabled={linkingCallInProgress}
-                            onClick={onStopLinking}>
-                            {t('tool-panel.switch.geometry.cancel')}
-                        </Button>
-                        <Button
-                            size={ButtonSize.SMALL}
-                            disabled={!canLink}
-                            isProcessing={linkingCallInProgress}
-                            qa-id="link-geometry-switch"
-                            onClick={link}>
-                            {t('tool-panel.switch.geometry.save-link')}
-                        </Button>
-                    </InfoboxButtons>
+                    {showLinkingButtons && (
+                        <InfoboxButtons>
+                            <Button
+                                size={ButtonSize.SMALL}
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={linkingCallInProgress}
+                                onClick={onStopLinking}>
+                                {t('tool-panel.switch.geometry.cancel')}
+                            </Button>
+                            <Button
+                                size={ButtonSize.SMALL}
+                                disabled={!canLink}
+                                isProcessing={linkingCallInProgress}
+                                qa-id="link-geometry-switch"
+                                onClick={link}>
+                                {t('tool-panel.switch.geometry.save-link')}
+                            </Button>
+                        </InfoboxButtons>
+                    )}
                     {layoutSwitch.stateCategory === 'NOT_EXISTING' && (
                         <InfoboxContentSpread>
                             <MessageBox type={MessageBoxType.ERROR}>

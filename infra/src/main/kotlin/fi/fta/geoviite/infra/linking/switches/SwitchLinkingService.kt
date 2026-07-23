@@ -600,7 +600,10 @@ fun <K, V> invertMapOfSets(map: Map<K, Set<V>>): Map<V, Set<K>> {
 }
 
 data class SuggestedSwitchesAtGridPoints(
+    // set of distinct switch suggestions
     val suggestedSwitches: List<SuggestedSwitch>,
+    // For input point with index i, the switch suggestion is at suggestedSwitches[gridSwitchIndices[i]], unless
+    // that point didn't successfully produce a suggestion, in which case gridSwitchIndices[i] is null.
     val gridSwitchIndices: List<Int?>,
 )
 

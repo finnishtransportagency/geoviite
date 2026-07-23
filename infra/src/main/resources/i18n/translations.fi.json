@@ -736,6 +736,7 @@
                 "not-linked": "Ei linkitetty",
                 "no-location": "Ei sijaintia",
                 "joint-number": "Piste {{number}}",
+                "linking-fit": "{{fit}} m",
                 "switch-not-existing": "Vaihde on poistettu",
                 "cant-edit-while-linking": "Vaihteen tietoja ei voi muokata linkitystilassa",
                 "publication-log-unavailable": "Vaihdetta ei ole julkaistu nykytilaan"

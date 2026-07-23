@@ -4,6 +4,7 @@ import SwitchInfobox from 'tool-panel/switch/switch-infobox';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import {
+    GeometrySwitchInfoboxVisibilities,
     SwitchInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
@@ -37,12 +38,24 @@ export const SwitchInfoboxContainer: React.FC<SwitchInfoboxContainerProps> = ({
             onDataChange={onDataChange}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
+            switchLinkingVisibilities={trackLayoutState.infoboxVisibilities.geometrySwitch}
+            onSwitchLinkingVisibilityChange={(visibilities: GeometrySwitchInfoboxVisibilities) =>
+                delegates.onInfoboxVisibilityChange({
+                    ...trackLayoutState.infoboxVisibilities,
+                    geometrySwitch: visibilities,
+                })
+            }
             placingSwitchLinkingState={
                 trackLayoutState.linkingState?.type === LinkingType.PlacingLayoutSwitch
                     ? trackLayoutState.linkingState
                     : undefined
             }
-            startSwitchPlacing={delegates.startSwitchPlacing}
+            startSwitchPlacing={(layoutSwitch) => {
+                // Force the switch-linking-layer visible so the live hover preview can render while
+                // placing; the matching stopLinking below removes it again.
+                delegates.addForcedVisibleLayer(['switch-linking-layer']);
+                delegates.startSwitchPlacing(layoutSwitch);
+            }}
             stopLinking={() => {
                 delegates.removeForcedVisibleLayer(['switch-linking-layer']);
                 delegates.stopLinking();

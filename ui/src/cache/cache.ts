@@ -11,6 +11,7 @@ export type Cache<TKey, TVal> = {
 };
 
 export type AsyncCache<TKey, TVal> = {
+    has(key: TKey): boolean;
     getImmutable(key: TKey, getter: () => Promise<TVal>): Promise<TVal>;
     get(changeTime: TimeStamp, key: TKey, getter: () => Promise<TVal>): Promise<TVal>;
     getMany<TId>(
@@ -119,6 +120,7 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
     }
 
     return {
+        has: (key: TKey) => cache.has(key),
         getImmutable: (key: TKey, getter: () => Promise<TVal>) => getCached(undefined, key, getter),
         get: (changeTime: TimeStamp, key: TKey, getter: () => Promise<TVal>) =>
             getCached(changeTime, key, getter),

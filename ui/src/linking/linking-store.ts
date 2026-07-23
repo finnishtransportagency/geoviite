@@ -195,9 +195,18 @@ export const linkingReducers = {
             type: LinkingType.PlacingLayoutSwitch,
             layoutSwitch: layoutSwitch,
             location: undefined,
+            suggestedSwitch: undefined,
             state: 'preliminary',
             issues: [],
         };
+    },
+    setSwitchPlacingSuggestion: (
+        state: TrackLayoutState,
+        { payload: suggestedSwitch }: PayloadAction<SuggestedSwitch | undefined>,
+    ): void => {
+        if (state.linkingState?.type === LinkingType.PlacingLayoutSwitch) {
+            state.linkingState.suggestedSwitch = suggestedSwitch;
+        }
     },
     startGeometrySwitchLinking: (
         state: TrackLayoutState,

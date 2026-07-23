@@ -44,7 +44,11 @@ import { getTrackMeter } from 'track-layout/layout-map-api';
 import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
-import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    GeometrySwitchInfoboxVisibilities,
+    SwitchInfoboxVisibilities,
+} from 'track-layout/track-layout-slice';
+import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
 import { refreshSwitchSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
@@ -69,6 +73,8 @@ type SwitchInfoboxProps = {
     stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;
     onVisibilityChange: (visibilities: SwitchInfoboxVisibilities) => void;
+    switchLinkingVisibilities: GeometrySwitchInfoboxVisibilities;
+    onSwitchLinkingVisibilityChange: (visibilities: GeometrySwitchInfoboxVisibilities) => void;
     onSelectLocationTrackBadge: (locationTrackId: LocationTrackId) => void;
 };
 
@@ -170,6 +176,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     startSwitchPlacing,
     visibilities,
     onVisibilityChange,
+    switchLinkingVisibilities,
+    onSwitchLinkingVisibilityChange,
     stopLinking,
     onSelectLocationTrackBadge,
 }: SwitchInfoboxProps) => {
@@ -446,6 +454,16 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     )}
                 </InfoboxContent>
             </Infobox>
+            {placingSwitchLinkingState && (
+                <LayoutSwitchLinkingInfoboxContainer
+                    layoutSwitchId={placingSwitchLinkingState.layoutSwitch.id}
+                    suggestedSwitch={placingSwitchLinkingState.suggestedSwitch}
+                    visibilities={switchLinkingVisibilities}
+                    onVisibilityChange={onSwitchLinkingVisibilityChange}
+                    showLinkingButtons={false}
+                    showJointFit={true}
+                />
+            )}
             {layoutSwitch && (
                 <React.Fragment>
                     <AssetValidationInfoboxContainer

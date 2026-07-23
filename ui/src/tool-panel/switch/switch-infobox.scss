@@ -158,4 +158,19 @@
             margin: 0 4px 4px 0;
         }
     }
+
+    &__location-track {
+        display: flex;
+        align-items: center;
+
+        .alignment-badge {
+            flex-shrink: 0;
+        }
+    }
+
+    &__linking-fit {
+        @include vayla-design.typography-caption;
+
+        white-space: nowrap;
+    }
 }

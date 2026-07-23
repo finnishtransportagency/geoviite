@@ -13,14 +13,26 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 
 type LayoutSwitchLinkingInfoboxContainerProps = {
     layoutSwitchId: LayoutSwitchId;
-    suggestedSwitch: SuggestedSwitch;
+    // Undefined while placing the switch with no suggestion resolved at the hovered location yet.
+    suggestedSwitch: SuggestedSwitch | undefined;
     visibilities: SwitchLinkingInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometrySwitchInfoboxVisibilities) => void;
+    // False while placing, when the infobox only previews the suggestion and committing it happens
+    // by clicking the map.
+    showLinkingButtons?: boolean;
+    showJointFit?: boolean;
 };
 
 export const LayoutSwitchLinkingInfoboxContainer: React.FC<
     LayoutSwitchLinkingInfoboxContainerProps
-> = ({ layoutSwitchId, suggestedSwitch, visibilities, onVisibilityChange }) => {
+> = ({
+    layoutSwitchId,
+    suggestedSwitch,
+    visibilities,
+    onVisibilityChange,
+    showLinkingButtons,
+    showJointFit,
+}) => {
     const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const layoutSwitch = useSwitch(layoutSwitchId, layoutContext, changeTimes.layoutSwitch);
@@ -39,6 +51,8 @@ export const LayoutSwitchLinkingInfoboxContainer: React.FC<
                 visibilities={visibilities}
                 onVisibilityChange={onVisibilityChange}
                 onStopLinking={onStopLinking}
+                showLinkingButtons={showLinkingButtons}
+                showJointFit={showJointFit}
             />
         )
     );
