@@ -10,7 +10,8 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Button, ButtonIconPosition, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
@@ -451,7 +452,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                         ? getModifyStartOrEndDisabledReasonTranslated()
                         : undefined
                 }
-                onClick={() => setModifyMenuOpen(true)}>
+                icon={Icons.Down}
+                iconPosition={ButtonIconPosition.END}
+                onClick={() => setModifyMenuOpen((open) => !open)}>
                 {t('tool-panel.location-track.modify-start-or-end')}
             </Button>
             {modifyMenuOpen && (
