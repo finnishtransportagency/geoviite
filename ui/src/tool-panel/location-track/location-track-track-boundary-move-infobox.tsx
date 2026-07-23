@@ -68,7 +68,14 @@ export const LocationTrackBoundaryMoveInfoboxContainer: React.FC<
                 delegates.confirmTrackBoundaryMoveCounterpartSelection()
             }
             onSaveTrackBoundaryMove={async (request) => {
-                await saveTrackBoundaryMove(layoutContext, request);
+                try {
+                    await saveTrackBoundaryMove(layoutContext, request);
+                } catch {
+                    Snackbar.error(
+                        t('tool-panel.location-track.track-boundary-move.boundary-move-failed'),
+                    );
+                    return;
+                }
                 await updateLocationTrackChangeTime();
 
                 const counterpart = linkingState.counterpart;

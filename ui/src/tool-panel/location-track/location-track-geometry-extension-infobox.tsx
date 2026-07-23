@@ -41,12 +41,19 @@ export const LocationTrackGeometryExtensionInfoboxContainer: React.FC<
             onClearExtension={() => delegates.clearAlignmentExtension()}
             onStopExtendingGeometry={() => stopExtendingAlignment(delegates)}
             onSaveExtension={async (extension) => {
-                await extendLocationTrack(
-                    layoutContext.branch,
-                    locationTrack.id,
-                    extension.end,
-                    extension.location,
-                );
+                try {
+                    await extendLocationTrack(
+                        layoutContext.branch,
+                        locationTrack.id,
+                        extension.end,
+                        extension.location,
+                    );
+                } catch {
+                    Snackbar.error(
+                        t('tool-panel.location-track.geometry-extension.extension-failed'),
+                    );
+                    return;
+                }
                 Snackbar.success(
                     t('tool-panel.location-track.geometry-extension.extension-saved', {
                         track: locationTrack.name,

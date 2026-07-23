@@ -1059,6 +1059,7 @@
                 "lock-selection": "Lukitse valinta",
                 "save-boundary-move": "Tallenna vaihtumiskohta",
                 "boundary-move-saved": "Raiteiden {{firstTrack}} ja {{secondTrack}} vaihtumiskohta siirretty osoitteeseen {{address}}",
+                "boundary-move-failed": "Vaihtumiskohdan siirtäminen epäonnistui",
                 "validation": {
                     "branch-not-main": "Vaihtumiskohtaa voi siirtää vain luonnostilassa",
                     "track-draft-exists": "Muokatun sijaintiraiteen vaihtumiskohtaa ei voi siirtää. Julkaise tai kumoa muutokset.",
@@ -1082,6 +1083,7 @@
                 "no-direction-snap": "Ei rajoitusta",
                 "snap-to-end-direction": "Raiteen pään mukaan",
                 "extension-saved": "Raidetta {{track}} jatkettu",
+                "extension-failed": "Raiteen jatkaminen epäonnistui",
                 "validation": {
                     "track-part-of-boundary-move": "Raiteen geometriaa ei voi jatkaa, koska raide on mukana julkaisemattomassa vaihtumiskohdan siirrossa.",
                     "track-deleted": "Poistetun raiteen geometriaa ei voi jatkaa"
