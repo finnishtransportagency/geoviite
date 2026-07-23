@@ -54,6 +54,7 @@ export type TrackBoundaryMoveRequest = {
     lengtheningTrackId: LocationTrackId;
     upToSwitchJoint: SwitchJointId | undefined;
     boundaryMoveDirection: BoundaryMoveDirection;
+    deleteShorteningTrack: boolean;
 };
 
 export async function saveTrackBoundaryMove(

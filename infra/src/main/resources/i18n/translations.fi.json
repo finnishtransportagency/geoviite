@@ -81,7 +81,8 @@
             "switches-part-of-split": "Raiteen {{name}} vaihteita on mukana julkaisemattomissa raiteen jakamisissa, joten vaihtumiskohtaa ei voi siirtää",
             "switch-linking-failed": "Vaihtumiskohtaa ei voitu siirtää, koska vaihteiden uudelleenlinkitys epäonnistui",
             "overlapping-addresses": "Raiteiden osoitealueet ovat päällekkäiset, joten vaihtumiskohtaa ei voi siirtää",
-            "geocoding-failed": "Raiteen {{name}} geokoodaus epäonnistui, joten vaihtumiskohtaa ei voi siirtää"
+            "geocoding-failed": "Raiteen {{name}} geokoodaus epäonnistui, joten vaihtumiskohtaa ei voi siirtää",
+            "delete-requires-empty-track": "Lyhentyvän raiteen voi poistaa vain, kun vaihtumiskohdan siirto tyhjentää sen geometrian"
         },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
@@ -1058,6 +1059,7 @@
                 "select-boundary-on-map": "Valitse uusi vaihtumiskohta kartalta.",
                 "lock-selection": "Lukitse valinta",
                 "save-boundary-move": "Tallenna vaihtumiskohta",
+                "delete-shortening-track": "Poista lyhentyvä raide",
                 "boundary-move-saved": "Raiteiden {{firstTrack}} ja {{secondTrack}} vaihtumiskohta siirretty osoitteeseen {{address}}",
                 "boundary-move-failed": "Vaihtumiskohdan siirtäminen epäonnistui",
                 "validation": {

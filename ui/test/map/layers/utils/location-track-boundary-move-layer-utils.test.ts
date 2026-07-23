@@ -7,6 +7,7 @@ import {
     computeBoundaryBar,
     farEndIsStart,
     findIntervalToMove,
+    isFarEndJoint,
     MoveInterval,
     moveMoveInterval,
     selectableTrackEnd,
@@ -228,22 +229,51 @@ describe('selectableTrackEnd', () => {
         });
     });
 
-    test('does not offer a far end that is linked to a switch', () => {
+    test('offers the far end even when it is linked to a switch', () => {
+        // The far end is always selectable; a switch joint sitting there is filtered out separately
+        // (see isFarEndJoint) so a whole-track move is signalled purely by an 'end' target.
         expect(
             selectableTrackEnd(
                 trackInfo({ startAndEnd: headEnds, startSwitchId: 'sw1' }),
                 'HEAD_FIRST',
             ),
-        ).toBeUndefined();
+        ).toEqual({ role: 'head', location: { x: 0, y: 0 } });
     });
 
-    test('a switch on the boundary end (not the far end) does not block selection', () => {
+    test('undefined when the far end point is unknown', () => {
         expect(
             selectableTrackEnd(
-                trackInfo({ startAndEnd: headEnds, endSwitchId: 'sw1' }),
+                trackInfo({ startAndEnd: startAndEnd(undefined, point(100, 0, 100)) }),
                 'HEAD_FIRST',
             ),
-        ).toEqual({ role: 'head', location: { x: 0, y: 0 } });
+        ).toBeUndefined();
+    });
+});
+
+describe('isFarEndJoint', () => {
+    // Head runs 0..100; head-first, so its far end is the start (m = 0).
+    const headEnds = startAndEnd(point(0, 0, 0), point(100, 0, 100));
+    const track = trackInfo({ startAndEnd: headEnds });
+
+    test('a joint at the far end is a far-end joint', () => {
+        expect(isFarEndJoint(joint('sw1', '1', 0, 0, 0), track, 'HEAD_FIRST')).toBe(true);
+    });
+
+    test('a joint at the boundary end is not a far-end joint', () => {
+        expect(isFarEndJoint(joint('sw1', '1', 100, 0, 100), track, 'HEAD_FIRST')).toBe(false);
+    });
+
+    test('a joint partway along the track is not a far-end joint', () => {
+        expect(isFarEndJoint(joint('sw1', '1', 50, 0, 50), track, 'HEAD_FIRST')).toBe(false);
+    });
+
+    test('tolerates a sub-millimetre m offset', () => {
+        expect(isFarEndJoint(joint('sw1', '1', 0, 0, 0.0005), track, 'HEAD_FIRST')).toBe(true);
+    });
+
+    test('not a far-end joint when the far end point is unknown', () => {
+        const noStart = trackInfo({ startAndEnd: startAndEnd(undefined, point(100, 0, 100)) });
+        expect(isFarEndJoint(joint('sw1', '1', 0, 0, 0), noStart, 'HEAD_FIRST')).toBe(false);
     });
 });
 

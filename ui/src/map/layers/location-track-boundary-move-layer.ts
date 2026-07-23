@@ -52,6 +52,7 @@ import {
     BoundaryMoveTrackRole,
     computeBoundaryBar,
     findIntervalToMove,
+    isFarEndJoint,
     MoveInterval,
     moveMoveInterval,
     SelectableTrackEnd,
@@ -179,7 +180,14 @@ const boundaryBarStyle = new Style({
 function isSelectableJoint(
     joint: LocationTrackSwitchJoint,
     switchesById: Map<LayoutSwitchId, LayoutSwitch>,
+    track: BoundaryMoveTrackInfo,
+    orientation: BoundaryOrientation | undefined,
 ): boolean {
+    // A joint at the far end is never selectable: the far end itself is always a selectable target, so
+    // that a whole-track move is signalled purely by an 'end' target.
+    if (orientation !== undefined && isFarEndJoint(joint, track, orientation)) {
+        return false;
+    }
     const layoutSwitch = switchesById.get(joint.switchId);
     const switchJoint = layoutSwitch?.joints.find((j) => j.number === joint.jointNumber);
     return switchJoint?.role === 'MAIN';
@@ -189,12 +197,13 @@ function createJointFeaturesForTrack(
     track: BoundaryMoveTrackInfo,
     boundaryJointId: SwitchJointId | undefined,
     moveInterval: MoveInterval | undefined,
+    orientation: BoundaryOrientation | undefined,
 ): Feature<LineString | OlPoint>[] {
     const switchesById = new Map(track.switches.map((s) => [s.id, s] as const));
     const features: Feature<LineString | OlPoint>[] = [];
 
     for (const joint of track.joints) {
-        if (!isSelectableJoint(joint, switchesById)) continue;
+        if (!isSelectableJoint(joint, switchesById, track, orientation)) continue;
 
         const color = boundaryMoveJointColor(track.role, joint, boundaryJointId, moveInterval);
         const style = color === 'head' ? headJointStyle : counterpartJointStyle;
@@ -215,6 +224,7 @@ function createJointFeatures(
     moveInterval: MoveInterval | undefined,
 ): Feature<LineString | OlPoint>[] {
     const selectedTarget = linkingState.selectedTarget;
+    const orientation = linkingState.counterpart?.orientation;
     const boundaryJointId: SwitchJointId | undefined =
         selectedTarget === undefined
             ? linkingState.counterpart?.connectingSwitchJoint
@@ -223,13 +233,19 @@ function createJointFeatures(
               : undefined;
 
     return [
-        ...createJointFeaturesForTrack(trackInfos.headTrack, boundaryJointId, moveInterval),
+        ...createJointFeaturesForTrack(
+            trackInfos.headTrack,
+            boundaryJointId,
+            moveInterval,
+            orientation,
+        ),
         ...(trackInfos.counterpartTrack === undefined
             ? []
             : createJointFeaturesForTrack(
                   trackInfos.counterpartTrack,
                   boundaryJointId,
                   moveInterval,
+                  orientation,
               )),
     ];
 }
@@ -413,13 +429,20 @@ export const createLocationTrackBoundaryMoveLayer = (
             return;
         }
         const hitArea = getDefaultHitArea(olMap, coordinate);
+        const orientation = linkingState.counterpart?.orientation;
         const onHead = findJointInTrackAt(trackInfos.headTrack, switchesById, hitArea);
         const onCounterpart =
             onHead === undefined && trackInfos.counterpartTrack !== undefined
                 ? findJointInTrackAt(trackInfos.counterpartTrack, switchesById, hitArea)
                 : undefined;
         const foundJoint = onHead ?? onCounterpart;
-        if (foundJoint !== undefined && isSelectableJoint(foundJoint, switchesById)) {
+        const foundTrack =
+            onHead !== undefined ? trackInfos.headTrack : trackInfos.counterpartTrack;
+        if (
+            foundJoint !== undefined &&
+            foundTrack !== undefined &&
+            isSelectableJoint(foundJoint, switchesById, foundTrack, orientation)
+        ) {
             onSelectTarget({
                 kind: 'joint',
                 role: onHead !== undefined ? 'head' : 'counterpart',
@@ -428,7 +451,6 @@ export const createLocationTrackBoundaryMoveLayer = (
             });
             return;
         }
-        const orientation = linkingState.counterpart?.orientation;
         const end =
             orientation === undefined
                 ? undefined

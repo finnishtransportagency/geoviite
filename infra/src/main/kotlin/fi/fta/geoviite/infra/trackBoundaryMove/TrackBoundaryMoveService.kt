@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.combineEdges
@@ -55,6 +56,7 @@ class TrackBoundaryMoveService(
         lengtheningTrackId: IntId<LocationTrack>,
         boundaryMoveDirection: BoundaryMoveDirection,
         upToSwitchJoint: SwitchJointId?,
+        deleteShorteningTrack: Boolean = false,
     ): IntId<TrackBoundaryMove> {
         if (layoutBranch != LayoutBranch.main) {
             throw TrackBoundaryMoveFailureException(
@@ -107,8 +109,17 @@ class TrackBoundaryMoveService(
                 boundaryMoveDirection = boundaryMoveDirection,
                 upToSwitchJoint = upToSwitchJoint,
             )
+        if (deleteShorteningTrack && !geometries.shortenedGeometry.isEmpty) {
+            throw TrackBoundaryMoveFailureException(
+                "cannot delete the shortening track $shorteningTrackId when the boundary move leaves it with geometry",
+                localizedMessageKey = "delete-requires-empty-track",
+            )
+        }
         locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
         locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
+        if (deleteShorteningTrack) {
+            locationTrackService.updateState(layoutBranch, shorteningTrackId, LocationTrackState.DELETED)
+        }
         val relinkedSwitches =
             relinkMovedSwitches(
                 layoutBranch,

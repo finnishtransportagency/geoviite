@@ -50,6 +50,7 @@ data class TrackBoundaryMoveRequest(
     val lengtheningTrackId: IntId<LocationTrack>,
     val upToSwitchJoint: SwitchJointId?,
     val boundaryMoveDirection: BoundaryMoveDirection,
+    val deleteShorteningTrack: Boolean,
 )
 
 data class SwitchJointId(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)

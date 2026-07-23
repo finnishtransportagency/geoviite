@@ -24,6 +24,7 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
@@ -135,8 +136,7 @@ const boundaryMoveDisabledReasonTranslationKeys: Record<BoundaryMoveDisabledReas
         'tool-panel.location-track.track-boundary-move.validation.on-different-track-number',
     OVERLAPPING_ADDRESSES:
         'tool-panel.location-track.track-boundary-move.validation.overlapping-addresses',
-    GEOCODING_FAILED:
-        'tool-panel.location-track.track-boundary-move.validation.geocoding-failed',
+    GEOCODING_FAILED: 'tool-panel.location-track.track-boundary-move.validation.geocoding-failed',
 };
 
 export const translatedBoundaryMoveDisabledReasons = (
@@ -179,6 +179,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
         [],
     );
     const [saving, setSaving] = React.useState(false);
+    const [deleteShorteningTrack, setDeleteShorteningTrack] = React.useState(true);
 
     const [candidates, candidatesLoaderStatus] = useLoaderWithStatus(async () => {
         const options = await getTrackBoundaryMoveCounterpartOptions(
@@ -223,6 +224,7 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
             lengtheningTrackId: headShortens ? counterpart.trackId : locationTrack.id,
             upToSwitchJoint: selectedTarget.kind === 'joint' ? selectedTarget.joint : undefined,
             boundaryMoveDirection,
+            deleteShorteningTrack: selectedTarget.kind === 'end' && deleteShorteningTrack,
         }).finally(() => setSaving(false));
     };
 
@@ -263,6 +265,18 @@ const LocationTrackBoundaryMoveInfobox: React.FC<LocationTrackBoundaryMoveInfobo
                                     'tool-panel.location-track.track-boundary-move.select-boundary-on-map',
                                 )}
                             </MessageBox>
+                        )}
+
+                        {linkingState.selectedTarget?.kind === 'end' && (
+                            <div>
+                                <Checkbox
+                                    checked={deleteShorteningTrack}
+                                    onChange={(e) => setDeleteShorteningTrack(e.target.checked)}>
+                                    {t(
+                                        'tool-panel.location-track.track-boundary-move.delete-shortening-track',
+                                    )}
+                                </Checkbox>
+                            </div>
                         )}
 
                         <InfoboxButtons>
