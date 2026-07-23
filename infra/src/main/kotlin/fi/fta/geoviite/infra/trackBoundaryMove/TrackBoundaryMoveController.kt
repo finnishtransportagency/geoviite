@@ -27,6 +27,7 @@ class TrackBoundaryMoveController(private val trackBoundaryMoveService: TrackBou
             lengtheningTrackId = request.lengtheningTrackId,
             upToSwitchJoint = request.upToSwitchJoint,
             boundaryMoveDirection = request.boundaryMoveDirection,
+            deleteShorteningTrack = request.deleteShorteningTrack,
         )
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

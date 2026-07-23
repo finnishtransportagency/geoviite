@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.combineEdges
@@ -55,6 +56,7 @@ class TrackBoundaryMoveService(
         lengtheningTrackId: IntId<LocationTrack>,
         boundaryMoveDirection: BoundaryMoveDirection,
         upToSwitchJoint: SwitchJointId?,
+        deleteShorteningTrack: Boolean = false,
     ): IntId<TrackBoundaryMove> {
         if (layoutBranch != LayoutBranch.main) {
             throw TrackBoundaryMoveFailureException(
@@ -69,6 +71,55 @@ class TrackBoundaryMoveService(
         val (shorteningTrack, shorteningTrackGeometry) = locationTrackService.getWithGeometry(shorteningTrackVersion)
         val (lengtheningTrack, lengtheningTrackGeometry) = locationTrackService.getWithGeometry(lengtheningTrackVersion)
 
+        validateBoundaryMoveTracks(
+            layoutBranch = layoutBranch,
+            context = context,
+            shorteningTrackId = shorteningTrackId,
+            lengtheningTrackId = lengtheningTrackId,
+            shorteningTrack = shorteningTrack,
+            shorteningTrackGeometry = shorteningTrackGeometry,
+            lengtheningTrack = lengtheningTrack,
+            lengtheningTrackGeometry = lengtheningTrackGeometry,
+        )
+
+        val geometries =
+            getTrackBoundaryMoveGeometry(
+                shorteningTrackGeometry = shorteningTrackGeometry,
+                lengtheningTrackGeometry = lengtheningTrackGeometry,
+                shorteningTrackId = shorteningTrackVersion.id,
+                lengtheningTrackId = lengtheningTrackVersion.id,
+                boundaryMoveDirection = boundaryMoveDirection,
+                upToSwitchJoint = upToSwitchJoint,
+            )
+        if (deleteShorteningTrack && !geometries.shortenedGeometry.isEmpty) {
+            throw TrackBoundaryMoveFailureException(
+                "cannot delete the shortening track $shorteningTrackId when the boundary move leaves it with geometry",
+                localizedMessageKey = "delete-requires-empty-track",
+            )
+        }
+
+        return applyBoundaryMove(
+            layoutBranch = layoutBranch,
+            shorteningTrack = shorteningTrack,
+            shorteningTrackVersion = shorteningTrackVersion,
+            shorteningTrackGeometry = shorteningTrackGeometry,
+            lengtheningTrack = lengtheningTrack,
+            lengtheningTrackVersion = lengtheningTrackVersion,
+            geometries = geometries,
+            deleteShorteningTrack = deleteShorteningTrack,
+        )
+    }
+
+    private fun validateBoundaryMoveTracks(
+        layoutBranch: LayoutBranch,
+        context: LayoutContext,
+        shorteningTrackId: IntId<LocationTrack>,
+        lengtheningTrackId: IntId<LocationTrack>,
+        shorteningTrack: LocationTrack,
+        shorteningTrackGeometry: LocationTrackGeometry,
+        lengtheningTrack: LocationTrack,
+        lengtheningTrackGeometry: LocationTrackGeometry,
+    ) {
         val unfinishedSplits = splitDao.fetchUnfinishedSplits(layoutBranch)
         val unpublishedBoundaryMoves = findUnpublishedBoundaryMoves(layoutBranch)
         val expectedTrackNumberId = lengtheningTrack.trackNumberId
@@ -97,18 +148,23 @@ class TrackBoundaryMoveService(
                 localizedMessageKey = "overlapping-addresses",
             )
         }
+    }
 
-        val geometries =
-            getTrackBoundaryMoveGeometry(
-                shorteningTrackGeometry = shorteningTrackGeometry,
-                lengtheningTrackGeometry = lengtheningTrackGeometry,
-                shorteningTrackId = shorteningTrackVersion.id,
-                lengtheningTrackId = lengtheningTrackVersion.id,
-                boundaryMoveDirection = boundaryMoveDirection,
-                upToSwitchJoint = upToSwitchJoint,
-            )
+    private fun applyBoundaryMove(
+        layoutBranch: LayoutBranch,
+        shorteningTrack: LocationTrack,
+        shorteningTrackVersion: LayoutRowVersion<LocationTrack>,
+        shorteningTrackGeometry: LocationTrackGeometry,
+        lengtheningTrack: LocationTrack,
+        lengtheningTrackVersion: LayoutRowVersion<LocationTrack>,
+        geometries: TrackBoundaryMoveGeometry,
+        deleteShorteningTrack: Boolean,
+    ): IntId<TrackBoundaryMove> {
         locationTrackService.saveDraft(layoutBranch, shorteningTrack, geometries.shortenedGeometry)
         locationTrackService.saveDraft(layoutBranch, lengtheningTrack, geometries.lengthenedGeometry)
+        if (deleteShorteningTrack) {
+            locationTrackService.updateState(layoutBranch, shorteningTrackVersion.id, LocationTrackState.DELETED)
+        }
         val relinkedSwitches =
             relinkMovedSwitches(
                 layoutBranch,

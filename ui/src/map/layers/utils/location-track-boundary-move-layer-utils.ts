@@ -117,22 +117,35 @@ export type SelectableTrackEnd = {
     location: Point;
 };
 
+// The far end (the end away from the boundary) of a track, or undefined if unknown.
+function farEndPoint(
+    track: BoundaryMoveTrackInfo,
+    orientation: BoundaryOrientation,
+): AlignmentPoint | undefined {
+    const isStart = farEndIsStart(track.role, orientation);
+    return (isStart ? track.startAndEnd?.start : track.startAndEnd?.end)?.point;
+}
+
 export function selectableTrackEnd(
     track: BoundaryMoveTrackInfo,
     orientation: BoundaryOrientation,
 ): SelectableTrackEnd | undefined {
-    const isStart = farEndIsStart(track.role, orientation);
-    const switchId = isStart ? track.locationTrack.startSwitchId : track.locationTrack.endSwitchId;
-    // having a start/end switchId doesn't imply that the track ends at a main joint, so this can leave a track end
-    // unselectable (as it's filtered out both here and in isSelectableJoint); but that's fine, because we don't
-    // actually want tracks ending at non-main joints anyway
-    if (switchId !== undefined) {
-        return undefined;
-    }
-    const point = (isStart ? track.startAndEnd?.start : track.startAndEnd?.end)?.point;
+    const point = farEndPoint(track, orientation);
     return point === undefined
         ? undefined
         : { role: track.role, location: { x: point.x, y: point.y } };
+}
+
+// Tolerance (m) for treating a joint's m-value as coinciding with the track's far end.
+const FAR_END_JOINT_M_TOLERANCE = 0.001;
+
+export function isFarEndJoint(
+    joint: LocationTrackSwitchJoint,
+    track: BoundaryMoveTrackInfo,
+    orientation: BoundaryOrientation,
+): boolean {
+    const endM = farEndPoint(track, orientation)?.m;
+    return endM !== undefined && Math.abs(joint.m - endM) <= FAR_END_JOINT_M_TOLERANCE;
 }
 
 function endMoveInterval(
