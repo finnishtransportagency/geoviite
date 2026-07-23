@@ -61,7 +61,7 @@ export const PlanDownloadRow: React.FC<PlanItemProps> = ({
     );
 
     return (
-        <li className={classNames}>
+        <li qa-id={`plan-download-row-${name}`} className={classNames}>
             <Checkbox
                 checked={checked}
                 onChange={() => setPlanSelected(id, !checked)}

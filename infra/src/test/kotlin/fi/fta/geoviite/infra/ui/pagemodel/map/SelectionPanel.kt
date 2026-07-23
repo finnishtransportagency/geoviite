@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
+import waitUntilVisible
 
 class E2ESelectionPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("track-layout__navi")) {
 
@@ -88,5 +90,12 @@ class E2ESelectionPanel(parentView: E2EViewFragment) : E2EViewFragment(parentVie
 
     fun waitUntilLocationTrackVisible(name: String): E2ESelectionPanel = apply {
         locationTracksList.waitUntilItemMatches { it.name == name }
+    }
+
+    fun openPlanDownloadPopup(): E2EPlanDownloadPopup {
+        logger.info("Open plan download popup")
+        clickChild(byQaId("plan-download-open"))
+        waitUntilVisible(byQaId("plan-download-popup"))
+        return E2EPlanDownloadPopup()
     }
 }

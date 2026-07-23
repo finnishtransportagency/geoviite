@@ -249,6 +249,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <div>
                         <Button
+                            qa-id="plan-download-open"
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.GHOST}
                             isPressed={planDownloadPopupOpen}

@@ -227,7 +227,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             : delegates.setOpenPopupSection(section);
 
     return createPortal(
-        <div className={styles['plan-download-popup']}>
+        <div qa-id="plan-download-popup" className={styles['plan-download-popup']}>
             <h1 className={titleClasses}>
                 {t('plan-download.title')}
                 <span className={styles['plan-download-popup__close']}>
@@ -240,6 +240,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 </span>
             </h1>
             <PlanDownloadPopupSection
+                qaId="plan-download-section-area"
                 selected={planDownloadState.openPopupSection === 'AREA'}
                 toggleOpen={() => toggleSectionOpen('AREA')}
                 title={
@@ -269,6 +270,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                 )}
             </PlanDownloadPopupSection>
             <PlanDownloadPopupSection
+                qaId="plan-download-section-plan"
                 selected={planDownloadState.openPopupSection === 'PLAN'}
                 toggleOpen={() => toggleSectionOpen('PLAN')}
                 title={
