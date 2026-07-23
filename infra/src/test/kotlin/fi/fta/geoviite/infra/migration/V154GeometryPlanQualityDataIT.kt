@@ -260,7 +260,7 @@ class V154GeometryPlanQualityDataIT @Autowired constructor(val geometryDao: Geom
         return try {
             geometryDao
                 .insertPlan(
-                    plan(source = source, measurementMethod = mm, alignments = listOf(geometryAlignment())),
+                    plan(source = source, measurementMethod = mm ?: MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY, alignments = listOf(geometryAlignment())),
                     infraModelFile(),
                     null,
                 )

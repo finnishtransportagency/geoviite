@@ -22,15 +22,6 @@ class PlanApplicabilityTest {
         PlanDecisionPhase.entries.forEach { phase ->
             assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.UNRELIABLE_PLAN, phase))
         }
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.UNRELIABLE_PLAN, null))
-    }
-
-    @Test
-    fun `null quality gives STATISTICS`() {
-        PlanDecisionPhase.entries.forEach { phase ->
-            assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(null, phase))
-        }
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(null, null))
     }
 
     @Test
@@ -47,11 +38,6 @@ class PlanApplicabilityTest {
             PlanApplicability.STATISTICS,
             computePlanApplicability(PlanQuality.PLAN, PlanDecisionPhase.OUTDATED),
         )
-    }
-
-    @Test
-    fun `PLAN quality with null decision phase gives STATISTICS`() {
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.PLAN, null))
     }
 
     @Test
