@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.geography.create2DPoint
 import fi.fta.geoviite.infra.geography.create3DMLineString
 import fi.fta.geoviite.infra.geography.get3DMLineStringContent
 import fi.fta.geoviite.infra.geography.parseSegmentPoint
@@ -645,6 +646,12 @@ class LayoutAlignmentDao(
             return listOf()
         }
 
+        // Query each distinct point once and regroup per target afterwards: targets often share
+        // points, and single-point probes keep the spatial index windows small even when one
+        // target's points are spread out
+        val distinctPoints = targets.flatMap { it.points }.distinct()
+        val pointIndexes = distinctPoints.withIndex().associate { (ix, point) -> point to ix }
+
         val sql =
             """
             with target as materialized (
@@ -685,13 +692,13 @@ class LayoutAlignmentDao(
 
         val params =
             mapOf(
-                "target_wkts" to targets.map(MultiPoint::toWkt),
+                "target_wkts" to distinctPoints.map(::create2DPoint),
                 "publication_state" to context.state.name,
                 "design_id" to context.branch.designId?.intValue,
                 "distance" to distance,
                 "srid" to LAYOUT_SRID.code,
             )
-        val connectionsByIndex =
+        val connectionsByPointIndex =
             jdbcTemplate
                 .query(sql, params) { rs, _ ->
                     val trackVersion = rs.getLayoutRowVersion<LocationTrack>("id", "layout_context_id", "version")
@@ -699,14 +706,14 @@ class LayoutAlignmentDao(
                     index to (rs.getIntId<LayoutNode>("node_id") to trackVersion)
                 }
                 .groupBy({ it.first }, { it.second })
-                .mapValues { (_, nodeConnections) -> nodeConnections.groupBy({ it.first }, { it.second }) }
-        val nodes = fetchNodes(connectionsByIndex.values.flatMap { it.keys }.toSet())
-        return targets.indices.map { ix ->
-            (connectionsByIndex[ix] ?: mapOf()).let { connections ->
-                connections.map { (nodeId, entries) ->
-                    NodeTrackConnections(requireNotNull(nodes[nodeId]), entries.toSet())
+        val nodes = fetchNodes(connectionsByPointIndex.values.flatten().map { (nodeId, _) -> nodeId }.toSet())
+        return targets.map { target ->
+            target.points
+                .flatMap { point -> connectionsByPointIndex[pointIndexes.getValue(point)] ?: listOf() }
+                .groupBy({ (nodeId, _) -> nodeId }, { (_, trackVersion) -> trackVersion })
+                .map { (nodeId, trackVersions) ->
+                    NodeTrackConnections(requireNotNull(nodes[nodeId]), trackVersions.toSet())
                 }
-            }
         }
     }
 
