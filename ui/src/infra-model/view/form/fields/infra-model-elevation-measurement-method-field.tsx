@@ -25,7 +25,7 @@ export const InfraModelElevationMeasurementMethodField: React.FC<
             onEdit={() => setFieldInEdit('elevationMeasurementMethod')}
             onClose={() => setFieldInEdit(undefined)}>
             {fieldInEdit !== 'elevationMeasurementMethod' ? (
-                extraInframodelParameters.elevationMeasurementMethod ? (
+                extraInframodelParameters.elevationMeasurementMethod !== undefined ? (
                     <ElevationMeasurementMethod
                         method={extraInframodelParameters.elevationMeasurementMethod}
                     />
@@ -37,11 +37,8 @@ export const InfraModelElevationMeasurementMethodField: React.FC<
                     value={
                         <Dropdown
                             wide
-                            placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.elevationMeasurementMethod}
                             options={elevationMeasurementMethods}
-                            unselectText={t('im-form.information-missing')}
-                            canUnselect={true}
                             onChange={(elevationMeasurementMethod) =>
                                 changeInExtraParametersField(
                                     elevationMeasurementMethod,
