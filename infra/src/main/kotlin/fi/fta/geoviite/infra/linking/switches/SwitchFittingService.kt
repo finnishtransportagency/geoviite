@@ -484,6 +484,7 @@ private fun mapMeasurementMethodToLocationAccuracy(mm: MeasurementMethod): Locat
         MeasurementMethod.POINT_CLOUD_UNSIGNALED -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
         MeasurementMethod.GNSS_IMU -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
         MeasurementMethod.RTK_GNSS -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.UNKNOWN -> LocationAccuracy.DIGITIZED_AERIAL_IMAGE
     }
 
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5

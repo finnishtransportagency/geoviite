@@ -24,6 +24,7 @@ enum class PlanPhase {
     MAINTENANCE,
     NEW_INVESTMENT,
     REMOVED_FROM_USE,
+    UNKNOWN,
 }
 
 enum class PlanDecisionPhase {
@@ -31,11 +32,13 @@ enum class PlanDecisionPhase {
     UNDER_CONSTRUCTION,
     IN_USE,
     OUTDATED,
+    UNKNOWN,
 }
 
 enum class PlanQuality {
     PLAN,
     UNRELIABLE_PLAN,
+    UNKNOWN,
 }
 
 enum class PlanApplicability {
