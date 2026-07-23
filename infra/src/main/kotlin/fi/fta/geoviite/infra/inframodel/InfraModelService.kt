@@ -212,9 +212,6 @@ constructor(
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
 
-        // Nullable fields that do not contain a default parameter via the elvis-operator are
-        // considered to be assignable
-        // to null even if they have non-null values stored in the database.
         return plan.copy(
             units =
                 plan.units.copy(
@@ -227,16 +224,16 @@ constructor(
             project = planProject,
             author = planAuthor,
             application = application,
-            planPhase = extraInfoParameters?.planPhase,
-            decisionPhase = extraInfoParameters?.decisionPhase,
-            measurementMethod = extraInfoParameters?.measurementMethod,
-            elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
+            planPhase = extraInfoParameters?.planPhase ?: plan.planPhase,
+            decisionPhase = extraInfoParameters?.decisionPhase ?: plan.decisionPhase,
+            measurementMethod = extraInfoParameters?.measurementMethod ?: plan.measurementMethod,
+            elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod ?: plan.elevationMeasurementMethod,
             message = extraInfoParameters?.message ?: plan.message,
             name = extraInfoParameters?.name ?: plan.name,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,
-            quality = extraInfoParameters?.quality,
+            quality = extraInfoParameters?.quality ?: plan.quality,
         )
     }
 

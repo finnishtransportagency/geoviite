@@ -890,10 +890,10 @@ constructor(
             kmNumberRange = range,
             planTime = rs.getInstantOrNull("plan_time"),
             trackNumber = rs.getTrackNumberOrNull("track_number"),
-            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
-            elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
-            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
-            planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
+            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method") ?: MeasurementMethod.UNKNOWN,
+            elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method") ?: ElevationMeasurementMethod.UNKNOWN,
+            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision") ?: PlanDecisionPhase.UNKNOWN,
+            planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase") ?: PlanPhase.UNKNOWN,
             message = rs.getFreeTextWithNewLinesOrNull("message"),
             linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
             uploadTime = rs.getInstant("upload_time"),
@@ -910,7 +910,7 @@ constructor(
             hasCant = rs.getBoolean("has_cant"),
             isHidden = rs.getBoolean("hidden"),
             name = rs.getPlanName("name"),
-            quality = rs.getEnumOrNull<PlanQuality>("quality"),
+            quality = rs.getEnumOrNull<PlanQuality>("quality") ?: PlanQuality.UNKNOWN,
         )
     }
 
@@ -1103,17 +1103,17 @@ constructor(
                             kmPosts = fetchKmPosts(planVersion.id),
                             fileName = rs.getFileName("file_name"),
                             pvDocumentId = rs.getIntIdOrNull("projektivelho_document_id"),
-                            planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
-                            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
-                            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
+                            planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase") ?: PlanPhase.UNKNOWN,
+                            decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision") ?: PlanDecisionPhase.UNKNOWN,
+                            measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method") ?: MeasurementMethod.UNKNOWN,
                             elevationMeasurementMethod =
-                                rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
+                                rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method") ?: ElevationMeasurementMethod.UNKNOWN,
                             dataType = DataType.STORED,
                             message = rs.getFreeTextWithNewLinesOrNull("message"),
                             uploadTime = rs.getInstant("upload_time"),
                             isHidden = rs.getBoolean("hidden"),
                             name = rs.getPlanName("name"),
-                            quality = rs.getEnumOrNull<PlanQuality>("quality"),
+                            quality = rs.getEnumOrNull<PlanQuality>("quality") ?: PlanQuality.UNKNOWN,
                         )
                     geometryPlan
                 }
