@@ -5,6 +5,7 @@ import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
+import fi.fta.geoviite.infra.ui.util.browser
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenClickable
 import java.time.Duration
@@ -12,7 +13,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import org.openqa.selenium.By
+import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.pagefactory.ByChained
+import org.openqa.selenium.support.ui.WebDriverWait
 import waitUntilExists
 import waitUntilNotExist
 
@@ -113,14 +116,35 @@ class E2EPublicationLog(pageBy: By = By.className("publication-log")) : E2EViewF
     }
 
     fun setSearchStartDate(instant: Instant) = apply {
-        childTextInput(byQaId("publication-log-start-date-input")).replaceValue(formatInstant(instant))
+        val input = childTextInput(byQaId("publication-log-start-date-input"))
+        val formatted = formatInstant(instant)
+        if (input.value != formatted) input.replaceValue(formatted)
     }
 
     fun setSearchEndDate(instant: Instant) = apply {
-        childTextInput(byQaId("publication-log-end-date-input")).replaceValue(formatInstant(instant))
+        val input = childTextInput(byQaId("publication-log-end-date-input"))
+        val formatted = formatInstant(instant)
+        if (input.value != formatted) input.replaceValue(formatted)
     }
 
-    fun waitUntilLoaded() = apply { waitUntilNotExist(By.className("table__container--loading")) }
+    val startDateValue: String
+        get() = childTextInput(byQaId("publication-log-start-date-input")).value
+
+    val endDateValue: String
+        get() = childTextInput(byQaId("publication-log-end-date-input")).value
+
+    fun waitUntilLoaded() = apply {
+        // Loading starts asynchronously after React's useEffect runs. Wait for the spinner to
+        // appear before waiting for it to disappear, so we don't return early on a missed cycle.
+        try {
+            WebDriverWait(browser(), Duration.ofSeconds(2)).until {
+                it.findElements(By.className("table__container--loading")).isNotEmpty()
+            }
+        } catch (_: TimeoutException) {
+            // Loading never appeared — response was instant or nothing to load
+        }
+        waitUntilNotExist(By.className("table__container--loading"))
+    }
 
     val rows: List<E2EPublicationDetailRow>
         get() {
