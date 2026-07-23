@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getElementWhenExists
 import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.ExpectedCondition
 import org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable
@@ -68,9 +67,6 @@ class E2EPlanDownloadPopup : E2EViewFragment(byQaId("plan-download-popup")) {
 
     val isPlanSectionToggleVisible: Boolean
         get() = childExists(byQaId("plan-download-section-plan"))
-
-    val isDownloadEnabled: Boolean
-        get() = getElementWhenExists(childBy(byQaId("plan-download-download"))).isEnabled
 
     fun waitUntilDownloadEnabled(): E2EPlanDownloadPopup = apply {
         tryWait(
