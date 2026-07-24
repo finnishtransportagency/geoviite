@@ -490,9 +490,11 @@ const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
 private fun findIntersections(
-    alignment1: IAlignment<LocationTrackM>,
-    alignment2: IAlignment<LocationTrackM>,
+    track1: Pair<IntId<LocationTrack>, IAlignment<LocationTrackM>>,
+    track2: Pair<IntId<LocationTrack>, IAlignment<LocationTrackM>>,
 ): List<TrackIntersection> {
+    val (id1, alignment1) = track1
+    val (id2, alignment2) = track2
     // Ignore parallel alignments. Points of alignments are filtered so
     // that alignments are about 0 - 200 meters long, and therefore we can compare
     // angles from start to end.
@@ -503,7 +505,7 @@ private fun findIntersections(
         .flatMap { (l1, bb1) ->
             lines2.flatMap { (l2, bb2) ->
                 if (bb1.minimumDistance(bb2) <= MAX_LINE_INTERSECTION_DISTANCE) {
-                    findIntersectionsBetweenLineLists(l1, l2, alignment1, alignment2)
+                    findIntersectionsBetweenLineLists(l1, l2, id1, id2)
                 } else listOf()
             }
         }
@@ -521,8 +523,8 @@ private fun toChunkedLinesWithBoxes(alignment: IAlignment<LocationTrackM>) =
 private fun findIntersectionsBetweenLineLists(
     lines1: List<Line>,
     lines2: List<Line>,
-    alignment1: IAlignment<LocationTrackM>,
-    alignment2: IAlignment<LocationTrackM>,
+    alignment1Id: IntId<LocationTrack>,
+    alignment2Id: IntId<LocationTrack>,
 ) = lines1.flatMap { line1 ->
     lines2.mapNotNull { line2 ->
         val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
@@ -530,11 +532,11 @@ private fun findIntersectionsBetweenLineLists(
             TrackIntersection(
                 point = intersection.point,
                 distance = 0.0,
-                alignment1 = alignment1,
-                alignment2 = alignment2,
+                alignment1Id = alignment1Id,
+                alignment2Id = alignment2Id,
             )
         } else {
-            tryFindingNearIntersection(line1, line2, alignment1, alignment2)
+            tryFindingNearIntersection(line1, line2, alignment1Id, alignment2Id)
         }
     }
 }
@@ -542,8 +544,8 @@ private fun findIntersectionsBetweenLineLists(
 private fun tryFindingNearIntersection(
     line1: Line,
     line2: Line,
-    alignment1: IAlignment<LocationTrackM>,
-    alignment2: IAlignment<LocationTrackM>,
+    alignment1Id: IntId<LocationTrack>,
+    alignment2Id: IntId<LocationTrack>,
 ): TrackIntersection? {
     val linePointDistanceCheckPairs =
         listOf(line1 to line2.start, line1 to line2.end, line2 to line1.start, line2 to line1.end)
@@ -555,8 +557,8 @@ private fun tryFindingNearIntersection(
         TrackIntersection(
             point = minDistanceAndPoint.second.toPoint(),
             distance = minDistanceAndPoint.first,
-            alignment1 = alignment1,
-            alignment2 = alignment2,
+            alignment1Id = alignment1Id,
+            alignment2Id = alignment2Id,
         )
     } else null
 }
@@ -579,15 +581,20 @@ private fun alignmentStartEndDirection(alignment: IAlignment<LocationTrackM>): D
 }
 
 private fun getClosestPointAsIntersection(
-    track1: IAlignment<LocationTrackM>,
-    track2: IAlignment<LocationTrackM>,
+    track1: Pair<IntId<LocationTrack>, IAlignment<LocationTrackM>>,
+    track2: Pair<IntId<LocationTrack>, IAlignment<LocationTrackM>>,
     desiredLocation: IPoint,
 ): TrackIntersection? {
     return listOf(track1, track2)
-        .mapNotNull { track -> track.getClosestPoint(desiredLocation) }
+        .mapNotNull { (_, track) -> track.getClosestPoint(desiredLocation) }
         .minByOrNull { (point, _) -> lineLength(point, desiredLocation) }
         ?.let { (closestPoint, _) ->
-            TrackIntersection(alignment1 = track1, alignment2 = track2, point = closestPoint.toPoint(), distance = 0.0)
+            TrackIntersection(
+                alignment1Id = track1.first,
+                alignment2Id = track2.first,
+                point = closestPoint.toPoint(),
+                distance = 0.0,
+            )
         }
 }
 
@@ -596,7 +603,7 @@ private fun <T> pairsOf(things: List<T>): List<Pair<T, T>> = things.flatMapIndex
 }
 
 private fun findTrackIntersectionsForGridPoints(
-    trackAlignments: List<IAlignment<LocationTrackM>>,
+    trackAlignments: List<Pair<IntId<LocationTrack>, IAlignment<LocationTrackM>>>,
     grid: SamplingGridPoints,
 ): PointAssociation<TrackIntersection> {
     val trackPairs = pairsOf(trackAlignments)
@@ -853,8 +860,10 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     val croppedTracks = nearbyLocationTracks.map { (track, geometry) ->
         track to cropPoints(track.id as IntId, geometry, gridBbox)
     }
+    val croppedGeometriesById = croppedTracks.associate { (_, geometry) -> geometry.id to geometry }
 
-    val intersections = findTrackIntersectionsForGridPoints(croppedTracks.map { it.second }, grid)
+    val intersections =
+        findTrackIntersectionsForGridPoints(croppedTracks.map { (_, geometry) -> geometry.id to geometry }, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
 
@@ -864,8 +873,8 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
             else {
                 findTransformations(
                         intersection.point,
-                        intersection.alignment1,
-                        intersection.alignment2,
+                        croppedGeometriesById.getValue(intersection.alignment1Id),
+                        croppedGeometriesById.getValue(intersection.alignment2Id),
                         switchAlignmentsContainingSharedJoint[0],
                         switchAlignmentsContainingSharedJoint[1],
                         sharedSwitchJoint,
@@ -901,8 +910,8 @@ private fun getOriginallyLinkedTrackJoints(
 private data class TrackIntersection(
     val point: Point,
     val distance: Double,
-    val alignment1: IAlignment<LocationTrackM>,
-    val alignment2: IAlignment<LocationTrackM>,
+    val alignment1Id: IntId<LocationTrack>,
+    val alignment2Id: IntId<LocationTrack>,
 )
 
 /** Returns a copy of the alignment filtering out points that do not locate in the given bounding box. */
