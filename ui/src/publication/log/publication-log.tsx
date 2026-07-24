@@ -7,7 +7,6 @@ import {
     getPublicationsAsTableItems,
     getPublicationsCsvUri,
     MAX_RETURNED_PUBLICATION_LOG_ROWS,
-    PublishableObjectIdAndType,
 } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
@@ -20,10 +19,6 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { PublicationTableItem } from 'publication/publication-model';
 import { Page } from 'api/api-fetch';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { useTrackLayoutAppSelector } from 'store/hooks';
-import { useAppNavigate } from 'common/navigate';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
@@ -41,7 +36,22 @@ import {
     operationalPointItemName,
 } from 'asset-search/search-dropdown-item';
 import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay, format, startOfDay } from 'date-fns';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+    defaultGlobalEndDate,
+    defaultGlobalStartDate,
+    fetchSpecificItem,
+    itemToSpecificItemParams,
+    PARAM_END_DATE,
+    PARAM_SPECIFIC_END_DATE,
+    PARAM_SPECIFIC_ID,
+    PARAM_SPECIFIC_START_DATE,
+    PARAM_SPECIFIC_TYPE,
+    PARAM_START_DATE,
+    readSpecificItemParams,
+    searchableItemIdAndType,
+} from 'publication/log/publication-log-params';
 
 const MAX_SEARCH_DAYS = 180;
 
@@ -85,24 +95,6 @@ const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
     );
 };
 
-function searchableItemIdAndType(
-    item: SearchItemValue<SearchItemType>,
-): PublishableObjectIdAndType {
-    switch (item.type) {
-        case SearchItemType.LOCATION_TRACK:
-            return { type: item.type, id: item.locationTrack.id };
-        case SearchItemType.TRACK_NUMBER:
-            return { type: item.type, id: item.trackNumber.id };
-        case SearchItemType.SWITCH:
-            return { type: item.type, id: item.layoutSwitch.id };
-        case SearchItemType.KM_POST:
-            return { type: item.type, id: item.kmPost.id };
-        case SearchItemType.OPERATIONAL_POINT:
-            return { type: item.type, id: item.operationalPoint.id };
-        default:
-            return exhaustiveMatchingGuard(item);
-    }
-}
 
 function getSearchableItemName(
     item: SearchItemValue<SearchItemType>,
@@ -228,32 +220,42 @@ type PublicationLogProps = {
 };
 const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const trackNumbers = useTrackNumbersIncludingDeleted(layoutContext) ?? [];
 
-    const selectedPublicationSearch = useTrackLayoutAppSelector(
-        (state) => state.selection.publicationSearch,
-    );
+    const specificItemRef = readSpecificItemParams(searchParams);
+    const [specificItem, setSpecificItem] = React.useState<
+        SearchItemValue<SearchItemType> | undefined
+    >(undefined);
+    const [specificItemNotFound, setSpecificItemNotFound] = React.useState(false);
 
-    const trackLayoutActionDelegates = React.useMemo(
-        () => createDelegates(trackLayoutActionCreators),
-        [],
-    );
+    React.useEffect(() => {
+        if (specificItemRef) {
+            setSpecificItemNotFound(false);
+            fetchSpecificItem(specificItemRef.type, specificItemRef.id, layoutContext).then(
+                (item) => {
+                    setSpecificItem(item);
+                    if (!item) setSpecificItemNotFound(true);
+                },
+            );
+        } else {
+            setSpecificItem(undefined);
+            setSpecificItemNotFound(false);
+        }
+    }, [specificItemRef?.type, specificItemRef?.id, layoutContext]);
 
-    const specificItem = selectedPublicationSearch?.specificItem;
     const startDate = useMemoizedDate(
-        parseISOOrUndefined(
-            specificItem === undefined
-                ? selectedPublicationSearch?.globalStartDate
-                : selectedPublicationSearch?.specificItemStartDate,
-        ),
+        specificItemRef
+            ? parseISOOrUndefined(searchParams.get(PARAM_SPECIFIC_START_DATE) ?? undefined)
+            : (parseISOOrUndefined(searchParams.get(PARAM_START_DATE) ?? undefined) ??
+              defaultGlobalStartDate),
     );
     const endDate = useMemoizedDate(
-        parseISOOrUndefined(
-            specificItem === undefined
-                ? selectedPublicationSearch?.globalEndDate
-                : selectedPublicationSearch?.specificItemEndDate,
-        ),
+        specificItemRef
+            ? parseISOOrUndefined(searchParams.get(PARAM_SPECIFIC_END_DATE) ?? undefined)
+            : (parseISOOrUndefined(searchParams.get(PARAM_END_DATE) ?? undefined) ??
+              defaultGlobalEndDate),
     );
 
     const [sortInfo, setSortInfo] =
@@ -267,16 +269,34 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     );
 
     const setStartDate = (newStartDate: Date | undefined) => {
-        trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
-            newStartDate?.toISOString(),
+        setSearchParams(
+            (prev) => {
+                const updated = new URLSearchParams(prev);
+                const key = specificItemRef ? PARAM_SPECIFIC_START_DATE : PARAM_START_DATE;
+                if (newStartDate) updated.set(key, format(newStartDate, 'yyyy-MM-dd'));
+                else updated.delete(key);
+                return updated;
+            },
+            { replace: true },
         );
     };
 
     const setEndDate = (newEndDate: Date | undefined) => {
-        trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(newEndDate?.toISOString());
+        setSearchParams(
+            (prev) => {
+                const updated = new URLSearchParams(prev);
+                const key = specificItemRef ? PARAM_SPECIFIC_END_DATE : PARAM_END_DATE;
+                if (newEndDate) updated.set(key, format(newEndDate, 'yyyy-MM-dd'));
+                else updated.delete(key);
+                return updated;
+            },
+            { replace: true },
+        );
     };
 
-    const isSearchRangeValid = isValidPublicationLogSearchRange(specificItem, startDate, endDate);
+    const isSearchRangeValid =
+        specificItemRef !== undefined ||
+        isValidPublicationLogSearchRange(specificItem, startDate, endDate);
 
     const endDateErrors =
         startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
@@ -288,11 +308,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     return (
         <div className={styles['publication-log']}>
             <div className={styles['publication-log__title']}>
-                <AnchorLink
-                    onClick={() => {
-                        trackLayoutActionDelegates.setSelectedPublicationSearch(undefined);
-                        navigate('frontpage');
-                    }}>
+                <AnchorLink onClick={() => navigate('/')}>
                     {t('frontpage.frontpage-link')}
                 </AnchorLink>
                 <span className={styles['publication-log__breadcrumbs']}>
@@ -343,9 +359,23 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                                 layoutContext={officialMainLayoutContext()}
                                 splittingState={undefined}
                                 placeholder={t('publication-log.search-specific-object')}
-                                onItemSelected={
-                                    trackLayoutActionDelegates.setSelectedPublicationSearchSearchableItem
-                                }
+                                onItemSelected={(item) => {
+                                    setSearchParams((prev) => {
+                                        const updated = new URLSearchParams(prev);
+                                        if (item) {
+                                            const itemParams = itemToSpecificItemParams(item);
+                                            itemParams.forEach((v, k) => updated.set(k, v));
+                                            updated.delete(PARAM_SPECIFIC_START_DATE);
+                                            updated.delete(PARAM_SPECIFIC_END_DATE);
+                                        } else {
+                                            updated.delete(PARAM_SPECIFIC_TYPE);
+                                            updated.delete(PARAM_SPECIFIC_ID);
+                                            updated.delete(PARAM_SPECIFIC_START_DATE);
+                                            updated.delete(PARAM_SPECIFIC_END_DATE);
+                                        }
+                                        return updated;
+                                    });
+                                }}
                                 value={specificItem}
                                 getName={(name) => getSearchableItemName(name, trackNumbers, t)}
                                 disabled={false}
@@ -400,7 +430,11 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
-                    {isSearchRangeValid ? (
+                    {specificItemNotFound ? (
+                        <span className={styles['publication-log__table-header-error']}>
+                            {t('publication-log.specific-object-not-found')}
+                        </span>
+                    ) : isSearchRangeValid ? (
                         <PublicationLogTableHeading
                             isLoading={isLoading}
                             isTruncated={isTruncated}
@@ -419,9 +453,9 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}
-                    displaySingleItemHistory={
-                        trackLayoutActionDelegates.startFreshSpecificItemPublicationLogSearch
-                    }
+                    displaySingleItemHistory={(item) => {
+                        setSearchParams(item ? itemToSpecificItemParams(item) : new URLSearchParams());
+                    }}
                     publicationDisplayMode={specificItem ? 'SINGLE_ASSET' : 'PUBLICATION_LOG'}
                 />
             </div>

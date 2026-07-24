@@ -11,8 +11,14 @@ import { getCurrentPublicationFailure, RatkoStatus } from 'ratko/ratko-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { useAppNavigate } from 'common/navigate';
-import { defaultPublicationSearch } from 'publication/publication-utils';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import {
+    defaultGlobalEndDate,
+    defaultGlobalStartDate,
+    PARAM_END_DATE,
+    PARAM_START_DATE,
+} from 'publication/log/publication-log-params';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getLatestPublications } from 'publication/publication-api';
 import { LayoutBranch, TimeStamp } from 'common/common-model';
@@ -134,7 +140,7 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
     ratkoStatus,
 }) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
 
     const trackLayoutActionDelegates = React.useMemo(
         () => createDelegates(trackLayoutActionCreators),
@@ -186,8 +192,10 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
         );
 
     const navigateToPublicationLog = () => {
-        trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);
-        navigate('publication-search');
+        const params = new URLSearchParams();
+        params.set(PARAM_START_DATE, format(defaultGlobalStartDate, 'yyyy-MM-dd'));
+        params.set(PARAM_END_DATE, format(defaultGlobalEndDate, 'yyyy-MM-dd'));
+        navigate(`/publications?${params.toString()}`);
     };
 
     return (

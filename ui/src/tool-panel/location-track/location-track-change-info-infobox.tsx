@@ -7,16 +7,13 @@ import Infobox from 'tool-panel/infobox/infobox';
 import { useLocationTrackChangeTimes } from 'track-layout/track-layout-react-utils';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
-import {
-    LocationTrackInfoboxVisibilities,
-    trackLayoutActionCreators as TrackLayoutActions,
-} from 'track-layout/track-layout-slice';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { createDelegates } from 'store/store-utils';
-import { useAppNavigate } from 'common/navigate';
+import { useNavigate } from 'react-router-dom';
 import { SearchItemType } from 'asset-search/search-dropdown';
 import { useHasPublicationLog } from 'publication/publication-utils';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 
 type LocationTrackChangeInfoInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -35,8 +32,7 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
     const locationTrackId = locationTrack.id;
     const locationTrackChangeInfo = useLocationTrackChangeTimes(locationTrackId, layoutContext);
 
-    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
 
     const hasPublicationLog = useHasPublicationLog(
         locationTrackId,
@@ -49,12 +45,8 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
         : t('tool-panel.location-track.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
-        delegates.startFreshSpecificItemPublicationLogSearch({
-            type: SearchItemType.LOCATION_TRACK,
-            locationTrack,
-        });
-        navigate('publication-search');
-    }, [locationTrack, locationTrackChangeInfo]);
+        navigate(publicationLogUrlForItem({ type: SearchItemType.LOCATION_TRACK, locationTrack }));
+    }, [locationTrack, navigate]);
 
     return (
         locationTrackChangeInfo && (

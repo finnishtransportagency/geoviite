@@ -7,13 +7,12 @@ import Infobox from 'tool-panel/infobox/infobox';
 import { useSwitchChangeTimes } from 'track-layout/track-layout-react-utils';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { createDelegates } from 'store/store-utils';
-import { useAppNavigate } from 'common/navigate';
+import { useNavigate } from 'react-router-dom';
 import { SearchItemType } from 'asset-search/search-dropdown';
 import { getSwitch } from 'track-layout/layout-switch-api';
 import { useHasPublicationLog } from 'publication/publication-utils';
+import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 
 type SwitchChangeInfoInfoboxProps = {
     layoutSwitch: LayoutSwitch;
@@ -32,8 +31,7 @@ export const SwitchChangeInfoInfobox: React.FC<SwitchChangeInfoInfoboxProps> = (
     const switchId = layoutSwitch.id;
     const switchChangeInfo = useSwitchChangeTimes(switchId, layoutContext);
 
-    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
 
     const hasPublicationLog = useHasPublicationLog(switchId, getSwitch, switchChangeInfo?.changed);
     const openPublicationLogButtonTitle = hasPublicationLog
@@ -41,12 +39,8 @@ export const SwitchChangeInfoInfobox: React.FC<SwitchChangeInfoInfoboxProps> = (
         : t('tool-panel.switch.layout.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
-        delegates.startFreshSpecificItemPublicationLogSearch({
-            type: SearchItemType.SWITCH,
-            layoutSwitch,
-        });
-        navigate('publication-search');
-    }, [layoutSwitch, switchChangeInfo]);
+        navigate(publicationLogUrlForItem({ type: SearchItemType.SWITCH, layoutSwitch }));
+    }, [layoutSwitch, navigate]);
 
     return (
         switchChangeInfo && (

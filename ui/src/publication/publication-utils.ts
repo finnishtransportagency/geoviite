@@ -1,4 +1,3 @@
-import { subMonths } from 'date-fns';
 import {
     CalculatedChanges,
     DraftChangeType,
@@ -6,10 +5,8 @@ import {
     PublicationCandidateId,
     PublicationCandidateReference,
     PublicationGroupId,
-    PublicationSearch,
     PublicationStage,
 } from 'publication/publication-model';
-import { currentDay } from 'utils/date-utils';
 import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
 import { brand } from 'common/brand';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
@@ -17,14 +14,6 @@ import { mapLazy } from 'utils/array-utils';
 import { AssetId, LayoutContext, mainOfficialLayoutContext, TimeStamp } from 'common/common-model';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { LayoutAsset } from 'track-layout/track-layout-model';
-
-export const defaultPublicationSearch: PublicationSearch = {
-    globalStartDate: subMonths(currentDay, 1).toISOString(),
-    globalEndDate: currentDay.toISOString(),
-    specificItemStartDate: undefined,
-    specificItemEndDate: undefined,
-    specificItem: undefined,
-};
 
 export const conditionallyUpdateCandidates = (
     publicationCandidates: PublicationCandidate[],

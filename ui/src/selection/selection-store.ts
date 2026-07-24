@@ -21,10 +21,7 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { PublicationId, PublicationSearch } from 'publication/publication-model';
-import { defaultPublicationSearch } from 'publication/publication-utils';
-import { TimeStamp } from 'common/common-model';
-import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
+import { PublicationId } from 'publication/publication-model';
 import { objectEquals } from 'utils/object-utils';
 
 export function createEmptyItemCollections(): ItemCollections {
@@ -51,7 +48,6 @@ export const initialSelectionState: Selection = {
     openPlans: [],
     visiblePlans: [],
     publicationId: undefined,
-    publicationSearch: undefined,
 };
 
 export function isEmptyItemCollections(itemCollections: ItemCollections) {
@@ -337,66 +333,8 @@ export const selectionReducers = {
     ) => {
         state.publicationId = publicationId;
     },
-    setSelectedPublicationSearch: (
-        state: Selection,
-        { payload: publicationSearch }: PayloadAction<PublicationSearch | undefined>,
-    ) => {
-        state.publicationId = undefined;
-        state.publicationSearch = publicationSearch;
-    },
-    setSelectedPublicationSearchStartDate: (
-        state: Selection,
-        { payload: newStartDate }: PayloadAction<TimeStamp | undefined>,
-    ) => {
-        if (!state.publicationSearch) {
-            state.publicationSearch = { ...defaultPublicationSearch };
-        }
-        if (state.publicationSearch.specificItem === undefined) {
-            state.publicationSearch.globalStartDate = newStartDate;
-        } else {
-            state.publicationSearch.specificItemStartDate = newStartDate;
-        }
-    },
-    setSelectedPublicationSearchEndDate: (
-        state: Selection,
-        { payload: newEndDate }: PayloadAction<TimeStamp | undefined>,
-    ) => {
-        if (!state.publicationSearch) {
-            state.publicationSearch = { ...defaultPublicationSearch };
-        }
-        if (state.publicationSearch.specificItem === undefined) {
-            state.publicationSearch.globalEndDate = newEndDate;
-        } else {
-            state.publicationSearch.specificItemEndDate = newEndDate;
-        }
-    },
-    startFreshSpecificItemPublicationLogSearch: (
-        state: Selection,
-        { payload: newSearchItem }: PayloadAction<SearchItemValue<SearchItemType> | undefined>,
-    ) => {
-        if (!state.publicationSearch) {
-            state.publicationSearch = { ...defaultPublicationSearch };
-        }
-        state.publicationSearch.specificItemStartDate = undefined;
-        state.publicationSearch.specificItemEndDate = undefined;
-        state.publicationSearch.specificItem = newSearchItem;
-    },
-    setSelectedPublicationSearchSearchableItem: (
-        state: Selection,
-        { payload: newSearchItem }: PayloadAction<SearchItemValue<SearchItemType> | undefined>,
-    ) => {
-        if (!state.publicationSearch) {
-            state.publicationSearch = { ...defaultPublicationSearch };
-        }
-        if (state.publicationSearch.specificItem === undefined && newSearchItem !== undefined) {
-            state.publicationSearch.specificItemStartDate = undefined;
-            state.publicationSearch.specificItemEndDate = undefined;
-        }
-        state.publicationSearch.specificItem = newSearchItem;
-    },
     clearPublicationSelection: (state: Selection) => {
         state.publicationId = undefined;
-        state.publicationSearch = undefined;
     },
     togglePlanVisibility: (
         state: Selection,

@@ -13,15 +13,14 @@ import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { useAppNavigate } from 'common/navigate';
+import { useNavigate } from 'react-router-dom';
 import {
     SortablePublicationTableProps,
     SortedByNameAsc,
 } from 'publication/table/publication-table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
+import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 import { TableSorting } from 'utils/table-utils';
 
 export type PublicationDetailsViewProps = {
@@ -36,17 +35,13 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     changeTime,
 }) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
 
     const unpublishedToRatko = !publication.ratkoPushStatus;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sortInfo, setSortInfo] =
         React.useState<TableSorting<SortablePublicationTableProps>>(SortedByNameAsc);
-    const trackLayoutActionDelegates = React.useMemo(
-        () => createDelegates(trackLayoutActionCreators),
-        [],
-    );
 
     React.useEffect(() => {
         setIsLoading(true);
@@ -59,8 +54,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     }, [publication.id, changeTime]);
 
     const displaySingleItemHistory = (item: SearchItemValue<SearchItemType> | undefined) => {
-        trackLayoutActionDelegates.startFreshSpecificItemPublicationLogSearch(item);
-        navigate('publication-search');
+        navigate(item ? publicationLogUrlForItem(item) : '/publications');
     };
 
     return (
@@ -69,7 +63,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                 <AnchorLink
                     onClick={() => {
                         setSelectedPublicationId(undefined);
-                        navigate('frontpage');
+                        navigate('/');
                     }}>
                     {t('frontpage.frontpage-link')}
                 </AnchorLink>

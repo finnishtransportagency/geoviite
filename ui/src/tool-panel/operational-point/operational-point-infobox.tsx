@@ -31,8 +31,9 @@ import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/op
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
 import { useHasPublicationLog } from 'publication/publication-utils';
-import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
-import { useAppNavigate } from 'common/navigate';
+import { SearchItemType } from 'asset-search/search-dropdown';
+import { useNavigate } from 'react-router-dom';
+import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 import { OperationalPointTracksInfobox } from 'tool-panel/operational-point/operational-point-tracks-infobox';
 import { OperationalPointStationLinksInfobox } from 'tool-panel/operational-point/operational-point-station-links-infobox';
 
@@ -52,7 +53,6 @@ type OperationalPointInfoboxProps = {
     onStartPlacingArea: () => void;
     onStopPlacingArea: () => void;
     onClearArea: () => void;
-    startFreshSpecificItemPublicationLogSearch: (item: SearchItemValue<SearchItemType>) => void;
     operationalPointFetchStatus: LoaderStatus;
 };
 
@@ -72,11 +72,10 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onStartPlacingArea,
     onStopPlacingArea,
     onClearArea,
-    startFreshSpecificItemPublicationLogSearch,
     operationalPointFetchStatus,
 }) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
+    const navigate = useNavigate();
     const isOlp = operationalPoint.ratoType === 'OLP';
 
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
@@ -144,12 +143,10 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
         : t('tool-panel.location-track.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
-        startFreshSpecificItemPublicationLogSearch({
-            type: SearchItemType.OPERATIONAL_POINT,
-            operationalPoint,
-        });
-        navigate('publication-search');
-    }, [operationalPoint, changeInfo]);
+        navigate(
+            publicationLogUrlForItem({ type: SearchItemType.OPERATIONAL_POINT, operationalPoint }),
+        );
+    }, [operationalPoint, navigate]);
 
     return (
         <React.Fragment>
