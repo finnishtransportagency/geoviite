@@ -242,7 +242,7 @@ fun validateKmPost(post: GeometryKmPost) =
                 "km-post",
                 "location-missing",
                 OBSERVATION_MAJOR,
-                mapOf("kmPostName" to post.description.toString()),
+                mapOf("kmPostName" to post.description.toString(), "value" to post.description.toString()),
             )
         },
         validate(post.kmNumber != null) {

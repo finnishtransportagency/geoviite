@@ -181,7 +181,9 @@
                 "alignments": {
                     "no-alignments": "Suunnitelma ei sisällä yhtään keskilinjaa",
                     "non-railroad-alignments": "Suunnitelman kaikki keskilinjat eivät ole ratageometriakeskilinjoja"
-                }
+                },
+                "empty": "Tiedosto on tyhjä",
+                "wrong-content-type": "Tiedoston tiedostotyyppi ei ole tuettu"
             },
             "transformation": {
                 "srid-missing": "Suunnitelmaa ei voida esittää kartalla, koska koordinaattijärjestelmää {{coordinateSystemName}} ei osata muuntaa kartan järjestelmään TM35FIN (EPSG:3067)",
@@ -1611,13 +1613,14 @@
                 "incorrect-joint-locations": "Vaihteen {{switchName}} vaihdepisteiden sijainnit eivät vastaa laskennallisia",
                 "inaccurate-joint-locations": "Vaihteen {{switchName}} vaihdepisteiden sijainnit ovat epätarkkoja",
                 "no-structure-alignment": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumbers}}) raiteella {{alignmentName}} eivät vastaa mitään vaihdetyypin linjaa",
-                "alignment-joint-mismatch": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumber}}) raiteella {{alignmentName}} ovat eri sijainnissa kuin muilla raiteilla",
-                "alignment-joint-inaccurate": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumber}}) raiteella {{alignmentName}} ovat sijainniltaan epätarkat suhteessa muihin raiteisiin"
+                "alignment-joint-mismatch": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumbers}}) raiteella {{alignmentName}} ovat eri sijainnissa kuin muilla raiteilla",
+                "alignment-joint-inaccurate": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumbers}}) raiteella {{alignmentName}} ovat sijainniltaan epätarkat suhteessa muihin raiteisiin"
             },
             "km-post": {
                 "duplicate-km-posts": "Suunnitelmassa on useita tasakilometripisteitä seuraaville ratakilometreille: {{value}}",
                 "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0",
-                "location-missing": "Tasakilometripisteellä {{value}} ei ole sijaintia"
+                "location-missing": "Tasakilometripisteellä {{value}} ei ole sijaintia",
+                "km-number-incorrect": "Tasakilometripisteen {{kmPostName}} ratakm-numero on virheellinen"
             }
         }
     },
