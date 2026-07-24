@@ -11,6 +11,7 @@ function getTranslationKey(quality: PlanQuality | undefined) {
     switch (quality) {
         case 'PLAN':
         case 'UNRELIABLE_PLAN':
+        case 'UNKNOWN':
             return quality;
         case undefined:
             return 'UNKNOWN';
