@@ -278,7 +278,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                 eyeHidden={disabled || !!planLayoutError}
                 error={
                     planLayoutError
-                        ? t(planLayoutError.localizationKey, planLayoutError)
+                        ? t(planLayoutError.localizationKey, planLayoutError.params)
                         : undefined
                 }
                 disabled={disabled}
