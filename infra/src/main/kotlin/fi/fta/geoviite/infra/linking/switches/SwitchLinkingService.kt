@@ -489,27 +489,19 @@ data class SamplingGridPoints(val points: List<Point>) {
 
     val bounds: BoundingBox by lazy { boundingBoxAroundPoints(points) }
 
-    fun <R> map(parallel: Boolean = false, f: (point: Point) -> R) =
-        PointAssociation(
-            points
-                .let { if (parallel) it.parallelStream() else it.stream() }
-                .map { point -> f(point) to point }
-                .toList()
-        )
-
     fun <R> mapMulti(parallel: Boolean = false, f: (point: Point) -> Set<R>): PointAssociation<R> {
         val stream = if (parallel) points.parallelStream() else points.stream()
         val map = stream.map { point -> point to f(point) }.collect(Collectors.toMap({ it.first }, { it.second }))
         return PointAssociation(invertMapOfSets(map))
     }
-
-    fun get(index: Int) = points[index]
 }
 
-/** Associate a set of items with a set of points for each item. May be empty. */
+/**
+ * Associate items with the set of points that produced each item. The association as a whole may be empty, but every
+ * item is associated with at least one point. Transforming items with a non-injective function merges the resulting
+ * equal items, unioning their point sets.
+ */
 data class PointAssociation<T>(val items: Map<T, Set<Point>>) {
-
-    constructor(pairs: List<Pair<T, Point>>) : this(pairs.associate { (i, ps) -> i to setOf(ps) })
 
     fun keys(): Set<T> = items.keys
 
@@ -588,18 +580,13 @@ fun matchSamplingGridToQueryPoints(
     queryPoints: List<Point>,
 ): SuggestedSwitchesAtGridPoints {
     val switchesByPoint = invertMapOfSets(grid.items)
-    assert(switchesByPoint.values.all { it.size == 1 }) {
-        "suggested switches grid assigns unique suggestion per point"
-    }
-    val switchByPoint = switchesByPoint.mapValues { (_, v) -> v.firstOrNull() }
+    check(switchesByPoint.values.all { it.size == 1 }) { "suggested switches grid assigns unique suggestion per point" }
+    val switchByPoint = switchesByPoint.mapValues { (_, v) -> v.single() }
     val switches = grid.keys().toList()
+    val indexBySwitch = switches.withIndex().associate { (index, switch) -> switch to index }
     return SuggestedSwitchesAtGridPoints(
         switches,
-        queryPoints.map { point ->
-            switchByPoint[point]?.let { switch ->
-                switches.indexOf(switch).let { index -> if (index == -1) null else index }
-            }
-        },
+        queryPoints.map { point -> switchByPoint[point]?.let(indexBySwitch::get) },
     )
 }
 
