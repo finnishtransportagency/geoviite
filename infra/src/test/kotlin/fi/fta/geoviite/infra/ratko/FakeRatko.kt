@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.treeToValue
+import com.google.common.collect.ImmutableMultimap
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
@@ -47,8 +48,10 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.mockserver.model.NottableString
 import org.mockserver.model.OpenAPIDefinition
 import org.mockserver.model.Parameter
+import org.mockserver.model.Parameters
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
@@ -67,9 +70,10 @@ class FakeRatko(port: Int) {
     private val mockServer: ClientAndServer =
         ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
 
-    private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val jsonMapper = jsonMapper {
+        addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+    }
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     fun stop() {
         mockServer.stop()
@@ -335,13 +339,23 @@ class FakeRatko(port: Int) {
 
     fun getLocationTrackPointDeletions(oid: String): List<String> = getPointDeletions(oid, "infra/v1.0/points")
 
-    fun getCreatedRouteNumberPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/routenumber/points", "POST")
+    fun getCreatedRouteNumberPoints(oid: String) =
+        getPointUpdates(oid, "infra/v1.0/routenumber/points", "POST", Parameters())
 
-    fun getUpdatedRouteNumberPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/routenumber/points", "PATCH")
+    fun getUpdatedRouteNumberPoints(oid: String) =
+        getPointUpdates(oid, "infra/v1.0/routenumber/points", "PATCH", Parameters())
 
-    fun getCreatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "POST")
+    fun getCreatedLocationTrackPoints(oid: String) =
+        getPointUpdates(
+            oid,
+            "infra/v1.1/points",
+            "PATCH",
+            // allow no query string parameters at all
+            Parameters(ImmutableMultimap.of(NottableString.not(".*"), NottableString.not(".*"))),
+        )
 
-    fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.1/points", "PATCH")
+    fun getUpdatedLocationTrackPoints(oid: String) =
+        getPointUpdates(oid, "infra/v1.1/points", "PATCH", Parameters(Parameter("updateKmMvalues", "true")))
 
     private fun metadataFilterOn(pointField: String, oid: String) =
         mapOf(
@@ -480,9 +494,16 @@ class FakeRatko(port: Int) {
         post("/api/assets/v1.2/search", mapOf("assetType" to "railway_traffic_operating_point"), times = Times.once())
             .respond(okJson(RatkoOperationalPointAssetsResponse(points.map(::marshallOperationalPoint))))
 
-    private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
+    private fun getPointUpdates(
+        oid: String,
+        urlInfix: String,
+        method: String,
+        withQueryStringParameters: Parameters,
+    ): List<List<RatkoPoint>> =
         mockServer
-            .retrieveRecordedRequests(request("/api/$urlInfix/$oid").withMethod(method))
+            .retrieveRecordedRequests(
+                request("/api/$urlInfix/$oid").withQueryStringParameters(withQueryStringParameters).withMethod(method)
+            )
             .map { request -> request.bodyAsString }
             .filter { body -> body.length > 3 }
             .map(jsonMapper::readValue)

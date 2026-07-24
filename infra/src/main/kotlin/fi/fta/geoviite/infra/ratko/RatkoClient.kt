@@ -267,34 +267,35 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             "points" to "${points.first().kmM}..${points.last().kmM}",
             "points.size" to points.size,
         )
-
-        val url = "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid?updateKmMvalues=true"
-        val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
-        patchGeometryWithoutResponseBody(url, points, pushTarget)
+        updateLocationTrackPointsAt(
+            locationTrackOid,
+            points,
+            "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid?updateKmMvalues=true",
+        )
     }
 
-    fun createLocationTrackPoints(locationTrackOid: RatkoOid<LocationTrack>, points: List<RatkoPoint>) {
+    fun createLocationTrackPointsByUpdating(locationTrackOid: RatkoOid<LocationTrack>, points: List<RatkoPoint>) {
         logger.integrationCall(
-            "createLocationTrackPoints",
+            "createLocationTrackPointsByUpdating",
             "locationTrackOid" to locationTrackOid,
             "points" to "${points.first().kmM}..${points.last().kmM}",
+            "points.size" to points.size,
         )
+        val url = "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid"
+        val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
+        patchSpec(url, points)
+            .defaultErrorHandler(GEOMETRY, CREATE, pushTarget, url, points)
+            .toBodilessEntity()
+            .block(defaultBlockTimeout)
+    }
 
-        points.chunked(1000).mapIndexed { index, chunk ->
-            logger.integrationCall(
-                "createLocationTrackPoints",
-                "locationTrackOid" to locationTrackOid,
-                "chunk" to index,
-                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
-            )
-
-            val url = combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid)
-            val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
-            postSpec(url, chunk)
-                .defaultErrorHandler(GEOMETRY, CREATE, pushTarget, url, chunk)
-                .toBodilessEntity()
-                .block(defaultBlockTimeout)
-        }
+    private fun updateLocationTrackPointsAt(
+        locationTrackOid: RatkoOid<LocationTrack>,
+        points: List<RatkoPoint>,
+        url: String,
+    ) {
+        val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
+        patchGeometryWithoutResponseBody(url, points, pushTarget)
     }
 
     fun patchLocationTrackPoints(
