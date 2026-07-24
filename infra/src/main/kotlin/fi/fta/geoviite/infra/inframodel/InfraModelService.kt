@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
-import fi.fta.geoviite.infra.geometry.TransformationError
 import fi.fta.geoviite.infra.geometry.fileNameWithSourcePrefixIfPaikannuspalvelu
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonFromPlan
 import fi.fta.geoviite.infra.geometry.validate
@@ -155,19 +154,13 @@ constructor(
     }
 
     private fun validateAndTransformToLayoutPlan(plan: GeometryPlan): ValidationResponse {
-        val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) =
+        val (planLayout: GeometryPlanLayout?, layoutCreationError: GeometryValidationIssue?) =
             layoutCache.transformToLayoutPlan(
                 geometryPlan = plan,
                 includeGeometryData = true,
                 pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
             )
-        val validationIssues =
-            validateGeometryPlanContent(plan) +
-                listOfNotNull(
-                    layoutCreationError?.run {
-                        GeometryValidationIssue(localizationKey = localizationKey, issueType = issueType)
-                    }
-                )
+        val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
         return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
