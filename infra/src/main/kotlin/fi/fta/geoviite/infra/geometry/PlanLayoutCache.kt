@@ -35,9 +35,9 @@ data class TransformationError(
     private val key: String,
     val srid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
-) : GeometryValidationIssue {
-    override val issueType = GeometryIssueType.TRANSFORMATION_ERROR
-    override val localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
+) {
+    val issueType = GeometryIssueType.TRANSFORMATION_ERROR
+    val localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
 }
 
 const val GEOMETRY_PLAN_CACHE_SIZE = 100L

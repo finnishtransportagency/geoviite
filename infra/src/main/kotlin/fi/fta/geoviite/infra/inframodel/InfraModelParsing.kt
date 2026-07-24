@@ -3,9 +3,7 @@ package fi.fta.geoviite.infra.inframodel
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geometry.GeometryIssueType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
@@ -36,12 +34,7 @@ const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 const val INFRAMODEL_PARSING_KEY_EMPTY = "$INFRAMODEL_PARSING_KEY_PARENT.empty"
 
-data class ParsingError(
-    override val localizationKey: LocalizationKey,
-    val localizationParams: LocalizationParams? = null,
-) : GeometryValidationIssue {
-    override val issueType = GeometryIssueType.PARSING_ERROR
-}
+data class ParsingError(val localizationKey: LocalizationKey, val localizationParams: LocalizationParams? = null)
 
 private val jaxbContext: JAXBContext by lazy {
     JAXBContext.newInstance(InfraModel403::class.java, InfraModel404::class.java)

@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryIssueType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometryService
@@ -40,7 +41,11 @@ import org.springframework.web.multipart.MultipartFile
 
 const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 
-val noFileValidationError = ParsingError(LocalizationKey.of(INFRAMODEL_PARSING_KEY_EMPTY))
+val noFileValidationError =
+    GeometryValidationIssue(
+        localizationKey = LocalizationKey.of(INFRAMODEL_PARSING_KEY_EMPTY),
+        issueType = GeometryIssueType.PARSING_ERROR,
+    )
 const val START_KM_PARAM_KEY = "startKm"
 const val END_KM_PARAM_KEY = "endKm"
 
@@ -156,7 +161,13 @@ constructor(
                 includeGeometryData = true,
                 pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
             )
-        val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
+        val validationIssues =
+            validateGeometryPlanContent(plan) +
+                listOfNotNull(
+                    layoutCreationError?.run {
+                        GeometryValidationIssue(localizationKey = localizationKey, issueType = issueType)
+                    }
+                )
         return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
