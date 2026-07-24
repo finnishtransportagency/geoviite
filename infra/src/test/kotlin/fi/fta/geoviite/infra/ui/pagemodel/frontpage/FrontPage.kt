@@ -146,6 +146,12 @@ class E2EPublicationLog(pageBy: By = By.className("publication-log")) : E2EViewF
         waitUntilNotExist(By.className("table__container--loading"))
     }
 
+    val tableHeaderError: String?
+        get() =
+            if (exists(By.className("publication-log__table-header-error")))
+                childText(By.className("publication-log__table-header-error"))
+            else null
+
     val rows: List<E2EPublicationDetailRow>
         get() {
             val headers = childElements(By.tagName("th"))

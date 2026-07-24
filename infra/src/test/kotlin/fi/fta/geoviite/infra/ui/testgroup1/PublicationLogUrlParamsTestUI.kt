@@ -23,6 +23,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.openqa.selenium.By
+import org.openqa.selenium.JavascriptExecutor
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -152,6 +153,20 @@ constructor(
 
         assertEquals(displayDateFormatter.format(oneMonthAgo), log.startDateValue)
         assertEquals(displayDateFormatter.format(today), log.endDateValue)
+    }
+
+    @Test
+    fun `Navigating directly to URL with invalid specific item ID shows not found error`() {
+        testDBService.clearAllTables()
+        startGeoviite()
+        // Navigate via clicks first so React Router is mounted, then set hash params via JS
+        goToFrontPage().openPublicationLog()
+        (browser() as JavascriptExecutor).executeScript(
+            "window.location.hash = '/publications?specificType=LOCATION_TRACK&specificId=INT_99999'"
+        )
+        waitUntilExists(By.className("publication-log__table-header-error"))
+        val log = E2EPublicationLog()
+        assertEquals("Muutoskohdetta ei löydy.", log.tableHeaderError)
     }
 
     @Test

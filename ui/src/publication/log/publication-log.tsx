@@ -246,16 +246,22 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     const [specificItem, setSpecificItem] = React.useState<
         SearchItemValue<SearchItemType> | undefined
     >(undefined);
+    const [specificItemNotFound, setSpecificItemNotFound] = React.useState(false);
 
     React.useEffect(() => {
         if (specificItemRef) {
+            setSpecificItemNotFound(false);
             fetchSpecificItem(specificItemRef.type, specificItemRef.id, layoutContext).then(
-                setSpecificItem,
+                (item) => {
+                    setSpecificItem(item);
+                    if (!item) setSpecificItemNotFound(true);
+                },
             );
         } else {
             setSpecificItem(undefined);
+            setSpecificItemNotFound(false);
         }
-    }, [specificItemRef?.type, specificItemRef?.id]);
+    }, [specificItemRef?.type, specificItemRef?.id, layoutContext]);
 
     const startDate = useMemoizedDate(
         specificItemRef
@@ -306,7 +312,9 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
         );
     };
 
-    const isSearchRangeValid = isValidPublicationLogSearchRange(specificItem, startDate, endDate);
+    const isSearchRangeValid =
+        specificItemRef !== undefined ||
+        isValidPublicationLogSearchRange(specificItem, startDate, endDate);
 
     const endDateErrors =
         startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
@@ -440,7 +448,11 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
-                    {isSearchRangeValid ? (
+                    {specificItemNotFound ? (
+                        <span className={styles['publication-log__table-header-error']}>
+                            {t('publication-log.specific-object-not-found')}
+                        </span>
+                    ) : isSearchRangeValid ? (
                         <PublicationLogTableHeading
                             isLoading={isLoading}
                             isTruncated={isTruncated}
