@@ -425,7 +425,7 @@ constructor(
         addressPoints: Collection<AddressPoint<LocationTrackM>>,
     ) =
         toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
-            ratkoClient.createLocationTrackPoints(locationTrackOid, points)
+            ratkoClient.createLocationTrackPointsByUpdating(locationTrackOid, points)
         }
 
     private fun createLocationTrackMetadata(
