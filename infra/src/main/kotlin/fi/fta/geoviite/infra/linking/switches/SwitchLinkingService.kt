@@ -606,21 +606,7 @@ fun matchSamplingGridToQueryPoints(
 class SuggestedSwitchWithOriginallyLinkedTracks(
     val suggestedSwitch: SuggestedSwitch,
     val originallyLinkedTracks: Set<IntId<LocationTrack>>,
-) {
-
-    // need to use these as map keys, but avoid very expensive hashCode()s on all those alignments
-    // with their geometries
-    override fun hashCode(): Int = suggestedSwitch.hashCode()
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as SuggestedSwitchWithOriginallyLinkedTracks
-
-        return suggestedSwitch == other.suggestedSwitch
-    }
-}
+)
 
 fun linkJointsToEdge(
     switchId: IntId<LayoutSwitch>,
