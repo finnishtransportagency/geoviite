@@ -7,7 +7,6 @@ import {
     getPublicationsAsTableItems,
     getPublicationsCsvUri,
     MAX_RETURNED_PUBLICATION_LOG_ROWS,
-    PublishableObjectIdAndType,
 } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
@@ -51,6 +50,7 @@ import {
     PARAM_SPECIFIC_TYPE,
     PARAM_START_DATE,
     readSpecificItemParams,
+    searchableItemIdAndType,
 } from 'publication/log/publication-log-params';
 
 const MAX_SEARCH_DAYS = 180;
@@ -95,24 +95,6 @@ const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
     );
 };
 
-function searchableItemIdAndType(
-    item: SearchItemValue<SearchItemType>,
-): PublishableObjectIdAndType {
-    switch (item.type) {
-        case SearchItemType.LOCATION_TRACK:
-            return { type: item.type, id: item.locationTrack.id };
-        case SearchItemType.TRACK_NUMBER:
-            return { type: item.type, id: item.trackNumber.id };
-        case SearchItemType.SWITCH:
-            return { type: item.type, id: item.layoutSwitch.id };
-        case SearchItemType.KM_POST:
-            return { type: item.type, id: item.kmPost.id };
-        case SearchItemType.OPERATIONAL_POINT:
-            return { type: item.type, id: item.operationalPoint.id };
-        default:
-            return exhaustiveMatchingGuard(item);
-    }
-}
 
 function getSearchableItemName(
     item: SearchItemValue<SearchItemType>,

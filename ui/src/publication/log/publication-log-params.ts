@@ -1,6 +1,7 @@
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { LayoutContext } from 'common/common-model';
+import { PublishableObjectIdAndType } from 'publication/publication-api';
 import { brand } from 'common/brand';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getSwitch } from 'track-layout/layout-switch-api';
@@ -31,21 +32,27 @@ export function readSpecificItemParams(params: URLSearchParams): SpecificItemRef
     return { type: rawType as SearchItemType, id };
 }
 
-function itemToRef(item: SearchItemValue<SearchItemType>): SpecificItemRef {
+export function searchableItemIdAndType(
+    item: SearchItemValue<SearchItemType>,
+): PublishableObjectIdAndType {
     switch (item.type) {
         case SearchItemType.LOCATION_TRACK:
-            return { type: item.type, id: String(item.locationTrack.id) };
-        case SearchItemType.SWITCH:
-            return { type: item.type, id: String(item.layoutSwitch.id) };
+            return { type: item.type, id: item.locationTrack.id };
         case SearchItemType.TRACK_NUMBER:
-            return { type: item.type, id: String(item.trackNumber.id) };
+            return { type: item.type, id: item.trackNumber.id };
+        case SearchItemType.SWITCH:
+            return { type: item.type, id: item.layoutSwitch.id };
         case SearchItemType.KM_POST:
-            return { type: item.type, id: String(item.kmPost.id) };
+            return { type: item.type, id: item.kmPost.id };
         case SearchItemType.OPERATIONAL_POINT:
-            return { type: item.type, id: String(item.operationalPoint.id) };
+            return { type: item.type, id: item.operationalPoint.id };
         default:
             return exhaustiveMatchingGuard(item);
     }
+}
+
+function itemToRef(item: SearchItemValue<SearchItemType>): SpecificItemRef {
+    return { type: item.type, id: String(searchableItemIdAndType(item).id) };
 }
 
 export function itemToSpecificItemParams(item: SearchItemValue<SearchItemType>): URLSearchParams {
