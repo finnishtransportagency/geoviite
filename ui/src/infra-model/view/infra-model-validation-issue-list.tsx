@@ -69,10 +69,7 @@ const InfraModelValidationIssueList: React.FC<InframodelValidationIssueListProps
                             {errors.map((error: CustomGeometryValidationIssue, index: number) =>
                                 createErrorRow(
                                     error.issueType,
-                                    t(error.localizationKey, {
-                                        ...error,
-                                        ...error.localizationParams,
-                                    }),
+                                    t(error.localizationKey, error.params),
                                     index,
                                 ),
                             )}
@@ -88,7 +85,7 @@ const InfraModelValidationIssueList: React.FC<InframodelValidationIssueListProps
                             {major.map((error, index) =>
                                 createErrorRow(
                                     error.issueType,
-                                    t(error.localizationKey, error),
+                                    t(error.localizationKey, error.params),
                                     index,
                                 ),
                             )}
@@ -96,7 +93,7 @@ const InfraModelValidationIssueList: React.FC<InframodelValidationIssueListProps
                             {minor.map((error, index) =>
                                 createErrorRow(
                                     error.issueType,
-                                    t(error.localizationKey, error),
+                                    t(error.localizationKey, error.params),
                                     index,
                                 ),
                             )}
