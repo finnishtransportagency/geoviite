@@ -281,7 +281,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             "points" to "${points.first().kmM}..${points.last().kmM}",
             "points.size" to points.size,
         )
-        updateLocationTrackPointsAt(locationTrackOid, points, "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid")
+        val url = "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid"
+        val pushTarget = RatkoPushTargetLocationTrack(locationTrackOid)
+        patchSpec(url, points)
+            .defaultErrorHandler(GEOMETRY, CREATE, pushTarget, url, points)
+            .toBodilessEntity()
+            .block(defaultBlockTimeout)
     }
 
     private fun updateLocationTrackPointsAt(
