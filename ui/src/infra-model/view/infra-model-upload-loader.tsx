@@ -60,12 +60,9 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     };
 
     const fileHandlingFailedErrors =
-        props.validationResponse?.geometryValidationIssues
-            .filter((e) => e.issueType === 'PARSING_ERROR' || e.issueType === 'REQUEST_ERROR')
-            .map((item) => ({
-                localizationKey: item.localizationKey,
-                localizationParams: item.localizationParams,
-            })) || [];
+        props.validationResponse?.geometryValidationIssues.filter(
+            (e) => e.issueType === 'PARSING_ERROR' || e.issueType === 'REQUEST_ERROR',
+        ) || [];
     const showFileHandlingFailed = fileHandlingFailedErrors.length > 0;
 
     return (
@@ -86,7 +83,7 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
                     <ul className={styles['infra-model-upload-failed__errors']}>
                         {fileHandlingFailedErrors.map((error) => (
                             <li key={error.localizationKey}>
-                                {t(error.localizationKey, error.localizationParams)}
+                                {t(error.localizationKey, error.params)}
                             </li>
                         ))}
                     </ul>

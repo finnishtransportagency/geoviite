@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.CoordinateTransformationException
@@ -31,15 +30,6 @@ import org.slf4j.LoggerFactory
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
 
-data class TransformationError(
-    private val key: String,
-    val srid: Srid?,
-    val coordinateSystemName: CoordinateSystemName?,
-) : GeometryValidationIssue {
-    override val issueType = GeometryIssueType.TRANSFORMATION_ERROR
-    override val localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
-}
-
 const val GEOMETRY_PLAN_CACHE_SIZE = 100L
 
 @GeoviiteService
@@ -59,7 +49,7 @@ class PlanLayoutCache(
         }
     }
 
-    private val cache: Cache<PlanLayoutCacheKey, Pair<GeometryPlanLayout?, TransformationError?>> =
+    private val cache: Cache<PlanLayoutCacheKey, Pair<GeometryPlanLayout?, GeometryValidationIssue?>> =
         Caffeine.newBuilder()
             .maximumSize(GEOMETRY_PLAN_CACHE_SIZE)
             .expireAfterAccess(planCacheDuration)
@@ -71,7 +61,7 @@ class PlanLayoutCache(
     fun getPlanLayout(
         planVersion: RowVersion<GeometryPlan>,
         includeGeometryData: Boolean = true,
-    ): Pair<GeometryPlanLayout?, TransformationError?> {
+    ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> {
         return prepareGetPlanLayout(planVersion, includeGeometryData)()
     }
 
@@ -79,7 +69,7 @@ class PlanLayoutCache(
         planVersion: RowVersion<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): () -> Pair<GeometryPlanLayout?, TransformationError?> {
+    ): () -> Pair<GeometryPlanLayout?, GeometryValidationIssue?> {
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         return prepareTransformToLayoutPlan(planVersion, geometryPlan, includeGeometryData, pointListStepLength)
     }
@@ -88,7 +78,7 @@ class PlanLayoutCache(
         geometryPlan: GeometryPlan,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> =
+    ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> =
         prepareTransformToLayoutPlan(null, geometryPlan, includeGeometryData, pointListStepLength)()
 
     private fun prepareTransformToLayoutPlan(
@@ -96,14 +86,25 @@ class PlanLayoutCache(
         geometryPlan: GeometryPlan,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): () -> Pair<GeometryPlanLayout?, TransformationError?> {
+    ): () -> Pair<GeometryPlanLayout?, GeometryValidationIssue?> {
         val id = geometryPlan.id
         val fileName = geometryPlan.fileName
         val srid = geometryPlan.units.coordinateSystemSrid
         val csName = getCoordinateSystemName(geometryPlan.units)
         if (srid == null) {
             logger.warn("Layout conversion failed. Plan has no SRID: id=$id file=$fileName")
-            return { null to TransformationError("srid-missing", srid, csName) }
+            return {
+                null to
+                    GeometryValidationIssue(
+                        localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.srid-missing"),
+                        issueType = GeometryIssueType.TRANSFORMATION_ERROR,
+                        params =
+                            buildMap {
+                                srid?.let { put("srid", it.toString()) }
+                                csName?.let { put("coordinateSystemName", it.toString()) }
+                            },
+                    )
+            }
         }
         val planToLayoutTransformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
         val planToGkTransformation = coordinateTransformationService.getTransformationToGkFin(srid)
@@ -112,12 +113,36 @@ class PlanLayoutCache(
 
         if (polygon == null) {
             logger.warn("Layout conversion failed. Plan bounds could not be resolved: id=$id file=$fileName")
-            return { null to TransformationError("bounds-resolution-failed", srid, csName) }
+            return {
+                null to
+                    GeometryValidationIssue(
+                        localizationKey =
+                            LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.bounds-resolution-failed"),
+                        issueType = GeometryIssueType.TRANSFORMATION_ERROR,
+                        params =
+                            buildMap {
+                                put("srid", srid.toString())
+                                csName?.let { put("coordinateSystemName", it.toString()) }
+                            },
+                    )
+            }
         } else if (!polygon.points.all { point -> validHeightTriangulationArea.contains(point) }) {
             logger.warn(
                 "Layout conversion failed. Plan bounds are outside the height triangulation network: id=$id file=$fileName"
             )
-            return { null to TransformationError("bounds-outside-finland", srid, csName) }
+            return {
+                null to
+                    GeometryValidationIssue(
+                        localizationKey =
+                            LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.bounds-outside-finland"),
+                        issueType = GeometryIssueType.TRANSFORMATION_ERROR,
+                        params =
+                            buildMap {
+                                put("srid", srid.toString())
+                                csName?.let { put("coordinateSystemName", it.toString()) }
+                            },
+                    )
+            }
         }
         val heightTriangles = heightTriangleDao.fetchTriangles(polygon)
         val trackNumberId =
@@ -156,7 +181,7 @@ class PlanLayoutCache(
         getStructure: (IntId<SwitchStructure>) -> SwitchStructure,
         ownerId: IntId<SwitchOwner>,
         logger: Logger,
-    ): Pair<GeometryPlanLayout?, TransformationError?> {
+    ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> {
         val id = geometryPlan.id
         val fileName = geometryPlan.fileName
         val srid = geometryPlan.units.coordinateSystemSrid
@@ -175,10 +200,30 @@ class PlanLayoutCache(
             ) to null
         } catch (e: CoordinateTransformationException) {
             logger.warn("Could not convert plan coordinates: id=$id srid=$srid file=$fileName", e)
-            null to TransformationError("coordinate-transformation-failed", srid, csName)
+            null to
+                GeometryValidationIssue(
+                    localizationKey =
+                        LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.coordinate-transformation-failed"),
+                    issueType = GeometryIssueType.TRANSFORMATION_ERROR,
+                    params =
+                        buildMap {
+                            srid?.let { put("srid", it.toString()) }
+                            csName?.let { put("coordinateSystemName", it.toString()) }
+                        },
+                )
         } catch (e: Exception) {
             logger.warn("Failed to convert plan to layout form: id=$id srid=$srid file=$fileName", e)
-            null to TransformationError("plan-transformation-failed", srid, csName)
+            null to
+                GeometryValidationIssue(
+                    localizationKey =
+                        LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.plan-transformation-failed"),
+                    issueType = GeometryIssueType.TRANSFORMATION_ERROR,
+                    params =
+                        buildMap {
+                            srid?.let { put("srid", it.toString()) }
+                            csName?.let { put("coordinateSystemName", it.toString()) }
+                        },
+                )
         }
     }
 

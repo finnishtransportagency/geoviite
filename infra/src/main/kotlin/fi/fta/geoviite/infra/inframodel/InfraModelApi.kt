@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.HasLocalizedMessage
 import fi.fta.geoviite.infra.geometry.Author
+import fi.fta.geoviite.infra.geometry.GeometryIssueType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
@@ -59,10 +60,12 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
         ValidationResponse(
             geometryValidationIssues =
                 listOf(
-                    ParsingError(
-                        if (e is HasLocalizedMessage) e.localizationKey
-                        else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC),
-                        if (e is HasLocalizedMessage) e.localizationParams else null,
+                    GeometryValidationIssue(
+                        localizationKey =
+                            if (e is HasLocalizedMessage) e.localizationKey
+                            else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC),
+                        issueType = GeometryIssueType.PARSING_ERROR,
+                        params = if (e is HasLocalizedMessage) e.localizationParams.params else emptyMap(),
                     )
                 ),
             geometryPlan = null,
