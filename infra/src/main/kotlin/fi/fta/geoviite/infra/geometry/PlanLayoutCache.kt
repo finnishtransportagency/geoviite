@@ -81,6 +81,8 @@ class PlanLayoutCache(
     ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> =
         prepareTransformToLayoutPlan(null, geometryPlan, includeGeometryData, pointListStepLength)()
 
+    // Guard-clause pattern: 3 early-exit error returns + 1 happy-path return; collapsing them would hurt readability
+    @Suppress("ReturnCount")
     private fun prepareTransformToLayoutPlan(
         planVersion: RowVersion<GeometryPlan>?,
         geometryPlan: GeometryPlan,
