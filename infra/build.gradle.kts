@@ -18,7 +18,7 @@ val kotlinVersion = "2.3.21"
 plugins {
     id("org.springframework.boot") version "3.5.14"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.jk1.dependency-license-report") version "3.1.2"
+    id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"
@@ -77,7 +77,7 @@ dependencies {
 
     // Actual deps
     implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.797") { exclude("commons-logging", "commons-logging") }
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -91,7 +91,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.0")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.0")
-    implementation("com.zaxxer:HikariCP:7.0.2")
+    implementation("com.zaxxer:HikariCP:7.1.0")
     implementation("org.flywaydb:flyway-core:11.20.3")
     implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
@@ -112,7 +112,7 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.24.1")
     implementation("com.auth0:java-jwt:4.5.2")
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.10.Final:osx-aarch_64")
-    implementation("org.postgresql:postgresql:42.7.11")
+    implementation("org.postgresql:postgresql:42.7.13")
     implementation("jakarta.activation:jakarta.activation-api:2.1.4")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.5")
     implementation("com.github.davidmoten:rtree2:0.9.3")
@@ -130,9 +130,9 @@ dependencies {
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
-    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
-    testImplementation("io.projectreactor:reactor-test:3.8.5")
-    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.2")
+    testImplementation("io.projectreactor:reactor-test:3.8.6")
+    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.45")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
 }
 
