@@ -45,7 +45,7 @@ export function createLocationTrackBackgroundLayer(
         const tracksToRender =
             resolution <= Limits.SHOW_VERY_SHORT_TRACKS_MIN_RESOLUTION
                 ? locationTracks
-                : locationTracks.filter((track) => track.points.length > 2);
+                : locationTracks.filter((track) => track.points.length >= 2);
 
         return createAlignmentBackgroundFeatures(tracksToRender);
     };

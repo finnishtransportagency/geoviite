@@ -133,7 +133,7 @@ export function createLocationTrackFeatures(
 ): Feature<LineString | OlPoint>[] {
     const alignmentsToRender = showVeryShortTracks
         ? alignments
-        : alignments.filter((alignment) => alignment.points.length > 2);
+        : alignments.filter((alignment) => alignment.points.length >= 2);
     return alignmentsToRender.flatMap((alignment) => {
         const highlighted = isHighlighted(selection, alignment.header);
         const styles = highlighted
