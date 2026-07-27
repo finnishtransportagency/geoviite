@@ -10,7 +10,7 @@ type KmPostBadgeProps = {
     trackNumber?: LayoutTrackNumber;
     showTrackNumberInBadge?: boolean;
     status?: KmPostBadgeStatus;
-    onClick?: () => void;
+    onClick?: React.MouseEventHandler;
 };
 
 export enum KmPostBadgeStatus {
