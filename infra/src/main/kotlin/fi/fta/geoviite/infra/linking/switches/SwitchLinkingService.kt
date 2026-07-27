@@ -42,6 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.TopologyRecalculationRequest
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.replaceEdges
 import fi.fta.geoviite.infra.util.processFlattened
@@ -87,40 +88,44 @@ constructor(
         }
         val switchStructures = originalSwitches.map { switchLibraryService.getSwitchStructure(it.switchStructureId) }
 
-        return fitGrids
-            .mapIndexed { i, r -> i to r }
-            .map { (index, fitGrid) ->
-                val switchId = requests[index].layoutSwitchId
-                val switchStructure = switchStructures[index]
-                val originallyLinked = originallyLinkedByRequestIndex[index]
-                val relevantTracks =
-                    newlyMatchedByRequestIndex[index] + clearSwitchFromTracks(originallyLinked, switchId)
-                fitGrid
-                    .map(parallel = true) { fit ->
-                        val (suggestion, clearedTracks) =
-                            matchFittedSwitchToTracks(fit, relevantTracks, layoutSwitchId = switchId)
-                        SuggestedSwitchWithOriginallyLinkedTracks(suggestion, originallyLinked.keys) to clearedTracks
-                    }
-                    .map { (suggestion, clearedTracks) ->
-                        val changedTracks =
-                            withChangesFromLinkingSwitch(
-                                suggestion.suggestedSwitch,
-                                switchStructure,
-                                switchId,
-                                clearedTracks,
-                            )
-                        val withTopoChanges =
-                            locationTrackService.recalculateTopology(branch.draft, changedTracks, switchId)
-                        val topoLinkTrackIds = gatherOuterSwitchLinks(withTopoChanges, switchId)
-
-                        SuggestedSwitchWithOriginallyLinkedTracks(
-                            suggestion.suggestedSwitch.copy(topologicallyLinkedTracks = topoLinkTrackIds),
-                            suggestion.originallyLinkedTracks,
-                        )
-                    }
+        val matchedGrids: List<PointAssociation<MatchedSuggestion>> = fitGrids.mapIndexed { index, fitGrid ->
+            val switchId = requests[index].layoutSwitchId
+            val originallyLinked = originallyLinkedByRequestIndex[index]
+            val relevantTracks = newlyMatchedByRequestIndex[index] + clearSwitchFromTracks(originallyLinked, switchId)
+            fitGrid.map(parallel = true) { fit ->
+                val (suggestion, clearedTracks) =
+                    matchFittedSwitchToTracks(fit, relevantTracks, layoutSwitchId = switchId)
+                MatchedSuggestion(
+                    switchId,
+                    suggestion,
+                    originallyLinked.keys,
+                    withChangesFromLinkingSwitch(suggestion, switchStructures[index], switchId, clearedTracks),
+                )
             }
-            .toList()
+        }
+
+        // Recalculate all suggestions' topologies in one go, batching the DB node lookups
+        return processFlattened(matchedGrids) { matches ->
+            val recalculatedTracks =
+                locationTrackService.recalculateTopologies(
+                    branch.draft,
+                    matches.map { match -> TopologyRecalculationRequest(match.changedTracks, match.switchId) },
+                )
+            matches.zip(recalculatedTracks) { match, tracks ->
+                SuggestedSwitchWithOriginallyLinkedTracks(
+                    match.suggestion.copy(topologicallyLinkedTracks = gatherOuterSwitchLinks(tracks, match.switchId)),
+                    match.originallyLinkedTracks,
+                )
+            }
+        }
     }
+
+    private class MatchedSuggestion(
+        val switchId: IntId<LayoutSwitch>,
+        val suggestion: SuggestedSwitch,
+        val originallyLinkedTracks: Set<IntId<LocationTrack>>,
+        val changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    )
 
     private fun collectNewlyMatchedLocationTracks(
         fitGrids: List<PointAssociation<FittedSwitch>>,
@@ -570,6 +575,26 @@ data class PointAssociation<T>(val items: Map<T, Set<Point>>) {
     private fun itemStream(parallel: Boolean) = if (parallel) items.entries.parallelStream() else items.entries.stream()
 
     private fun invertItems(): Map<Point, Set<T>> = invertMapOfSets(items)
+}
+
+/**
+ * Flattens the given associations' items, calls process() on the result, and returns the results associated back to the
+ * original items' points.
+ */
+fun <T, R> processFlattened(
+    associations: List<PointAssociation<T>>,
+    process: (itemsIn: List<T>) -> List<R>,
+): List<PointAssociation<R>> {
+    val entryLists = associations.map { association -> association.items.entries.toList() }
+    val processed = processFlattened(entryLists.map { entries -> entries.map { it.key } }, process)
+    return entryLists.zip(processed) { entries, results ->
+        PointAssociation(
+            entries
+                .zip(results) { entry, result -> result to entry.value }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, pointSets) -> pointSets.flatten().toSet() }
+        )
+    }
 }
 
 fun <K, V> invertMapOfSets(map: Map<K, Set<V>>): Map<V, Set<K>> =

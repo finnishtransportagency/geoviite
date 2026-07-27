@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TopologyRecalculationRequest
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.tracklayout.asDraft
-import fi.fta.geoviite.infra.tracklayout.getTopologicallyLinkableJointLocations
 import fi.fta.geoviite.infra.tracklayout.groupConnectionsByJointNumber
 import fi.fta.geoviite.infra.util.processNonNulls
 import org.springframework.beans.factory.annotation.Autowired
@@ -130,11 +129,7 @@ constructor(
                     locationTrackService.recalculateTopologies(
                         branch.draft,
                         changed.map { (index, changedTracks) ->
-                            val switchId = switchPlacingRequests[index].layoutSwitchId
-                            TopologyRecalculationRequest(
-                                changedTracks,
-                                getTopologicallyLinkableJointLocations(changedTracks, switchId),
-                            )
+                            TopologyRecalculationRequest(changedTracks, switchPlacingRequests[index].layoutSwitchId)
                         },
                     )
                 }
