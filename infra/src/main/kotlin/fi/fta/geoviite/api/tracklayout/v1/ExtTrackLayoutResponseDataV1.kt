@@ -368,10 +368,11 @@ enum class ExtElevationMeasurementMethodV1(val value: String) {
     @JsonValue override fun toString() = value
 
     companion object {
-        fun of(method: ElevationMeasurementMethod): ExtElevationMeasurementMethodV1 =
+        fun of(method: ElevationMeasurementMethod): ExtElevationMeasurementMethodV1? =
             when (method) {
                 ElevationMeasurementMethod.TOP_OF_SLEEPER -> TOP_OF_SLEEPER
                 ElevationMeasurementMethod.TOP_OF_RAIL -> TOP_OF_RAIL
+                ElevationMeasurementMethod.UNKNOWN -> null
             }
     }
 }

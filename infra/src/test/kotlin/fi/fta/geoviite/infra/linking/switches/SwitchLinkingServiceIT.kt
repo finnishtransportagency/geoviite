@@ -2463,7 +2463,7 @@ constructor(
                     trackNumber = trackNumber,
                     alignments = alignments,
                     switches = switches,
-                    measurementMethod = measurementMethod,
+                    measurementMethod = measurementMethod ?: MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
                     srid = LAYOUT_SRID,
                 ),
                 testFile(),

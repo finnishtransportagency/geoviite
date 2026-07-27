@@ -16,6 +16,7 @@ function getTranslationKey(method: MeasurementMethodModel | undefined) {
         case 'POINT_CLOUD_UNSIGNALED':
         case 'GNSS_IMU':
         case 'RTK_GNSS':
+        case 'UNKNOWN':
             return method;
         case undefined:
             return 'UNKNOWN';

@@ -6,19 +6,25 @@ import org.junit.jupiter.api.Test
 class PlanApplicabilityTest {
 
     @Test
+    fun `UNKNOWN quality gives STATISTICS regardless of decision phase`() {
+        PlanDecisionPhase.entries.forEach { phase ->
+            assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.UNKNOWN, phase))
+        }
+    }
+
+    @Test
+    fun `PLAN quality with UNKNOWN decision phase gives STATISTICS`() {
+        assertEquals(
+            PlanApplicability.STATISTICS,
+            computePlanApplicability(PlanQuality.PLAN, PlanDecisionPhase.UNKNOWN),
+        )
+    }
+
+    @Test
     fun `UNRELIABLE_PLAN quality always gives STATISTICS regardless of decision phase`() {
         PlanDecisionPhase.entries.forEach { phase ->
             assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.UNRELIABLE_PLAN, phase))
         }
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.UNRELIABLE_PLAN, null))
-    }
-
-    @Test
-    fun `null quality gives STATISTICS`() {
-        PlanDecisionPhase.entries.forEach { phase ->
-            assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(null, phase))
-        }
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(null, null))
     }
 
     @Test
@@ -35,11 +41,6 @@ class PlanApplicabilityTest {
             PlanApplicability.STATISTICS,
             computePlanApplicability(PlanQuality.PLAN, PlanDecisionPhase.OUTDATED),
         )
-    }
-
-    @Test
-    fun `PLAN quality with null decision phase gives STATISTICS`() {
-        assertEquals(PlanApplicability.STATISTICS, computePlanApplicability(PlanQuality.PLAN, null))
     }
 
     @Test

@@ -116,6 +116,7 @@ export const planPhases: LocalizedEnum<PlanPhase>[] = values('PlanPhase', [
     'MAINTENANCE',
     'NEW_INVESTMENT',
     'REMOVED_FROM_USE',
+    'UNKNOWN',
 ]);
 
 export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = values('PlanDecisionPhase', [
@@ -123,6 +124,7 @@ export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = values('Pl
     'UNDER_CONSTRUCTION',
     'IN_USE',
     'OUTDATED',
+    'UNKNOWN',
 ]);
 
 export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('MeasurementMethod', [
@@ -133,16 +135,18 @@ export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('Me
     'POINT_CLOUD_UNSIGNALED',
     'GNSS_IMU',
     'RTK_GNSS',
+    'UNKNOWN',
 ]);
 
 export const planQualities: LocalizedEnum<PlanQuality>[] = values('PlanQuality', [
     'PLAN',
     'UNRELIABLE_PLAN',
+    'UNKNOWN',
 ]);
 
 export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMethod>[] = values(
     'ElevationMeasurementMethod',
-    ['TOP_OF_SLEEPER', 'TOP_OF_RAIL'],
+    ['TOP_OF_SLEEPER', 'TOP_OF_RAIL', 'UNKNOWN'],
 );
 
 export const planApplicabilities: LocalizedEnum<PlanApplicability>[] = values('PlanApplicability', [

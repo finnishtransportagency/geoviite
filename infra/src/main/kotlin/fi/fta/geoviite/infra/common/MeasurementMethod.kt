@@ -8,4 +8,5 @@ enum class MeasurementMethod {
     POINT_CLOUD_UNSIGNALED,
     GNSS_IMU,
     RTK_GNSS,
+    UNKNOWN,
 }

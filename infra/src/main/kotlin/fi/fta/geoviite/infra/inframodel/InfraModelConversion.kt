@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.SwitchName
@@ -37,7 +39,10 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitchJoint
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
 import fi.fta.geoviite.infra.geometry.GeometryUnits
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
 import fi.fta.geoviite.infra.geometry.PlanName
+import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.geometry.PlanQuality
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.PlanState
 import fi.fta.geoviite.infra.geometry.PlanState.ABANDONED
@@ -173,12 +178,13 @@ fun toGvtPlan(
         fileName = fileName,
         kmPosts = kmPosts,
         pvDocumentId = null,
-        measurementMethod = null,
-        elevationMeasurementMethod = null,
-        planPhase = null,
-        decisionPhase = null,
+        measurementMethod = MeasurementMethod.UNKNOWN,
+        elevationMeasurementMethod = ElevationMeasurementMethod.UNKNOWN,
+        planPhase = PlanPhase.UNKNOWN,
+        decisionPhase = PlanDecisionPhase.UNKNOWN,
         message = null,
         uploadTime = null,
+        quality = PlanQuality.UNKNOWN,
         isHidden = false,
         name = getPlanNameByFileName(fileName),
     )

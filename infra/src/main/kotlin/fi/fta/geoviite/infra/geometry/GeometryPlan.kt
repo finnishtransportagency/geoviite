@@ -30,11 +30,11 @@ import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
 
-fun computePlanApplicability(quality: PlanQuality?, decisionPhase: PlanDecisionPhase?): PlanApplicability =
+fun computePlanApplicability(quality: PlanQuality, decisionPhase: PlanDecisionPhase): PlanApplicability =
     when {
-        quality == null -> PlanApplicability.STATISTICS
-        quality == PlanQuality.UNRELIABLE_PLAN -> PlanApplicability.STATISTICS
-        decisionPhase == PlanDecisionPhase.OUTDATED || decisionPhase == null -> PlanApplicability.STATISTICS
+        quality == PlanQuality.UNKNOWN || quality == PlanQuality.UNRELIABLE_PLAN -> PlanApplicability.STATISTICS
+        decisionPhase == PlanDecisionPhase.OUTDATED || decisionPhase == PlanDecisionPhase.UNKNOWN ->
+            PlanApplicability.STATISTICS
         decisionPhase == PlanDecisionPhase.IN_USE -> PlanApplicability.MAINTENANCE
         else -> PlanApplicability.PLANNING
     }
@@ -54,10 +54,10 @@ data class GeometryPlanHeader(
     val source: PlanSource,
     val trackNumber: TrackNumber?,
     val kmNumberRange: Range<KmNumber>?,
-    val measurementMethod: MeasurementMethod?,
-    val elevationMeasurementMethod: ElevationMeasurementMethod?,
-    val planPhase: PlanPhase?,
-    val decisionPhase: PlanDecisionPhase?,
+    val measurementMethod: MeasurementMethod,
+    val elevationMeasurementMethod: ElevationMeasurementMethod,
+    val planPhase: PlanPhase,
+    val decisionPhase: PlanDecisionPhase,
     val planTime: Instant?,
     val message: FreeTextWithNewLines?,
     val linkedAsPlanId: IntId<GeometryPlan>?,
@@ -68,7 +68,7 @@ data class GeometryPlanHeader(
     val hasCant: Boolean,
     val isHidden: Boolean,
     val name: PlanName,
-    val quality: PlanQuality?,
+    val quality: PlanQuality,
 ) : Loggable {
     val planApplicability: PlanApplicability
         get() = computePlanApplicability(quality, decisionPhase)
@@ -102,13 +102,13 @@ data class GeometryPlan(
     val kmPosts: List<GeometryKmPost>,
     val fileName: FileName,
     val pvDocumentId: IntId<PVDocument>?,
-    val planPhase: PlanPhase?,
-    val decisionPhase: PlanDecisionPhase?,
-    val measurementMethod: MeasurementMethod?,
-    val elevationMeasurementMethod: ElevationMeasurementMethod?,
+    val planPhase: PlanPhase,
+    val decisionPhase: PlanDecisionPhase,
+    val measurementMethod: MeasurementMethod,
+    val elevationMeasurementMethod: ElevationMeasurementMethod,
     val message: FreeTextWithNewLines?,
     val name: PlanName,
-    val quality: PlanQuality? = null,
+    val quality: PlanQuality,
     val isHidden: Boolean = false,
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,

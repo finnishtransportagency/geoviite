@@ -23,7 +23,7 @@ export const InfraModelPhaseField: React.FC<InfraModelExtraParameterFieldProps> 
             onEdit={() => setFieldInEdit('planPhase')}
             onClose={() => setFieldInEdit(undefined)}>
             {fieldInEdit !== 'planPhase' ? (
-                extraInframodelParameters.planPhase ? (
+                extraInframodelParameters.planPhase !== undefined ? (
                     <PlanPhase phase={extraInframodelParameters.planPhase} />
                 ) : (
                     t('im-form.information-missing')
@@ -32,13 +32,10 @@ export const InfraModelPhaseField: React.FC<InfraModelExtraParameterFieldProps> 
                 <FieldLayout
                     value={
                         <Dropdown
-                            placeholder={t('im-form.information-missing')}
                             wide
                             wideList
                             value={extraInframodelParameters.planPhase}
                             options={planPhases}
-                            unselectText={t('im-form.information-missing')}
-                            canUnselect
                             onChange={(phase) => changeInExtraParametersField(phase, 'planPhase')}
                         />
                     }

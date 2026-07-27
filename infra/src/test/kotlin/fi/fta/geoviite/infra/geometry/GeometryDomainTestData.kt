@@ -455,8 +455,8 @@ fun plan(
     srid: Srid? = Srid(3879),
     alignments: List<GeometryAlignment> = listOf(geometryAlignment()),
     switches: List<GeometrySwitch> = listOf(),
-    measurementMethod: MeasurementMethod? = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
-    elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
+    measurementMethod: MeasurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
+    elevationMeasurementMethod: ElevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
     coordinateSystemName: CoordinateSystemName? = null,
@@ -466,7 +466,7 @@ fun plan(
     kmPosts: List<GeometryKmPost> = kmPosts(srid),
     project: Project = project(),
     units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
-    quality: PlanQuality? = null,
+    quality: PlanQuality = PlanQuality.UNKNOWN,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,
@@ -496,8 +496,8 @@ fun plan(
 fun planHeader(
     id: IntId<GeometryPlan> = IntId(1),
     fileName: FileName = FileName("test_file.xml"),
-    measurementMethod: MeasurementMethod? = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
-    elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
+    measurementMethod: MeasurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
+    elevationMeasurementMethod: ElevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,
     trackNumber: TrackNumber = TrackNumber("001"),
@@ -526,7 +526,7 @@ fun planHeader(
         author = "Test Company",
         isHidden = false,
         name = getPlanNameByFileName(fileName),
-        quality = null,
+        quality = PlanQuality.UNKNOWN,
     )
 
 fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
@@ -544,18 +544,19 @@ fun minimalPlan(fileName: FileName = FileName("TEST_FILE.xml")) =
             ),
         author = null,
         message = null,
-        planPhase = null,
-        decisionPhase = null,
+        planPhase = PlanPhase.UNKNOWN,
+        decisionPhase = PlanDecisionPhase.UNKNOWN,
         planTime = null,
         switches = listOf(),
         alignments = listOf(),
         kmPosts = listOf(),
         pvDocumentId = null,
-        measurementMethod = null,
-        elevationMeasurementMethod = null,
+        measurementMethod = MeasurementMethod.UNKNOWN,
+        elevationMeasurementMethod = ElevationMeasurementMethod.UNKNOWN,
         trackNumber = null,
         uploadTime = null,
         name = getPlanNameByFileName(fileName),
+        quality = PlanQuality.UNKNOWN,
     )
 
 fun geometryLine(

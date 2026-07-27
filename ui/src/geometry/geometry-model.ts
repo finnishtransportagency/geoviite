@@ -59,18 +59,18 @@ export type KmNumberRange = {
     max: KmNumber;
 };
 
-export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE' | 'OUTDATED';
+export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE' | 'OUTDATED' | 'UNKNOWN';
 
-export type PlanQuality = 'PLAN' | 'UNRELIABLE_PLAN';
+export type PlanQuality = 'PLAN' | 'UNRELIABLE_PLAN' | 'UNKNOWN';
 
 export type PlanApplicability = 'PLANNING' | 'MAINTENANCE' | 'STATISTICS';
 
 export const computePlanApplicability = (
-    quality: PlanQuality | undefined,
-    decisionPhase: PlanDecisionPhase | undefined,
+    quality: PlanQuality,
+    decisionPhase: PlanDecisionPhase,
 ): PlanApplicability => {
-    if (quality === undefined || quality === 'UNRELIABLE_PLAN') return 'STATISTICS';
-    if (decisionPhase === undefined || decisionPhase === 'OUTDATED') return 'STATISTICS';
+    if (quality === 'UNKNOWN' || quality === 'UNRELIABLE_PLAN') return 'STATISTICS';
+    if (decisionPhase === 'UNKNOWN' || decisionPhase === 'OUTDATED') return 'STATISTICS';
     if (decisionPhase === 'IN_USE') return 'MAINTENANCE';
     return 'PLANNING';
 };
@@ -91,7 +91,8 @@ export type PlanPhase =
     | 'ENHANCED_RENOVATION_PLAN'
     | 'MAINTENANCE'
     | 'NEW_INVESTMENT'
-    | 'REMOVED_FROM_USE';
+    | 'REMOVED_FROM_USE'
+    | 'UNKNOWN';
 
 export type GeometryPlanHeader = {
     id: GeometryPlanId;
@@ -100,10 +101,10 @@ export type GeometryPlanHeader = {
     source: PlanSource;
     trackNumber?: TrackNumber;
     kmNumberRange?: KmNumberRange;
-    measurementMethod?: MeasurementMethod;
-    elevationMeasurementMethod?: ElevationMeasurementMethod;
-    planPhase?: PlanPhase;
-    decisionPhase?: PlanDecisionPhase;
+    measurementMethod: MeasurementMethod;
+    elevationMeasurementMethod: ElevationMeasurementMethod;
+    planPhase: PlanPhase;
+    decisionPhase: PlanDecisionPhase;
     planTime?: TimeStamp;
     message?: string;
     linkedAsPlanId?: GeometryPlanId;
@@ -114,7 +115,7 @@ export type GeometryPlanHeader = {
     hasCant: boolean;
     isHidden: boolean;
     name: string;
-    quality?: PlanQuality;
+    quality: PlanQuality;
     planApplicability?: PlanApplicability;
 };
 
@@ -134,11 +135,11 @@ export type GeometryPlan = {
     kmPosts: GeometryKmPost[];
     fileName: string;
     pvDocumentId?: PVDocumentId;
-    planPhase?: PlanPhase;
-    decisionPhase?: PlanDecisionPhase;
-    measurementMethod?: MeasurementMethod;
-    elevationMeasurementMethod?: ElevationMeasurementMethod;
-    quality?: PlanQuality;
+    planPhase: PlanPhase;
+    decisionPhase: PlanDecisionPhase;
+    measurementMethod: MeasurementMethod;
+    elevationMeasurementMethod: ElevationMeasurementMethod;
+    quality: PlanQuality;
     message?: string;
     name: string;
     isHidden: boolean;

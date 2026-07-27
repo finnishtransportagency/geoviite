@@ -25,7 +25,7 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelExtraParameterFiel
             onClose={() => setFieldInEdit(undefined)}
             errors={errors}>
             {fieldInEdit !== 'planDecisionPhase' ? (
-                extraInframodelParameters.decisionPhase ? (
+                extraInframodelParameters.decisionPhase !== undefined ? (
                     <DecisionPhase decision={extraInframodelParameters.decisionPhase} />
                 ) : (
                     t('im-form.information-missing')

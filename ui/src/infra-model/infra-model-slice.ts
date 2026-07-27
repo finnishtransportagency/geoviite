@@ -231,11 +231,11 @@ const infraModelSlice = createSlice({
             { payload: plan }: PayloadAction<GeometryPlan | undefined>,
         ) => {
             state.extraInfraModelParameters = {
-                planPhase: plan?.planPhase ?? undefined,
-                decisionPhase: plan?.decisionPhase ?? undefined,
-                measurementMethod: plan?.measurementMethod ?? undefined,
-                elevationMeasurementMethod: plan?.elevationMeasurementMethod ?? undefined,
-                quality: plan?.quality ?? undefined,
+                planPhase: plan?.planPhase,
+                decisionPhase: plan?.decisionPhase,
+                measurementMethod: plan?.measurementMethod,
+                elevationMeasurementMethod: plan?.elevationMeasurementMethod,
+                quality: plan?.quality,
                 message: plan?.message ?? undefined,
                 name: plan?.name ?? undefined,
             };

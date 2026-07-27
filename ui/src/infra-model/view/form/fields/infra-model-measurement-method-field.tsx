@@ -25,7 +25,7 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelExtraParameter
             onClose={() => setFieldInEdit(undefined)}
             errors={errors}>
             {fieldInEdit !== 'measurementMethod' ? (
-                extraInframodelParameters.measurementMethod ? (
+                extraInframodelParameters.measurementMethod !== undefined ? (
                     <MeasurementMethod method={extraInframodelParameters.measurementMethod} />
                 ) : (
                     t('im-form.information-missing')

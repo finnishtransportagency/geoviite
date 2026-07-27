@@ -16,6 +16,7 @@ function getTranslationKey(
     switch (method) {
         case 'TOP_OF_SLEEPER':
         case 'TOP_OF_RAIL':
+        case 'UNKNOWN':
             return method;
         case undefined:
             return includeTermContextForUnknownMethod ? 'UNKNOWN_WITH_TERM_CONTEXT' : 'UNKNOWN';

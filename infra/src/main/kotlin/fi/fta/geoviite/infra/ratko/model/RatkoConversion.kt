@@ -77,6 +77,7 @@ fun mapToRatkoMeasurementMethod(layoutMeasurementMethod: MeasurementMethod?) =
         MeasurementMethod.POINT_CLOUD_UNSIGNALED -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
         MeasurementMethod.GNSS_IMU -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
         MeasurementMethod.RTK_GNSS -> RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY
+        MeasurementMethod.UNKNOWN -> RatkoMeasurementMethod.UNKNOWN
         null -> RatkoMeasurementMethod.UNKNOWN
     }
 
