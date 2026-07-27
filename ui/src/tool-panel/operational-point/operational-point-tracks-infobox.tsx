@@ -61,7 +61,6 @@ type OperationalPointTracksInfoboxProps = {
     layoutContext: LayoutContext;
     operationalPoint: OperationalPoint;
     changeTimes: ChangeTimes;
-    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
 };
 
 export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfoboxProps> = ({
@@ -70,7 +69,6 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
     layoutContext,
     operationalPoint,
     changeTimes,
-    onSelectLocationTrack,
 }) => {
     const { t } = useTranslation();
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
@@ -217,7 +215,6 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                                 massLinkingAction={() =>
                                     delegates.setOperationalPointLinkedTracks([])
                                 }
-                                onSelectLocationTrack={onSelectLocationTrack}
                                 isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <OperationalPointTracksDirectionInfobox
@@ -231,7 +228,6 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                                         trackLinkingInfo?.items?.map((lt) => lt.id) ?? [],
                                     )
                                 }
-                                onSelectLocationTrack={onSelectLocationTrack}
                                 isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <div
