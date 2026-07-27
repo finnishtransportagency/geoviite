@@ -394,6 +394,8 @@ fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureTy
         validateAlignmentCant(alignment)
 }
 
+// Complexity from independent validation checks — splitting into single-use functions would hurt readability
+@Suppress("CyclomaticComplexMethod")
 private fun validateElement(alignmentName: AlignmentName, element: GeometryElement): List<GeometryValidationIssue> {
     val lengthDelta = abs(element.length.toDouble() - element.calculatedLength)
     val fieldErrors =
@@ -538,6 +540,8 @@ private fun validateElementVsPrevious(
     )
 }
 
+// Complexity from independent validation checks — splitting into single-use functions would hurt readability
+@Suppress("CyclomaticComplexMethod")
 private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): List<GeometryValidationIssue> {
     val startRadiusDiff = abs(lineLength(curve.center, curve.start) - curve.radius.toDouble())
     val endRadiusDiff = abs(lineLength(curve.center, curve.start) - curve.radius.toDouble())
