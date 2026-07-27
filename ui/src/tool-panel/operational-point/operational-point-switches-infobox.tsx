@@ -44,7 +44,6 @@ type OperationalPointSwitchesInfoboxProps = {
     layoutContext: LayoutContext;
     operationalPoint: OperationalPoint;
     changeTimes: ChangeTimes;
-    onSelectSwitch: (switchId: LayoutSwitchId) => void;
     operationalPointFetchStatus: LoaderStatus;
 };
 
@@ -83,7 +82,6 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
     layoutContext,
     operationalPoint,
     changeTimes,
-    onSelectSwitch,
     operationalPointFetchStatus,
 }) => {
     const { t } = useTranslation();
@@ -258,7 +256,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 linkingAction={removeSwitch}
                                 massLinkingAction={addAllSwitches}
                                 showArea={delegates.showArea}
-                                onSelectSwitch={onSelectSwitch}
+
                                 isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <OperationalPointSwitchesDirectionInfobox
@@ -276,7 +274,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 linkingAction={addSwitch}
                                 massLinkingAction={removeAllSwitches}
                                 showArea={delegates.showArea}
-                                onSelectSwitch={onSelectSwitch}
+
                                 isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                             <div

@@ -26,6 +26,8 @@ import {
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { createDelegates } from 'store/store-utils';
 import { getChangeTimes } from 'common/change-time-api';
 
 type OperationalPointSwitchesDirectionInfoboxProps = {
@@ -39,7 +41,6 @@ type OperationalPointSwitchesDirectionInfoboxProps = {
     linkingAction: (id: LayoutSwitchId) => void;
     massLinkingAction: () => void;
     showArea: (area: BoundingBox) => void;
-    onSelectSwitch: (switchId: LayoutSwitchId) => void;
     isLinkingOrSplitting: boolean;
 };
 
@@ -56,7 +57,6 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
     linkingAction,
     massLinkingAction,
     showArea,
-    onSelectSwitch,
     isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
@@ -111,7 +111,6 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
                                 isEditing={isEditing}
                                 linkingAction={linkingAction}
                                 showArea={showArea}
-                                onSelectSwitch={onSelectSwitch}
                                 isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                         ))
@@ -141,7 +140,6 @@ type OperationalPointSwitchRowProps = {
     isEditing: boolean;
     linkingAction: (id: LayoutSwitchId) => void;
     showArea: (area: BoundingBox) => void;
-    onSelectSwitch: (switchId: LayoutSwitchId) => void;
     isLinkingOrSplitting: boolean;
 };
 
@@ -153,7 +151,6 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
     isEditing,
     linkingAction,
     showArea,
-    onSelectSwitch,
     isLinkingOrSplitting,
 }) => {
     const switchLocation = getSwitchLocation(switchItem);
@@ -179,7 +176,13 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
                             ? SwitchBadgeStatus.DISABLED
                             : undefined
                     }
-                    onClick={() => onSelectSwitch(switchItem.id)}
+                    onClick={() => {
+                        const delegates = createDelegates(TrackLayoutActions);
+                        delegates.onSelect({
+                            switches: [switchItem.id],
+                            selectedTab: { id: switchItem.id, type: 'SWITCH' },
+                        });
+                    }}
                 />
                 {switchLocation ? (
                     <a

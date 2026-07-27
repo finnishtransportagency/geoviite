@@ -11,7 +11,7 @@ import { OperationalPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
-import { LayoutSwitchId, OperationalPoint } from 'track-layout/track-layout-model';
+import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import {
@@ -77,19 +77,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
-
-    const selectSwitch = React.useCallback(
-        (switchId: LayoutSwitchId) => {
-            onSelect({
-                switches: [switchId],
-                selectedTab: {
-                    id: switchId,
-                    type: 'SWITCH',
-                },
-            });
-        },
-        [onSelect],
-    );
 
     const changeInfo = useLoader(
         () => getOperationalPointChangeTimes(operationalPoint.id, layoutContext),
@@ -237,7 +224,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         layoutContext={layoutContext}
                         operationalPoint={operationalPoint}
                         changeTimes={changeTimes}
-                        onSelectSwitch={selectSwitch}
                         operationalPointFetchStatus={operationalPointFetchStatus}
                     />
                     <OperationalPointTracksInfobox
