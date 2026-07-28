@@ -556,7 +556,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
                     put("alignmentName", alignmentName.toString())
-                    (curve.name ?: curve.oidPart)?.let { put("elementName", it.toString()) }
+                    put("elementName", (curve.name ?: curve.oidPart)?.toString() ?: "")
                     put("elementType", curve.type.name)
                     put("value", roundTo3Decimals(startRadiusDiff).toString())
                 },
@@ -570,7 +570,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
                     put("alignmentName", alignmentName.toString())
-                    (curve.name ?: curve.oidPart)?.let { put("elementName", it.toString()) }
+                    put("elementName", (curve.name ?: curve.oidPart)?.toString() ?: "")
                     put("elementType", curve.type.name)
                     put("value", roundTo3Decimals(endRadiusDiff).toString())
                 },
@@ -584,7 +584,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
                     put("alignmentName", alignmentName.toString())
-                    (curve.name ?: curve.oidPart)?.let { put("elementName", it.toString()) }
+                    put("elementName", (curve.name ?: curve.oidPart)?.toString() ?: "")
                     put("elementType", curve.type.name)
                 },
             )
@@ -596,7 +596,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
                 OBSERVATION_MAJOR,
                 buildMap {
                     put("alignmentName", alignmentName.toString())
-                    (curve.name ?: curve.oidPart)?.let { put("elementName", it.toString()) }
+                    put("elementName", (curve.name ?: curve.oidPart)?.toString() ?: "")
                     put("elementType", curve.type.name)
                     put("value", curve.radius.toString())
                 },
