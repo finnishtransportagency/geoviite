@@ -60,7 +60,6 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -72,7 +71,6 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 }
 
 class FakeRatko(port: Int) {
-    private val logger = LoggerFactory.getLogger(this::class.java)
 
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
@@ -132,7 +130,6 @@ class FakeRatko(port: Int) {
                 .willReturn(ok())
         )
         oids.forEach { oid ->
-            logger.info("Binding route number (no-points) stubs for oid=$oid")
             // Times.exactly(0) for routenumber/points: omit — 404 if called
             wireMock.stubFor(
                 post(urlEqualTo("/api/infra/v1.0/routenumbers"))
@@ -147,7 +144,6 @@ class FakeRatko(port: Int) {
         oid: String,
         ratkoLocationTrackAfterCreation: InterfaceRatkoLocationTrack? = null,
     ) {
-        logger.info("Binding location track stubs for oid=$oid")
         stubNewLocationTrackOid(oid)
         wireMock.stubFor(
             patch(urlEqualTo("/api/infra/v1.1/locationtracks/$oid"))
@@ -192,7 +188,6 @@ class FakeRatko(port: Int) {
     }
 
     fun acceptsNewLocationTrackWithReferencedGeometry(oid: String, locationTrackOidOfGeometry: String) {
-        logger.info("Binding location track (referenced geometry) stubs for oid=$oid")
         stubNewLocationTrackOid(oid)
         wireMock.stubFor(get(urlEqualTo("/api/locations/v1.1/locationtracks/$oid")).willReturn(okJson(listOf<Unit>())))
         wireMock.stubFor(
@@ -214,7 +209,6 @@ class FakeRatko(port: Int) {
         locationTrackOidOfGeometry: String,
     ) {
         val oid = existingRatkoLocationTrack.id
-        logger.info("Binding location track update (referenced geometry) stubs for oid=$oid")
         wireMock.stubFor(
             get(urlEqualTo("/api/locations/v1.1/locationtracks/$oid"))
                 .willReturn(okJson(listOf(existingRatkoLocationTrack)))
@@ -243,7 +237,6 @@ class FakeRatko(port: Int) {
         locationTrackOidOfGeometry: String,
     ) {
         val oid = existingRatkoLocationTrack.id
-        logger.info("Binding location track partial update (referenced geometry) stubs for oid=$oid")
         wireMock.stubFor(
             get(urlEqualTo("/api/locations/v1.1/locationtracks/$oid"))
                 .willReturn(okJson(listOf(existingRatkoLocationTrack)))
@@ -308,7 +301,6 @@ class FakeRatko(port: Int) {
     }
 
     fun acceptsNewLocationTrackWithoutPointsGivingItOid(oid: String) {
-        logger.info("Binding location track (no-points) stubs for oid=$oid")
         stubNewLocationTrackOid(oid)
         wireMock.stubFor(
             patch(urlEqualTo("/api/infra/v1.1/locationtracks/$oid"))
@@ -330,7 +322,6 @@ class FakeRatko(port: Int) {
     }
 
     fun acceptsNewSwitchGivingItOid(oid: String) {
-        logger.info("Binding switch stubs for oid=$oid")
         wireMock.stubFor(
             post(urlEqualTo("/api/assets/v1.2"))
                 .withRequestBody(equalToJson("""{"type":"turnout","id":"$oid"}""", true, true))
@@ -343,7 +334,6 @@ class FakeRatko(port: Int) {
     }
 
     fun acceptsNewSwitchWithoutDataGivingItOid(oid: String) {
-        logger.info("Binding switch (no-data) stubs for oid=$oid")
         wireMock.stubFor(
             post(urlEqualTo("/api/assets/v1.2"))
                 .withRequestBody(equalToJson("""{"type":"turnout","id":"$oid"}""", true, true))
