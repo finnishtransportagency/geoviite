@@ -117,6 +117,7 @@ geoviite:
     auth_url: "${PROJEKTIVELHO_AUTH_URL:}"
     client_id: "${PROJEKTIVELHO_CLIENT_ID:}"
     secret_key: "${PROJEKTIVELHO_SECRET_KEY:}"
+    ui_domain: "${PROJEKTIVELHO_UI_DOMAIN:}"
     tasks:
       enabled: true
 

@@ -93,38 +93,6 @@ module.exports = (env) => {
                     logLevel: 'debug',
                     pathRewrite: { '^/api': '' },
                 },
-                {
-                    context: '/redirect/projektivelho/files',
-                    target: process.env.PROJEKTIVELHO_REDIRECT_URL,
-                    logLevel: 'debug',
-                    changeOrigin: true,
-                    router: function (req) {
-                        const documentOid = req.query['document'];
-                        const assignmentOid = req.query['assignment'];
-                        const projectOid = req.query['project'];
-                        const projectGroupOid = req.query['projectGroup'];
-
-                        if (projectOid) {
-                            const projectPath = `/projektit/oid-${projectOid}`;
-
-                            const assigmentPath = assignmentOid
-                                ? `/toimeksiannot/oid-${assignmentOid}`
-                                : '';
-
-                            const documentPath =
-                                assignmentOid && documentOid
-                                    ? `/aineistot/oid-${documentOid}/muokkaa`
-                                    : '';
-
-                            return projectPath + assigmentPath + documentPath;
-                        } else if (projectGroupOid) {
-                            return `/projektijoukot/oid-${projectGroupOid}`;
-                        }
-
-                        //Returning undefined would redirect uri as it is to ProjektiVelho, and we don't want that
-                        return '';
-                    },
-                },
                 ...(process.env.MML_MAP_IN_USE === 'true'
                     ? [
                           {
