@@ -1,5 +1,10 @@
 package fi.fta.geoviite.infra.integration
 
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import fi.fta.geoviite.infra.logging.SPAN_IDS_KEY
 import fi.fta.geoviite.infra.logging.copyThreadContextToReactiveResponseThread
 import fi.fta.geoviite.infra.logging.withLogSpan
@@ -10,9 +15,6 @@ import org.apache.logging.log4j.ThreadContext
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockserver.integration.ClientAndServer
-import org.mockserver.model.HttpRequest
-import org.mockserver.model.HttpResponse
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import org.springframework.web.reactive.function.client.ClientRequest
@@ -25,19 +27,18 @@ const val MOCK_SERVER_PORT = 1080
 
 class ThreadContextMiddlewareTest {
 
-    private lateinit var mockServer: ClientAndServer
+    private lateinit var wireMock: WireMockServer
 
     @BeforeEach
     fun startMockServer() {
-        mockServer = ClientAndServer.startClientAndServer(MOCK_SERVER_PORT)
-        mockServer
-            .`when`(HttpRequest.request().withMethod("GET").withPath("/example"))
-            .respond(HttpResponse.response().withStatusCode(200).withBody("mock response"))
+        wireMock = WireMockServer(options().port(MOCK_SERVER_PORT))
+        wireMock.start()
+        wireMock.stubFor(get(urlEqualTo("/example")).willReturn(aResponse().withStatus(200).withBody("mock response")))
     }
 
     @AfterEach
     fun stopMockServer() {
-        mockServer.stop()
+        wireMock.stop()
     }
 
     @Test
