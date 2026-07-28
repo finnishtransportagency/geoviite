@@ -11,7 +11,7 @@ class PlanLayoutService(private val planLayoutCache: PlanLayoutCache, private va
         planVersion: RowVersion<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> =
+    ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> =
         handlePointListStepLength(
             planLayoutCache.getPlanLayout(planVersion, includeGeometryData),
             includeGeometryData,
@@ -22,14 +22,14 @@ class PlanLayoutService(private val planLayoutCache: PlanLayoutCache, private va
         geometryPlanId: IntId<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> =
+    ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> =
         getLayoutPlan(geometryDao.fetchPlanVersion(geometryPlanId), includeGeometryData, pointListStepLength)
 
     private fun handlePointListStepLength(
-        layoutResult: Pair<GeometryPlanLayout?, TransformationError?>,
+        layoutResult: Pair<GeometryPlanLayout?, GeometryValidationIssue?>,
         includeGeometryData: Boolean,
         pointListStepLength: Int,
-    ): Pair<GeometryPlanLayout?, TransformationError?> {
+    ): Pair<GeometryPlanLayout?, GeometryValidationIssue?> {
         val (layout, error) = layoutResult
         return if (layout != null && includeGeometryData && pointListStepLength > 0) {
             layout.withLayoutGeometry(pointListStepLength) to error
