@@ -247,11 +247,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         if (srid) {
             getCoordinateSystem(srid).then((cs) => {
                 setCoordinateSystem(cs);
-                setFieldInEdit(undefined);
+                if (overrideInfraModelParameters.coordinateSystemSrid) {
+                    setFieldInEdit(undefined);
+                }
             });
         } else {
             setCoordinateSystem(undefined);
-            setFieldInEdit(undefined);
         }
     }, [
         overrideInfraModelParameters.coordinateSystemSrid,
@@ -426,6 +427,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 value={
                                     <Dropdown
                                         wide
+                                        canUnselect
                                         value={geometryPlan.author?.id}
                                         options={authorsIncludingFromPlan().map((author) =>
                                             dropdownOption(
@@ -434,14 +436,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                 `author-${author.id}`,
                                             ),
                                         )}
-                                        onChange={(authorId) => {
-                                            authorId &&
-                                                authorId !== geometryPlan.author?.id &&
-                                                changeInOverrideParametersField(
-                                                    authorId,
-                                                    'authorId',
-                                                );
-                                        }}
+                                        onChange={(authorId) =>
+                                            changeInOverrideParametersField(authorId, 'authorId')
+                                        }
                                         onAddClick={addAuthor}
                                     />
                                 }
@@ -462,6 +459,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         ) : (
                             <ProjectDropdown
                                 id={geometryPlan.project.id}
+                                planProject={geometryPlan.project}
                                 setProject={(projectId) =>
                                     changeInOverrideParametersField(projectId, 'projectId')
                                 }
@@ -549,7 +547,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         wide
                                         placeholder={t('im-form.coordinate-system-dropdown')}
-                                        value={coordinateSystem?.srid}
+                                        value={overrideInfraModelParameters.coordinateSystemSrid}
                                         options={(crsList ?? [])
                                             .map((crs) =>
                                                 dropdownOption(
@@ -668,7 +666,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         label={t('im-form.plan-time-field')}
                         qaId="plan-time-im-field"
                         inEditMode={fieldInEdit === 'createdTime'}
-                        onEdit={() => setFieldInEdit('createdTime')}
+                        onEdit={() => {
+                            if (!geometryPlan.planTime && !overrideInfraModelParameters.createdDate) {
+                                changeInOverrideParametersField(new Date(), 'createdDate');
+                            }
+                            setFieldInEdit('createdTime');
+                        }}
                         onClose={() => setFieldInEdit(undefined)}>
                         {fieldInEdit !== 'createdTime' ? (
                             (overrideInfraModelParameters.createdDate &&
