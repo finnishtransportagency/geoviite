@@ -115,7 +115,6 @@ class FakeRatko(port: Int) {
                 .willReturn(ok())
         )
         oids.forEach { oid ->
-            logger.info("Binding route number stubs for oid=$oid")
             wireMock.stubFor(post(urlEqualTo("/api/infra/v1.0/routenumber/points/$oid")).willReturn(ok()))
             wireMock.stubFor(
                 post(urlEqualTo("/api/infra/v1.0/routenumbers"))
@@ -501,43 +500,56 @@ class FakeRatko(port: Int) {
             point.put("m", kmM.substring(5))
         }
 
-    fun lastPushedSwitchBody(oid: String): String? =
+    fun hostCreatedSwitch(oid: String) =
+        hasSwitch(getLastCreatedSwitch(oid)!!, getPushedSwitchLocations(oid).lastOrNull())
+
+    fun getLastCreatedSwitch(oid: String): InterfaceRatkoSwitch? =
         findAll(
                 postRequestedFor(urlEqualTo("/api/assets/v1.2"))
                     .withRequestBody(equalToJson("""{"type":"turnout","id":"$oid"}""", true, true))
             )
             .lastOrNull()
             ?.bodyAsString
+            ?.let(jsonMapper::readValue)
 
-    fun hostPushedSwitch(oid: String) =
-        hasSwitch(getLastPushedSwitch(oid)!!, getPushedSwitchLocations(oid).lastOrNull())
-
-    fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch? = lastPushedSwitchBody(oid)?.let(jsonMapper::readValue)
-
-    // Location tracks can be created by POST /v1.0/locationtracks (identified by oid in body), or updated by
-    // PATCH /v1.1/locationtracks/$oid — combine both to find the last pushed body.
-    private fun lastPushedLocationTrackBody(oid: String): String? =
-        (findAll(
+    private fun lastCreatedLocationTrackBody(oid: String): String? =
+        findAll(
                 postRequestedFor(urlEqualTo("/api/infra/v1.0/locationtracks"))
                     .withRequestBody(equalToJson("""{"id":"$oid"}""", true, true))
-            ) + findAll(patchRequestedFor(urlEqualTo("/api/infra/v1.1/locationtracks/$oid"))))
+            )
             .lastOrNull()
             ?.bodyAsString
 
-    private fun lastPushedRouteNumber(oid: String): String? =
-        (findAll(
+    private fun lastUpdatedLocationTrackBody(oid: String): String? =
+        findAll(patchRequestedFor(urlEqualTo("/api/infra/v1.1/locationtracks/$oid"))).lastOrNull()?.bodyAsString
+
+    fun getLastCreatedLocationTrack(oid: String): RatkoLocationTrack? =
+        lastCreatedLocationTrackBody(oid)?.let(jsonMapper::readValue)
+
+    fun getLastUpdatedLocationTrack(oid: String): RatkoLocationTrack? =
+        lastUpdatedLocationTrackBody(oid)?.let(jsonMapper::readValue)
+
+    private fun lastCreatedRouteNumberBody(oid: String): String? =
+        findAll(
                 postRequestedFor(urlEqualTo("/api/infra/v1.0/routenumbers"))
                     .withRequestBody(equalToJson("""{"id":"$oid"}""", true, true))
-            ) +
-                findAll(
-                    putRequestedFor(urlEqualTo("/api/infra/v1.0/routenumbers"))
-                        .withRequestBody(equalToJson("""{"id":"$oid"}""", true, true))
-                ))
+            )
             .lastOrNull()
             ?.bodyAsString
 
-    fun getLastPushedRouteNumber(oid: String): InterfaceRatkoRouteNumber? =
-        lastPushedRouteNumber(oid)?.let(jsonMapper::readValue)
+    private fun lastUpdatedRouteNumberBody(oid: String): String? =
+        findAll(
+                putRequestedFor(urlEqualTo("/api/infra/v1.0/routenumbers"))
+                    .withRequestBody(equalToJson("""{"id":"$oid"}""", true, true))
+            )
+            .lastOrNull()
+            ?.bodyAsString
+
+    fun getLastCreatedRouteNumber(oid: String): InterfaceRatkoRouteNumber? =
+        lastCreatedRouteNumberBody(oid)?.let(jsonMapper::readValue)
+
+    fun getLastUpdatedRouteNumber(oid: String): InterfaceRatkoRouteNumber? =
+        lastUpdatedRouteNumberBody(oid)?.let(jsonMapper::readValue)
 
     fun hostLocationTrackOid(oid: String) {
         wireMock.stubFor(
@@ -548,20 +560,17 @@ class FakeRatko(port: Int) {
         wireMock.stubFor(get(urlEqualTo("/api/locations/v1.1/locationtracks/$oid")).willReturn(ok()))
     }
 
-    fun hostPushedRouteNumber(oid: String) {
-        val tree = jsonMapper.readTree(lastPushedRouteNumber(oid))
+    fun hostCreatedRouteNumber(oid: String) {
+        val tree = jsonMapper.readTree(lastCreatedRouteNumberBody(oid))
         putKmMs(tree.get("nodecollection"))
         hasRouteNumber(jsonMapper.treeToValue(tree))
     }
 
-    fun hostPushedLocationTrack(oid: String) {
-        val tree = jsonMapper.readTree(lastPushedLocationTrackBody(oid))
+    fun hostCreatedLocationTrack(oid: String) {
+        val tree = jsonMapper.readTree(lastCreatedLocationTrackBody(oid))
         putKmMs(tree.get("nodecollection"))
         hasLocationTrack(jsonMapper.treeToValue(tree))
     }
-
-    fun getLastPushedLocationTrack(oid: String): RatkoLocationTrack? =
-        lastPushedLocationTrackBody(oid)?.let(jsonMapper::readValue)
 
     fun getPushedSwitchLocations(oid: String): List<List<RatkoAssetLocation>> =
         findAll(putRequestedFor(urlEqualTo("/api/assets/v1.2/$oid/locations"))).map {
