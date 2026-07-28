@@ -174,7 +174,7 @@ class FakeRatko(port: Int) {
             )
         }
         wireMock.stubFor(post(urlEqualTo("/api/infra/v1.0/points/$oid")).willReturn(ok()))
-        wireMock.stubFor(patch(urlPathEqualTo("/api/infra/v1.1/points/$oid")).willReturn(ok()))
+        wireMock.stubFor(patch(urlEqualTo("/api/infra/v1.1/points/$oid?updateKmMvalues=true")).willReturn(ok()))
         wireMock.stubFor(
             post(urlEqualTo("/api/infra/v1.0/locationtracks"))
                 .withRequestBody(equalToJson("""{"id":"$oid"}""", true, true))
@@ -265,7 +265,7 @@ class FakeRatko(port: Int) {
                 .withQueryParam("locationtrackOIDOfGeometry", equalTo(locationTrackOidOfGeometry))
                 .willReturn(ok())
         )
-        wireMock.stubFor(patch(urlPathEqualTo("/api/infra/v1.1/points/$oid")).willReturn(ok()))
+        wireMock.stubFor(patch(urlEqualTo("/api/infra/v1.1/points/$oid?updateKmMvalues=true")).willReturn(ok()))
         wireMock.stubFor(
             post(urlEqualTo("/api/assets/v1.2"))
                 .withRequestBody(equalToJson("""{"type":"${RatkoAssetApiType.METADATA.value}"}""", true, true))
@@ -281,7 +281,9 @@ class FakeRatko(port: Int) {
             get(urlEqualTo("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}"))
                 .willReturn(okJson(listOf(locationTrackAsset)))
         )
-        wireMock.stubFor(patch(urlPathEqualTo("/api/infra/v1.1/points/${locationTrackAsset.id}")).willReturn(ok()))
+        wireMock.stubFor(
+            patch(urlEqualTo("/api/infra/v1.1/points/${locationTrackAsset.id}?updateKmMvalues=true")).willReturn(ok())
+        )
         locationTrackAsset.nodecollection.nodes
             .map { node -> node.point.km }
             .distinct()
@@ -375,7 +377,9 @@ class FakeRatko(port: Int) {
             get(urlEqualTo("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}"))
                 .willReturn(okJson(listOf(locationTrackAsset)))
         )
-        wireMock.stubFor(patch(urlPathEqualTo("/api/infra/v1.1/points/${locationTrackAsset.id}")).willReturn(ok()))
+        wireMock.stubFor(
+            patch(urlEqualTo("/api/infra/v1.1/points/${locationTrackAsset.id}?updateKmMvalues=true")).willReturn(ok())
+        )
         locationTrackAsset.nodecollection.nodes
             .map { node -> node.point.km }
             .distinct()
