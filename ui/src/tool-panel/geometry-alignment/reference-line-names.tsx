@@ -7,7 +7,6 @@ import { getSomeTrackNumbers } from 'track-layout/layout-track-number-api';
 import { useLoader } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext } from 'common/common-model';
@@ -22,8 +21,8 @@ function createSelectAction() {
     const delegates = createDelegates(TrackLayoutActions);
     return (trackNumberId: LayoutTrackNumberId) =>
         delegates.onSelect({
-            ...createEmptyItemCollections(),
             trackNumbers: [trackNumberId],
+            selectedTab: { id: trackNumberId, type: 'TRACK_NUMBER' },
         });
 }
 

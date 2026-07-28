@@ -50,11 +50,7 @@ export const SwitchInfoboxContainer: React.FC<SwitchInfoboxContainerProps> = ({
             onSelectLocationTrackBadge={(locationTrackId: LocationTrackId) => {
                 delegates.onSelect({
                     locationTracks: [locationTrackId],
-                });
-
-                delegates.setToolPanelTab({
-                    id: locationTrackId,
-                    type: 'LOCATION_TRACK',
+                    selectedTab: { id: locationTrackId, type: 'LOCATION_TRACK' },
                 });
             }}
         />

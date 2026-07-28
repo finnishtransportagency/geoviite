@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
-import { OperationalPoint, LocationTrackId } from 'track-layout/track-layout-model';
+import { OperationalPoint } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
@@ -22,7 +22,6 @@ type OperationalPointStationLinksInfoboxProps = {
     layoutContext: LayoutContext;
     operationalPoint: OperationalPoint;
     changeTimes: ChangeTimes;
-    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
 };
 
 export const OperationalPointStationLinksInfobox: React.FC<
@@ -33,7 +32,6 @@ export const OperationalPointStationLinksInfobox: React.FC<
     layoutContext,
     operationalPoint,
     changeTimes,
-    onSelectLocationTrack,
 }) => {
     const { t } = useTranslation();
     const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
@@ -77,7 +75,6 @@ export const OperationalPointStationLinksInfobox: React.FC<
                                             ownOperationalPointId={operationalPoint.id}
                                             layoutContext={layoutContext}
                                             changeTimes={changeTimes}
-                                            onSelectLocationTrack={onSelectLocationTrack}
                                             isLinkingOrSplitting={isLinkingOrSplitting}
                                         />
                                     </li>

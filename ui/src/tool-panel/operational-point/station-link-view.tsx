@@ -1,5 +1,5 @@
 import React from 'react';
-import { LocationTrackId, OperationalPointId, StationLink } from 'track-layout/track-layout-model';
+import { OperationalPointId, StationLink } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { useLocationTracks } from 'track-layout/track-layout-react-utils';
@@ -7,6 +7,8 @@ import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { createDelegates } from 'store/store-utils';
 import { OperationalPointBadgeLink } from 'geoviite-design-lib/operational-point/operational-point-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import styles from './operational-point-infobox.scss';
@@ -20,7 +22,6 @@ export type StationLinkViewProps = {
     ownOperationalPointId?: OperationalPointId;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
-    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     isLinkingOrSplitting: boolean;
 };
 
@@ -29,7 +30,6 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
     ownOperationalPointId,
     layoutContext,
     changeTimes,
-    onSelectLocationTrack,
     isLinkingOrSplitting,
 }) => {
     const locationTracks = useLocationTracks(
@@ -83,7 +83,16 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                             onClick={
                                 isLinkingOrSplitting
                                     ? undefined
-                                    : () => onSelectLocationTrack(track.id)
+                                    : () => {
+                                          const delegates = createDelegates(TrackLayoutActions);
+                                          delegates.onSelect({
+                                              locationTracks: [track.id],
+                                              selectedTab: {
+                                                  id: track.id,
+                                                  type: 'LOCATION_TRACK',
+                                              },
+                                          });
+                                      }
                             }
                         />
                     ))}

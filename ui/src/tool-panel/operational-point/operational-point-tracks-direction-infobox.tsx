@@ -12,6 +12,8 @@ import {
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { createDelegates } from 'store/store-utils';
 
 type OperationalPointTracksDirectionInfoboxProps = {
     tracks: LayoutLocationTrack[];
@@ -20,7 +22,6 @@ type OperationalPointTracksDirectionInfoboxProps = {
     isEditing: boolean;
     linkingAction: (id: LocationTrackId) => void;
     massLinkingAction: () => void;
-    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     isLinkingOrSplitting: boolean;
 };
 
@@ -33,7 +34,6 @@ export const OperationalPointTracksDirectionInfobox: React.FC<
     isEditing,
     linkingAction,
     massLinkingAction,
-    onSelectLocationTrack,
     isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
@@ -86,7 +86,6 @@ export const OperationalPointTracksDirectionInfobox: React.FC<
                                 linkingDirection={linkingDirection}
                                 isEditing={isEditing}
                                 linkingAction={linkingAction}
-                                onSelectLocationTrack={onSelectLocationTrack}
                                 isLinkingOrSplitting={isLinkingOrSplitting}
                             />
                         ))
@@ -114,7 +113,6 @@ type OperationalPointTrackRowProps = {
     linkingDirection: LinkingDirection;
     isEditing: boolean;
     linkingAction: (id: LocationTrackId) => void;
-    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     isLinkingOrSplitting: boolean;
 };
 
@@ -124,17 +122,24 @@ const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
     linkingDirection,
     isEditing,
     linkingAction,
-    onSelectLocationTrack,
     isLinkingOrSplitting,
 }) => {
     const isDisabled = isLinkingOrSplitting && !isEditing;
+
+    function selectLocationTrack() {
+        const delegates = createDelegates(TrackLayoutActions);
+        delegates.onSelect({
+            locationTracks: [trackItem.id],
+            selectedTab: { id: trackItem.id, type: 'LOCATION_TRACK' },
+        });
+    }
 
     return (
         <>
             <LocationTrackBadge
                 locationTrack={trackItem}
                 status={isDisabled ? LocationTrackBadgeStatus.DISABLED : undefined}
-                onClick={isDisabled ? undefined : () => onSelectLocationTrack(trackItem.id)}
+                onClick={isDisabled ? undefined : selectLocationTrack}
             />
             <Hide when={!isEditing}>
                 <Button
