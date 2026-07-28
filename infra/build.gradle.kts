@@ -128,7 +128,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")
-    testImplementation("org.wiremock:wiremock:3.13.1")
+    testImplementation("org.wiremock:wiremock-jetty12:3.13.1")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
     testImplementation("io.projectreactor:reactor-test:3.8.5")
     testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42")
