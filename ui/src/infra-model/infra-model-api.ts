@@ -33,7 +33,7 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/projektivelho`;
-const PROJEKTIVELHO_REDIRECT_URI = '/redirect/projektivelho';
+const PROJEKTIVELHO_REDIRECT_URI = '/api/redirect/projektivelho';
 
 const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | undefined>();
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
