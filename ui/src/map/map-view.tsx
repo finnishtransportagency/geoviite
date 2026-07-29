@@ -935,6 +935,15 @@ const MapView: React.FC<MapViewProps> = ({
         }
     }, [linkingState, splittingState, mapTools, activeTool]);
 
+    React.useEffect(() => {
+        if (activeTool?.id === 'route-finding' && routeLocations?.end) {
+            const selectTool = mapTools?.find((tool) => tool.id === 'select-or-highlight');
+            if (selectTool) {
+                setActiveToolId(selectTool.id);
+            }
+        }
+    }, [routeLocations?.end]);
+
     const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {

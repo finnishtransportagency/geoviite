@@ -18,23 +18,25 @@ const id = 'route-finding';
 
 export function createRouteFindingTool(
     layoutContext: LayoutContext,
-    routeLocations: RouteLocations,
+    routeLocationsRef: React.MutableRefObject<RouteLocations>,
     onHoveredLocationChange: (hoveredLocation: RouteLocation | undefined) => void,
     onRouteLocationsChange: (locations: RouteLocations) => void,
 ): MapToolWithButton {
     const tool: MapToolWithButton = {
         id,
         activate: (map: OlMap) => {
+            onRouteLocationsChange({ start: undefined, end: undefined });
+
             function replaceStart(routeLocation: RouteLocation) {
                 onRouteLocationsChange({
-                    ...routeLocations,
+                    ...routeLocationsRef.current,
                     start: routeLocation,
                 });
             }
 
             function replaceEnd(routeLocation: RouteLocation) {
                 onRouteLocationsChange({
-                    ...routeLocations,
+                    ...routeLocationsRef.current,
                     end: routeLocation,
                 });
             }
@@ -87,7 +89,7 @@ export function createRouteFindingTool(
                         selectedCoordinate: coordinate,
                         closestTrackPoint: closestTrackPoint,
                     };
-                    if (!routeLocations.start) {
+                    if (!routeLocationsRef.current.start) {
                         // First click sets start
                         replaceStart(newRouteLocation);
                     } else {
