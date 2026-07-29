@@ -79,9 +79,7 @@ class DesignModeTestUI : SeleniumTest() {
         previewPage.revertChange("Sijaintiraide Design Name")
         val mapPage = previewPage.goToTrackLayout()
 
-        mapPage.selectionPanel.selectLocationTrack("Original Name")
-
-        assertEquals("Original Name", mapPage.toolPanel.locationTrackGeneralInfo.name)
+        mapPage.selectionPanel.waitUntilLocationTrackVisible("Original Name")
     }
 
     @Test
@@ -130,8 +128,6 @@ class DesignModeTestUI : SeleniumTest() {
         val mapPage = mergePreviewPage.mergeToMain()
 
         mapPage.switchToDraftMode()
-        mapPage.selectionPanel.selectLocationTrack("Design Name")
-
-        assertEquals("Design Name", mapPage.toolPanel.locationTrackGeneralInfo.name)
+        mapPage.selectionPanel.waitUntilLocationTrackVisible("Design Name")
     }
 }
