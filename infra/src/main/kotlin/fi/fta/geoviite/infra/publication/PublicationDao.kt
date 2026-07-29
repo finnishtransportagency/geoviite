@@ -135,6 +135,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                   and drafted_cancellation.design_id = candidate_track_number.design_id
                   and drafted_cancellation.id = candidate_track_number.id
                   and drafted_cancellation.design_asset_state = 'CANCELLED')))
+              and not (candidate_track_number.design_id is not null
+                       and not candidate_track_number.draft
+                       and candidate_track_number.state = 'DELETED'
+                       and not exists (
+                         select 1 from layout.track_number main_tn
+                         where main_tn.id = candidate_track_number.id
+                           and main_tn.design_id is null))
             """
                 .trimIndent()
         val candidates =
@@ -219,6 +226,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                        and drafted_cancellation.design_id = candidate_location_track.design_id
                        and drafted_cancellation.id = candidate_location_track.id
                        and drafted_cancellation.design_asset_state = 'CANCELLED')))
+              and not (candidate_location_track.design_id is not null
+                       and not candidate_location_track.draft
+                       and candidate_location_track.state = 'DELETED'
+                       and not exists (
+                         select 1 from layout.location_track main_lt
+                         where main_lt.id = candidate_location_track.id
+                           and main_lt.design_id is null))
             """
                 .trimIndent()
         val candidates =
@@ -323,6 +337,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                            and drafted_cancellation.design_id = design_id
                            and drafted_cancellation.id = candidate_switch.id
                            and drafted_cancellation.design_asset_state = 'CANCELLED')))
+              and not (candidate_switch.design_id is not null
+                       and not candidate_switch.draft
+                       and candidate_switch.state_category = 'NOT_EXISTING'
+                       and not exists (
+                         select 1 from layout.switch main_sw
+                         where main_sw.id = candidate_switch.id
+                           and main_sw.design_id is null))
             """
                 .trimIndent()
         val candidates =
