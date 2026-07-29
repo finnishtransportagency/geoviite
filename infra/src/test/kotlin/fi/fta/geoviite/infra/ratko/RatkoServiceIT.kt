@@ -317,9 +317,9 @@ constructor(
             )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        fakeRatko.hostCreatedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
-        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
+        val createdPush = fakeRatko.getLastCreatedLocationTrack("2.3.4.5.6")!!
         assertEquals("abcde", createdPush.name)
         assertEquals("cdefg", createdPush.description)
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
@@ -333,7 +333,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
-        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
+        val deletedPush = fakeRatko.getLastUpdatedLocationTrack("2.3.4.5.6")!!
         assertEquals(RatkoLocationTrackState.DELETED.name, deletedPush.state.name)
     }
 
@@ -363,7 +363,7 @@ constructor(
             )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        fakeRatko.hostCreatedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -383,7 +383,7 @@ constructor(
             alignmentDao.fetch(officialVersion),
         )
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
+        val pushed = fakeRatko.getLastUpdatedLocationTrack("2.3.4.5.6")!!
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
         val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
@@ -422,7 +422,7 @@ constructor(
             )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        fakeRatko.hostCreatedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -464,7 +464,7 @@ constructor(
             )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        fakeRatko.hostCreatedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -508,7 +508,7 @@ constructor(
             )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        fakeRatko.hostCreatedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -744,7 +744,7 @@ constructor(
             locationTracks = listOf(locationTrackDaoResponse.id),
         )
         fakeRatko.hasRouteNumber(ratkoRouteNumber("1.2.3.4.5"))
-        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        fakeRatko.hostCreatedLocationTrack("2.3.4.5.6")
         trackNumberService.saveDraft(
             LayoutBranch.main,
             mainOfficialContext.fetch<LayoutTrackNumber>(originalTrackNumber.id)!!,
@@ -836,8 +836,8 @@ constructor(
             LayoutBranch.main,
             asMainDraft(kmPostDao.getOrThrow(MainLayoutContext.official, kmPost2.id)).copy(state = LayoutState.DELETED),
         )
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
-        fakeRatko.hostPushedSwitch("3.4.5.6.7")
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostCreatedLocationTrack)
+        fakeRatko.hostCreatedSwitch("3.4.5.6.7")
 
         publishAndPush(kmPosts = listOf(kmPost2.id))
 
@@ -885,7 +885,7 @@ constructor(
             switches = listOf(switch.id),
             kmPosts = listOf(kmPost1.id, kmPost2.id),
         )
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostCreatedLocationTrack)
         locationTrackService.updateState(LayoutBranch.main, throughTrack.id, LocationTrackState.DELETED)
         publishAndPush(locationTracks = listOf(throughTrack.id))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
@@ -923,8 +923,8 @@ constructor(
             switches = listOf(switch.id),
             kmPosts = listOf(kmPost1.id, kmPost2.id),
         )
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
-        fakeRatko.hostPushedSwitch("3.4.5.6.7")
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostCreatedLocationTrack)
+        fakeRatko.hostCreatedSwitch("3.4.5.6.7")
 
         val officialSwitchVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.official, switch.id)
         val officialSwitch = switchDao.fetch(officialSwitchVersion)
@@ -982,7 +982,7 @@ constructor(
                 .single(),
         )
         assertEquals(listOf(1, 2), switchLocations.map { s -> s.priority })
-        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.4.5.6.7")!!
+        val pushedSwitch = fakeRatko.getLastCreatedSwitch("3.4.5.6.7")!!
         fun prop(name: String) = pushedSwitch.properties!!.find { p -> p.name == name }!!
         assertEquals("TV123", prop("name").stringValue)
         assertEquals("TV123", prop("turnout_id").stringValue)
@@ -1024,8 +1024,8 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
 
         publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
-        fakeRatko.hasSwitch(fakeRatko.getLastPushedSwitch("3.4.5.6.7")!!)
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+        fakeRatko.hasSwitch(fakeRatko.getLastCreatedSwitch("3.4.5.6.7")!!)
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostCreatedLocationTrack)
 
         detachSwitchesFromTrack(throughTrack.id)
         detachSwitchesFromTrack(branchingTrack.id)
@@ -1927,8 +1927,8 @@ constructor(
         fakeRatko.acceptsNewDesignGivingItId(123)
         fakeRatko.providesPlanItemIdsInDesign(123)
         ratkoService.pushChangesToRatko(design)
-        val pushedLocationTrack = fakeRatko.getLastPushedLocationTrack("2.2.2.2.2")!!
-        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.3.3.3.3")!!
+        val pushedLocationTrack = fakeRatko.getLastCreatedLocationTrack("2.2.2.2.2")!!
+        val pushedSwitch = fakeRatko.getLastCreatedSwitch("3.3.3.3.3")!!
         assertTrue(pushedSwitch.isPlanContext)
         assertEquals(pushedSwitch.planItemIds!![0], switchDao.fetchExternalId(design, switch)?.planItemId?.intValue)
         assertTrue(pushedLocationTrack.isPlanContext)
@@ -1996,16 +1996,18 @@ constructor(
         assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getCreatedLocationTrackPoints("1.1.1.3.2"))
         assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedLocationTrackPoints("1.1.1.3.2"))
         assertEquals(listOf<String>(), fakeRatko.getLocationTrackPointDeletions("1.1.1.3.2"))
-        assertNull(fakeRatko.getLastPushedLocationTrack("1.1.1.3.2"))
+        assertNull(fakeRatko.getLastCreatedLocationTrack("1.1.1.3.2"))
+        assertNull(fakeRatko.getLastUpdatedLocationTrack("1.1.1.3.2"))
 
         // no switch pushed either
-        assertNull(fakeRatko.getLastPushedSwitch("1.1.1.2.2"))
+        assertNull(fakeRatko.getLastCreatedSwitch("1.1.1.2.2"))
 
         // and no route number
         assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getCreatedRouteNumberPoints("1.1.1.1.2"))
         assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedRouteNumberPoints("1.1.1.1.2"))
         assertEquals(listOf<String>(), fakeRatko.getRouteNumberPointDeletions("1.1.1.1.2"))
-        assertNull(fakeRatko.getLastPushedRouteNumber("1.1.1.1.2"))
+        assertNull(fakeRatko.getLastCreatedRouteNumber("1.1.1.1.2"))
+        assertNull(fakeRatko.getLastUpdatedRouteNumber("1.1.1.1.2"))
     }
 
     @Disabled // Pushing designs to Ratko is not in the designs MVP
@@ -2053,9 +2055,9 @@ constructor(
         )
         ratkoService.pushChangesToRatko(designBranch)
 
-        fakeRatko.hostPushedLocationTrack("1.1.1.3.2")
-        fakeRatko.hostPushedSwitch("1.1.1.2.2")
-        fakeRatko.hostPushedRouteNumber("1.1.1.1.2")
+        fakeRatko.hostCreatedLocationTrack("1.1.1.3.2")
+        fakeRatko.hostCreatedSwitch("1.1.1.2.2")
+        fakeRatko.hostCreatedRouteNumber("1.1.1.1.2")
 
         trackNumberService.cancel(designBranch, trackNumber.id)
         locationTrackService.cancel(designBranch, locationTrack.id)
@@ -2133,8 +2135,8 @@ constructor(
             PublicationRequest(publishAll, PublicationMessage.of("")),
         )
         ratkoService.pushChangesToRatko(designBranch)
-        fakeRatko.hostPushedLocationTrack("1.1.1.3.2")
-        fakeRatko.hostPushedSwitch("1.1.1.2.2")
+        fakeRatko.hostCreatedLocationTrack("1.1.1.3.2")
+        fakeRatko.hostCreatedSwitch("1.1.1.2.2")
 
         trackNumberService.mergeToMainBranch(designBranch, trackNumber.id)
         locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
@@ -2420,8 +2422,8 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
 
         publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
-        fakeRatko.hostPushedSwitch("3.4.5.6.7")
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+        fakeRatko.hostCreatedSwitch("3.4.5.6.7")
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostCreatedLocationTrack)
 
         locationTrackService.updateState(LayoutBranch.main, throughTrack.id, LocationTrackState.DELETED)
         switchService.saveDraft(LayoutBranch.main, switchService.getOrThrow(mainOfficialContext.context, switch.id))
@@ -2446,8 +2448,8 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
 
         publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
-        fakeRatko.hostPushedSwitch("3.4.5.6.7")
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+        fakeRatko.hostCreatedSwitch("3.4.5.6.7")
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostCreatedLocationTrack)
 
         // link point for switch on through track gets moved 0.1 m east (to x=5.1)
         locationTrackService.saveDraft(

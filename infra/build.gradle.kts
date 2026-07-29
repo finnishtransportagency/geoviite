@@ -70,7 +70,6 @@ dependencies {
         // com.amazonaws:aws-java-sdk-cloudfront:1.12.797 has a vulnerable transitive dependency
         implementation("com.fasterxml.jackson.core:jackson-core:2.22.0")
 
-        // org.mock-server:mockserver-netty:5.15.0 has a vulnerable transitive dependency
         testImplementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
         testImplementation("org.mozilla:rhino:1.9.1")
     }
@@ -129,7 +128,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")
-    testImplementation("org.mock-server:mockserver-netty:5.15.0")
+    testImplementation("org.wiremock:wiremock-jetty12:3.13.1")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
     testImplementation("io.projectreactor:reactor-test:3.8.5")
     testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42")
