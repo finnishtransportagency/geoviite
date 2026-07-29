@@ -43,8 +43,6 @@ export const isLayerInProxyLayerCollection = (
 
 const alwaysOnLayers: MapLayerName[] = [
     'plan-section-highlight-layer',
-    'route-highlight-layer',
-    'route-marker-layer',
     'publication-candidate-layer',
     'deleted-publication-candidate-icon-layer',
 ];
@@ -126,6 +124,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-km-post': ['geometry-km-post-layer'],
     'operational-points': ['operational-points-icon-layer', 'operational-points-badge-layer'],
     'operational-point-areas': ['operational-points-area-layer'],
+    'route': ['route-highlight-layer', 'route-marker-layer'],
     'signal-asset': ['signal-asset-layer'],
     'property-boundary': ['property-boundary-layer'],
     'debug-1m': ['debug-1m-points-layer'],
@@ -187,6 +186,7 @@ export const initialMapState: Map = {
                     },
                 ],
             },
+            { name: 'route', selected: true },
             { name: 'signal-asset', selected: false },
             { name: 'property-boundary', selected: false },
         ],

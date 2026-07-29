@@ -124,6 +124,7 @@ export type MapLayerMenuItemName =
     | 'geometry-km-post'
     | 'operational-points'
     | 'operational-point-areas'
+    | 'route'
     | 'signal-asset'
     | 'property-boundary'
     | 'debug-1m'

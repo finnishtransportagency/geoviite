@@ -1667,6 +1667,7 @@
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operational-points": "Toiminnalliset pisteet",
         "operational-point-areas": "Toiminnallisten pisteiden alueet",
+        "route": "Reitti",
         "signal-asset": "Ratkon opastimet",
         "property-boundary": "Kiinteistörajat",
         "debug-1m": "Tasametripisteet",
