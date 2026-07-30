@@ -105,6 +105,9 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     const routeLocations = useTrackLayoutAppSelector(
         (s) => s.routeLocations || emptyRouteLocations,
     );
+    const routeLocationsRef = React.useRef(routeLocations);
+    routeLocationsRef.current = routeLocations;
+
     const [hoveredRouteLocation, setHoveredRouteLocation] = React.useState<
         RouteLocation | undefined
     >(undefined);
@@ -127,11 +130,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         () =>
             createRouteFindingTool(
                 layoutContext,
-                routeLocations,
+                routeLocationsRef,
                 setHoveredRouteLocation,
                 layoutDelegates.setRouteLocations,
             ),
-        [layoutContext, routeLocations],
+        [layoutContext],
     );
 
     const mapTools = useMapTools(routeFindingTool);
