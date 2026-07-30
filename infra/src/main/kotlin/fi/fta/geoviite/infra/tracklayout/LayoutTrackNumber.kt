@@ -18,7 +18,7 @@ data class LayoutTrackNumber(
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<LayoutTrackNumber>,
 ) : LayoutAsset<LayoutTrackNumber>(contextData) {
-    @JsonIgnore val exists = !state.isRemoved()
+    @JsonIgnore override val exists = !state.isRemoved()
 
     init {
         require(description.isNotBlank()) { "TrackNumber should have a non-blank description" }

@@ -3173,4 +3173,39 @@ constructor(
         assertContains(candidateIds, activeSwitchId)
         assertFalse(candidateIds.contains(deletedSwitchId))
     }
+
+    @Test
+    fun `design-created deleted km post is excluded from merge-to-main candidates`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val tnId = mainOfficialContext.save(trackNumber(), geometry).id
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeKmPostId = designOfficialCtx.save(kmPost(tnId, KmNumber(1))).id
+        val deletedKmPostId = designOfficialCtx.save(kmPost(tnId, KmNumber(2), state = LayoutState.DELETED)).id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).kmPosts.map { it.id }
+
+        assertContains(candidateIds, activeKmPostId)
+        assertFalse(candidateIds.contains(deletedKmPostId))
+    }
+
+    @Test
+    fun `design-created deleted operational point is excluded from merge-to-main candidates`() {
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeOpId = designOfficialCtx.save(operationalPoint(name = "active", uicCode = "1")).id
+        val deletedOpId =
+            designOfficialCtx
+                .save(operationalPoint(name = "deleted", uicCode = "2", state = OperationalPointState.DELETED))
+                .id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).operationalPoints.map { it.id }
+
+        assertContains(candidateIds, activeOpId)
+        assertFalse(candidateIds.contains(deletedOpId))
+    }
 }

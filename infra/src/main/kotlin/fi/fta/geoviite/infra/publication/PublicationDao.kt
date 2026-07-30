@@ -398,6 +398,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                   and drafted_cancellation.design_id = design_id
                   and drafted_cancellation.id = candidate_km_post.id
                   and drafted_cancellation.design_asset_state = 'CANCELLED')))
+              and not (candidate_km_post.design_id is not null
+                       and not candidate_km_post.draft
+                       and candidate_km_post.state = 'DELETED'
+                       and not exists (
+                         select 1 from layout.km_post main_kp
+                         where main_kp.id = candidate_km_post.id
+                           and main_kp.design_id is null))
             order by km_number
             """
                 .trimIndent()
@@ -459,6 +466,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                   and drafted_cancellation.design_id = design_id
                   and drafted_cancellation.id = candidate_operational_point.id
                   and drafted_cancellation.design_asset_state = 'CANCELLED')))
+              and not (candidate_operational_point.design_id is not null
+                       and not candidate_operational_point.draft
+                       and candidate_operational_point.state = 'DELETED'
+                       and not exists (
+                         select 1 from layout.operational_point main_op
+                         where main_op.id = candidate_operational_point.id
+                           and main_op.design_id is null))
             order by name
             """
                 .trimIndent()

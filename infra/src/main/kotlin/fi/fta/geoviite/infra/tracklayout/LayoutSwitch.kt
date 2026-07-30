@@ -49,7 +49,7 @@ data class LayoutSwitch(
     val draftOid: Oid<LayoutSwitch>?,
     @JsonIgnore override val contextData: LayoutContextData<LayoutSwitch>,
 ) : LayoutAsset<LayoutSwitch>(contextData) {
-    @JsonIgnore val exists = !stateCategory.isRemoved()
+    @JsonIgnore override val exists = !stateCategory.isRemoved()
     val nameParts: SwitchNameParts? by lazy { name.let(SwitchNameParts::tryParse) }
 
     fun getJoint(location: AlignmentPoint<LocationTrackM>, delta: Double): LayoutSwitchJoint? =
