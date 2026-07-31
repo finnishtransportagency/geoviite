@@ -51,6 +51,7 @@ COPY ./LICENSE.txt /
 
 COPY ui/src ./src
 
+RUN npm test -- --ci
 RUN npm run build
 
 # Combined backend+frontend image
