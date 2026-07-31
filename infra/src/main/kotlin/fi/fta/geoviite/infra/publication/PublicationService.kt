@@ -6,8 +6,10 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
@@ -29,6 +31,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetReader
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -89,20 +93,59 @@ constructor(
 
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
+        val mainOfficialContext = LayoutContext.of(MainBranch.instance, PublicationState.OFFICIAL)
         return PublicationCandidates(
             transition = transition,
             trackNumbers =
-                publicationDao.fetchTrackNumberPublicationCandidates(transition).map { tn ->
-                    tn.copy(geometryChanges = fetchChangedReferenceLineGeometryRanges(tn.id, transition))
-                },
+                publicationDao
+                    .fetchTrackNumberPublicationCandidates(transition)
+                    .run {
+                        if (transition is MergeFromDesign)
+                            filterDesignCreatedDeletions(trackNumberDao, mainOfficialContext)
+                        else this
+                    }
+                    .map { tn ->
+                        tn.copy(geometryChanges = fetchChangedReferenceLineGeometryRanges(tn.id, transition))
+                    },
             locationTracks =
-                publicationDao.fetchLocationTrackPublicationCandidates(transition).map { ltc ->
-                    ltc.copy(geometryChanges = fetchChangedLocationTrackGeometryRanges(ltc.id, transition))
+                publicationDao
+                    .fetchLocationTrackPublicationCandidates(transition)
+                    .run {
+                        if (transition is MergeFromDesign)
+                            filterDesignCreatedDeletions(locationTrackDao, mainOfficialContext)
+                        else this
+                    }
+                    .map { ltc ->
+                        ltc.copy(geometryChanges = fetchChangedLocationTrackGeometryRanges(ltc.id, transition))
+                    },
+            switches =
+                publicationDao.fetchSwitchPublicationCandidates(transition).run {
+                    if (transition is MergeFromDesign) filterDesignCreatedDeletions(switchDao, mainOfficialContext)
+                    else this
                 },
-            switches = publicationDao.fetchSwitchPublicationCandidates(transition),
-            kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
-            operationalPoints = publicationDao.fetchOperationalPointPublicationCandidates(transition),
+            kmPosts =
+                publicationDao.fetchKmPostPublicationCandidates(transition).run {
+                    if (transition is MergeFromDesign) filterDesignCreatedDeletions(kmPostDao, mainOfficialContext)
+                    else this
+                },
+            operationalPoints =
+                publicationDao.fetchOperationalPointPublicationCandidates(transition).run {
+                    if (transition is MergeFromDesign)
+                        filterDesignCreatedDeletions(operationalPointDao, mainOfficialContext)
+                    else this
+                },
         )
+    }
+
+    private fun <T : LayoutAsset<T>, C : PublicationCandidate<T>> List<C>.filterDesignCreatedDeletions(
+        dao: LayoutAssetReader<T>,
+        mainOfficialContext: LayoutContext,
+    ): List<C> {
+        val entityByVersion = dao.fetchManyByVersion(map { it.rowVersion })
+        val deletedIds = mapNotNull { c -> c.id.takeIf { entityByVersion[c.rowVersion]?.exists == false } }
+        if (deletedIds.isEmpty()) return this
+        val mainIds = dao.fetchVersions(mainOfficialContext, deletedIds).map { it.id }.toSet()
+        return filter { c -> entityByVersion[c.rowVersion]?.exists != false || c.id in mainIds }
     }
 
     fun fetchChangedLocationTrackGeometryRanges(
