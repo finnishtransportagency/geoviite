@@ -435,7 +435,14 @@ class LayoutSwitchDao(
             draftOid = rs.getOidOrNull("draft_oid"),
             operationalPointId = rs.getIntIdOrNull("operational_point_id"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
         )
     }
 

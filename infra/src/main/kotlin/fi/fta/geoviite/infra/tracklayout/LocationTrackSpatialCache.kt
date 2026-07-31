@@ -89,9 +89,7 @@ data class ContextCache(
     fun getClosestTrack(location: IPoint, thresholdMeters: Double = 100.0): PointNearTrack? =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
-            .fold(Double.MAX_VALUE to null) {
-                    (currentMinDistance, currentHit): Pair<Double, PointNearTrack?>,
-                    entry ->
+            .fold(Double.MAX_VALUE to null) { (currentMinDistance, currentHit): Pair<Double, PointNearTrack?>, entry ->
                 val segment = entry.value()
                 val geometry = getGeometry(segment.locationTrackVersion)
                 val bbox = geometry.boundingBox!!

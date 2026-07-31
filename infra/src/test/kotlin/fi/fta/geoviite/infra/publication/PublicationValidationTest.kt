@@ -919,7 +919,10 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -941,7 +944,10 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -964,7 +970,10 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -985,7 +994,10 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1007,7 +1019,10 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1029,7 +1044,10 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1050,7 +1068,10 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1073,7 +1094,10 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1095,7 +1119,10 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1117,7 +1144,10 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1136,7 +1166,10 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1157,7 +1190,10 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1175,7 +1211,10 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1193,7 +1232,10 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1210,7 +1252,10 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )
@@ -1233,7 +1278,10 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
+                            listOf(
+                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
+                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
+                            ),
                     )
                 ),
             )

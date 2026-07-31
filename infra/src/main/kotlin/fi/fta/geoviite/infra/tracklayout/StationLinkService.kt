@@ -232,9 +232,7 @@ private data class StationLinkData(
     val connectingTracks: Map<IntId<LocationTrack>, ConnectingTrack>,
     val operationalPoints: Map<IntId<OperationalPoint>, OperationalPoint>,
 ) {
-    fun getClosestTrackStationLocations(
-        track: ConnectingTrack
-    ): List<Pair<IntId<OperationalPoint>, PointNearTrack>> =
+    fun getClosestTrackStationLocations(track: ConnectingTrack): List<Pair<IntId<OperationalPoint>, PointNearTrack>> =
         track.operationalPointIds.mapNotNull { opId -> getClosestTrackPoint(track.id, opId)?.let { opId to it } }
 
     private val closestTrackPoints =

@@ -33,7 +33,9 @@ fun YV54_900_1_15_5_V() =
                 SwitchStructureAlignment(
                     jointNumbers = listOf(JointNumber(1), JointNumber(3)),
                     elements =
-                        listOf(SwitchStructureCurve(start = Point(0.0, 0.0), end = Point(59.04, 1.872), radius = 900.0)),
+                        listOf(
+                            SwitchStructureCurve(start = Point(0.0, 0.0), end = Point(59.04, 1.872), radius = 900.0)
+                        ),
                 ),
             ),
     )

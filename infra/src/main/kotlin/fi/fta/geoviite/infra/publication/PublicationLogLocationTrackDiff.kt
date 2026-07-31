@@ -159,7 +159,11 @@ fun diffLocationTrack(
             locationTrackChanges.endPoint.new,
             ::formatLocation,
             PropKey("end-location"),
-            getPointMovedRemarkOrNull(translation, locationTrackChanges.endPoint.old, locationTrackChanges.endPoint.new),
+            getPointMovedRemarkOrNull(
+                translation,
+                locationTrackChanges.endPoint.old,
+                locationTrackChanges.endPoint.new,
+            ),
         ),
         compareChange(
             { addresses.oldEnd?.address != addresses.newEnd?.address },

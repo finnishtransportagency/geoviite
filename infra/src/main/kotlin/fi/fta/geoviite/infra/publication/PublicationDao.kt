@@ -2026,7 +2026,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                         name = AlignmentName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers =
+                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->

@@ -535,7 +535,13 @@ constructor(
                 MainLayoutContext.draft,
                 kmPostService.insertKmPost(
                     LayoutBranch.main,
-                    LayoutKmPostSaveRequest(KmNumber(0), LayoutState.IN_USE, trackNumberId, gkLocation, sourceId = null),
+                    LayoutKmPostSaveRequest(
+                        KmNumber(0),
+                        LayoutState.IN_USE,
+                        trackNumberId,
+                        gkLocation,
+                        sourceId = null,
+                    ),
                 ),
             )
         publish(
@@ -1436,7 +1442,13 @@ constructor(
                     uicCode = UicCode("321"),
                     location = Point(25.0, 20.0),
                     polygon =
-                        Polygon(Point(0.0, 0.0), Point(40.0, 0.0), Point(40.0, 40.0), Point(0.0, 40.0), Point(0.0, 0.0)),
+                        Polygon(
+                            Point(0.0, 0.0),
+                            Point(40.0, 0.0),
+                            Point(40.0, 40.0),
+                            Point(0.0, 40.0),
+                            Point(0.0, 0.0),
+                        ),
                 )
         )
         publish(publicationService, operationalPoints = listOf(operationalPointId))

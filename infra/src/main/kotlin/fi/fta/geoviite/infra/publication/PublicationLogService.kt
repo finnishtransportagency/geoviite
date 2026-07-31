@@ -570,7 +570,11 @@ constructor(
                 trackNumberChanges.endPoint.new,
                 ::formatLocation,
                 PropKey("end-location"),
-                getPointMovedRemarkOrNull(translation, trackNumberChanges.endPoint.old, trackNumberChanges.endPoint.new),
+                getPointMovedRemarkOrNull(
+                    translation,
+                    trackNumberChanges.endPoint.old,
+                    trackNumberChanges.endPoint.new,
+                ),
             ),
             if (changedKmNumbers.isNotEmpty()) {
                 PublicationChange(
@@ -678,7 +682,12 @@ constructor(
                 ::formatLocation,
                 PropKey("location"),
                 remark =
-                    getPointMovedRemarkOrNull(translation, changes.location.old, changes.location.new, "moved-x-meters"),
+                    getPointMovedRemarkOrNull(
+                        translation,
+                        changes.location.old,
+                        changes.location.new,
+                        "moved-x-meters",
+                    ),
             ),
             compareChangeValues(changes.state, { it }, PropKey("state"), enumLocalizationKey = "OperationalPointState"),
         )

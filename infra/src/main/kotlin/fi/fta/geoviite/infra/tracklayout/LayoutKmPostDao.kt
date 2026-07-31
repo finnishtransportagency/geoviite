@@ -268,7 +268,14 @@ class LayoutKmPostDao(
             state = rs.getEnum("state"),
             sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
         )
     }
 

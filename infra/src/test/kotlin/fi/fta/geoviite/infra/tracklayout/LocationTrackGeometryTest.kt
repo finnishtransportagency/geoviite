@@ -425,7 +425,10 @@ class LocationTrackGeometryTest {
                     startInnerSwitch = switchLinkYV(IntId(2), 1),
                     endInnerSwitch = switchLinkYV(IntId(2), 2),
                     segments =
-                        listOf(segment(Point(15.0, 0.0), Point(20.0, 0.0)), segment(Point(20.0, 0.0), Point(30.0, 0.0))),
+                        listOf(
+                            segment(Point(15.0, 0.0), Point(20.0, 0.0)),
+                            segment(Point(20.0, 0.0), Point(30.0, 0.0)),
+                        ),
                 ),
             ),
             result,
@@ -521,7 +524,11 @@ class LocationTrackGeometryTest {
                     alignmentPoint(6.0, 0.0, m = 6.0),
                     TrackSwitchLinkType.INNER,
                 ),
-                TrackSwitchLink(switchLinkYV(IntId(6), 1), alignmentPoint(6.0, 0.0, m = 6.0), TrackSwitchLinkType.OUTER),
+                TrackSwitchLink(
+                    switchLinkYV(IntId(6), 1),
+                    alignmentPoint(6.0, 0.0, m = 6.0),
+                    TrackSwitchLinkType.OUTER,
+                ),
             ),
             trackGeometry(
                     edge(

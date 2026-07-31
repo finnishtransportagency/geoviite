@@ -92,7 +92,8 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
+                    e.endNode.node to
+                        e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
                 )
             } else {
                 listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
