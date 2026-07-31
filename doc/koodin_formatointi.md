@@ -1,8 +1,8 @@
 # Koodin automaattinen formatointi
 
-Formattereiden ajoa ei ole toistaiseksi mitenkään pakotettu (esim. ajamalla niitä CI-putkessa, commit-hookissa jne).
-Tahtotila kuitenkin on, että kaikki commitoitu koodi olisi aina projektin tyylisääntöjen sääntöjen mukaista, joten
-formatterit konfiguroidaan ajettavaksi aina tiedoston tallennuksen yhteydessä.
+Tahtotila on, että kaikki commitoitu koodi olisi aina projektin tyylisääntöjen mukaista, joten formatterit
+konfiguroidaan ajettavaksi aina tiedoston tallennuksen yhteydessä. Kotlin-koodin osalta asia myös tarkastetaan
+PR-buildissa; frontin puolella prettierin ajoa ei ole pakotettu.
 
 ## Frontend: Prettier
 
@@ -47,20 +47,33 @@ tiedoston, eikä vain muuttuneita rivejä (ks. gotchat alempana.)
 
 ![](images/ktfmt_format_on_save.png)
 
-### Ajo Gradlen kautta
+### Ajo komentoriviltä
 
-Ktfmt:n Gradle-plugin luo `ktfmtFormat`, `ktfmtFormatMain` ja `ktfmtFormatTest`-taskit, joiden kautta voi ajaa Ktfmt:n
-koko koodipesälle / varsinaiselle koodille / testeille valitun taskin mukaan. Lisäksi on olemassa `ktfmtCheck`-taski,
-joka tarkistaa onko koodi Ktfmt:n sääntöjen mukaista. Myös tästä taskista on `ktfmtCheckMain` ja `ktfmtCheckTest`
--versiot.
+Ktfmt ajetaan `infra/script/ktfmt.sh`-skriptillä. Se ei ole osa Gradle-buildia, eli `./gradlew build` ei formatoi
+koodia eikä tarkasta formatointia.
+
+```
+infra/script/ktfmt.sh                        formatoi työpuun muuttuneet .kt-tiedostot (myös untracked)
+infra/script/ktfmt.sh --all                  formatoi repon kaikki .kt-tiedostot
+infra/script/ktfmt.sh --dry-run [--all]      kertoo vain mitkä tiedostot muuttuisivat; palauttaa 1 jos niitä on
+infra/script/ktfmt.sh [--dry-run] F.kt G.kt  formatoi annetut tiedostot
+```
+
+Ensimmäisellä ajolla skripti lataa ktfmt:n jarin Maven Centralista ja kääntää sitä vasten pienen ajurin
+(`KtfmtRunner.java`). Molemmat välimuistitetaan repon ulkopuolelle, oletuksena hakemistoon
+`~/.cache/geoviite/ktfmt` (ks. `GEOVIITE_KTFMT_CACHE`).
+
+PR-buildi (`.github/workflows/pull_request.yml`) ajaa `ktfmt.sh --dry-run --all`, eli formatoimaton Kotlin-koodi
+kaataa buildin.
 
 #### Konfigurointi
 
-Gradle-pluginin käyttämät tyylisäännöt määritellään `ktfmt`-blockissa `build.gradle.kts`-tiedostossa.
+Tyylisäännöt määritellään `infra/script/KtfmtRunner.java`-tiedostossa ja käytettävä ktfmt-versio `ktfmt.sh`:n alussa;
+sekä env-repossa IDEA:n ktfmt.xml:ssä.
 
 ### Gotchas
 
-1. Gradlen ja IDEA:n Ktfmt-plugarit myös päivittyvät erillään, joten päivitettäessä toinen myös toinen tulee päivittää.
+1. Skripti ja IDEA:n Ktfmt-plugarit päivittyvät erillään, joten päivitettäessä toinen myös toinen tulee päivittää.
 2. Vaikuttaisi siltä, että ainakin kirjoitushetkellä IDEA:n Reformat Code käyttää Ktfmt:tä ainoastaan mikäli mitään
    koodiblokkia ei ole valittuna. Jos koodia on valittuna, valitulle koodille ajetaan vain IDEA:n oma formatter, joka
    tuottaa erinäköistä jälkeä Ktfmt:hen verrattuna. Tämän vuoksi Reformat on save kannattaa pitää päällä, sillä se

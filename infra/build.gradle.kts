@@ -2,7 +2,6 @@ import com.github.jk1.license.filter.DependencyFilter
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.ReportRenderer
-import com.ncorti.ktfmt.gradle.TrailingCommaManagementStrategy
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
@@ -22,11 +21,6 @@ plugins {
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"
-    // nb. ktfmt-gradle 0.26.0 uses ktfmt 0.62, which doesn't preserve linebreaks within lambdas, and in fact has no
-    // option to preserve them. Later ktfmt versions do have that option (as preserveLambaBreaks), and in fact set it
-    // as true by default; but our code so far is formatted according to 0.62 rules. If updating this dependency,
-    // check whether they added preserveLambdaBreaks=false or whether that needs to be configured by us.
-    id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
 group = "fi.fta.geoviite"
@@ -41,13 +35,6 @@ java {
 repositories {
     maven(url = "https://repo.osgeo.org/repository/release")
     mavenCentral()
-}
-
-ktfmt {
-    blockIndent = 4
-    continuationIndent = 4
-    maxWidth = 120
-    trailingCommaManagementStrategy = TrailingCommaManagementStrategy.COMPLETE
 }
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
