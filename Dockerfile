@@ -44,12 +44,15 @@ COPY \
     ui/tsconfig.json \
     ui/eslint.config.mjs \
     ui/webpack.config.js \
+    ui/jest.config.json \
     ./
 
 # License file is purposefully copied to root due to webpack config.
 COPY ./LICENSE.txt /
 
 COPY ui/src ./src
+COPY ui/test ./test
+COPY ui/__mocks__ ./__mocks__
 
 RUN npm test -- --ci
 RUN npm run build
