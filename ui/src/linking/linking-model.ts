@@ -197,6 +197,9 @@ export type PlacingLayoutSwitch = LinkingBaseType & {
     type: LinkingType.PlacingLayoutSwitch;
     layoutSwitch: LayoutSwitch;
     location?: Point;
+    // Live suggestion resolved for the currently hovered location, previewed on the map and in the
+    // switch linking infobox before the placement is committed with a click.
+    suggestedSwitch?: SuggestedSwitch;
 };
 
 export type LinkingKmPost = LinkingBaseType & {
@@ -377,6 +380,14 @@ export type SuggestedSwitch = {
 export type GeometrySwitchSuggestionResult =
     | { failure: undefined; switch: SuggestedSwitch }
     | { failure: GeometrySwitchSuggestionFailureReason; switch: undefined };
+
+// Response of the grid switch-placing endpoint: a deduplicated set of suggestions plus, for each
+// query point (in the same order it was sent), the index of its suggestion in `suggestedSwitches`,
+// or null when that point produced no suggestion.
+export type SuggestedSwitchesAtGridPoints = {
+    suggestedSwitches: SuggestedSwitch[];
+    gridSwitchIndices: (number | null)[];
+};
 
 export type SwitchLinkingParameters = {
     suggestedSwitch: SuggestedSwitch;

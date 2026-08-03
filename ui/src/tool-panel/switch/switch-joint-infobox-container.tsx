@@ -11,12 +11,14 @@ type SwitchJointInfoboxContainerProps = {
     suggestedSwitch: SuggestedSwitch;
     suggestedSwitchStructure: SwitchStructure;
     layoutContext: LayoutContext;
+    showFit?: boolean;
 };
 
 export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerProps> = ({
     suggestedSwitch,
     suggestedSwitchStructure,
     layoutContext,
+    showFit,
 }) => {
     const jointConnections = suggestedSwitchJointsAsLayoutSwitchJointConnections(suggestedSwitch);
     const switchAlignments = suggestedSwitchStructure.alignments;
@@ -30,6 +32,7 @@ export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerPr
             topologicalJointConnections={topologicalJointConnections}
             switchesToDetach={suggestedSwitch.detachSwitches}
             layoutContext={layoutContext}
+            fitSuggestedSwitch={showFit ? suggestedSwitch : undefined}
         />
     ) : (
         <React.Fragment />

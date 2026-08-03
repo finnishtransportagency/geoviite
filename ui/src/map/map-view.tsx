@@ -22,7 +22,7 @@ import {
     MapViewport,
     OptionalShownItems,
 } from 'map/map-model';
-import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
+import { createSwitchLinkingLayer, SwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import {
     MapToolActivateOptions,
@@ -37,11 +37,11 @@ import {
     AlignmentExtension,
     ExtendingAlignment,
     LinkingState,
-    LinkingSwitch,
     LinkingType,
     LinkPoint,
     PlacingOperationalPoint,
     PlacingOperationalPointArea,
+    SuggestedSwitch,
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
@@ -160,6 +160,7 @@ export type MapViewProps = {
     onSetOperationalPointPolygon: (polygon: Polygon) => void;
     onSetAlignmentExtension: (extension: AlignmentExtension) => void;
     onStopExtendingAlignment: () => void;
+    onSwitchPlacingPreviewChange: (suggestedSwitch: SuggestedSwitch | undefined) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     routeResult?: RouteResult | undefined;
     manuallySetPlan?: GeometryPlanLayout;
@@ -290,6 +291,7 @@ const MapView: React.FC<MapViewProps> = ({
     onSetOperationalPointPolygon,
     onSetAlignmentExtension,
     onStopExtendingAlignment,
+    onSwitchPlacingPreviewChange,
     publicationCandidates,
     customActiveMapToolId,
     designPublicationMode,
@@ -651,8 +653,12 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
-                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
-                            linkingState as LinkingSwitch | undefined,
+                            existingLayer as SwitchLinkingLayer | undefined,
+                            linkingState,
+                            layoutContext,
+                            map.viewport,
+                            olMap,
+                            onSwitchPlacingPreviewChange,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-split-location-layer':

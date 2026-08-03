@@ -589,14 +589,21 @@ fun <T, R> processFlattened(
     }
 }
 
-fun <K, V> invertMapOfSets(map: Map<K, Set<V>>): Map<V, Set<K>> =
-    map.entries
-        .stream()
-        .flatMap { (i, ps) -> ps.stream().map { point -> point to i } }
-        .collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet())))
+fun <K, V> invertMapOfSets(map: Map<K, Set<V>>): Map<V, Set<K>> {
+    val result = mutableMapOf<V, MutableSet<K>>()
+    for ((key, values) in map) {
+        for (value in values) {
+            result.getOrPut(value) { mutableSetOf() }.add(key)
+        }
+    }
+    return result
+}
 
 data class SuggestedSwitchesAtGridPoints(
+    // set of distinct switch suggestions
     val suggestedSwitches: List<SuggestedSwitch>,
+    // For input point with index i, the switch suggestion is at suggestedSwitches[gridSwitchIndices[i]], unless
+    // that point didn't successfully produce a suggestion, in which case gridSwitchIndices[i] is null.
     val gridSwitchIndices: List<Int?>,
 )
 

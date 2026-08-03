@@ -8,6 +8,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { expectDefined } from 'utils/type-utils';
+import { distance } from 'utils/math-utils';
 
 export enum SwitchTypeMatch {
     Exact,
@@ -113,6 +114,24 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
                 location,
             })),
     }));
+}
+
+// The fit of a suggested switch on an alignment's track: the longest distance, over the
+// alignment's joint numbers, between the switch's own joint and the suggested joint on the track
+export function getSuggestedSwitchAlignmentFit(
+    suggestedSwitch: SuggestedSwitch,
+    locationTrackId: LocationTrackId,
+    alignmentJointNumbers: JointNumber[],
+): number | undefined {
+    const trackJoints = suggestedSwitch.trackLinks[locationTrackId]?.suggestedLinks?.joints ?? [];
+    const jointDistances = alignmentJointNumbers.flatMap((jointNumber) => {
+        const switchJoint = suggestedSwitch.joints.find((joint) => joint.number === jointNumber);
+        const trackJoint = trackJoints.find((joint) => joint.jointNumber === jointNumber);
+        return switchJoint && trackJoint
+            ? [distance(switchJoint.location, trackJoint.location)]
+            : [];
+    });
+    return jointDistances.length > 0 ? Math.max(...jointDistances) : undefined;
 }
 
 export function suggestedSwitchTopoLinksAsTopologicalJointConnections(

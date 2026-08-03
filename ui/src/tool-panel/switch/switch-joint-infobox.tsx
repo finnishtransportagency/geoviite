@@ -11,6 +11,7 @@ import {
     getLocationTracksEndingAtJoints,
     getLocationTracksForJointConnections,
     getMatchingLocationTrackIdsForJointNumbers,
+    getSuggestedSwitchAlignmentFit,
 } from 'linking/linking-utils';
 import { useLoader } from 'utils/react-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -20,7 +21,7 @@ import {
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import styles from './switch-infobox.scss';
-import { TopologicalJointConnection } from 'linking/linking-model';
+import { SuggestedSwitch, TopologicalJointConnection } from 'linking/linking-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { useSwitches } from 'track-layout/track-layout-react-utils';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
@@ -33,6 +34,8 @@ type SwitchJointInfobox = {
     layoutContext: LayoutContext;
     onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
     isLinkingOrSplitting?: boolean;
+    // When set, each alignment's location tracks also display the suggestion's fit on the track
+    fitSuggestedSwitch?: SuggestedSwitch;
 };
 
 const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
@@ -43,6 +46,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     layoutContext,
     onSelectLocationTrackBadge,
     isLinkingOrSplitting,
+    fitSuggestedSwitch,
 }) => {
     const { t } = useTranslation();
     const locationTracksEndingAtJoint = combineLocationTrackIds(
@@ -86,21 +90,44 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
             jointNumbers,
             jointConnections,
         );
-        return getLocationTrackBadges(locationTrackIds);
+        return getLocationTrackBadges(locationTrackIds, jointNumbers);
     }
 
-    function getLocationTrackBadges(locationTrackIds: LocationTrackId[]) {
+    function getLocationTrackBadges(
+        locationTrackIds: LocationTrackId[],
+        alignmentJointNumbers?: JointNumber[],
+    ) {
         const badges = locationTrackIds
-            .map((t) => locationTracks?.find((locationTrack) => locationTrack.id === t))
+            .map((trackId) => locationTracks?.find((locationTrack) => locationTrack.id === trackId))
             .filter(filterNotEmpty)
-            .map((t) => (
-                <LocationTrackBadge
-                    key={t.id}
-                    locationTrack={t}
-                    status={isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined}
-                    onClick={locationTrackBadgeOnClickHandler(t.id)}
-                />
-            ));
+            .map((track) => {
+                const fit =
+                    fitSuggestedSwitch && alignmentJointNumbers
+                        ? getSuggestedSwitchAlignmentFit(
+                              fitSuggestedSwitch,
+                              track.id,
+                              alignmentJointNumbers,
+                          )
+                        : undefined;
+                return (
+                    <div key={track.id} className={styles['switch-joint-infobox__location-track']}>
+                        <LocationTrackBadge
+                            locationTrack={track}
+                            status={
+                                isLinkingOrSplitting ? LocationTrackBadgeStatus.DISABLED : undefined
+                            }
+                            onClick={locationTrackBadgeOnClickHandler(track.id)}
+                        />
+                        {fit !== undefined && (
+                            <span className={styles['switch-joint-infobox__linking-fit']}>
+                                {t('tool-panel.switch.layout.linking-fit', {
+                                    fit: fit.toFixed(3),
+                                })}
+                            </span>
+                        )}
+                    </div>
+                );
+            });
 
         return badges.length > 0 ? (
             badges
