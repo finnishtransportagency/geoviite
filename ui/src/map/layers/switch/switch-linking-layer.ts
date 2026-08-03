@@ -305,9 +305,7 @@ export function createSwitchLinkingLayer(
         placingPreview,
         onRemove: () => {
             unByKey(pointerMoveListenerKey);
-            // In-flight fetches learn the cache was dropped via the cache identity check.
-            placingPreview.cache = undefined;
-            placingPreview.runFetch.cancel();
+            stopPreview(placingPreview);
         },
     };
 }
