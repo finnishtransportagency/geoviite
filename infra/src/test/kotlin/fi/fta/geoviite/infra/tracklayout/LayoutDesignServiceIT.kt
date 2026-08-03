@@ -100,6 +100,7 @@ constructor(
         val publication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, count = 1)[0]
         val publishedIn = publication.layoutBranch as PublishedInDesign
         assertEquals(newName, layoutDesignDao.fetchVersion(RowVersion(designId, publishedIn.designVersion)).name)
+        assertEquals(PublicationCause.LAYOUT_DESIGN_CHANGE, publication.cause)
     }
 
     @Test
