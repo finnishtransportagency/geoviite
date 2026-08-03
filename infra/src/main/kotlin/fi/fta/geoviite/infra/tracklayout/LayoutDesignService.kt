@@ -36,24 +36,27 @@ class LayoutDesignService(
     }
 
     @Transactional
-    fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> =
+    fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         try {
-            val designBranch = DesignBranch.of(id)
-            if (request.designState == DesignState.DELETED) {
-                deleteDraftsInDesign(designBranch)
-            }
-            if (dao.designHasPublications(id)) {
-                if (request.designState == DesignState.DELETED) {
-                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_DELETE)
-                    cancelUnpublishedObjectsInDesign(designBranch)
-                } else {
-                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_CHANGE)
-                }
-            }
             dao.update(id, request)
         } catch (e: DataIntegrityViolationException) {
             throw asDuplicateNameException(e) ?: e
         }
+
+        val designBranch = DesignBranch.of(id)
+        if (request.designState == DesignState.DELETED) {
+            deleteDraftsInDesign(designBranch)
+        }
+        if (dao.designHasPublications(id)) {
+            if (request.designState == DesignState.DELETED) {
+                makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_DELETE)
+                cancelUnpublishedObjectsInDesign(designBranch)
+            } else {
+                makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_CHANGE)
+            }
+        }
+        return id
+    }
 
     @Transactional
     fun insert(request: LayoutDesignSaveRequest): IntId<LayoutDesign> =
