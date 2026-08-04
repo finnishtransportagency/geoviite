@@ -235,7 +235,7 @@ constructor(
         val publicationId2 =
             createPublication(locationTracks = listOf(Change(null, locationTrack2Response)), message = "Test")
 
-        val publications = publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2)
+        val publications = publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.MAIN, count = 2)
 
         assertEquals(publications.size, 2)
         assertEquals(publications[0].id, publicationId2)

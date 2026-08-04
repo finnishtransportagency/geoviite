@@ -6,7 +6,9 @@ const val TRACK_LAYOUT_VERSION_FROM = "alkuversio"
 const val TRACK_LAYOUT_VERSION_TO = "loppuversio"
 const val TRACK_LAYOUT_VERSION = "rataverkon_versio"
 const val TRACK_LAYOUT_VERSIONS = "rataverkon_versiot"
+const val INCLUDE_DESIGNS = "suunnitelmat_mukaan"
 const val LOCATION_TRACK_OID = "sijaintiraide_oid"
+const val OFFICIAL_LOCATION_TRACK_OID = "virallinen_sijaintiraide_oid"
 const val LOCATION_TRACK = "sijaintiraide"
 const val LOCATION_TRACK_NAME = "sijaintiraidetunnus"
 const val LOCATION_TRACK_COLLECTION = "sijaintiraiteet"
@@ -130,6 +132,9 @@ const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_NOT_FOUND = "Annettua rataverkon vers
 const val EXT_OPENAPI_ONE_OR_MORE_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Yhtä tai useampaa rataverkon versiota ei ole olemassa."
 
+const val EXT_OPENAPI_ONE_OR_MORE_SEARCH_PARAMETER_NOT_FOUND =
+    "Yhdellä tai useammalla hakuparametrilla ei löydy oliota."
+
 const val OPERATIONAL_POINT_NAME = "toiminnallisen_pisteen_nimi"
 const val OPERATIONAL_POINT_OID_PARAM = "toiminnallinen_piste_oid"
 
@@ -178,3 +183,21 @@ const val ELEMENT_END_VALUE = "loppu"
 
 const val NOTE_PARTIAL_ELEMENT = "sisaltaa_vain_osan_elementista"
 const val NOTE_SWITCH_ELEMENT = "vaihteen_elementti"
+
+const val DESIGN = "suunnitelma"
+const val DESIGN_OID = "suunnitelma_oid"
+const val DESIGN_NAME = "nimi"
+const val DESIGN_STATE = "tila"
+const val DESIGN_ESTIMATED_COMPLETION_DATE = "suunniteltu_valmistumispaiva"
+const val DESIGN_COLLECTION = "suunnitelmat"
+
+const val EXT_OPENAPI_DESIGN_OID_DESCRIPTION = "Suunnitelman OID-tunnus."
+const val EXT_OPENAPI_DESIGN_NOT_FOUND = "Annettua suunnitelmaa ei ole olemassa."
+
+const val EXT_OPENAPI_INCLUDE_DESIGNS =
+    "Otetaanko myös suunnitelmien julkaisut mukaan rataverkon versioihin. Oletusarvoisesti mukana ovat vain " +
+        "virallisen paikannuspohjan versiot."
+
+const val EXT_OPENAPI_DESIGN_MODIFICATIONS =
+    "Suunnitelma näkyy rajapinnassa vasta, kun siihen on tehty ensimmäinen julkaisu. Suunnitelman muutoksiksi " +
+        "lasketaan sen ensimmäinen julkaisu, suunnitelman metatietojen muutokset ja suunnitelman poisto."

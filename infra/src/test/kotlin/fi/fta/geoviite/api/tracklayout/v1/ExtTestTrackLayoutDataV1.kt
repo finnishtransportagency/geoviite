@@ -3,8 +3,14 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 
-data class ExtTestTrackLayoutVersionV1(val rataverkon_versio: String, val aikaleima: String, val kuvaus: String)
+data class ExtTestTrackLayoutVersionV1(
+    val rataverkon_versio: String,
+    val aikaleima: String,
+    val kuvaus: String,
+    val suunnitelma_oid: ExtOidV1<LayoutDesign>?,
+)
 
 data class ExtTestTrackLayoutVersionCollectionResponseV1(
     val alkuversio: String,
@@ -25,6 +31,7 @@ data class ExtTestMeasuredAddressPointV1(
 
 data class ExtTestLocationTrackV1(
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val sijaintiraidetunnus: String,
     val ratanumero: String,
     val ratanumero_oid: String,
@@ -45,6 +52,7 @@ data class ExtTestLocationTrackResponseV1(
 data class ExtTestLocationTrackGeometryResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevali: ExtTestGeometryIntervalV1?,
 )
@@ -53,6 +61,7 @@ data class ExtTestModifiedLocationTrackGeometryResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestModifiedGeometryIntervalV1>,
 )
@@ -320,6 +329,7 @@ data class ExtTestStationLinkCollectionResponseV1(
 data class ExtTestLocationTrackProfileResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevali: ExtTestProfileAddressRangeV1,
 )
@@ -367,6 +377,7 @@ data class ExtTestModifiedLocationTrackProfileResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestProfileAddressRangeV1>,
 )
@@ -437,3 +448,26 @@ data class ExtTestRouteSectionV1(
 data class ExtTestRouteV1(val pituus: Double, val reitin_osat: List<ExtTestRouteSectionV1>)
 
 data class ExtTestRouteResponseV1(val rataverkon_versio: String, val koordinaatisto: String, val reitti: ExtTestRouteV1)
+
+data class ExtTestDesignV1(
+    val suunnitelma_oid: String,
+    val nimi: String,
+    val tila: String,
+    val suunniteltu_valmistumispaiva: String,
+)
+
+data class ExtTestDesignResponseV1(val suunnitelma: ExtTestDesignV1)
+
+data class ExtTestModifiedDesignResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val suunnitelma: ExtTestDesignV1,
+)
+
+data class ExtTestDesignCollectionResponseV1(val suunnitelmat: List<ExtTestDesignV1>)
+
+data class ExtTestModifiedDesignCollectionResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val suunnitelmat: List<ExtTestDesignV1>,
+)

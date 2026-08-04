@@ -42,6 +42,7 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
         @PathVariable id: IntId<LayoutDesign>,
         @RequestBody request: LayoutDesignSaveRequest,
     ): IntId<LayoutDesign> {
-        return layoutDesignService.update(id, request)
+        layoutDesignService.update(id, request)
+        return id
     }
 }

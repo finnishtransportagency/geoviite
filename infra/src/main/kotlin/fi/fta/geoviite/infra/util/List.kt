@@ -66,6 +66,20 @@ fun <T, R> processSortedBy(list: List<T>, comparator: Comparator<T>, process: (l
     return rv as List<R>
 }
 
+/**
+ * Deduplicates the given list, calls process() on the distinct values (in first-occurrence order), and returns the
+ * results mapped back to each original position.
+ */
+fun <T, R> processDistinct(list: List<T>, process: (listIn: List<T>) -> List<R>): List<R> {
+    val distinct = list.distinct()
+    val processed = process(distinct)
+    require(distinct.size == processed.size) {
+        "processDistinct expected ${distinct.size} results from process() but got ${processed.size}"
+    }
+    val resultByElement = distinct.zip(processed).toMap()
+    return list.map { resultByElement.getValue(it) }
+}
+
 fun <A, B> List<A>.equalsBy(other: List<B>, predicate: (A, B) -> Boolean): Boolean {
     if (size != other.size) return false
     for (i in indices) if (!predicate(this[i], other[i])) return false

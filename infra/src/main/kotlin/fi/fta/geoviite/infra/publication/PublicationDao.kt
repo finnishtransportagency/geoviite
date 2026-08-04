@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
@@ -91,6 +92,7 @@ import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
 import fi.fta.geoviite.infra.util.getPublicationMessage
 import fi.fta.geoviite.infra.util.getPublicationPublishedIn
 import fi.fta.geoviite.infra.util.getRinfIdOrNull
+import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.getStringArray
 import fi.fta.geoviite.infra.util.getStringArrayOrNull
@@ -636,7 +638,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
     }
 
     fun list(
-        branchType: LayoutBranchType,
+        branchType: LayoutBranchType?,
         from: IntId<Publication>? = null,
         to: IntId<Publication>? = null,
     ): List<Publication> {
@@ -653,14 +655,23 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               cause,
               parent_publication_id
             from publication.publication
-            where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
+            where case
+                    when not :filter_branch_type then true
+                    when :branch_type = 'MAIN' then design_id is null
+                    else design_id is not null end
               and (:from_id::int is null or id >= :from_id)
               and (:to_id::int is null or id <= :to_id)
             order by id desc
             """
                 .trimIndent()
 
-        val params = mapOf("branch_type" to branchType.name, "from_id" to from?.intValue, "to_id" to to?.intValue)
+        val params =
+            mapOf(
+                "filter_branch_type" to (branchType != null),
+                "branch_type" to branchType?.name,
+                "from_id" to from?.intValue,
+                "to_id" to to?.intValue,
+            )
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
@@ -677,7 +688,14 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
             .also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    fun fetchLatestPublications(branchType: LayoutBranchType, count: Int): List<Publication> {
+    fun fetchLatestPublications(
+        onlyBranch: LayoutBranch? = null,
+        onlyBranchType: LayoutBranchType? = null,
+        count: Int,
+    ): List<Publication> {
+        require(!(onlyBranch != null && onlyBranchType != null && onlyBranch.type != onlyBranchType)) {
+            "onlyBranch $onlyBranch and onlyBranchType $onlyBranchType combination can't match any publications"
+        }
         val sql =
             """
             select
@@ -691,12 +709,24 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               cause,
               parent_publication_id
             from publication.publication
-            where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
+            where case
+              when :branch_type::text is null then true
+              when :branch_type = 'MAIN' then design_id is null
+              else design_id is not null end
+             and case
+              when not :filter_by_only_branch then true
+              else :only_branch::int is not distinct from design_id end
             order by id desc limit :count
             """
                 .trimIndent()
 
-        val params = mapOf("count" to count, "branch_type" to branchType.name)
+        val params =
+            mapOf(
+                "count" to count,
+                "branch_type" to onlyBranchType?.name,
+                "filter_by_only_branch" to (onlyBranch != null),
+                "only_branch" to onlyBranch?.designId?.intValue,
+            )
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
@@ -2231,33 +2261,79 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
     fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication =
         fetchPublicationIdByUuid(uuid)?.let(::getPublication) ?: throw TrackLayoutVersionNotFound(uuid)
 
-    fun fetchPublishedLocationTrackBetween(
+    fun fetchDesignModificationsBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        designId: IntId<LayoutDesign>?,
+    ): List<RowVersion<LayoutDesign>> {
+        // A design counts as modified by its metadata-change and deletion publications, and by its first publication
+        // ever, which is what makes the design visible to the ext API in the first place
+        val sql =
+            """
+            select publication.design_id as id, publication.design_version as version
+            from publication.publication
+            where publication.design_id is not null
+              and (:design_id::int is null or :design_id = publication.design_id)
+              and publication.publication_time > :start_time
+              and publication.publication_time <= :end_time
+              and (publication.cause in ('LAYOUT_DESIGN_CHANGE', 'LAYOUT_DESIGN_DELETE')
+                   or not exists (
+                     select 1
+                     from publication.publication earlier
+                     where earlier.design_id = publication.design_id
+                       and earlier.publication_time <= :start_time))
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+                "design_id" to designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+    }
+
+    fun fetchLatestPublishedLocationTrackChangeTimeBetween(
         trackId: IntId<LocationTrack>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): LayoutRowVersion<LocationTrack>? =
-        fetchPublishedLocationTracksBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, trackId).singleOrNull()
+        layoutBranch: LayoutBranch,
+    ): Instant? =
+        fetchLatestPublishedLocationTrackChangeTimesBetweenInternal(
+                exclusiveStartMoment,
+                inclusiveEndMoment,
+                layoutBranch,
+                trackId,
+            )
+            .singleOrNull()
+            ?.second
 
-    fun fetchPublishedLocationTracksBetween(
+    fun fetchLatestPublishedLocationTrackChangeTimesBetween(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): List<LayoutRowVersion<LocationTrack>> =
-        fetchPublishedLocationTracksBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, null)
+        layoutBranch: LayoutBranch,
+    ): List<Pair<IntId<LocationTrack>, Instant>> =
+        fetchLatestPublishedLocationTrackChangeTimesBetweenInternal(
+            exclusiveStartMoment,
+            inclusiveEndMoment,
+            layoutBranch,
+            null,
+        )
 
-    private fun fetchPublishedLocationTracksBetweenInternal(
+    private fun fetchLatestPublishedLocationTrackChangeTimesBetweenInternal(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
         trackId: IntId<LocationTrack>? = null,
-    ): List<LayoutRowVersion<LocationTrack>> {
+    ): List<Pair<IntId<LocationTrack>, Instant>> {
         val sql =
             """
             select distinct on (plt.id)
               plt.id,
-              plt.layout_context_id,
-              plt.version
+              publication.publication_time as change_time
             from publication.location_track plt
               join publication.publication publication on plt.publication_id = publication.id
-            where publication.design_id is null
+            where publication.design_id is not distinct from :design_id
               and (:track_id::int is null or plt.id = :track_id)
               and publication.publication_time > :start_time
               and publication.publication_time <= :end_time
@@ -2270,29 +2346,25 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
                 "track_id" to trackId?.intValue,
+                "design_id" to layoutBranch.designId?.intValue,
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getIntId<LocationTrack>("id") to rs.getInstant("change_time")
+        }
     }
 
-    fun fetchPublishedLocationTrackGeomsBetween(
+    fun fetchLatestLocationTrackGeometryPublicationTimeBetween(
         trackId: IntId<LocationTrack>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): Change<LayoutRowVersion<LocationTrack>>? {
+        layoutBranch: LayoutBranch,
+    ): Instant? {
         val sql =
             """
-            select
-              plt.id,
-              plt.layout_context_id,
-              plt.version,
-              (
-                select version
-                  from layout.location_track_at(:start_time) lt
-                  where lt.id = plt.id and lt.layout_context_id = plt.layout_context_id
-              ) as old_version
+            select publication.publication_time as change_time
               from publication.location_track plt
                 inner join publication.publication publication on plt.publication_id = publication.id
-              where publication.design_id is null
+              where publication.design_id is not distinct from :design_id
                 and plt.id = :track_id
                 and publication.publication_time > :start_time
                 and publication.publication_time <= :end_time
@@ -2301,7 +2373,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                     from publication.location_track_km pltkm
                     where pltkm.location_track_id = plt.id and pltkm.publication_id = publication.id
                 )
-              order by plt.id, publication.publication_time desc
+              order by publication.publication_time desc
               limit 1
             """
                 .trimIndent()
@@ -2311,56 +2383,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
                 "track_id" to trackId.intValue,
+                "design_id" to layoutBranch.designId?.intValue,
             )
-        return jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                val oldVersion = rs.getLayoutRowVersionOrNull<LocationTrack>("id", "layout_context_id", "old_version")
-                val newVersion = rs.getLayoutRowVersion<LocationTrack>("id", "layout_context_id", "version")
-                Change(oldVersion, newVersion)
-            }
-            .firstOrNull()
-    }
-
-    fun fetchPublishedLocationTrackVersionsBetween(
-        trackId: IntId<LocationTrack>,
-        exclusiveStartMoment: Instant,
-        inclusiveEndMoment: Instant,
-    ): Change<LayoutRowVersion<LocationTrack>>? {
-        val sql =
-            """
-            select
-              plt.id,
-              plt.layout_context_id,
-              plt.version,
-              (
-                select version
-                  from layout.location_track_at(:start_time) lt
-                  where lt.id = plt.id and lt.layout_context_id = plt.layout_context_id
-              ) as old_version
-              from publication.location_track plt
-                inner join publication.publication publication on plt.publication_id = publication.id
-              where publication.design_id is null
-                and plt.id = :track_id
-                and publication.publication_time > :start_time
-                and publication.publication_time <= :end_time
-              order by plt.id, publication.publication_time desc
-              limit 1
-            """
-                .trimIndent()
-
-        val params =
-            mapOf(
-                "start_time" to Timestamp.from(exclusiveStartMoment),
-                "end_time" to Timestamp.from(inclusiveEndMoment),
-                "track_id" to trackId.intValue,
-            )
-        return jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                val oldVersion = rs.getLayoutRowVersionOrNull<LocationTrack>("id", "layout_context_id", "old_version")
-                val newVersion = rs.getLayoutRowVersion<LocationTrack>("id", "layout_context_id", "version")
-                Change(oldVersion, newVersion)
-            }
-            .firstOrNull()
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getInstant("change_time") }.firstOrNull()
     }
 
     data class TrackBoundaryChangeSegment(
