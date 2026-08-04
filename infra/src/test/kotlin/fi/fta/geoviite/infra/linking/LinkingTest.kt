@@ -369,7 +369,7 @@ class LinkingTest {
         assertEquals(2.001, fixed[1].segmentPoints.first().x, 0.0000001)
         assertEquals(0.0, fixed[1].segmentPoints.first().y, 0.0000001)
         assertEquals(Point(3.0, 0.0), fixed[1].segmentPoints.last().toPoint())
-        // Consecutive segments never overlap/backtrack in the fixed result
+        // Consecutive segments are continuous within the coordinate tolerance
         fixed.zipWithNext().forEach { (s1, s2) ->
             assertTrue(lineLength(s1.segmentEnd, s2.segmentStart) <= LAYOUT_COORDINATE_DELTA)
         }
