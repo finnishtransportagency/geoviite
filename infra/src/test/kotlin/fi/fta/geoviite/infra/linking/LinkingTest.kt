@@ -351,10 +351,10 @@ class LinkingTest {
         // The gap is bridged with a generated connecting segment
         assertEquals(GeometrySource.GENERATED, fixed[1].source)
         assertEquals(Point(1.0, 0.0), fixed[1].segmentPoints.first().toPoint())
-        assertEquals(1.101, fixed[1].segmentPoints.last().x, 0.0000001)
+        assertEquals(1.1 + LAYOUT_COORDINATE_DELTA, fixed[1].segmentPoints.last().x, 0.0000001)
         assertEquals(0.0, fixed[1].segmentPoints.last().y, 0.0000001)
         // The gap-side segment is trimmed by a hair to avoid a near-zero-length zig-zag connector
-        assertEquals(1.101, fixed[2].segmentPoints.first().x, 0.0000001)
+        assertEquals(1.1 + LAYOUT_COORDINATE_DELTA, fixed[2].segmentPoints.first().x, 0.0000001)
         assertEquals(0.0, fixed[2].segmentPoints.first().y, 0.0000001)
         assertEquals(Point(2.0, 0.0), fixed[2].segmentPoints.last().toPoint())
     }
