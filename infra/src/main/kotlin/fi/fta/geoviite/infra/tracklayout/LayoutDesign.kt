@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.StringSanitizer
 import java.time.LocalDate
 
@@ -36,6 +37,7 @@ data class LayoutDesign(
     val name: LayoutDesignName,
     val estimatedCompletion: LocalDate,
     val designState: DesignState,
+    val externalId: Oid<LayoutDesign>,
 )
 
 data class LayoutDesignSaveRequest(

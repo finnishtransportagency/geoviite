@@ -2438,6 +2438,7 @@
         "title-new": "Uusi työtila",
         "title-edit": "Muokkaa työtilaa",
         "basic-info": "Perustiedot",
+        "oid": "OID",
         "name": "Työtilan nimi",
         "completion-date": "Arvioitu valmistumisajankohta",
         "delete-confirm": {

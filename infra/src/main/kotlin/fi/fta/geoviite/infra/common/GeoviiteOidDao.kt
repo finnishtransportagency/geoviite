@@ -7,7 +7,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 
 enum class OidType {
-    OPERATIONAL_POINT
+    OPERATIONAL_POINT,
+    DESIGN,
 }
 
 enum class OidSequenceState {
