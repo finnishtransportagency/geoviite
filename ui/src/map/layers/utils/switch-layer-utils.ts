@@ -20,7 +20,7 @@ import { JointNumber, SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
-import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords, getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
@@ -40,6 +40,14 @@ const TEXT_FONT_LARGE = 11;
 const TEXT_FONT_SMALL = 10;
 const CIRCLE_RADIUS_SMALL = 4.5;
 const CIRCLE_RADIUS_LARGE = 6.5;
+const NEARBY_SWITCH_PROXIMITY_THRESHOLD = 2;
+
+const inTheSameLocation = (a: LayoutSwitch, b: LayoutSwitch): boolean => {
+    const aJoint = a.joints[0]?.location;
+    const bJoint = b.joints[0]?.location;
+    if (!aJoint || !bJoint) return false;
+    return getPlanarDistanceUnwrapped(aJoint.x, aJoint.y, bJoint.x, bJoint.y) < NEARBY_SWITCH_PROXIMITY_THRESHOLD;
+};
 
 export function getSelectedSwitchLabelRenderer(
     layoutSwitch: LayoutSwitch,
@@ -102,7 +110,6 @@ export function getSelectedSwitchLabelRenderer(
 
             ({ name }, coord, ctx, { pixelRatio }) => {
                 const [x, y] = expectCoordinate(coord);
-                ctx.fillStyle = styles.switchTextColor;
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -152,8 +159,10 @@ export function getSwitchRenderer(
     linked: boolean,
     valid: boolean,
     disabled: boolean,
+    nearbySwitches: LayoutSwitch[] = [],
 ): RenderFunction {
     const fontSize = large ? TEXT_FONT_LARGE : TEXT_FONT_SMALL;
+    const nearbyLineHeight = fontSize + 3;
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
     const textCirclePadding = 4;
     const isGeometrySwitch = layoutSwitch.dataType === 'TEMP';
@@ -183,18 +192,34 @@ export function getSwitchRenderer(
                     const textX = x + (circleRadius + textCirclePadding) * pixelRatio;
                     const textY = y + pixelRatio;
                     const paddingHor = 2;
-                    const paddingVer = 1;
+                    const paddingVer = 4;
                     const contentWidth = textWidth + (valid ? 0 : 1);
                     const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
-                    const backgroundY =
-                        textY - (fontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
+                    const backgroundY = textY - (fontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
+
                     const backgroundWidth = contentWidth + paddingHor * 2 * pixelRatio;
-                    const backgroundHeight = fontSize * pixelRatio + paddingVer * 2 * pixelRatio;
+                    
+                    const clusterExtraHeight = nearbySwitches.length * nearbyLineHeight * pixelRatio;
+                    const clusterYOffset = clusterExtraHeight / 2 + paddingVer; // Move the cluster up only half the amount, to put it in the middle
+                    // TODO: Is there a 3 switch cluster? Should be tested how it looks
+                    const backgroundHeight = (fontSize + paddingVer * 2) * pixelRatio + clusterExtraHeight;
 
-                    drawRect(ctx, backgroundX, backgroundY, backgroundWidth, backgroundHeight);
-
+                    drawRect(ctx, backgroundX, backgroundY - clusterYOffset, backgroundWidth, backgroundHeight);
                     ctx.fillStyle = styles.switchTextColor;
-                    ctx.fillText(name, textX, textY);
+                    ctx.fillText(name, textX, textY - clusterYOffset);
+
+                    if (nearbySwitches.length) {
+                        ctx.save();
+                        const listTop = backgroundY + fontSize * pixelRatio + paddingVer * 2 * pixelRatio;
+                        nearbySwitches.forEach((sw, i) => {
+                            ctx.fillText(
+                                sw.name,
+                                textX,
+                                listTop + (nearbyLineHeight * (i + 0.5)) * pixelRatio - clusterYOffset,
+                            );
+                        });
+                        ctx.restore();
+                    }
                 }
             },
         ],
@@ -443,6 +468,7 @@ function createSwitchFeatures(
                 planId,
                 presentationJointNumber,
                 validationResult?.find((sw) => sw.id === layoutSwitch.id),
+                layoutSwitches,
             );
         });
 }
@@ -458,6 +484,7 @@ export function createSwitchFeature(
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
     validationResult?: ValidatedSwitch | undefined,
+    allSwitches?: LayoutSwitch[],
 ): Feature<OlPoint>[] {
     const firstJoint = expectDefined(first(layoutSwitch.joints));
 
@@ -471,6 +498,17 @@ export function createSwitchFeature(
     });
     const valid = !validationResult?.errors || validationResult?.errors?.length === 0;
 
+    const nearbySwitches =
+        !(selected || highlighted) && allSwitches
+            ? allSwitches
+                  .filter(
+                      (s) =>
+                          s.id !== layoutSwitch.id &&
+                          inTheSameLocation(s, layoutSwitch),
+                  )
+                  .sort((a, b) => a.name.localeCompare(b.name))
+            : [];
+
     switchFeature.setStyle(
         selected || highlighted
             ? getSelectedSwitchStyle(layoutSwitch, highlighted, linked, valid)
@@ -481,6 +519,7 @@ export function createSwitchFeature(
                   linked,
                   valid,
                   disabled,
+                  nearbySwitches,
               ),
     );
 
@@ -520,10 +559,11 @@ function getUnselectedSwitchStyle(
     linked: boolean,
     valid: boolean,
     disabled: boolean,
+    nearbySwitches: LayoutSwitch[] = [],
 ): Style {
     return new Style({
         zIndex: 0,
-        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked, valid, disabled),
+        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked, valid, disabled, nearbySwitches),
     });
 }
 
