@@ -50,7 +50,8 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         }
     }
 
-    fun fetch(id: IntId<LayoutDesign>) = fetchMany(listOf(id)).first()
+    fun fetch(id: IntId<LayoutDesign>) =
+        requireNotNull(fetchMany(listOf(id)).firstOrNull()) { "design with id $id not found" }
 
     fun fetchVersion(rowVersion: RowVersion<LayoutDesign>): LayoutDesign {
         val sql =
