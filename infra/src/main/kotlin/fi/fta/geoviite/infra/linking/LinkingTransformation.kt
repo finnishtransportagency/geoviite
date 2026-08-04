@@ -5,11 +5,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.radsToDegrees
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.EdgeM
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
@@ -91,41 +91,41 @@ private fun createAlignmentGeometry(
  * Sometimes the geometry files contain gaps or inconsistencies between elements (GVT-3584), that would produce invalid
  * layout data. When these are small, we can just automatically fix them.
  */
-private fun fixMapSegmentContinuity(segments: List<LayoutSegment>): List<LayoutSegment> {
+fun fixMapSegmentContinuity(segments: List<LayoutSegment>): List<LayoutSegment> {
     val segmentPairs = segments.zipWithNext()
     return if (segmentPairs.all { (s1, s2) -> lineLength(s1.segmentEnd, s2.segmentStart) <= LAYOUT_COORDINATE_DELTA }) {
         segments
     } else {
         val fixedSegments = mutableListOf<LayoutSegment>()
-        var lastPoint: SegmentPoint? = null
         segments.forEach { segment ->
-            if (lastPoint == null || lineLength(lastPoint, segment.segmentStart) <= LAYOUT_COORDINATE_DELTA) {
-                fixedSegments.add(segment)
-            } else {
-                val (closestM, intersect) = segment.getClosestPointM(lastPoint)
-                val nonOverlapping =
-                    when (intersect) {
-                        // Jumping forward -> we just need to bridge the gap
-                        IntersectType.BEFORE -> segment
-                        // Whole segment is zig-zag -> none of it is usable
-                        IntersectType.AFTER -> null
-                        // The connector would be a zig-zag -> cut a bit off the later segment to avoid it
-                        IntersectType.WITHIN ->
-                            if (segment.length - closestM.distance <= LAYOUT_COORDINATE_DELTA * 2)
-                                null // Too short to cut!
-                            else segment.slice(Range(closestM + LAYOUT_COORDINATE_DELTA, segment.segmentEnd.m))
-                    }
-                if (nonOverlapping == null)
-                    throw LinkingFailureException(
-                        "Geometry elements are non-continuous and cannot be simply fixed. Verify the linked geometry elements."
-                    )
-                val nextPoint = nonOverlapping.segmentStart
-                createLinkingSegment(lastPoint, nextPoint)?.let(fixedSegments::add)
-                fixedSegments.add(nonOverlapping)
+            val lastPoint: SegmentPoint? = fixedSegments.lastOrNull()?.segmentEnd
+            val diff = lastPoint?.let { lineLength(it, segment.segmentStart) } ?: 0.0
+            when {
+                // Segments match within margin of error
+                lastPoint == null || diff <= LAYOUT_COORDINATE_DELTA -> fixedSegments.add(segment)
+                // Over 1m gap is a pretty serious issue in the data -> safer not to auto-fix it
+                diff > 1.0 ->
+                    throw LinkingFailureException("Over 1m (${roundTo3Decimals(diff)}m) gap within linked geometry.")
+                else -> {
+                    // Cut the segment if needed to avoid producing a zig-zag connector
+                    val nonOverlapping =
+                        cutSegmentStartingFromPoint(segment, lastPoint)
+                            ?: throw LinkingFailureException("Linked geometry elements are non-continuous.")
+                    createLinkingSegment(lastPoint, nonOverlapping.segmentStart)?.let(fixedSegments::add)
+                    fixedSegments.add(nonOverlapping)
+                }
             }
-            lastPoint = segment.segmentEnd
         }
         fixedSegments
+    }
+}
+
+private fun cutSegmentStartingFromPoint(segment: LayoutSegment, point: IPoint): LayoutSegment? {
+    val closestM = segment.getClosestPointM(point).first
+    return if (segment.length - closestM.distance <= LAYOUT_COORDINATE_DELTA * 2) {
+        null
+    } else {
+        segment.slice(Range(closestM + LAYOUT_COORDINATE_DELTA, segment.segmentEnd.m))
     }
 }
 
