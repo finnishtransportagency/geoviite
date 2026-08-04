@@ -98,7 +98,7 @@ private fun fixMapSegmentContinuity(segments: List<LayoutSegment>): List<LayoutS
     } else {
         val fixedSegments = mutableListOf<LayoutSegment>()
         var lastPoint: SegmentPoint? = null
-        segments.forEachIndexed { index, segment ->
+        segments.forEach { segment ->
             if (lastPoint == null || lineLength(lastPoint, segment.segmentStart) <= LAYOUT_COORDINATE_DELTA) {
                 fixedSegments.add(segment)
             } else {
@@ -111,7 +111,8 @@ private fun fixMapSegmentContinuity(segments: List<LayoutSegment>): List<LayoutS
                         IntersectType.AFTER -> null
                         // The connector would be a zig-zag -> cut a bit off the later segment to avoid it
                         IntersectType.WITHIN ->
-                            if (segment.length <= LAYOUT_COORDINATE_DELTA * 2) null // Too short to cut!
+                            if (segment.length - closestM.distance <= LAYOUT_COORDINATE_DELTA * 2)
+                                null // Too short to cut!
                             else segment.slice(Range(closestM + LAYOUT_COORDINATE_DELTA, segment.segmentEnd.m))
                     }
                 if (nonOverlapping == null)
