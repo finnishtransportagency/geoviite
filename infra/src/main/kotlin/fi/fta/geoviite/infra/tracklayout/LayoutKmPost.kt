@@ -21,7 +21,7 @@ data class LayoutKmPost(
     val sourceId: DomainId<GeometryKmPost>?,
     @JsonIgnore override val contextData: LayoutContextData<LayoutKmPost>,
 ) : LayoutAsset<LayoutKmPost>(contextData) {
-    @JsonIgnore val exists = !state.isRemoved()
+    @JsonIgnore override val exists = !state.isRemoved()
 
     val layoutLocation = gkLocation?.let { transformNonKKJCoordinate(it.location.srid, LAYOUT_SRID, it.location) }
 

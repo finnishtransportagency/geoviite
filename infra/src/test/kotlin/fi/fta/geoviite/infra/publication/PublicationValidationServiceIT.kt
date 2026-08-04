@@ -2070,23 +2070,19 @@ constructor(
     }
 
     @Test
-    fun `track number numbers are checked for uniqueness upon merge, even if any are deleted`() {
+    fun `track number names are checked for uniqueness upon merge to main`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
-        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
         mainOfficialContext.save(trackNumber(TrackNumber("100")), geometry)
         mainOfficialContext.save(trackNumber(TrackNumber("200")), geometry)
-        mainOfficialContext.save(trackNumber(TrackNumber("300"), state = LayoutState.DELETED), geometry)
-        mainOfficialContext.save(trackNumber(TrackNumber("400"), state = LayoutState.DELETED), geometry)
         val tn1 = designOfficialContext.save(trackNumber(TrackNumber("100")), geometry).id
-        val tn2 = designOfficialContext.save(trackNumber(TrackNumber("200"), state = LayoutState.DELETED), geometry).id
-        val tn3 = designOfficialContext.save(trackNumber(TrackNumber("300")), geometry).id
-        val tn4 = designOfficialContext.save(trackNumber(TrackNumber("400"), state = LayoutState.DELETED), geometry).id
+        val tn2 = designOfficialContext.save(trackNumber(TrackNumber("200")), geometry).id
 
         val validation =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(MergeFromDesign(designBranch)),
-                publicationRequestIds(trackNumbers = listOf(tn1, tn2, tn3, tn4)),
+                publicationRequestIds(trackNumbers = listOf(tn1, tn2)),
             )
         validation.validatedAsPublicationUnit.trackNumbers.forEach { tn ->
             assertContains(
@@ -3115,5 +3111,101 @@ constructor(
             mergeIssues,
             "Expected no validation issues but got: ${mergeIssues.map { it.localizationKey }}",
         )
+    }
+
+    @Test
+    fun `design-created deleted location track is excluded from merge-to-main candidates`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val tnId = mainOfficialContext.save(trackNumber(), geometry).id
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeLtId =
+            designOfficialCtx
+                .saveLocationTrack(locationTrackAndGeometry(tnId, segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .id
+        val deletedLtId =
+            designOfficialCtx
+                .saveLocationTrack(
+                    locationTrackAndGeometry(
+                        tnId,
+                        segment(Point(0.0, 0.0), Point(100.0, 0.0)),
+                        state = LocationTrackState.DELETED,
+                    )
+                )
+                .id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).locationTracks.map { it.id }
+
+        assertContains(candidateIds, activeLtId)
+        assertFalse(candidateIds.contains(deletedLtId))
+    }
+
+    @Test
+    fun `design-created deleted track number is excluded from merge-to-main candidates`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeTnId = designOfficialCtx.save(trackNumber(TrackNumber("A1")), geometry).id
+        val deletedTnId =
+            designOfficialCtx.save(trackNumber(TrackNumber("A2"), state = LayoutState.DELETED), geometry).id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).trackNumbers.map { it.id }
+
+        assertContains(candidateIds, activeTnId)
+        assertFalse(candidateIds.contains(deletedTnId))
+    }
+
+    @Test
+    fun `design-created deleted switch is excluded from merge-to-main candidates`() {
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeSwitchId = designOfficialCtx.save(switch()).id
+        val deletedSwitchId = designOfficialCtx.save(switch(stateCategory = LayoutStateCategory.NOT_EXISTING)).id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).switches.map { it.id }
+
+        assertContains(candidateIds, activeSwitchId)
+        assertFalse(candidateIds.contains(deletedSwitchId))
+    }
+
+    @Test
+    fun `design-created deleted km post is excluded from merge-to-main candidates`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val tnId = mainOfficialContext.save(trackNumber(), geometry).id
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeKmPostId = designOfficialCtx.save(kmPost(tnId, KmNumber(1))).id
+        val deletedKmPostId = designOfficialCtx.save(kmPost(tnId, KmNumber(2), state = LayoutState.DELETED)).id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).kmPosts.map { it.id }
+
+        assertContains(candidateIds, activeKmPostId)
+        assertFalse(candidateIds.contains(deletedKmPostId))
+    }
+
+    @Test
+    fun `design-created deleted operational point is excluded from merge-to-main candidates`() {
+        val design = testDBService.createDesignBranch()
+        val designOfficialCtx = testDBService.testContext(design, OFFICIAL)
+
+        val activeOpId = designOfficialCtx.save(operationalPoint(name = "active", uicCode = "1")).id
+        val deletedOpId =
+            designOfficialCtx
+                .save(operationalPoint(name = "deleted", uicCode = "2", state = OperationalPointState.DELETED))
+                .id
+
+        val candidateIds =
+            publicationService.collectPublicationCandidates(MergeFromDesign(design)).operationalPoints.map { it.id }
+
+        assertContains(candidateIds, activeOpId)
+        assertFalse(candidateIds.contains(deletedOpId))
     }
 }

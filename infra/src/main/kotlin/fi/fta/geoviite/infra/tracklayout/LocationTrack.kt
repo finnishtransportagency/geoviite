@@ -275,7 +275,7 @@ data class LocationTrack(
     @JsonIgnore val switchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : LayoutAsset<LocationTrack>(contextData) {
 
-    @JsonIgnore val exists = !state.isRemoved()
+    @JsonIgnore override val exists = !state.isRemoved()
 
     override fun toLog(): String =
         logFormat(

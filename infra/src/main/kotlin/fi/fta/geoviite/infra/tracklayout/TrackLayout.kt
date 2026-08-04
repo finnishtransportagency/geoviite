@@ -41,6 +41,7 @@ enum class DesignAssetState {
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
     @get:JsonIgnore abstract val contextData: LayoutContextData<T>
+    @get:JsonIgnore abstract val exists: Boolean
 
     abstract fun withContext(contextData: LayoutContextData<T>): T
 

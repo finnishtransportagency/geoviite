@@ -33,7 +33,7 @@ data class OperationalPoint(
     override fun withContext(contextData: LayoutContextData<OperationalPoint>): OperationalPoint =
         copy(contextData = contextData)
 
-    @JsonIgnore val exists = !state.isRemoved()
+    @JsonIgnore override val exists = !state.isRemoved()
 
     val rinfId: RinfId? = rinfIdOverride ?: rinfIdGenerated
 }
