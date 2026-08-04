@@ -141,7 +141,7 @@ constructor(private val publicationService: PublicationService, private val layo
                 ExtTrackLayoutVersionCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.first()),
                     layoutVersionTo = ExtLayoutVersionV1(publications.last()),
-                    versions = publications.map(::publicationVersion),
+                    versions = publications.let(::publicationVersions),
                 )
             }
             .let(::toResponse)
@@ -200,7 +200,7 @@ constructor(private val publicationService: PublicationService, private val layo
                         ExtTrackLayoutVersionCollectionResponseV1(
                             layoutVersionFrom = ExtLayoutVersionV1(versions.from),
                             layoutVersionTo = ExtLayoutVersionV1(versions.to),
-                            versions = publications.map(::publicationVersion),
+                            versions = publications.let(::publicationVersions),
                         )
                     }
             }
