@@ -18,6 +18,8 @@ import {
 import { VIEW_DEBUG_LAYERS, VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { useUserHasPrivilege } from 'store/hooks';
+import { useEnvironmentInfo } from 'environment/environment-info';
 
 type MapLayerMenuProps = {
     onMenuChange: (change: MapLayerMenuChange) => void;
@@ -141,6 +143,13 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
     );
 };
 
+function useShouldShowDebugLayers() {
+    const userHasDebugLayersPrivilege = useUserHasPrivilege(VIEW_DEBUG_LAYERS);
+    const environmentName = useEnvironmentInfo()?.environmentName;
+
+    return userHasDebugLayersPrivilege || environmentName === 'dev' || environmentName === 'local';
+}
+
 const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
     mapLayerMenuGroups,
     onMenuChange,
@@ -150,6 +159,8 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
     const [showMapLayerMenu, setShowMapLayerMenu] = React.useState(false);
 
     const buttonRef = React.useRef(null);
+
+    const showDebugLayers = useShouldShowDebugLayers();
 
     return (
         <React.Fragment>
@@ -185,14 +196,14 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
                             mapLayerVisibilities={visibleLayers}
                         />
                     </PrivilegeRequired>
-                    <PrivilegeRequired privilege={VIEW_DEBUG_LAYERS}>
+                    {showDebugLayers && (
                         <MapLayerGroup
                             title={t('map-layer-menu.debug-title')}
                             menuItemVisibilities={mapLayerMenuGroups.debug}
                             onMenuChange={onMenuChange}
                             mapLayerVisibilities={visibleLayers}
                         />
-                    </PrivilegeRequired>
+                    )}
                 </CloseableModal>
             )}
         </React.Fragment>
