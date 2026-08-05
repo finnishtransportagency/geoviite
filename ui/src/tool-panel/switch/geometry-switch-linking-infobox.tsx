@@ -141,7 +141,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                 setInitialSwitchSuggestionResult(result);
             }
         },
-        [geometrySwitch.id, layoutSwitchId],
+        [geometrySwitch.id, layoutSwitchId, layoutContext.branch],
     );
 
     const suggestedSwitch =
