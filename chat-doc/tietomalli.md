@@ -31,6 +31,7 @@ Alla listattu kaikki tunnistetut ydinkäsitteet. ✅ = kuvattu, ⬜ = kuvaus puu
 | Luonnostila | ✅ |
 | Inframodel | ✅ |
 | Koordinaatistot | ✅ |
+| Reitinhaku | ✅ |
 
 ---
 
@@ -467,3 +468,32 @@ Geoviite **ei tue** VVJ-koordinaatiston muuntamista muihin koordinaatistojärjes
 **Kiertotapa:** Operaattori lataa VVJ-suunnitelman Geoviitteestä, muuntaa sen suunnitteluohjelmistolla tuettuun koordinaatistoon (esim. GK), ja lataa muunnetun suunnitelman takaisin Geoviitteeseen metatiedoilla varustettuna (jotta sitä ei sekoiteta alkuperäiseen eikä se päädy tietopyyntöihin).
 
 VVJ-tukea ei ole suunniteltu kehitettäväksi, koska uusia VVJ-suunnitelmia ei enää synny.
+
+---
+
+## Reitinhaku
+
+### Mitä reitinhaku tarkoittaa
+
+Reitinhaku tarkoittaa Geoviitteessä rataverkolla tapahtuvaa reitin etsimistä **kahden raiteilla sijaitsevan kohdan välille**. Reitinhaun tulos koostuu raiteiden osuuksista.
+
+Reitin muodostuksessa huomioidaan **junan rajoitukset liikkua vaihteissa** — reitti ei sisällä sellaisia käännöksiä, joita junalla ei ole mahdollista tehdä. Nykyisessä algoritmissa junan kulkusuunnan voi kääntää vain raiteen päässä. Teoriassa suunnan vaihtaminen on mahdollista missä tahansa, joten nykyinen ratkaisu on oikean liikennöinnin näkökulmasta turhan rajoittava ja vaatii todennäköisesti jatkokehitystä.
+
+### Käyttötapaukset
+
+Reitinhaku ei tällä hetkellä ole varsinaisesti loppukäyttäjien aktiivisesti käyttämä toiminnallisuus, mutta sitä hyödynnetään sisäisesti esimerkiksi **liikennepaikkavälin yhteyksien määrittämisessä**.
+
+Käyttöliittymässä on mahdollista hakea reitti kahden sijainnin välille kartalla.
+
+**Ulkoinen tarve:** Rataverkon reitinhaulle on tarvetta erityisesti **Ratko-järjestelmässä**. Ratko on sisältänyt oman reitinhaun, mutta se on ajan saatossa tullut epäluotettavaksi aktiivisen ylläpidon puuttuessa — lisäksi Ratkon tietomalli ei sovellu kovin hyvin reitinhakualgoritmille. Tavoitteena on, että Ratko siirtyy tulevaisuudessa käyttämään Geoviitteen reitinhakua ext-apin kautta.
+
+> **Huom:** Jos Ratko siirtyy käyttämään Geoviitteen reitinhakua, sijaintiraiteelta voidaan poistaa *topologinen kytkeytyminen* -ominaisuustieto — sitä ylläpidetään tällä hetkellä ainoastaan Ratkon reitinhakua varten.
+
+### Tekninen toteutus
+
+| Vaihe | Kuvaus |
+|---|---|
+| **Verkon muodostus** | Geoviitteen sisäinen linkki-solmu-malli muunnetaan suunnatuksi verkoksi |
+| **Reitinhakualgoritmi** | Suoritetaan **jgrapht**-kirjastolla |
+
+Verkon muodostus on reitinhaun raskain vaihe.

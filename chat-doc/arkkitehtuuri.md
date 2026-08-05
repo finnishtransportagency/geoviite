@@ -28,6 +28,10 @@ PostgreSQL-tietokanta PostGIS-laajennuksella geometriatietojen tallentamiseen ja
 
 Koordinaattien muuntamiseen koordinaatistosta toiseen käytetään **GeoTools**-kirjastoa. KKJ-koordinaattien muuntamisessa hyödynnetään lisäksi korjausparametreja sisältävää **kolmioverkkoa** tarkkuuden parantamiseksi. Ks. koordinaatistot tarkemmin [tietomalli.md — Koordinaatistot](./tietomalli.md#koordinaatistot).
 
+### Reitinhaku
+
+Reitinhaku suoritetaan muuntamalla Geoviitteen sisäinen linkki-solmu-malli suunnatuksi verkoksi, jonka jälkeen varsinainen haku suoritetaan **jgrapht**-kirjastolla.
+
 ## Rajapinnat (API)
 
 Geoviitteessä on kolme erillistä API-kokonaisuutta:

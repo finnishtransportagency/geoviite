@@ -12,53 +12,92 @@ V: Projekti on Geoviite, se on tietojärjestelmä, jolla ylläpidetään Suomen 
 
 **K: Ketkä ovat projektin pääkäyttäjäryhmät tai sidosryhmät? (esim. loppukäyttäjät, tilaajat, integraatiokumppanit)**
 
-V: Tilaaja on Väylävirasto. Loppukäyttäjät ovat pääasiassa Geoviite-operaattoreita, jotka ylläpitävät tietoja. Geoviitettä käyttää myös joukko lukuoikeuksilla varustettuja konsulttikäyttäjiä, jotka tarkastavat rataverkon tietoja. Geoviite on integroitunut Ratko-järjestelmään, jonne Geoviitteestä viedään mm. raiteiden, vaihteiden ja ratanumeroiden geometriset tiedot sekä hallinnolliset perustiedot. Geoviitteestä rataverkon tietoja lukee myös Projektivelho, Kuvatieto, Raita ja Väylän analytiikka.
+V: Tilaaja on Väylävirasto. Loppukäyttäjät ovat pääasiassa Geoviite-operaattoreita, jotka ylläpitävät tietoja.
+Geoviitettä käyttää myös joukko lukuoikeuksilla varustettuja konsulttikäyttäjiä, jotka tarkastavat rataverkon tietoja.
+Geoviite on integroitunut Ratko-järjestelmään, jonne Geoviitteestä viedään mm. raiteiden, vaihteiden ja ratanumeroiden
+geometriset tiedot sekä hallinnolliset perustiedot. Geoviitteestä rataverkon tietoja lukee myös Projektivelho,
+Kuvatieto, Raita ja Väylän analytiikka.
 
 ---
 
-**K: Mikä on projektin tekninen arkkitehtuuri pääpiirteissään? (esim. käytetyt teknologiat, frontend/backend, tietokanta)**
+**K: Mikä on projektin tekninen arkkitehtuuri pääpiirteissään? (esim. käytetyt teknologiat, frontend/backend,
+tietokanta)**
 
-V: Arkkitehtuuri on pääpiirteissään: Selainkäyttöliittymä (Typescript, React, Openlayers), Backend (Kotlin, Spring), tietokanta Postgres + PostGis. Järjestelmä on kontitettu ja suoritetaan AWS ympäristössä.
+V: Arkkitehtuuri on pääpiirteissään: Selainkäyttöliittymä (Typescript, React, Openlayers), Backend (Kotlin, Spring),
+tietokanta Postgres + PostGis. Järjestelmä on kontitettu ja suoritetaan AWS ympäristössä.
 
 ---
 
 **K: Mitkä ovat projektin keskeisimmät toiminnallisuudet tai ominaisuudet tällä hetkellä?**
 
-V: Keskeisimmät ominaisuudet ovat yhtenäisen rataverkon geometrioiden ylläpito ja rataverkon tiedoista hakeminen/raportointi, geometriasuunnitelmakirjaston ylläpito.
+V: Keskeisimmät ominaisuudet ovat yhtenäisen rataverkon geometrioiden ylläpito ja rataverkon tiedoista
+hakeminen/raportointi, geometriasuunnitelmakirjaston ylläpito.
 
 ---
 
-**K: Missä vaiheessa projekti on tällä hetkellä? (esim. kehitysvaihe, tuotanto, ylläpito) Ja onko projektilla erityisiä lähiajan tavoitteita tai kehityskohteita?**
+**K: Missä vaiheessa projekti on tällä hetkellä? (esim. kehitysvaihe, tuotanto, ylläpito) Ja onko projektilla erityisiä
+lähiajan tavoitteita tai kehityskohteita?**
 
-V: Projekti on ollut kehityksessä 1-2021 alken ja tuotannossa 11-2022 alkaen, kehitystä on jatkettu koko tuotannossaolon ajan. Kehitys jatkuu edelleen. Lähiajan suurempia tavoitteita ovat: 1. Geoviitteen ja Ratkon välisen integraation kääntäminen niin, että Ratko lukee tiedot Geoviiteestä (PULL-integraatioksi) 2. Suunnitelmatilaisen rataverkon tarjoaminen API:sta, niin että suunnitelmatilaisuus saataisiin käytöön myös Ratkon puolella. Pienempinä tavoitteina on mm. hallinnollisten alueiden (esim. tilirataosa) geometrian ylläpidon siirto Geoviitteeseen.
+V: Projekti on ollut kehityksessä 1-2021 alken ja tuotannossa 11-2022 alkaen, kehitystä on jatkettu koko tuotannossaolon
+ajan. Kehitys jatkuu edelleen. Lähiajan suurempia tavoitteita ovat: 1. Geoviitteen ja Ratkon välisen integraation
+kääntäminen niin, että Ratko lukee tiedot Geoviiteestä (PULL-integraatioksi) 2. Suunnitelmatilaisen rataverkon
+tarjoaminen API:sta, niin että suunnitelmatilaisuus saataisiin käytöön myös Ratkon puolella. Pienempinä tavoitteina on
+mm. hallinnollisten alueiden (esim. tilirataosa) geometrian ylläpidon siirto Geoviitteeseen.
 
 ---
 
 **K: Onko projektilla erityisiä teknisiä haasteita tai tunnettuja ongelmakohtia, joita kannattaa dokumentoida?**
 
-V: Erityisiä teknisiä haasteita ei ole tiedossa, muita kuin Geoviite-Ratko integraation suunnan kääntäminen PUSH mallista PULL malliin, mutta kaikkiaan tietomalli on melko kompleksinen, joten sitä on varmaan syytä dokumentoida uusia kehittäjiä varten.
+V: Erityisiä teknisiä haasteita ei ole tiedossa, muita kuin Geoviite-Ratko integraation suunnan kääntäminen PUSH
+mallista PULL malliin, mutta kaikkiaan tietomalli on melko kompleksinen, joten sitä on varmaan syytä dokumentoida uusia
+kehittäjiä varten.
 
 ---
 
-**K: Kuvaile lyhyesti keskeisimmät tietomallin käsitteet — esim. mitä tarkoittavat "raide", "ratageometria", "ratanumero" ja muut projektin ydinkäsitteet?**
+**K: Kuvaile lyhyesti keskeisimmät tietomallin käsitteet — esim. mitä tarkoittavat "raide", "ratageometria", "
+ratanumero" ja muut projektin ydinkäsitteet?**
 
-V: Voisin ensin luetella keskeisimmät käsitteet ja sitten yksitellen kuvailla kunkin käsitteen. Käsitteet ovat: raide, vaihde, ratanumero, pituusmittauslinja, tasakilometripiste, rataosoitejärjestelmä, geometriasuunnitelma, geometriaelementti, vaakageometria, pystygeometria, toiminnallinen piste, paikannuspohja, rataverkko, linkitys
+V: Voisin ensin luetella keskeisimmät käsitteet ja sitten yksitellen kuvailla kunkin käsitteen. Käsitteet ovat: raide,
+vaihde, ratanumero, pituusmittauslinja, tasakilometripiste, rataosoitejärjestelmä, geometriasuunnitelma,
+geometriaelementti, vaakageometria, pystygeometria, toiminnallinen piste, paikannuspohja, rataverkko, linkitys
 
 ---
 
 **K: Kuvaile "raide" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "raide" tai tarkemmin sanottuna "sijaintiraide" on Geoviitteessä tunniste ja joukko muita ominaisuustietoja yhtenäiselle geometriselle osuudelle rataverkolla. Rataverkkoa voi ajatella graaffina, jossa vaihteet ovat solmukohtia ja vaihteiden väliset kiskot linkkejä. Sijaintiraide määrittää tunnisteen ja ominaisuustietojoukon n-kappaleelle peräkkäisiä linkkejä. Vaikka rataverkkoa on helpompi hahmottaa maastoon rakennetun rataverkon avulla, Geoviitteessä raiteen geometrinen muoto on raiteen suunniteltu muoto. Maastoon raide (eli fyysinen raide) pyritään kuitenkin rakentamaan tarkasti suunnitelman mukaan, joten Geoviitteen raiteen muodon pitäisi melko hyvin täsmätä maastossa olevaan raiteeseen, mutta todellisuudessa näiden välillä on poikkeamaa. Maastossa raide myös liikkuu ajan saatossa, maan liikkumisen ja liikennöinnin seurauksena. Raiteiden kunnossapito palauttaa raiteita maastossa niiden suunniteltuihin sijainteihin.
+V: "raide" tai tarkemmin sanottuna "sijaintiraide" on Geoviitteessä tunniste ja joukko muita ominaisuustietoja
+yhtenäiselle geometriselle osuudelle rataverkolla. Rataverkkoa voi ajatella graaffina, jossa vaihteet ovat solmukohtia
+ja vaihteiden väliset kiskot linkkejä. Sijaintiraide määrittää tunnisteen ja ominaisuustietojoukon n-kappaleelle
+peräkkäisiä linkkejä. Vaikka rataverkkoa on helpompi hahmottaa maastoon rakennetun rataverkon avulla, Geoviitteessä
+raiteen geometrinen muoto on raiteen suunniteltu muoto. Maastoon raide (eli fyysinen raide) pyritään kuitenkin
+rakentamaan tarkasti suunnitelman mukaan, joten Geoviitteen raiteen muodon pitäisi melko hyvin täsmätä maastossa olevaan
+raiteeseen, mutta todellisuudessa näiden välillä on poikkeamaa. Maastossa raide myös liikkuu ajan saatossa, maan
+liikkumisen ja liikennöinnin seurauksena. Raiteiden kunnossapito palauttaa raiteita maastossa niiden suunniteltuihin
+sijainteihin.
 
 ---
 
 **K: Kuvaile "vaihde" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "vaihde" kuvaa Geoviitteessä rataverkon solmukohtaa, jossa junan on mahdollista siirtyä raiteelta toiselle. Vaihde sisältää tunnisteen, tyypin ja joukon ominaisuustietoja. Vaiheita on eri tyyppisiä. Vaihteen koko tyyppi koostuu vaihdetyypistä sekä vaihteen tarkemmista mitoista. Vaihdetyyppi määrittää vaihteen periaatteellisen toiminnan. Vaihdetyyppejä ovat esim. yksinkertainen vaihde (lyhenne YV), josta voi kulkea suoraan tai kääntyä yhdelle poikkeavalle raiteelle, tai kaksoisvaihde (lyhenne KV), josta voi kulkea suoraan tai kääntyä toiselle poikkeavista raiteista. Vaihteen koko tyyppi voi olla esim. "YV54-200N-1:9-O", jossa "YV" on vaihdetyyppi, "54" tarkoittaa kiskopainoa, "200" tarkoittaa poikkeavan raiteen kaaren sädettä, "N" tarkoittaa vaihdetyypin levittämätöntä versiota, "1:9" tarkoittaa risteyksen suhdetta (eli juinka "jyrkkään" suoraan menevä ja poikkeava raide sijoittuvat toisiinsa nähden), "O" tarkoittaa oikealle kääntyvää poikkeavaa raidetta. Geoviitteen vaihde on periaatteessa luonteeltaan looginen esiintymä rataverkon vaihteesta, eli Geoviitteessä on tieto siitä, millainen vaihde missäkin kohtaa on, joten maastossa pitäisi voida vaihtaa vaihteen tilalle uusi samanlainen vaihde, ilman että Geoviitteen rataverkkoon tehdään muutoksia. Tämä loogisuus on kuitenkin edelleen periaatteellisella tasolla ja vaihteen vaihto maastossa aiheuttaa tarpeen vaihtaa vaihde myös Geoviitteessä. Tämä fyysisen ja loogisen maailman eroavaisuus on kuitenkin hyvä pitää mielessä, kun tulevaisuuden ratkaisuja mietitään.
+V: "vaihde" kuvaa Geoviitteessä rataverkon solmukohtaa, jossa junan on mahdollista siirtyä raiteelta toiselle. Vaihde
+sisältää tunnisteen, tyypin ja joukon ominaisuustietoja. Vaiheita on eri tyyppisiä. Vaihteen koko tyyppi koostuu
+vaihdetyypistä sekä vaihteen tarkemmista mitoista. Vaihdetyyppi määrittää vaihteen periaatteellisen toiminnan.
+Vaihdetyyppejä ovat esim. yksinkertainen vaihde (lyhenne YV), josta voi kulkea suoraan tai kääntyä yhdelle poikkeavalle
+raiteelle, tai kaksoisvaihde (lyhenne KV), josta voi kulkea suoraan tai kääntyä toiselle poikkeavista raiteista.
+Vaihteen koko tyyppi voi olla esim. "YV54-200N-1:9-O", jossa "YV" on vaihdetyyppi, "54" tarkoittaa kiskopainoa, "200"
+tarkoittaa poikkeavan raiteen kaaren sädettä, "N" tarkoittaa vaihdetyypin levittämätöntä versiota, "1:9" tarkoittaa
+risteyksen suhdetta (eli juinka "jyrkkään" suoraan menevä ja poikkeava raide sijoittuvat toisiinsa nähden), "O"
+tarkoittaa oikealle kääntyvää poikkeavaa raidetta. Geoviitteen vaihde on periaatteessa luonteeltaan looginen esiintymä
+rataverkon vaihteesta, eli Geoviitteessä on tieto siitä, millainen vaihde missäkin kohtaa on, joten maastossa pitäisi
+voida vaihtaa vaihteen tilalle uusi samanlainen vaihde, ilman että Geoviitteen rataverkkoon tehdään muutoksia. Tämä
+loogisuus on kuitenkin edelleen periaatteellisella tasolla ja vaihteen vaihto maastossa aiheuttaa tarpeen vaihtaa vaihde
+myös Geoviitteessä. Tämä fyysisen ja loogisen maailman eroavaisuus on kuitenkin hyvä pitää mielessä, kun tulevaisuuden
+ratkaisuja mietitään.
 
 ---
 
-**K: Haluatko jatkaa muiden käsitteiden (ratanumero, pituusmittauslinja, tasakilometripiste jne.) kuvailua nyt, vai tallennetaanko tähän mennessä kerätyt tiedot ensin?**
+**K: Haluatko jatkaa muiden käsitteiden (ratanumero, pituusmittauslinja, tasakilometripiste jne.) kuvailua nyt, vai
+tallennetaanko tähän mennessä kerätyt tiedot ensin?**
 
 V: Tallennetaan ensin kerätyt tiedot.
 
@@ -68,83 +107,194 @@ V: Tallennetaan ensin kerätyt tiedot.
 
 **K: Kuvaile "ratanumero" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "ratanumero" on hallinnollinen käsite, joka yhdistää kokonaisuudeksi osuuden rataverkon raiteista. Ratanumeroon kuuluvat raiteet muodostavat usein loogisen kokonaisuuden, sijoittuvat esim. jollekin yhteysvälille (esim. Helsinki-Turku) tai muodostavat ratapihalla yhtenäisen alueen. Kukin raide kuuluu johonkin ratanumeroon. Ratanumeroa tarvitaan mm. rataosoitteen määrittämiseen. Rataosoitetta käytetään usein sijainnin määrittämiseksi rataverkolla. Rataosoite koostuu ratanumerosta ja ratakilometrisijainnista ratanumeroa pitkin. Jotta voidaan määrittää sijainti ratanumeroa pitkin, ratanumerolla täytyy olla lineaarinen muoto, tätä muotoa sanotaan ratanumeron pituusmittauslinjaksi. Esim. Helsingin ja Tampereen välillä "kulkee" ratanumero 003. Riihimäen asema voidaan sijoittaa rataverkolle ratanumeron 003 ja ratakilometrisijainnin 0071+0408 mukaan. Eli se sijaitsee ratanumerolla 003, kilometripaalulta 71, 408 metriä ratanumeron pituusmittauslinjaa pitkin eteenpäin. Helsingin ja Turun välillä kulkee ratanumero 001, kyseisellä ratanumerolla sama ratakilometrisijainti 0071+0408 sijaitsee lähellä Inkoota, eli ratanumero ja siten sen pituusmittauslinja määrittää, millainen koordinaattisijainti ratakilometrisijainnista muodostuu. Ratakilometrisijainti on keskimäärin matka Helsingistä raidetta pitkin.
+V: "ratanumero" on hallinnollinen käsite, joka yhdistää kokonaisuudeksi osuuden rataverkon raiteista. Ratanumeroon
+kuuluvat raiteet muodostavat usein loogisen kokonaisuuden, sijoittuvat esim. jollekin yhteysvälille (esim.
+Helsinki-Turku) tai muodostavat ratapihalla yhtenäisen alueen. Kukin raide kuuluu johonkin ratanumeroon. Ratanumeroa
+tarvitaan mm. rataosoitteen määrittämiseen. Rataosoitetta käytetään usein sijainnin määrittämiseksi rataverkolla.
+Rataosoite koostuu ratanumerosta ja ratakilometrisijainnista ratanumeroa pitkin. Jotta voidaan määrittää sijainti
+ratanumeroa pitkin, ratanumerolla täytyy olla lineaarinen muoto, tätä muotoa sanotaan ratanumeron pituusmittauslinjaksi.
+Esim. Helsingin ja Tampereen välillä "kulkee" ratanumero 003. Riihimäen asema voidaan sijoittaa rataverkolle ratanumeron
+003 ja ratakilometrisijainnin 0071+0408 mukaan. Eli se sijaitsee ratanumerolla 003, kilometripaalulta 71, 408 metriä
+ratanumeron pituusmittauslinjaa pitkin eteenpäin. Helsingin ja Turun välillä kulkee ratanumero 001, kyseisellä
+ratanumerolla sama ratakilometrisijainti 0071+0408 sijaitsee lähellä Inkoota, eli ratanumero ja siten sen
+pituusmittauslinja määrittää, millainen koordinaattisijainti ratakilometrisijainnista muodostuu. Ratakilometrisijainti
+on keskimäärin matka Helsingistä raidetta pitkin.
 
 ---
 
 **K: Kuvaile "tasakilometripiste" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "tasakilometripiste" on koordinaattisijainti, joka määrittää tietyn ratakilometrin alkamiskohdan pituusmittauslinjalla. Ratakilometrijärjestelmässä ratakilometrien alkukohdat siis määräytyvät koordinaattisijaintien mukaan, eivät pituusmittauslinjan alusta kuljetun matkan mukaan, joten ratakilometrit eivät välttämättä (eivätkä edes yleensä) ole tarkalleen yhden kilometrin mittaisia. Tässä on taustalla sellainen ajatus, että kun raiteeseen ja samalla mahdollisesti pituusmittauslinjaukseen tehdään muutoksia, vain muutoksen alueelle osuvilla ratakilometreillä rataosoitteet muuttuvat. Jos esim. pitkän ratanumeron (esim. ratanumero 003, pituus noin 350 km) ratakilometrillä 4 tehdään geometriaan muutoksia, ei ole tarvetta päivittää kaikkia rataosoitteita kilometrista 4 alkaen, koska tasakilometripisteen 5 sijainti säilyy ennallaan jolloin ratakilometri 5 alkaa edelleen sen sijainnista. Tasakilometripisteiden sijainti tallennetaan Geoviitteeseen GK-koordinaatistossa, jotta niiden sijainteja voidaan hyödyntää rataverkon geometriasuunnittelussa ilman koordinaattimuutoksia.
+V: "tasakilometripiste" on koordinaattisijainti, joka määrittää tietyn ratakilometrin alkamiskohdan
+pituusmittauslinjalla. Ratakilometrijärjestelmässä ratakilometrien alkukohdat siis määräytyvät koordinaattisijaintien
+mukaan, eivät pituusmittauslinjan alusta kuljetun matkan mukaan, joten ratakilometrit eivät välttämättä (eivätkä edes
+yleensä) ole tarkalleen yhden kilometrin mittaisia. Tässä on taustalla sellainen ajatus, että kun raiteeseen ja samalla
+mahdollisesti pituusmittauslinjaukseen tehdään muutoksia, vain muutoksen alueelle osuvilla ratakilometreillä
+rataosoitteet muuttuvat. Jos esim. pitkän ratanumeron (esim. ratanumero 003, pituus noin 350 km) ratakilometrillä 4
+tehdään geometriaan muutoksia, ei ole tarvetta päivittää kaikkia rataosoitteita kilometrista 4 alkaen, koska
+tasakilometripisteen 5 sijainti säilyy ennallaan jolloin ratakilometri 5 alkaa edelleen sen sijainnista.
+Tasakilometripisteiden sijainti tallennetaan Geoviitteeseen GK-koordinaatistossa, jotta niiden sijainteja voidaan
+hyödyntää rataverkon geometriasuunnittelussa ilman koordinaattimuutoksia.
 
 ---
 
 **K: Kuvaile "geometriasuunnitelma" ja "geometriaelementti" — mitä ne tarkoittavat Geoviitteessä?**
 
-V: Kuvailen ensin vielä tarkemmin "rataosoitejärjestelmä" käsitteen, eli "rataosoitejärjestelmä" on menetelmä määrittää sijainti rataverkolla. Rataosoitejärjestelmässä sijainti kuvataan rataosoitteena. Rataosoite koostuu ratanumerosta sekä ratakilometrisijainnista ratanumeroa pitkin. Esim. ratanumeron 003 ratakilometrisijainti 0071+0408 löydetään siten, kun etsitään ratanumeron 003 tasakilometripiste 71, ja kuljetaan tasakilometripisteen kohdalta ratanumeron pituusmittauslinjaa pitkin 408 metriä. Pituusmittauslinja on useimmiten jokin raiteista. Tällaista paikantamismenetelmää on ollut helpohkoa käyttää maastossa myös ennen GPS järjestelmää, maastosta on etsitty ratanumeron (esim. 003) kilometripylväs (esim. 71) ja mittapyörällä mitattu kiskoa pitkin tarvittava metrimäärä (esim. 408 metriä).
+V: Kuvailen ensin vielä tarkemmin "rataosoitejärjestelmä" käsitteen, eli "rataosoitejärjestelmä" on menetelmä määrittää
+sijainti rataverkolla. Rataosoitejärjestelmässä sijainti kuvataan rataosoitteena. Rataosoite koostuu ratanumerosta sekä
+ratakilometrisijainnista ratanumeroa pitkin. Esim. ratanumeron 003 ratakilometrisijainti 0071+0408 löydetään siten, kun
+etsitään ratanumeron 003 tasakilometripiste 71, ja kuljetaan tasakilometripisteen kohdalta ratanumeron
+pituusmittauslinjaa pitkin 408 metriä. Pituusmittauslinja on useimmiten jokin raiteista. Tällaista paikantamismenetelmää
+on ollut helpohkoa käyttää maastossa myös ennen GPS järjestelmää, maastosta on etsitty ratanumeron (esim. 003)
+kilometripylväs (esim. 71) ja mittapyörällä mitattu kiskoa pitkin tarvittava metrimäärä (esim. 408 metriä).
 
-Koska rataosoite määrittää sijainnin lineaarista muotoa pitkin (pituusmittauslinja), paikannusjärjestelmä on yksiulotteinen, eli kaikki rataosoitteet sijaitsevat pituusmittauslinjalla. Kuitenkin rataosoitteilla määritetään myös pituusmittauslinjan vieressä olevien kohteiden sijaintia, mutta tällöin ei ole tiedossa kuinka kaukana pituusmittauslinjasta kohde sijaitsee. Kaikilla koordinaattisijainneilla, jotka sijaitsevat pituusmittauslinjaa pitkin kohtisuoraan olevalla suoralla linjalla, on sama rataosoite, riippumatta siitä, kuinka kaukana pituusmittauslinjasta ne ovat.
+Koska rataosoite määrittää sijainnin lineaarista muotoa pitkin (pituusmittauslinja), paikannusjärjestelmä on
+yksiulotteinen, eli kaikki rataosoitteet sijaitsevat pituusmittauslinjalla. Kuitenkin rataosoitteilla määritetään myös
+pituusmittauslinjan vieressä olevien kohteiden sijaintia, mutta tällöin ei ole tiedossa kuinka kaukana
+pituusmittauslinjasta kohde sijaitsee. Kaikilla koordinaattisijainneilla, jotka sijaitsevat pituusmittauslinjaa pitkin
+kohtisuoraan olevalla suoralla linjalla, on sama rataosoite, riippumatta siitä, kuinka kaukana pituusmittauslinjasta ne
+ovat.
 
 ---
 
 **K: Kuvaile "geometriasuunnitelma" ja "geometriaelementti" — mitä ne tarkoittavat Geoviitteessä?**
 
-V: "geometriasuunnitelma" tarkoittaa Geoviitteessä suunnitelmaa, joka sisältää raiteiden suunnitellun geometrisen muodon. Suunnitelma sisältää vähintään raiteen vaakageometrian, mutta mahdollisesti myös pystygeometrian. Lisäksi suunnitelma voi sisältää tietoja vaihteista, mutta niitä on lähinnä Sweco-yrityksen tuottamissa suunnitelmissa. Geometriasuunnitelman vaakageometria koostuu geometriaelementeistä, pystygeometria taitepisteistä.
+V: "geometriasuunnitelma" tarkoittaa Geoviitteessä suunnitelmaa, joka sisältää raiteiden suunnitellun geometrisen
+muodon. Suunnitelma sisältää vähintään raiteen vaakageometrian, mutta mahdollisesti myös pystygeometrian. Lisäksi
+suunnitelma voi sisältää tietoja vaihteista, mutta niitä on lähinnä Sweco-yrityksen tuottamissa suunnitelmissa.
+Geometriasuunnitelman vaakageometria koostuu geometriaelementeistä, pystygeometria taitepisteistä.
 
-Geometriasuunnitelmia on eri laatuisia. Laadukkaat geometriasuunnitelmat syntyvät ratahankkeissa ratasuunnittelun myötä, ratasuunnittelijan tuottamana. Sellaisten suunnitelmien mukaan rata pyritään rakentamaan maastoon ja niiden mukaan radan kunnossapito pyrkii palauttamaan liikkuneet raiteet suunniteltuun sijaintiinsa. Geoviitteessä on myös heikompilaatuisia geometriasuunnitelmia, joita käytetään Geoviitteen yhtenäisen rataverkon (eli paikannuspohjan) muodostamiseen, silloin kun parempilaatuisia geometriasuunnitelmia ei ole käytettävissä. Suomen rataverkolla on alueita, joista ei ole olemassa laadukkaita digitaalisia suunnitelmia, koska kyseiset alueet on suunniteltu ennen digitaalista suunnittelua. Geoviitteen paikannuspohjan ylläpitoon tarkoitettuja geometriasuunnitelmia on tuottanut myös nykyinen Geoviite-operaattori (Welado), mutta vaikka näitä geometriasuunnitelmia ei käytetä radan rakentamiseen tai kunnossapitoon, tarvitaan niiden tuottamiseen kuitenkin ratasuunnittelun osaaminen.
+Geometriasuunnitelmia on eri laatuisia. Laadukkaat geometriasuunnitelmat syntyvät ratahankkeissa ratasuunnittelun myötä,
+ratasuunnittelijan tuottamana. Sellaisten suunnitelmien mukaan rata pyritään rakentamaan maastoon ja niiden mukaan radan
+kunnossapito pyrkii palauttamaan liikkuneet raiteet suunniteltuun sijaintiinsa. Geoviitteessä on myös heikompilaatuisia
+geometriasuunnitelmia, joita käytetään Geoviitteen yhtenäisen rataverkon (eli paikannuspohjan) muodostamiseen, silloin
+kun parempilaatuisia geometriasuunnitelmia ei ole käytettävissä. Suomen rataverkolla on alueita, joista ei ole olemassa
+laadukkaita digitaalisia suunnitelmia, koska kyseiset alueet on suunniteltu ennen digitaalista suunnittelua. Geoviitteen
+paikannuspohjan ylläpitoon tarkoitettuja geometriasuunnitelmia on tuottanut myös nykyinen Geoviite-operaattori (Welado),
+mutta vaikka näitä geometriasuunnitelmia ei käytetä radan rakentamiseen tai kunnossapitoon, tarvitaan niiden
+tuottamiseen kuitenkin ratasuunnittelun osaaminen.
 
-Maastossa olevaa rataverkkoa voidaan myös mitata ja muodostaa laadukas digitaalinen geometriasuunnitelma mittaustiedon sekä vanhojen paperisten suunnitelmien pohjalta, mutta tämä työ vaatii paljon resursseja, joten sitä ei tehdä ilman painavaa syytä. Usein vanhan alueen rataverkkoa mitataan uudestaan silloin, kun kyseiseen rataverkon osaan kohdistuu muutostarpeita.
+Maastossa olevaa rataverkkoa voidaan myös mitata ja muodostaa laadukas digitaalinen geometriasuunnitelma mittaustiedon
+sekä vanhojen paperisten suunnitelmien pohjalta, mutta tämä työ vaatii paljon resursseja, joten sitä ei tehdä ilman
+painavaa syytä. Usein vanhan alueen rataverkkoa mitataan uudestaan silloin, kun kyseiseen rataverkon osaan kohdistuu
+muutostarpeita.
 
-Tällä hetkellä geometriasuunnitelmat tuodaan Geoviitteeseen inframodel muotoisina XML-tiedostoina. Tulevaisuudessa on tarkoitus tukea myös IFC-tiedostoja, mutta niitä ei vielä käytetä yleisesti ratasuunnittelussa, koska ratasuunnittelujärjestelmät eivät vielä tue niiden käyttöä riittävän hyvin. Riippumatta tiedoston muodosta, tiedoston sisältö parsitaan ja muutetaan Geoviitteessä omaan tietorakenteeseen. Myös alkuperäinen tiedosto tallennetaan Geoviitteeseen, mutta sitä käytetään vain silloin, kun geometriasuunnitelma ladataan ulos Geoviitteestä.
+Tällä hetkellä geometriasuunnitelmat tuodaan Geoviitteeseen inframodel muotoisina XML-tiedostoina. Tulevaisuudessa on
+tarkoitus tukea myös IFC-tiedostoja, mutta niitä ei vielä käytetä yleisesti ratasuunnittelussa, koska
+ratasuunnittelujärjestelmät eivät vielä tue niiden käyttöä riittävän hyvin. Riippumatta tiedoston muodosta, tiedoston
+sisältö parsitaan ja muutetaan Geoviitteessä omaan tietorakenteeseen. Myös alkuperäinen tiedosto tallennetaan
+Geoviitteeseen, mutta sitä käytetään vain silloin, kun geometriasuunnitelma ladataan ulos Geoviitteestä.
 
-Geoviite toimii geometriasuunnitelmien tietovarastona. Olemassa olevia suunnitelmia tarvitaan mm. uusien ratasuunnitelmien pohjatiedoksi, radan kunnossapitoon sekä tilastointiin. Geometriasuunnitelmien tarvitsija pyytää suunnitelmia Geoviite-operaattorilta, joka hakee ja valitsee tarpeesseen soveltuvat suunnitelmat ja palauttaa ne pyytäjälle. Geometriasuunnitelmat eivät ole vapaasti näkyvissä kaikille käyttäjille, koska muutoin huonolaatuista suunnitelmaa voitaisiin käyttää liian vaativaan tarkoitukseen, esim. kunnossapitoon.
+Geoviite toimii geometriasuunnitelmien tietovarastona. Olemassa olevia suunnitelmia tarvitaan mm. uusien
+ratasuunnitelmien pohjatiedoksi, radan kunnossapitoon sekä tilastointiin. Geometriasuunnitelmien tarvitsija pyytää
+suunnitelmia Geoviite-operaattorilta, joka hakee ja valitsee tarpeesseen soveltuvat suunnitelmat ja palauttaa ne
+pyytäjälle. Geometriasuunnitelmat eivät ole vapaasti näkyvissä kaikille käyttäjille, koska muutoin huonolaatuista
+suunnitelmaa voitaisiin käyttää liian vaativaan tarkoitukseen, esim. kunnossapitoon.
 
 ---
 
 **K: Kuvaile "geometriaelementti" — minkälaisia elementtejä on ja mitä tietoja niihin liittyy?**
 
-V: "geometriaelementti" tarkoittaa Geoviitteessä raiteen vaakageometria osasta, eli geometriasuunnitelman sisältämän raiteen vakaageometria koostuu peräkkäisistä geometriaelementeistä. Geometriaelementtejä on kolmen tyyppisiä: suora, kaari ja siirtymäkaari. Suora on kahden pisteen välinen suora, kaari on ympyrän kaari ja siirtymäkaari on spiraalimainen muoto, jossa kaaren säde muuttuu geometriaelementin matkalla. Siirtymäkaaria käytetään nopeilla nopeuksilla liikennöitävissä reiteissä (esim. raiteilla tai maanteillä), jotta nopeasti liikkuvaan kohteeseen ei kaaressa synny liian suurta sivuttaissuuntaista kiihtyvyyttä, koska liian jyrkässä mutkassa nopeasti liikkuva kohde suistuu reitiltä.
+V: "geometriaelementti" tarkoittaa Geoviitteessä raiteen vaakageometria osasta, eli geometriasuunnitelman sisältämän
+raiteen vakaageometria koostuu peräkkäisistä geometriaelementeistä. Geometriaelementtejä on kolmen tyyppisiä: suora,
+kaari ja siirtymäkaari. Suora on kahden pisteen välinen suora, kaari on ympyrän kaari ja siirtymäkaari on spiraalimainen
+muoto, jossa kaaren säde muuttuu geometriaelementin matkalla. Siirtymäkaaria käytetään nopeilla nopeuksilla
+liikennöitävissä reiteissä (esim. raiteilla tai maanteillä), jotta nopeasti liikkuvaan kohteeseen ei kaaressa synny
+liian suurta sivuttaissuuntaista kiihtyvyyttä, koska liian jyrkässä mutkassa nopeasti liikkuva kohde suistuu reitiltä.
 
-Geometriaelementtien muoto on kuvattu matemaattisesti, eli ne ovat äärettömän tarkkoja. Geometriaelementti sisältää vain tarvittavat tiedot muodon määrittämiseksi.
+Geometriaelementtien muoto on kuvattu matemaattisesti, eli ne ovat äärettömän tarkkoja. Geometriaelementti sisältää vain
+tarvittavat tiedot muodon määrittämiseksi.
 
-Geometriaelementeistä Geoviite-operaattori koostaa sijaintiraiteen geometriaa. Koostaminen tapahtuu linkittämällä geometriasuunnitelman raiteesta osuuksia sijaintiraiteelle. Sijaintiraiteen geometria voi koostua eri geometriasuunnitelmien geometriaelementeistä, ja pitkillä raiteilla se on jopa todennäköistä. Linkittämisessä geometriaelementistä tai sen osasta syntyy sijaintiraiteelle segmentti. Segmentistä on viittaus geometriaelementtiin, joten on mahdollista selvittää, mistä geometriaelementeistä sijaintiraiteen geometria koostuu. Segmentin geometria on tallennettu Geoviitteeseen pisteviivana, joka muodostetaan kulkemalla matemaattista geometriaelementin muotoa pitkin metrin pituisin askelin. Kun sijaintiraiteelle linkitetään geometriaa, uusi geometria ei useinkaan yhdisty saumattomasti sijaintiraiteen olemassa olevaan geometriaan, tämän vuoksi olemassa olevan ja uuden geometrian väliin generoidaan suora segmentti, joka yhdistää sijaintiraiteen geometrian jatkuvaksi linjaksi. Generoidulla segmentillä ei luonnollisesti ole viitettä geometriaelementtiin, koska se ei ole muodostunut minkään geometriaelementin pohjalta.
+Geometriaelementeistä Geoviite-operaattori koostaa sijaintiraiteen geometriaa. Koostaminen tapahtuu linkittämällä
+geometriasuunnitelman raiteesta osuuksia sijaintiraiteelle. Sijaintiraiteen geometria voi koostua eri
+geometriasuunnitelmien geometriaelementeistä, ja pitkillä raiteilla se on jopa todennäköistä. Linkittämisessä
+geometriaelementistä tai sen osasta syntyy sijaintiraiteelle segmentti. Segmentistä on viittaus geometriaelementtiin,
+joten on mahdollista selvittää, mistä geometriaelementeistä sijaintiraiteen geometria koostuu. Segmentin geometria on
+tallennettu Geoviitteeseen pisteviivana, joka muodostetaan kulkemalla matemaattista geometriaelementin muotoa pitkin
+metrin pituisin askelin. Kun sijaintiraiteelle linkitetään geometriaa, uusi geometria ei useinkaan yhdisty saumattomasti
+sijaintiraiteen olemassa olevaan geometriaan, tämän vuoksi olemassa olevan ja uuden geometrian väliin generoidaan suora
+segmentti, joka yhdistää sijaintiraiteen geometrian jatkuvaksi linjaksi. Generoidulla segmentillä ei luonnollisesti ole
+viitettä geometriaelementtiin, koska se ei ole muodostunut minkään geometriaelementin pohjalta.
 
 ---
 
 **K: Kuvaile "vaakageometria" ja "pystygeometria" — miten ne eroavat toisistaan ja mitä ne sisältävät?**
 
-V: "vaakageometria" tarkoittaa Geoviitteessä raiteen ja pituusmittauslinjan kaksiulotteista geometriaa, ylhäältä päin katsottuna. Geoviitteen kartalla raiteista esitetään juurikin vaakageometrinen muoto. Geometriasuunnitelmian raiteilla vaakageometria koostuu kaksiulotteisista geometriaelementeistä. Sijaintiraiteella ja pituusmittauslinjalla geometria koostuu pisteviivasta. Pisteviivan pisteet sisältävät myös korkeuden merenpinnasta, koska pisteviivan muodostuksessa on huomioitu myös pystygeometrinen tieto, eli pisteviiva on varsinaistesti kolmiulotteinen muoto.
+V: "vaakageometria" tarkoittaa Geoviitteessä raiteen ja pituusmittauslinjan kaksiulotteista geometriaa, ylhäältä päin
+katsottuna. Geoviitteen kartalla raiteista esitetään juurikin vaakageometrinen muoto. Geometriasuunnitelmian raiteilla
+vaakageometria koostuu kaksiulotteisista geometriaelementeistä. Sijaintiraiteella ja pituusmittauslinjalla geometria
+koostuu pisteviivasta. Pisteviivan pisteet sisältävät myös korkeuden merenpinnasta, koska pisteviivan muodostuksessa on
+huomioitu myös pystygeometrinen tieto, eli pisteviiva on varsinaistesti kolmiulotteinen muoto.
 
-"pystygeometria" tarkoittaa Geoviitteessä raiteen pystysuuntaista muotoa, eli kuinka korkealla raide kulkee suhteessa merenpintaan. Geometriasuunnitelmassa pystygeometria on määritetty taitepisteinä, joka on matemaattinen ja siten äärettömän tarkka esitys. Taitepisteiden ja vaakageometrian tietojen avulla voidaan laskea raiteen korkeus kaikille raiteen pisteille. Sijaintiraiteen ja pituusmittauslinjan pisteviivan pisteisiin korkeus on laskettu ja tieto on tallennettu tietokantaan. Geoviitteessä ja joissain ratasuunnittelujärjestelmissä pystygeometriaa esitetään käyttöliittymässä viivadiagrammina, jossa vaaka-akselilla on raidetta pitkin kuljettu pituus ja pystyakselilla korkeus merenpinnasta. Kuvaajassa on esitetty myös taitepisteiden tietoja sekä kaltevuusjaksot.
+"pystygeometria" tarkoittaa Geoviitteessä raiteen pystysuuntaista muotoa, eli kuinka korkealla raide kulkee suhteessa
+merenpintaan. Geometriasuunnitelmassa pystygeometria on määritetty taitepisteinä, joka on matemaattinen ja siten
+äärettömän tarkka esitys. Taitepisteiden ja vaakageometrian tietojen avulla voidaan laskea raiteen korkeus kaikille
+raiteen pisteille. Sijaintiraiteen ja pituusmittauslinjan pisteviivan pisteisiin korkeus on laskettu ja tieto on
+tallennettu tietokantaan. Geoviitteessä ja joissain ratasuunnittelujärjestelmissä pystygeometriaa esitetään
+käyttöliittymässä viivadiagrammina, jossa vaaka-akselilla on raidetta pitkin kuljettu pituus ja pystyakselilla korkeus
+merenpinnasta. Kuvaajassa on esitetty myös taitepisteiden tietoja sekä kaltevuusjaksot.
 
 ---
 
 **K: Kuvaile "toiminnallinen piste" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "toiminnallinen piste" on solmukohta rataverkolla, jossa on matkustajien tai rahdin käsittelyyn liittyviä toimintoja tai se on risteyskohta rataverkolla (eli käytännössä vaihde). Toiminnallisia pisteitä ovat esim. rautatieasema, varikko, linjavaihde.
+V: "toiminnallinen piste" on solmukohta rataverkolla, jossa on matkustajien tai rahdin käsittelyyn liittyviä toimintoja
+tai se on risteyskohta rataverkolla (eli käytännössä vaihde). Toiminnallisia pisteitä ovat esim. rautatieasema, varikko,
+linjavaihde.
 
-Geoviitteessä rataverkko on tallennettu vaihteina ja vaihteiden välisinä geometrioina. Vaihteet ovat verkon solmuja ja geometriat linkkejä solmujen välillä. Toiminnallinen piste yhdistää joukon vaihteita ja raiteita yhdeksi kokonaisuudeksi, jolloin syntyy ikään kuin korkeamman abstraktiotason verkko, jossa toiminnalliset pisteet ovat verkon solmuja ja liikennepaikkojen väliset yhteydet ovat verkon linkkejä. Toiminnalliset pisteet ja liikennepaikkojen väliset yhteydet ovat RINF:ille raportoitavia rataverkon tietoja.
+Geoviitteessä rataverkko on tallennettu vaihteina ja vaihteiden välisinä geometrioina. Vaihteet ovat verkon solmuja ja
+geometriat linkkejä solmujen välillä. Toiminnallinen piste yhdistää joukon vaihteita ja raiteita yhdeksi
+kokonaisuudeksi, jolloin syntyy ikään kuin korkeamman abstraktiotason verkko, jossa toiminnalliset pisteet ovat verkon
+solmuja ja liikennepaikkojen väliset yhteydet ovat verkon linkkejä. Toiminnalliset pisteet ja liikennepaikkojen väliset
+yhteydet ovat RINF:ille raportoitavia rataverkon tietoja.
 
-Osa toiminnallisista pisteistä on liikennepaikkoja. Liikennepaikkojen perustietoja (mm. nimi, lyhenne, jne.) ja elinkaarta ylläpidetään Ratko-järjestelmässä, mutta niihin sisällytetään lisätietoa Geoviiteessä (mm. polygonimainen alue, RINF-tyyppi jne.). Muiden toiminnallisten pisteiden kaikkia tietoja (mukaan lukien elinkaari) ylläpidetään Geoviitteessä.
+Osa toiminnallisista pisteistä on liikennepaikkoja. Liikennepaikkojen perustietoja (mm. nimi, lyhenne, jne.) ja
+elinkaarta ylläpidetään Ratko-järjestelmässä, mutta niihin sisällytetään lisätietoa Geoviiteessä (mm. polygonimainen
+alue, RINF-tyyppi jne.). Muiden toiminnallisten pisteiden kaikkia tietoja (mukaan lukien elinkaari) ylläpidetään
+Geoviitteessä.
 
-Toiminnallisilla pisteillä voi olla jokin seuraavista RINF-tyypeistä: asema, asema (pieni), matkustaja-asema, tavara-asema, varikko, tekninen ratapiha, seisake, kohtauspaikka, valtakunnan raja, vaihtotyöratapiha, raideleveyden vaihtumiskohta, linjavaihde, yksityinen, omistusraja, ylikulku.
+Toiminnallisilla pisteillä voi olla jokin seuraavista RINF-tyypeistä: asema, asema (pieni), matkustaja-asema,
+tavara-asema, varikko, tekninen ratapiha, seisake, kohtauspaikka, valtakunnan raja, vaihtotyöratapiha, raideleveyden
+vaihtumiskohta, linjavaihde, yksityinen, omistusraja, ylikulku.
 
 ---
 
 **K: Kuvaile "paikannuspohja" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "paikannuspohja" tarkoittaa Geoviitteessä yhtenäistä rataverkkoa. Nimitys "paikannuspohja" viittaa siihen, että sitä käytetään kohteiden paikantamiseen. Yhtenäinen rataverkko ei ole Geoviitteessä geometrisesti matemaattisen tarkka, vaan se koostuu sijaintiraiden geometriasta, joka on tallennettu pisteviivana. Epätarkkuuden vuoksi paikannuspohjan tietoja ei tule sellaisenaan käyttää suurta tarkkuutta vaativissa tehtävissä, esim. uusien geometriasuunnitelmien lähtökohtana. Rataverkko muodostuu geometriasuunnitelmien geometriaa sijaintiraiteille linkittämällä. Geometriasuunnitelmat kattavat yleensä vain pienen osan rataverkosta, joten yhtenäinen rataverkko on yhdistetty monen suunnitelman geometrioista. Eri geometriasuunnitelmien geometriat eivät ole aina täysin yhteensopivia, joten myös yhteensovittamisesta syntyy epätarkkuutta paikannuspohjaan
+V: "paikannuspohja" tarkoittaa Geoviitteessä yhtenäistä rataverkkoa. Nimitys "paikannuspohja" viittaa siihen, että sitä
+käytetään kohteiden paikantamiseen. Yhtenäinen rataverkko ei ole Geoviitteessä geometrisesti matemaattisen tarkka, vaan
+se koostuu sijaintiraiden geometriasta, joka on tallennettu pisteviivana. Epätarkkuuden vuoksi paikannuspohjan tietoja
+ei tule sellaisenaan käyttää suurta tarkkuutta vaativissa tehtävissä, esim. uusien geometriasuunnitelmien lähtökohtana.
+Rataverkko muodostuu geometriasuunnitelmien geometriaa sijaintiraiteille linkittämällä. Geometriasuunnitelmat kattavat
+yleensä vain pienen osan rataverkosta, joten yhtenäinen rataverkko on yhdistetty monen suunnitelman geometrioista. Eri
+geometriasuunnitelmien geometriat eivät ole aina täysin yhteensopivia, joten myös yhteensovittamisesta syntyy
+epätarkkuutta paikannuspohjaan
 
 ---
 
-**K: Kuvaile "rataverkko" Geoviitteen kontekstissa — onko se sama asia kuin paikannuspohja, vai tarkoittaako se jotain muuta?**
+**K: Kuvaile "rataverkko" Geoviitteen kontekstissa — onko se sama asia kuin paikannuspohja, vai tarkoittaako se jotain
+muuta?**
 
-V: "paikannuspohjaan" liittyy myös rataosoitejärjestelmään tarvittavat tiedot, eli ratanumero ja tasakilometripisteet. Eli paikannuspohja on tietyllä tavalla rataverkko laajennetuilla tiedoilla, mutta paikannuspohjaan liittyy lisäksi olettamus epätarkkuudesta. Kuitenkin Geoviitteen kontekstissa "rataverkko" on yhtä kuin "paikannuspohja".
+V: "paikannuspohjaan" liittyy myös rataosoitejärjestelmään tarvittavat tiedot, eli ratanumero ja tasakilometripisteet.
+Eli paikannuspohja on tietyllä tavalla rataverkko laajennetuilla tiedoilla, mutta paikannuspohjaan liittyy lisäksi
+olettamus epätarkkuudesta. Kuitenkin Geoviitteen kontekstissa "rataverkko" on yhtä kuin "paikannuspohja".
 
 ---
 
 **K: Kuvaile "linkitys" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "linkitys" tarkoittaa Geoviitteessä operaattorin suorittamaa toimenpidettä, joilla käsitteiden välille syntyy yhteys, eli linkki. Esim. operaattori voi linkittää paikannuspohjan sijaintiraiteelle geometriaa geometriasuunnitelman raiteelta. Tässä linkityksessä sijaintiraiteelle luodaan pisteviivamaista geometriaa geometriasuunnitelman geometrialementtien mukaan ja samalla sijaintiraiteen ja geometriaelementtien välille syntyy yhteys, eli linkki. Linkkiä on mahdollista seurata ja siten jäljiittää, mistä geometriasuunnitelmasta sjaintiraiteen geometria on peräisin. Muita linkitystoimintoja ovat mm. geometriasuunnitelman vaihteen linkittäminen paikannuspohjan vaihteeseen, geometriasuunnitelman tasakilometripisteen linkittäminen paikannuspohjan tasakilometripisteeseen, paikannuspohjan vaihteen linkittäminen sijaintiraiteelle, vaihteiden ja sijaintiraiteiden linkittäminen toiminalliseen pisteeseen.
+---
+
+
+**K: Kuvaile "linkitys" — mitä se tarkoittaa Geoviitteessä?**
+
+V: "linkitys" tarkoittaa Geoviitteessä operaattorin suorittamaa toimenpidettä, joilla käsitteiden välille syntyy yhteys,
+eli linkki. Esim. operaattori voi linkittää paikannuspohjan sijaintiraiteelle geometriaa geometriasuunnitelman
+raiteelta. Tässä linkityksessä sijaintiraiteelle luodaan pisteviivamaista geometriaa geometriasuunnitelman
+geometrialementtien mukaan ja samalla sijaintiraiteen ja geometriaelementtien välille syntyy yhteys, eli linkki. Linkkiä
+on mahdollista seurata ja siten jäljiittää, mistä geometriasuunnitelmasta sjaintiraiteen geometria on peräisin. Muita
+linkitystoimintoja ovat mm. geometriasuunnitelman vaihteen linkittäminen paikannuspohjan vaihteeseen,
+geometriasuunnitelman tasakilometripisteen linkittäminen paikannuspohjan tasakilometripisteeseen, paikannuspohjan
+vaihteen linkittäminen sijaintiraiteelle, vaihteiden ja sijaintiraiteiden linkittäminen toiminalliseen pisteeseen.
 
 ---
 
@@ -152,19 +302,28 @@ V: "linkitys" tarkoittaa Geoviitteessä operaattorin suorittamaa toimenpidettä,
 
 **K: Kuvaile "segmentti" — mitä se tarkoittaa Geoviitteessä, ja miten se eroaa geometriaelementistä?**
 
-V: "segmentti" kuuluu paikannuspohjan käsitteisiin on sijaintiraiteen geometrian pienin osanen. Segmentti sisältää geometrian pisteviivana. Mikäli segmentti on syntynyt linkityksessä geometriaelementin geometrian, se sisältää myös linkin geometriaelementtiin. Geoviitteen linkki-solmu-mallin linkin (edge) geometria koostuu peräkkäisitä segmenteistä, sijaintiraiteen geometria koostuu peräkkäisistä linkeistä.
+V: "segmentti" kuuluu paikannuspohjan käsitteisiin on sijaintiraiteen geometrian pienin osanen. Segmentti sisältää
+geometrian pisteviivana. Mikäli segmentti on syntynyt linkityksessä geometriaelementin geometrian, se sisältää myös
+linkin geometriaelementtiin. Geoviitteen linkki-solmu-mallin linkin (edge) geometria koostuu peräkkäisitä segmenteistä,
+sijaintiraiteen geometria koostuu peräkkäisistä linkeistä.
 
 ---
 
 **K: Kuvaile "taitepiste" — mitä se tarkoittaa Geoviitteessä?**
 
-V: "taitepiste" on pystygeometrian määrityksessä käytettävä elementti, joka kertoo kuinka pystygeometria muuttuu taitepisteen matkalla. Taitepiste on matemaattinen esitys pystygeometrian muutoksesta ja siten äärettömän tarkka. Taitepisteitä käytetään Geoviitteessä laskettaessa sijaintiraiteen pisteille korkeus merenpinnasta. Taitepisteiden tietojen mukaan esitetään myös raiteen pystygeometrian kuvaaja, eli pituusleikkaus. Taitepisteiden välissä sijaitsee kaltevuusjakso.
+V: "taitepiste" on pystygeometrian määrityksessä käytettävä elementti, joka kertoo kuinka pystygeometria muuttuu
+taitepisteen matkalla. Taitepiste on matemaattinen esitys pystygeometrian muutoksesta ja siten äärettömän tarkka.
+Taitepisteitä käytetään Geoviitteessä laskettaessa sijaintiraiteen pisteille korkeus merenpinnasta. Taitepisteiden
+tietojen mukaan esitetään myös raiteen pystygeometrian kuvaaja, eli pituusleikkaus. Taitepisteiden välissä sijaitsee
+kaltevuusjakso.
 
-"kaltevuusjakso" on pystygeometrian kahden taitepisteiden välinen osuus. Kaltevuusjaksot lasketaan Geoviitteessä taitepisteiden tietojen mukaan.
+"kaltevuusjakso" on pystygeometrian kahden taitepisteiden välinen osuus. Kaltevuusjaksot lasketaan Geoviitteessä
+taitepisteiden tietojen mukaan.
 
 ---
 
-**K: Kuvaile "liikennepaikka" — miten se eroaa toiminnallisesta pisteestä, ja mitä tietoja siihen liittyy Geoviitteessä?**
+**K: Kuvaile "liikennepaikka" — miten se eroaa toiminnallisesta pisteestä, ja mitä tietoja siihen liittyy Geoviitteessä?
+**
 
 V: "liikennepaikka" ja sen ero toiminnalliseen pisteesen on kuvattu "toiminnallinen piste" käsitteessä.
 
@@ -172,37 +331,107 @@ V: "liikennepaikka" ja sen ero toiminnalliseen pisteesen on kuvattu "toiminnalli
 
 **K: Mitä tarkoittaa "RINF" — mikä se on ja mikä on Geoviitteen rooli siihen liittyen?**
 
-V: RINF tarkoittaa Geoviitteen kontekstissa Euroopan laajuista rataverkon infrastruktuurirekisteriä (Register of Infrastructure, https://rinf.data.era.europa.eu). Geoviitteeseen RINF liittyy siksi, että EU:n säädösten mukaan RINF:ille täytyy toimittaa kansallisen rataverkon tietoja ja osa toimitettavista tiedoista on Geoviitteessä ylläpidettäviä, mm. raiteiden perustiedot sekä pystygeometria, toiminnalliset pisteet, toiminnallisten pisteiden väliset yhteydet (on sama kuin liikennepaikkojen väliset yhteydet) sekä rataverkon topologia. Geoviitteessä on toteutettuna API, josta suurimman osan tarvittavista tiedoista voi jo lukea. Geoviitteen API ei suoraan palauta tietoja RINF:in tarvitsemassa muodossa, vaan Geoviitteen ja RINF:in välissä on muita järjestelmiä tiedon kokoamista ja tiedon muodon muuntamista varten (Väylän analytiikka ja Paikkatietopalvelu PTP).
+V: RINF tarkoittaa Geoviitteen kontekstissa Euroopan laajuista rataverkon infrastruktuurirekisteriä (Register of
+Infrastructure, https://rinf.data.era.europa.eu). Geoviitteeseen RINF liittyy siksi, että EU:n säädösten mukaan RINF:
+ille täytyy toimittaa kansallisen rataverkon tietoja ja osa toimitettavista tiedoista on Geoviitteessä ylläpidettäviä,
+mm. raiteiden perustiedot sekä pystygeometria, toiminnalliset pisteet, toiminnallisten pisteiden väliset yhteydet (on
+sama kuin liikennepaikkojen väliset yhteydet) sekä rataverkon topologia. Geoviitteessä on toteutettuna API, josta
+suurimman osan tarvittavista tiedoista voi jo lukea. Geoviitteen API ei suoraan palauta tietoja RINF:in tarvitsemassa
+muodossa, vaan Geoviitteen ja RINF:in välissä on muita järjestelmiä tiedon kokoamista ja tiedon muodon muuntamista
+varten (Väylän analytiikka ja Paikkatietopalvelu PTP).
 
 ---
 
 **K: Kuvaile "suunnitelmatilainen rataverkko" — mitä se tarkoittaa ja miksi se on tärkeä kehitystavoite?**
 
-V: "suunnitelmatilainen rataverkko" on tapa mallintaa tulevaisuudessa rakennettavia rataverkon muutoksia Geoviitteen tietomalliin. Rataverkolla suuremmat muutokset tapahtuvat yleensä melko pitkäkestoisen prosessin seurauksena. Ensimmäistä kertaa Geoviite osallistuu prosessiin tarjoamalla pohjatietoja päätöksenteolle ja ratasuunnittelulle. Kun ratasuunnittelija on saanut hankkeen rakennussuunnitelman toteutettua, tiedot toimitetaan Geoviite-operaattorille. Rakennussuunnitelma sisältää myös rataverkon muutokseen liittyvät geometriasuunnitelmat. Geoviite-operaattori tallentaa geometriasuunnitelmat Geoviitteeseen, luo muutosta varten uuden suunnitelmatilan (eli suunnitelmakontekstin) ja linkittää geometriasuunnitelmien sisältämän geometrian suunnitelmatilan rataverkolle (tämä on Geoviitten osalta mahdollista, mutta ei vielä yleinen menettelytapa). Suunnitelmatilainen rataverkko on erillään virallisesta rataverkosta, eli suunnitelmatilainen rataverkko ei sotke virallisen rataverkon tietoja. Ratko-järjestelmä lukee suunnitelmatilaisen rataverkon tiedot Geoviitteestä (tätä toiminnallisuutta ei vielä ole toteutettu). Geoviite- ja Ratko-järjestelmissä on nyt tulevaisuudessa mahdollisesti rakennettava rataverkko jäsennettynä tietona. Rakentamisen aloittamiseen maastoon voi kulua vuosia, tai rakentamista ei välttämättä aloiteta koskaan. Jos rataverkon muutos rakennetaan maastoon, ratakohteiden valmistuessa niitä kirjataan Ratko-järjestelmään, jolloin ratakohteet yhdistetään suunnitelmatilaisen rataverkon raiteille. Kun rataverkon muutos on kokonaisuudessaan valmis, Geoviite-operaattori siirtää Geoviitteessä suunnitelmatilaisen rataverkon muutokset viralliseen rataverkkoon. Ratko-järjestelmä lukee virallisen rataverkon tiedot Geoviitteestä ja huomaa suunnitelmatilaisen rataverkon toteutuneen, joten Ratko ottaa Ratkon suunnitelmatilassa olevat raiteet käyttöön, jolloin niihin rakennusaikana yhdistetyt ratakohteet tulevat myös käyttöön (tämä Ratko:n toiminnallisuuden kuvaus on suuntaa antava, toimintoa ei vielä ole toteutettu).
+V: "suunnitelmatilainen rataverkko" on tapa mallintaa tulevaisuudessa rakennettavia rataverkon muutoksia Geoviitteen
+tietomalliin. Rataverkolla suuremmat muutokset tapahtuvat yleensä melko pitkäkestoisen prosessin seurauksena.
+Ensimmäistä kertaa Geoviite osallistuu prosessiin tarjoamalla pohjatietoja päätöksenteolle ja ratasuunnittelulle. Kun
+ratasuunnittelija on saanut hankkeen rakennussuunnitelman toteutettua, tiedot toimitetaan Geoviite-operaattorille.
+Rakennussuunnitelma sisältää myös rataverkon muutokseen liittyvät geometriasuunnitelmat. Geoviite-operaattori tallentaa
+geometriasuunnitelmat Geoviitteeseen, luo muutosta varten uuden suunnitelmatilan (eli suunnitelmakontekstin) ja
+linkittää geometriasuunnitelmien sisältämän geometrian suunnitelmatilan rataverkolle (tämä on Geoviitten osalta
+mahdollista, mutta ei vielä yleinen menettelytapa). Suunnitelmatilainen rataverkko on erillään virallisesta
+rataverkosta, eli suunnitelmatilainen rataverkko ei sotke virallisen rataverkon tietoja. Ratko-järjestelmä lukee
+suunnitelmatilaisen rataverkon tiedot Geoviitteestä (tätä toiminnallisuutta ei vielä ole toteutettu). Geoviite- ja
+Ratko-järjestelmissä on nyt tulevaisuudessa mahdollisesti rakennettava rataverkko jäsennettynä tietona. Rakentamisen
+aloittamiseen maastoon voi kulua vuosia, tai rakentamista ei välttämättä aloiteta koskaan. Jos rataverkon muutos
+rakennetaan maastoon, ratakohteiden valmistuessa niitä kirjataan Ratko-järjestelmään, jolloin ratakohteet yhdistetään
+suunnitelmatilaisen rataverkon raiteille. Kun rataverkon muutos on kokonaisuudessaan valmis, Geoviite-operaattori
+siirtää Geoviitteessä suunnitelmatilaisen rataverkon muutokset viralliseen rataverkkoon. Ratko-järjestelmä lukee
+virallisen rataverkon tiedot Geoviitteestä ja huomaa suunnitelmatilaisen rataverkon toteutuneen, joten Ratko ottaa
+Ratkon suunnitelmatilassa olevat raiteet käyttöön, jolloin niihin rakennusaikana yhdistetyt ratakohteet tulevat myös
+käyttöön (tämä Ratko:n toiminnallisuuden kuvaus on suuntaa antava, toimintoa ei vielä ole toteutettu).
 
-Suunnitelmatila (tai suunnitelmakonteksti) on erillinen versio rataverkosta, se rakentuu virallisen rataverkon päälle ja sisältää vain suunnitelmatilassa muokattujen kohteiden (raide, vaihde, ratanumero jne.) tiedot. Jos viralliseen rataverkkoon tekee muutoksen sellaiseen kohteeseen (raide, vaihde, ratanumero jne.), jota ei ole muokattu suunnitelmatilassa, viralliseen rataverkkoon tehty muutos näkyy myös suunnitelmatilassa. Mutta jos viralliseen rataverkkoon tekee muutoksen sellaiseen kohteeseen, jota on muokattu myös suunnitelmatilassa, suunnitelmatilassa näkyy kohteesta suunnitelmatilan versio. Muutos on rajattu kohteen tarkkuudella, jos esim. raiteen nimeä muuttaa suunnitelmatilassa, raide kokonaisuudessaan katsotaan muuttuneksi suunnitelmatilassa. Samoin jos suunnitelmatilassa raiteen toisen pään geometriaa muokkaa vaikka lyhyeltäkin matkalta, koko raide katsotaan muuttuneeksi suunnitelmatilassa, joten samaan raiteeseen tehdyt virallisen rataverkon muutokset eivät näy suunnitelmatilassa. Koska suunnitelmatilaan tehdyt muutokset voivat odottaa viralliseen rataverkkoon siirtämistä useita vuosia, on melko todennäköistä, että suunnitelmatilassa muokattuun pitkään raiteeseen tehdään myös virallisen rataverkon puolella muutoksia, esim. datan eheyteen liittyviä korjauksia. Tällöin syntyy tilanne, että virallisen ja suunnitelmatilaisen rataverkon tiedot pitäisi saada yhdistettyä. Kirjoitushetkellä tällaista yhdistävää toiminnallisuutta ei vielä ollut olemassa, joten siirrettäessä raiteen tietoja suunnitelmatilasta viralliseen rataverkkoon, täytyy valita kumman rataverkon raiteen versio jää voimaan ja toistaa sitten toiseen rataverkkoon tehdyt muutokset raiteelle manuaalisesti. Sovelluskehittäjälle voi olla luontevaa verrata suunnitelmatilaa GIT-versionhallinnan haaraksi.
+Suunnitelmatila (tai suunnitelmakonteksti) on erillinen versio rataverkosta, se rakentuu virallisen rataverkon päälle ja
+sisältää vain suunnitelmatilassa muokattujen kohteiden (raide, vaihde, ratanumero jne.) tiedot. Jos viralliseen
+rataverkkoon tekee muutoksen sellaiseen kohteeseen (raide, vaihde, ratanumero jne.), jota ei ole muokattu
+suunnitelmatilassa, viralliseen rataverkkoon tehty muutos näkyy myös suunnitelmatilassa. Mutta jos viralliseen
+rataverkkoon tekee muutoksen sellaiseen kohteeseen, jota on muokattu myös suunnitelmatilassa, suunnitelmatilassa näkyy
+kohteesta suunnitelmatilan versio. Muutos on rajattu kohteen tarkkuudella, jos esim. raiteen nimeä muuttaa
+suunnitelmatilassa, raide kokonaisuudessaan katsotaan muuttuneksi suunnitelmatilassa. Samoin jos suunnitelmatilassa
+raiteen toisen pään geometriaa muokkaa vaikka lyhyeltäkin matkalta, koko raide katsotaan muuttuneeksi
+suunnitelmatilassa, joten samaan raiteeseen tehdyt virallisen rataverkon muutokset eivät näy suunnitelmatilassa. Koska
+suunnitelmatilaan tehdyt muutokset voivat odottaa viralliseen rataverkkoon siirtämistä useita vuosia, on melko
+todennäköistä, että suunnitelmatilassa muokattuun pitkään raiteeseen tehdään myös virallisen rataverkon puolella
+muutoksia, esim. datan eheyteen liittyviä korjauksia. Tällöin syntyy tilanne, että virallisen ja suunnitelmatilaisen
+rataverkon tiedot pitäisi saada yhdistettyä. Kirjoitushetkellä tällaista yhdistävää toiminnallisuutta ei vielä ollut
+olemassa, joten siirrettäessä raiteen tietoja suunnitelmatilasta viralliseen rataverkkoon, täytyy valita kumman
+rataverkon raiteen versio jää voimaan ja toistaa sitten toiseen rataverkkoon tehdyt muutokset raiteelle manuaalisesti.
+Sovelluskehittäjälle voi olla luontevaa verrata suunnitelmatilaa GIT-versionhallinnan haaraksi.
 
-Samalla tavoin kuin virallisen rataverkon muutokset tehdään ensin luonnostilaiseen rataverkkoon ja julkaistaan sieltä viralliseen rataverkkoon, myös suunnitelmatilan muutokset tehdään ensin suunnitelmatilan luonnostilan ratavekkoon ja julkaistaan sitten suunnitelmatilan rataverkkoon. Suunnitelmatilan rataverkosta muutoksia on sitten mahdollista siirtä virallisen luonnostilan rataverkkoon ja sieltä julkaista viralliseen rataverkkoon. Tämä lisävaihe on tarpeen, jotta suunnitelmatilan muutokset voidaan luotettavasti sovittaa sen hetkiseen viralliseen rataverkkon ja että rataverkon muutokset saadaan validoitua. Muutosten julkaisu luonnostilasta viralliseen rataverkkoon vaatii kattavien validointisääntöjen läpäisyä, koska virallinen rataverkko halutaan pitää mahdollisimman ehyenä. Muutosten siirto suunnitelmatilasta viralliseen luonnostilaan on kevyemmin validoitu prosessi.
+Samalla tavoin kuin virallisen rataverkon muutokset tehdään ensin luonnostilaiseen rataverkkoon ja julkaistaan sieltä
+viralliseen rataverkkoon, myös suunnitelmatilan muutokset tehdään ensin suunnitelmatilan luonnostilan ratavekkoon ja
+julkaistaan sitten suunnitelmatilan rataverkkoon. Suunnitelmatilan rataverkosta muutoksia on sitten mahdollista siirtä
+virallisen luonnostilan rataverkkoon ja sieltä julkaista viralliseen rataverkkoon. Tämä lisävaihe on tarpeen, jotta
+suunnitelmatilan muutokset voidaan luotettavasti sovittaa sen hetkiseen viralliseen rataverkkon ja että rataverkon
+muutokset saadaan validoitua. Muutosten julkaisu luonnostilasta viralliseen rataverkkoon vaatii kattavien
+validointisääntöjen läpäisyä, koska virallinen rataverkko halutaan pitää mahdollisimman ehyenä. Muutosten siirto
+suunnitelmatilasta viralliseen luonnostilaan on kevyemmin validoitu prosessi.
 
 ---
 
 **K: Kuvaile "tilirataosa" — mitä se tarkoittaa ja miksi sen geometrian ylläpito halutaan siirtää Geoviitteeseen?**
 
-V: "tilirataosa" on tällä hetkellä Ratko-järjestelmässä ylläpidettävä ja hyödynnettävä tieto. Tilirataosa on polygonimaisella alueella rajattu joukko raiteita (ja varmaan myös muita kohteita), joita halutaan käsitellä yhtenä kokonaisuutena. Nykyisessä raiteiden ylläpitoprosessissa on sellainen hankaluus, että raiteen geometrian muokkaaminen tapahtuu Geoviitteessä ja raiteen muuttunut geometria voi sijaita (osin) tilirataosan alueen ulkopuolella, jolloin raide (tai ehkä sen kohteet) eivät sisälly oikein tilirataosaan. Geoviite-operaattori usein kyllä huomaa tämän, kun hän raiteen geometrian muutoksen jälkeen tarkastelee tilannetta Ratko-järjestelmässä. Tässä tilanteessa Geoviite-operaattori pyytää tilirataosan alueen kasvattamista niin, että raiteen muuttunut geometria mahtuu alueen sisälle. Alueen päivittäminen Ratkoon kestää kuitenkin nykyisellä prosessilla viikkoja (tapahtuu erillisillä GIS-työkaluilla ja semi-manuaalisilla toimenpiteillä), ja koko päivittämistä odottava ajan tiedot ovat tilirataosan näkökulmasta väärin.
+V: "tilirataosa" on tällä hetkellä Ratko-järjestelmässä ylläpidettävä ja hyödynnettävä tieto. Tilirataosa on
+polygonimaisella alueella rajattu joukko raiteita (ja varmaan myös muita kohteita), joita halutaan käsitellä yhtenä
+kokonaisuutena. Nykyisessä raiteiden ylläpitoprosessissa on sellainen hankaluus, että raiteen geometrian muokkaaminen
+tapahtuu Geoviitteessä ja raiteen muuttunut geometria voi sijaita (osin) tilirataosan alueen ulkopuolella, jolloin
+raide (tai ehkä sen kohteet) eivät sisälly oikein tilirataosaan. Geoviite-operaattori usein kyllä huomaa tämän, kun hän
+raiteen geometrian muutoksen jälkeen tarkastelee tilannetta Ratko-järjestelmässä. Tässä tilanteessa Geoviite-operaattori
+pyytää tilirataosan alueen kasvattamista niin, että raiteen muuttunut geometria mahtuu alueen sisälle. Alueen
+päivittäminen Ratkoon kestää kuitenkin nykyisellä prosessilla viikkoja (tapahtuu erillisillä GIS-työkaluilla ja
+semi-manuaalisilla toimenpiteillä), ja koko päivittämistä odottava ajan tiedot ovat tilirataosan näkökulmasta väärin.
 
-Geoviitteeseen on toteutettu toiminnallisten pisteiden polygonimaisten alueiden ylläpitämiseksi työkalu, jota Geoviite-operaattori käyttää. Operaattori on esittänyt toiveen, että myös tilirataosan aluetta voisi muokata Geoviitteessä, jolloin muokkaaminen tapahtuisi yhtä aikaa raiteen geometrian muokkaamisen kanssa, jolloin operaattori voisi varmistaa, että raiteen geometria pysyy tilirataosan alueen sisällä ja tilirataosan alue myös päivittyisi Ratkoon yhtä aikaa raiteen geometriamuutoksen kanssa. Tällä tavoin tiedot pysyisivät tilirataosan näkökulmasta oikeina jatkuvasti. Haasteena tilirataosien alueiden ylläpitoon Geoviitteessä on ainakin se, että tilirataosien muita tietoja ja elinkaarta hallittaisiin edelleen Ratkossa, jolloin integraatio olisi melko erikoinen. Integraatiossa Geoviitteen pitäisi lukea muuttuneet tilirataosat Ratkosta, Geoviitteessä tilirataosan alueita muokattaisiin ja Ratko lukisi muokatutu alueet takaisin Ratkoon. Tilanne on tosin jokseenkin sama jo liikennepaikkojen osalta, mutta Ratko ei toistaiseksi lue niiden alueita Geoviitteestä.
+Geoviitteeseen on toteutettu toiminnallisten pisteiden polygonimaisten alueiden ylläpitämiseksi työkalu, jota
+Geoviite-operaattori käyttää. Operaattori on esittänyt toiveen, että myös tilirataosan aluetta voisi muokata
+Geoviitteessä, jolloin muokkaaminen tapahtuisi yhtä aikaa raiteen geometrian muokkaamisen kanssa, jolloin operaattori
+voisi varmistaa, että raiteen geometria pysyy tilirataosan alueen sisällä ja tilirataosan alue myös päivittyisi Ratkoon
+yhtä aikaa raiteen geometriamuutoksen kanssa. Tällä tavoin tiedot pysyisivät tilirataosan näkökulmasta oikeina
+jatkuvasti. Haasteena tilirataosien alueiden ylläpitoon Geoviitteessä on ainakin se, että tilirataosien muita tietoja ja
+elinkaarta hallittaisiin edelleen Ratkossa, jolloin integraatio olisi melko erikoinen. Integraatiossa Geoviitteen
+pitäisi lukea muuttuneet tilirataosat Ratkosta, Geoviitteessä tilirataosan alueita muokattaisiin ja Ratko lukisi
+muokatutu alueet takaisin Ratkoon. Tilanne on tosin jokseenkin sama jo liikennepaikkojen osalta, mutta Ratko ei
+toistaiseksi lue niiden alueita Geoviitteestä.
 
 ---
 
-**K: Tarkennuskysymys rataverkon graafimallista: Käsiteluettelossa "Rataverkko — periaate" -osio sanoo verkon linkkien olevan "vaihteiden väliset kiskot", mutta toiminnallinen piste -kuvauksessa sanotaan "geometriat linkkejä solmujen välillä". Tarkoittavatko nämä samaa asiaa, vai onko eroa?**
+**K: Tarkennuskysymys rataverkon graafimallista: Käsiteluettelossa "Rataverkko — periaate" -osio sanoo verkon linkkien
+olevan "vaihteiden väliset kiskot", mutta toiminnallinen piste -kuvauksessa sanotaan "geometriat linkkejä solmujen
+välillä". Tarkoittavatko nämä samaa asiaa, vai onko eroa?**
 
-V: Jos linkkejä ajattelee maastossa olevan rataverkon näkökulmasta, silloin "kiskot vaihteiden välillä" on oikea käsite, mutta Geoviitteen tietomallissa ei kuvata kiskoja, vaan raiteen suunniteltua geometriaa, joten Geoviitteen rataverkossa linkit ovat geometrisia pätkiä vaihteiden välillä.
+V: Jos linkkejä ajattelee maastossa olevan rataverkon näkökulmasta, silloin "kiskot vaihteiden välillä" on oikea käsite,
+mutta Geoviitteen tietomallissa ei kuvata kiskoja, vaan raiteen suunniteltua geometriaa, joten Geoviitteen rataverkossa
+linkit ovat geometrisia pätkiä vaihteiden välillä.
 
 ---
 
-**K: Tarkennuskysymys toiminnallisesta pisteestä: Toiminnallinen piste on määritelty osin "risteyskohta rataverkolla (eli käytännössä vaihde)". Onko toiminnallinen piste kuitenkin eri käsite kuin vaihde — eli voiko yksittäinen vaihde olla toiminnallinen piste, vai onko toiminnallinen piste aina useammasta vaihteesta koostuva kokonaisuus?**
+**K: Tarkennuskysymys toiminnallisesta pisteestä: Toiminnallinen piste on määritelty osin "risteyskohta rataverkolla (
+eli käytännössä vaihde)". Onko toiminnallinen piste kuitenkin eri käsite kuin vaihde — eli voiko yksittäinen vaihde olla
+toiminnallinen piste, vai onko toiminnallinen piste aina useammasta vaihteesta koostuva kokonaisuus?**
 
-V: Toiminnallinen piste on eri käsite kuin vaihde, kuitenkin yksi vaihde voi olla toiminnallinen piste, jonka RINF-tyyppi on "linjavaihde".
+V: Toiminnallinen piste on eri käsite kuin vaihde, kuitenkin yksi vaihde voi olla toiminnallinen piste, jonka
+RINF-tyyppi on "linjavaihde".
 
 ---
 
@@ -212,242 +441,543 @@ V: Toiminnallinen piste on eri käsite kuin vaihde, kuitenkin yksi vaihde voi ol
 
 **K: Kuvaile "luonnostila" — mitä se tarkoittaa Geoviitteessä ja miten se eroaa virallisesta rataverkosta?**
 
-V: "luonnostila" on rateverkon versio, johon käyttäjä tekee rataverkon muutoksia ja josta muutokset julkaistaan varsinaiseen rataverkkoon. Sekä virallisella rataverkolla että kaikilla suunnitelmatilaisilla rataverkoilla on oma luonnostilansa. Luonnostilan muutokset julkaistaan esikatselunäkymässä.
+V: "luonnostila" on rateverkon versio, johon käyttäjä tekee rataverkon muutoksia ja josta muutokset julkaistaan
+varsinaiseen rataverkkoon. Sekä virallisella rataverkolla että kaikilla suunnitelmatilaisilla rataverkoilla on oma
+luonnostilansa. Luonnostilan muutokset julkaistaan esikatselunäkymässä.
 
 ---
 
 **K: Kuvaile "ratakohteet" — mitä ne ovat Ratko-järjestelmässä ja miten ne liittyvät Geoviitteen rataverkkoon?**
 
-V: Ratkossa ratakohteet ovat rataverkkoon liittyviä konkreettisia asioita, esim. radan liikennemerkkejä tai kiskotus. Ratkon tietomallissa ratakohteet ovat ilmeisesti aina yhdistetty raiteeseen. Geoviite näyttää kartalla Ratkon opastimia, jotka ovat myös ratakohteita, mutta muutoin Geoviite ei käsittele Ratkon ratakohteita.
+V: Ratkossa ratakohteet ovat rataverkkoon liittyviä konkreettisia asioita, esim. radan liikennemerkkejä tai kiskotus.
+Ratkon tietomallissa ratakohteet ovat ilmeisesti aina yhdistetty raiteeseen. Geoviite näyttää kartalla Ratkon opastimia,
+jotka ovat myös ratakohteita, mutta muutoin Geoviite ei käsittele Ratkon ratakohteita.
 
 ---
 
 **K: Kuvaile "Inframodel" — mikä se on ja miksi sitä käytetään geometriasuunnitelmien tiedostomuotona?**
 
-V: "Inframodel" on standardi, jolla kuvataan infrarakenteita digitaalisessa muodossa niin, että eri ohjelmistot ja toimijat ymmärtävät tiedot samalla tavalla. Se perustuu kansainväliseen LandXML-formaattiin, mutta on sovitettu Suomen käytäntöihin. Kirjoitushetkellä Inframodel on Suomessa vakiintunut formaatti tarkan ratageometrian siirtämiseen.
+V: "Inframodel" on standardi, jolla kuvataan infrarakenteita digitaalisessa muodossa niin, että eri ohjelmistot ja
+toimijat ymmärtävät tiedot samalla tavalla. Se perustuu kansainväliseen LandXML-formaattiin, mutta on sovitettu Suomen
+käytäntöihin. Kirjoitushetkellä Inframodel on Suomessa vakiintunut formaatti tarkan ratageometrian siirtämiseen.
 
-Geoviite osaa lukea inframodel-tiedostoista raiteiden geometriaan liittyviä tietoja, mm. vaaka- ja pystygeometria, mutta ei esim. maaston pintamalleja. Geoviitte tukee inframodel versiota 4.0.3. Geoviite ei luo inframodel-tiedostoja.
+Geoviite osaa lukea inframodel-tiedostoista raiteiden geometriaan liittyviä tietoja, mm. vaaka- ja pystygeometria, mutta
+ei esim. maaston pintamalleja. Geoviitte tukee inframodel versiota 4.0.3. Geoviite ei luo inframodel-tiedostoja.
 
 ---
 
 ## 2026-05-08 — KS
 
-**K: Mikä oli Geoviite-projektin syntymisen taustalla — miksi järjestelmä päätettiin rakentaa ja mitä ongelmia sillä pyrittiin ratkaisemaan?**
+**K: Mikä oli Geoviite-projektin syntymisen taustalla — miksi järjestelmä päätettiin rakentaa ja mitä ongelmia sillä
+pyrittiin ratkaisemaan?**
 
-V: Geoviite-projekti syntyi, koska ratageometrian hallinta haluttiin siirtää tilaajan, eli Väyläviraston hallintaan ja parantaa yhtenäisen rataverkon datan laatua. Ennen Geoviitettä ratageometrian hallinnasta vastasi Sweco Oy. Ensimmäisessä vaiheesa oli tarkoitus toteuttaa Geoviitteeseen kriittisimmät ratageometrian hallintaan liittyvät toiminnallisuudet, niin että palvelu voitiin siirtää Välän hallintaan, näitä toimintoja olivat mm.: ratageometriasuunnitelmien (inframodel) rekisteri, geometrioiden linkitys yhtenäiseen paikannuspohjaan ja paikannuspohjan tietojen välittäminen Ratkoon. Swecon järjestelmiä käyttivät Swecon työntekijät, Geoviitteen käyttäjät, eli Geoviite-operaattorit valittiin Väyläviraston järjestämällä kilpailutuksella. Geoviite-projektissa oli alusta alkaen mukana myös väyläpuolen (rata + tie) asiantuntijoita Rambolilta.
+V: Geoviite-projekti syntyi, koska ratageometrian hallinta haluttiin siirtää tilaajan, eli Väyläviraston hallintaan ja
+parantaa yhtenäisen rataverkon datan laatua. Ennen Geoviitettä ratageometrian hallinnasta vastasi Sweco Oy.
+Ensimmäisessä vaiheesa oli tarkoitus toteuttaa Geoviitteeseen kriittisimmät ratageometrian hallintaan liittyvät
+toiminnallisuudet, niin että palvelu voitiin siirtää Välän hallintaan, näitä toimintoja olivat mm.:
+ratageometriasuunnitelmien (inframodel) rekisteri, geometrioiden linkitys yhtenäiseen paikannuspohjaan ja
+paikannuspohjan tietojen välittäminen Ratkoon. Swecon järjestelmiä käyttivät Swecon työntekijät, Geoviitteen käyttäjät,
+eli Geoviite-operaattorit valittiin Väyläviraston järjestämällä kilpailutuksella. Geoviite-projektissa oli alusta alkaen
+mukana myös väyläpuolen (rata + tie) asiantuntijoita Rambolilta.
 
-Swecon suorittamaan geometrioiden hallintaan liittyviä tehtäviä pyrittiin selvittämään haastatteluin. Swecon järjestelmissä ei varsinaisesti ollut olemassa yhtenäistä paikannuspohjaa, vaan paikannuspohjaa edustivat geometriasuunnitelmista valitut geometriaraiteden osuudet, jotka eivät aina muodostaneet yhtenäistä ja jatkuvaa linjaa, vaan saattoivat olla limittäin tai osuuksien väliin jäi aukkoja. Ratkoon Swecon paikannuspohjan raiteiden tiedot välitettiin pisteviivana. Ratkossa raiteen geometria oli silloin jatkuva, mutta sisälsi kuitenkin siksak-kuvioita ja pitkiä pistevälejä. Geoviitteen paikannuspohjassa raiteiden päätettiin olevan jatkuvia ja datan olevan pisteviiva, mm. tästä syystä Ratkon tietomalli soveltui hieman paremmin Geoviitteen paikannuspohjan pohjadataksi kuin Swecon tietomalli. Swecolta paikannuspohjan pohjadataan saatiin linkitystieto, eli tieto mistä geometriasuunnitelman raiteesta mikäkin paikannuspohjan sijaintiraiteen geometrian osuus oli peräisin. Pohjatietojen sisäänluvun yhteydessä tehtiin paljon automatisoitua datan korjausta, jolla pyrittiin pääsemään eroon mm. siksak-kuvioista. Swecolta Geoviitteen pohjadataan tulivat myös geometriasuunnitelmat, eli inframodel-tiedostot.
+Swecon suorittamaan geometrioiden hallintaan liittyviä tehtäviä pyrittiin selvittämään haastatteluin. Swecon
+järjestelmissä ei varsinaisesti ollut olemassa yhtenäistä paikannuspohjaa, vaan paikannuspohjaa edustivat
+geometriasuunnitelmista valitut geometriaraiteden osuudet, jotka eivät aina muodostaneet yhtenäistä ja jatkuvaa linjaa,
+vaan saattoivat olla limittäin tai osuuksien väliin jäi aukkoja. Ratkoon Swecon paikannuspohjan raiteiden tiedot
+välitettiin pisteviivana. Ratkossa raiteen geometria oli silloin jatkuva, mutta sisälsi kuitenkin siksak-kuvioita ja
+pitkiä pistevälejä. Geoviitteen paikannuspohjassa raiteiden päätettiin olevan jatkuvia ja datan olevan pisteviiva, mm.
+tästä syystä Ratkon tietomalli soveltui hieman paremmin Geoviitteen paikannuspohjan pohjadataksi kuin Swecon tietomalli.
+Swecolta paikannuspohjan pohjadataan saatiin linkitystieto, eli tieto mistä geometriasuunnitelman raiteesta mikäkin
+paikannuspohjan sijaintiraiteen geometrian osuus oli peräisin. Pohjatietojen sisäänluvun yhteydessä tehtiin paljon
+automatisoitua datan korjausta, jolla pyrittiin pääsemään eroon mm. siksak-kuvioista. Swecolta Geoviitteen pohjadataan
+tulivat myös geometriasuunnitelmat, eli inframodel-tiedostot.
 
-Swecolla geometriasuunnitelmat oli jaettu kahteen pääkategoriaan, paikannuspalvelun ja geometriapalvelun suunnitelmiin. Geometriapalvelun suunnitelmat sisälsivät alkuperäisen suunnitellun datan, joten niitä on voinut käyttää suurta tarkkuuta vaativiin tarpeisiin, esim. uusien suunnitelmien pohjatiedoksi tai kunnossapitoon. Paikannuspalvelun suunnitelmat olivat tarkoitettu mm. yhtenäisen paikannuspohjan ylläpitämiseksi, niillä ei ollut kovin suuria tarkkuusvaatimuksia. Paikannuspalvelun suunnitelmat sisälsivät mm. yhdistelmiä useammasta geometriapalvelun suunnitelmasta, olivat mahdollisesti tuotettu epätarkalla mittausmenetelmällä (esim. ilmakuvan pohjalta) tai niihin oli tehty muutoksia yhtenäisen rataverkon tarpeita ajatellen. Geometrian linkittäminen sijaintiraiteille tapahtui Swecolla juuri paikannuspalvelun suunnitelmista ja koska linkityksen pohjadata tuli Swecolta, myös suuri osa Geoviitteen geometrian linkityksestä on paikannuspalvelun geometriasuunnitelmista. Tästä on seurannut mm. sellainen ongelma, että paikannuspohjan linkitystietojen perusteella ei voida aina suoraan tietää, mistä alkuperäisestä geometriasuunnitelmasta, eli geometriapalvelun suunnitelmasta, raiteen geometria on peräisin. Geoviitteessä operaattori on pääsääntöisesti linkittänyt raiteille geometriaa ratasuunnitelmien oikeista geometriasuunnitelmista, mutta on myös tilanteita, jolloin alueelta ei ole oikeaa geometriasuunnitelmaa olemassa, jolloin operaattori on saattanut tuottaa oman geometriasuunnnitelman linkittämistä varten.
+Swecolla geometriasuunnitelmat oli jaettu kahteen pääkategoriaan, paikannuspalvelun ja geometriapalvelun suunnitelmiin.
+Geometriapalvelun suunnitelmat sisälsivät alkuperäisen suunnitellun datan, joten niitä on voinut käyttää suurta
+tarkkuuta vaativiin tarpeisiin, esim. uusien suunnitelmien pohjatiedoksi tai kunnossapitoon. Paikannuspalvelun
+suunnitelmat olivat tarkoitettu mm. yhtenäisen paikannuspohjan ylläpitämiseksi, niillä ei ollut kovin suuria
+tarkkuusvaatimuksia. Paikannuspalvelun suunnitelmat sisälsivät mm. yhdistelmiä useammasta geometriapalvelun
+suunnitelmasta, olivat mahdollisesti tuotettu epätarkalla mittausmenetelmällä (esim. ilmakuvan pohjalta) tai niihin oli
+tehty muutoksia yhtenäisen rataverkon tarpeita ajatellen. Geometrian linkittäminen sijaintiraiteille tapahtui Swecolla
+juuri paikannuspalvelun suunnitelmista ja koska linkityksen pohjadata tuli Swecolta, myös suuri osa Geoviitteen
+geometrian linkityksestä on paikannuspalvelun geometriasuunnitelmista. Tästä on seurannut mm. sellainen ongelma, että
+paikannuspohjan linkitystietojen perusteella ei voida aina suoraan tietää, mistä alkuperäisestä geometriasuunnitelmasta,
+eli geometriapalvelun suunnitelmasta, raiteen geometria on peräisin. Geoviitteessä operaattori on pääsääntöisesti
+linkittänyt raiteille geometriaa ratasuunnitelmien oikeista geometriasuunnitelmista, mutta on myös tilanteita, jolloin
+alueelta ei ole oikeaa geometriasuunnitelmaa olemassa, jolloin operaattori on saattanut tuottaa oman
+geometriasuunnnitelman linkittämistä varten.
 
+**K: Mainitsit, että pohjadataa sisäänluettaessa tehtiin paljon automatisoitua datan korjausta. Oliko Geoviitteen
+pohjadata siis Ratkon data korjattuna, vai Swecon data korjattuna — vai jokin yhdistelmä näistä?**
 
-**K: Mainitsit, että pohjadataa sisäänluettaessa tehtiin paljon automatisoitua datan korjausta. Oliko Geoviitteen pohjadata siis Ratkon data korjattuna, vai Swecon data korjattuna — vai jokin yhdistelmä näistä?**
+V: Pohjadata oli yhdistelmä Ratkon ja Swecon järjestelmien dataa, johon tehtiin automatisoitua korjausta. Ratkosta tuli
+pohjadata paikannuspohjaa varten, eli ratanumerot, pituusmittauslinjojen pisteviiva-geometria, raiteet, raiteiden
+pisteviiva-geometria ja vaihteet, Swecolta geometriasuunnitelmat ja geometrian linkittyminen pisteviiva-aineistoon.
+Tasakilometripisteet pääteltiin Ratkon pisteviiva-aineistosta.
 
-V: Pohjadata oli yhdistelmä Ratkon ja Swecon järjestelmien dataa, johon tehtiin automatisoitua korjausta. Ratkosta tuli pohjadata paikannuspohjaa varten, eli ratanumerot, pituusmittauslinjojen pisteviiva-geometria, raiteet, raiteiden pisteviiva-geometria ja vaihteet, Swecolta geometriasuunnitelmat ja geometrian linkittyminen pisteviiva-aineistoon. Tasakilometripisteet pääteltiin Ratkon pisteviiva-aineistosta.
+**K: Mainitsit, että Geoviite-projektissa oli alusta asti mukana Rambollin väyläasiantuntijoita. Mikä oli Rambollin
+rooli — olivatko he mukana vaatimusmäärittelyssä, tietomallinnuksessa, vai jossain muussa?**
 
+V: Rambolin asiantuntijat auttoivat projektitiimiä ymmärtämään, millaisia prosesseja ja dataa ratageometrian hallintaan
+liittyy. Heillä myös koestettiin tiimin tuottamia prototyyppejä.
 
-**K: Mainitsit, että Geoviite-projektissa oli alusta asti mukana Rambollin väyläasiantuntijoita. Mikä oli Rambollin rooli — olivatko he mukana vaatimusmäärittelyssä, tietomallinnuksessa, vai jossain muussa?**
+**K: Mainitset, että Swecon geometriasuunnitelmat oli jaettu paikannuspalvelun ja geometriapalvelun suunnitelmiin.
+Säilyikö tämä jako Geoviitteessä, vai onko Geoviitteessä eri tapa kategorisoida geometriasuunnitelmia?**
 
-V: Rambolin asiantuntijat auttoivat projektitiimiä ymmärtämään, millaisia prosesseja ja dataa ratageometrian hallintaan liittyy. Heillä myös koestettiin tiimin tuottamia prototyyppejä.
+V: Swecon geometriasuunnitelmien kategorisointi on tuotu myös Geoviitteeseen. Geoviitteessä ominaisuuden nimi on "
+Suunnitelman lähde". Näihin päiviin asti sitä on käytetty luokittelemaan geometriasuunnitelman käyttötarkoitusta, samaan
+tapaan kuin Swecolla. Eli operaattori on asettanut epätarkoille suunnitelmille suunnitelman lähteeksi arvon "
+Paikannuspohja", alkuperäisille/oikeille geometriasuunnitelmille arvon "Geometriapalvelu". Kuitenkin inframallien
+luokittelua ollaan uudistamassa, jonka jälkeen "Suunnitelma lähde" kertoo ainoastaan mistä suunnitelma on peräisin,
+uutena arvovaihtoehtona tulee "Geoviite". Laatu ja käyttötarkoitus ilmoitetaan uudistuksen jälkeen muilla tiedoilla.
 
+**K: Mitä ovat ne "muut tiedot", joilla laatu ja käyttötarkoitus ilmoitetaan uudistuksen jälkeen? Onko uudistus jo
+toteutettu vai vielä suunnitteilla?**
 
-**K: Mainitset, että Swecon geometriasuunnitelmat oli jaettu paikannuspalvelun ja geometriapalvelun suunnitelmiin. Säilyikö tämä jako Geoviitteessä, vai onko Geoviitteessä eri tapa kategorisoida geometriasuunnitelmia?**
-
-V: Swecon geometriasuunnitelmien kategorisointi on tuotu myös Geoviitteeseen. Geoviitteessä ominaisuuden nimi on "Suunnitelman lähde". Näihin päiviin asti sitä on käytetty luokittelemaan geometriasuunnitelman käyttötarkoitusta, samaan tapaan kuin Swecolla. Eli operaattori on asettanut epätarkoille suunnitelmille suunnitelman lähteeksi arvon "Paikannuspohja", alkuperäisille/oikeille geometriasuunnitelmille arvon "Geometriapalvelu". Kuitenkin inframallien luokittelua ollaan uudistamassa, jonka jälkeen "Suunnitelma lähde" kertoo ainoastaan mistä suunnitelma on peräisin, uutena arvovaihtoehtona tulee "Geoviite". Laatu ja käyttötarkoitus ilmoitetaan uudistuksen jälkeen muilla tiedoilla.
-
-
-**K: Mitä ovat ne "muut tiedot", joilla laatu ja käyttötarkoitus ilmoitetaan uudistuksen jälkeen? Onko uudistus jo toteutettu vai vielä suunnitteilla?**
-
-V: Inframallien tai laajemmin ottaen geometriasuunnitelmien luokittelun uudistuksen suunnittelu on melkein valmis, vielä pitää sopia, kuinka nykyiset tiedot migratoidaan uuteen malliin.
+V: Inframallien tai laajemmin ottaen geometriasuunnitelmien luokittelun uudistuksen suunnittelu on melkein valmis, vielä
+pitää sopia, kuinka nykyiset tiedot migratoidaan uuteen malliin.
 
 Ennen uudistusta geometriasuunnitelmat on luokiteltu/metatiedoitettu mm. seuraavasti:
+
 - Laatu
-  - Tämän kentän vaihtoehdot ovat olleet hieman sekalaisesti sekä mittausmenetelmiä (mm. Geodeettisesti mitattu, Digitoitu ilmakuvasta jne.) että laatua kuvaavia arvoja (Suunnitelma, Epäluotettava suunnitelma)
-  - Swecosta tuoduissa geometriasuunnitelmissa tämä tieto on asetettu järkevän tuntuisesti vain paikannuspalvelun suunnitelmille. Geometriapalvelun suunnitelmilta tämä tieto puuttui tai oli "Epäluotettava suunnitelma", mikä on nurinkurista, koska juuri nämä tiedot ovat parhaimman laatuisia.
+    - Tämän kentän vaihtoehdot ovat olleet hieman sekalaisesti sekä mittausmenetelmiä (mm. Geodeettisesti mitattu,
+      Digitoitu ilmakuvasta jne.) että laatua kuvaavia arvoja (Suunnitelma, Epäluotettava suunnitelma)
+    - Swecosta tuoduissa geometriasuunnitelmissa tämä tieto on asetettu järkevän tuntuisesti vain paikannuspalvelun
+      suunnitelmille. Geometriapalvelun suunnitelmilta tämä tieto puuttui tai oli "Epäluotettava suunnitelma", mikä on
+      nurinkurista, koska juuri nämä tiedot ovat parhaimman laatuisia.
 - Suunnitelman lähde
-  - Swecosta tuoduilla suunnitelmilla tietoa asetettu Swecon tiedon mukaan
-  - Geoviite-operaattorin lisäämälle luotettavalle suunnitelmalle asetettu "Geometriapalvelu", epäluotettavalle "Paikannuspalvelu"
+    - Swecosta tuoduilla suunnitelmilla tietoa asetettu Swecon tiedon mukaan
+    - Geoviite-operaattorin lisäämälle luotettavalle suunnitelmalle asetettu "Geometriapalvelu", epäluotettavalle "
+      Paikannuspalvelu"
 - Soveltuvuus
-  - Tämä kenttä lisättiin luokittelun parantamiseksi viime vuoden aikana, mutta osoittautui välivaiheeksi luokittelun kehittymisesssä
-  - Tällä kentällä operaattori määrittää, mihin geometriasuunnitelmaa voi hyödyntää: suunnitteluun, kunnossapitoon vai tilastointiin
+    - Tämä kenttä lisättiin luokittelun parantamiseksi viime vuoden aikana, mutta osoittautui välivaiheeksi luokittelun
+      kehittymisesssä
+    - Tällä kentällä operaattori määrittää, mihin geometriasuunnitelmaa voi hyödyntää: suunnitteluun, kunnossapitoon vai
+      tilastointiin
 
 Uusi luokittelu toimii seuraavasti:
+
 - Mittausmenetelmä
-  - Sisältää oikeasti vain tiedon mittausmenetelmästä, esim. "Geodeettisesti mitattu", "Digitoitu ilmakuvasta" jne.
-  - Operaattori muokkaa tietoa manuaalisesti
+    - Sisältää oikeasti vain tiedon mittausmenetelmästä, esim. "Geodeettisesti mitattu", "Digitoitu ilmakuvasta" jne.
+    - Operaattori muokkaa tietoa manuaalisesti
 - Laatu
-  - Sisältää oikeasti vain laatutiedon, eli "Ei tiedossa", "Suunnitelma" tai "Epäluotettava suunnitelma"
-  - Operaattori muokkaa tietoa manuaalisesti  
+    - Sisältää oikeasti vain laatutiedon, eli "Ei tiedossa", "Suunnitelma" tai "Epäluotettava suunnitelma"
+    - Operaattori muokkaa tietoa manuaalisesti
 - Suunnitelman lähde
-  - Swecosta tuoduilla suunnitelmilla tietoa asetettu Swecon tiedon mukaan
-  - Geoviitteeseen lisätyille suunnitelmille tulee automaattisesti tieto "Geoviite"
-  - Tätä kenttää ei voi muokata
+    - Swecosta tuoduilla suunnitelmilla tietoa asetettu Swecon tiedon mukaan
+    - Geoviitteeseen lisätyille suunnitelmille tulee automaattisesti tieto "Geoviite"
+    - Tätä kenttää ei voi muokata
 - Elinkaari
-  - Kuvaa suunnitelman elinkaarta
-  - Vaihtoehdot: "Suunniteltu", "Rakenteilla", "Rakennettu", "Vanhentunut"
-  - Operaattori muokkaa tietoa manuaalisesti
+    - Kuvaa suunnitelman elinkaarta
+    - Vaihtoehdot: "Suunniteltu", "Rakenteilla", "Rakennettu", "Vanhentunut"
+    - Operaattori muokkaa tietoa manuaalisesti
 - Soveltuvuus
-  - Muuttuu laskennalliseksi tiedoksi, Geoviite laskee arvon muiden luokittelutietojen mukaan
-  - Arvoa käytetään mm. kun geometriasuunnitelmia haetaan Geoviitteestä tietopyynnön täyttämiseksi
-  - Vaihtoehdot: "Soveltuu kunnossapitoon", "Soveltuu suunnitelman pohjatiedoksi", "Soveltuu tilastointiin"
+    - Muuttuu laskennalliseksi tiedoksi, Geoviite laskee arvon muiden luokittelutietojen mukaan
+    - Arvoa käytetään mm. kun geometriasuunnitelmia haetaan Geoviitteestä tietopyynnön täyttämiseksi
+    - Vaihtoehdot: "Soveltuu kunnossapitoon", "Soveltuu suunnitelman pohjatiedoksi", "Soveltuu tilastointiin"
 
+**K: Mainitsit, että pohjadatan sisäänluvussa tehtiin automatisoitua korjausta. Jäikö alkuperäisestä datansiirrosta
+kuitenkin jälkiä, eli onko Geoviitteessä vielä tänä päivänä tunnistettavia datan laatu-ongelmia, jotka juontuvat tuosta
+alkuperäisestä miggraatiosta?**
 
-**K: Mainitsit, että pohjadatan sisäänluvussa tehtiin automatisoitua korjausta. Jäikö alkuperäisestä datansiirrosta kuitenkin jälkiä, eli onko Geoviitteessä vielä tänä päivänä tunnistettavia datan laatu-ongelmia, jotka juontuvat tuosta alkuperäisestä miggraatiosta?**
+V: Kaikkia silloin tiedoissa olleita rataverkon ongelmia ei pystytty korjaamaan automaattisesti, koska niiden
+korjaaminen olisi vaatinut hyvää rataverkon tuntemusta ja useimmat tapauksista olisi pitänyt käsitellä yksitellen.
+Kaikkia mahdollisia ongelmia ei tuolloin myöskään vielä tiedostettu. Pohjadataan siis jäi laatu-ongelmia. Selkeitä
+ongelmiakohtia, jotka vaativat asiantuntijan päätöksen, koottiin listoihin, joita operaattori sitten kävivät läpi
+tuotantoonmenon jälkeen. Projektin aikana rataverkolta on myös löydetty uusia ongelmakohtia ja niiden
+havaitsemiseen/korjaamiseen on toteutettu automatiikkaa. Julkaisuvaliddointi pitää nykyisin melko hyvin huolta siitä,
+että muutoksia julkaistaessa rataverkon laatu ei voi heikentyä. Geoviite-operaattori ovat tehneet rataverkolle myös
+systemaattista eheyttämistä.
 
-V: Kaikkia silloin tiedoissa olleita rataverkon ongelmia ei pystytty korjaamaan automaattisesti, koska niiden korjaaminen olisi vaatinut hyvää rataverkon tuntemusta ja useimmat tapauksista olisi pitänyt käsitellä yksitellen. Kaikkia mahdollisia ongelmia ei tuolloin myöskään vielä tiedostettu. Pohjadataan siis jäi laatu-ongelmia. Selkeitä ongelmiakohtia, jotka vaativat asiantuntijan päätöksen, koottiin listoihin, joita operaattori sitten kävivät läpi tuotantoonmenon jälkeen. Projektin aikana rataverkolta on myös löydetty uusia ongelmakohtia ja niiden havaitsemiseen/korjaamiseen on toteutettu automatiikkaa. Julkaisuvaliddointi pitää nykyisin melko hyvin huolta siitä, että muutoksia julkaistaessa rataverkon laatu ei voi heikentyä. Geoviite-operaattori ovat tehneet rataverkolle myös systemaattista eheyttämistä.
+**K: Mainitsit julkaisuvalidoinnin — mitä se käytännössä tarkistaa? Onko sillä jokin virheiden luokittelu tai
+priorisointi (esim. estävät vs. varoittavat säännöt)?**
 
+V: Julkaisuvalidointi huolehtii, että rataverkon muutoksia julkaistaessa rataverkon laatu ei heikenny. Validoinnissa
+suoritetaan joukko tarkistuksia, jotka tarkistavat kohteiden (raide, vaihde jne.) omia tietoja sekä suhteita muihin
+kohteisiin (esim. raiteiden suhde vaihteisiin). Validointivirheitä on kahden tasoisia: varoituksia sekä virheitä.
+Varoituksia sisältävä muutosjoukko on mahdollista julkaista, mutta virhe-tasoiset validointivirheet estävät julkaisun.
+Validointia suoritetaan ja validointivirheitä esitetään käyttäjälle myös muualla kuin julkaisun yhteydessä, niin että
+käyttäjällä on mahdollisimman ajantasainen tieto kohteiden eheydestä. Geoviite sallii käyttäjän muokata kohteita
+luonnostilassa niin, että ne niihin syntyy validointivirheitä, eli luonnostilassa rataverkon ei tarvitse olla eheä, tämä
+mahdollistaa ratavekon joustavan muokkauksen. Ainoastaan viralliseen paikannuspohjaan vietävän kokonaisuuden täytyy
+validoinnin mielestä olla ehyt.
 
-**K: Mainitsit julkaisuvalidoinnin — mitä se käytännössä tarkistaa? Onko sillä jokin virheiden luokittelu tai priorisointi (esim. estävät vs. varoittavat säännöt)?**
+Validointisääntöjä on lisätty sitä mukaa, kun rataverkon mahdollisia ongelmia on havaittu tai tietoisuus
+liikentoimintalogiikasta on kehittynyt.
 
-V: Julkaisuvalidointi huolehtii, että rataverkon muutoksia julkaistaessa rataverkon laatu ei heikenny. Validoinnissa suoritetaan joukko tarkistuksia, jotka tarkistavat kohteiden (raide, vaihde jne.) omia tietoja sekä suhteita muihin kohteisiin (esim. raiteiden suhde vaihteisiin). Validointivirheitä on kahden tasoisia: varoituksia sekä virheitä. Varoituksia sisältävä muutosjoukko on mahdollista julkaista, mutta virhe-tasoiset validointivirheet estävät julkaisun. Validointia suoritetaan ja validointivirheitä esitetään käyttäjälle myös muualla kuin julkaisun yhteydessä, niin että käyttäjällä on mahdollisimman ajantasainen tieto kohteiden eheydestä. Geoviite sallii käyttäjän muokata kohteita luonnostilassa niin, että ne niihin syntyy validointivirheitä, eli luonnostilassa rataverkon ei tarvitse olla eheä, tämä mahdollistaa ratavekon joustavan muokkauksen. Ainoastaan viralliseen paikannuspohjaan vietävän kokonaisuuden täytyy validoinnin mielestä olla ehyt.
+**K: Mainitsit, että Geoviite-operaattorit on valittu kilpailutuksella. Onko operaattoreita yksi vai useampia — ja onko
+operaattorin rooli ja vastuut määritelty jonkinlaisessa sopimuksessa tai palvelukuvauksessa?**
 
-Validointisääntöjä on lisätty sitä mukaa, kun rataverkon mahdollisia ongelmia on havaittu tai tietoisuus liikentoimintalogiikasta on kehittynyt.
+V: Geoviite-operaattorit ovat Väyläviraston kilpailutuksella valitsema Geoviitteen käyttäjäryhmä, jonka vastuulla on
+ylläpitää paikannuspohjaa sekä geometriarekisteriä. Operaattoreiden vastuut on (ilmeisesti) määritetty
+palvelukuvauksessa, mutta operaattorit tuntuvat tekevän kaikkea ratageometrian hallintaan liittyviä työtä hyvin
+joustavasti. Operaattoreilla on oltava hyvä tiedot ratageometriasta ja prosesseista, joita geometrian tuottamiseen ja
+hyödyntämiseen liittyvät. Operaattorit käyttävät usein myös Ratko-järjestelmää, mm. tarkistaakseen Geoviitteestä
+siirrettyjen tietojen oikeellisuuden tai saadakseen lisätietoa päätöksen tueksi. Operaattoreita on ollut keskimäärin 5
+henkilöä. Operaattorit valitaan muutamaksi vuodeksi kerrallaan. Kaksi ensimmäistä kautta (alkaen 2022 syksy)
+operaattorina on toiminut Welado.
 
+**K: Kuka tai ketkä ovat Geoviitteen kehittäjätiimin takana — onko kyseessä Väyläviraston sisäinen tiimi, vai onko
+kehitys ulkoistettu jollekin toimittajalle?**
 
-**K: Mainitsit, että Geoviite-operaattorit on valittu kilpailutuksella. Onko operaattoreita yksi vai useampia — ja onko operaattorin rooli ja vastuut määritelty jonkinlaisessa sopimuksessa tai palvelukuvauksessa?**
+V: Geoviitteen toimittaja, eli kehitystiimi on myös valittu Väyläviraston kilpailutuksella. Kehitystiimin roolitus ja
+henkilöiden lukumäärä on vaihdellut hieman hankkeen aikana, mutta keskimäärin tiimissä on ollut 4-5 henkilöä. Roolit
+ovat olleet projektipäällikkö, tekninen arkkitehti, UX/PO sekä kehittäjiä, joskin kaikki muut paitsi projektipäällikkö
+ovat tehneet muun roolin lisäksi myös kehitystä. Ensimmäistä hanketta on toimittanut Solita Oy, vuodesta 2021 alken.
+2026 keväällä oli uusi kilpailutus, jossa seuraavan hankkeen toimittajaksi valittiin TwoDays Oy.
 
-V: Geoviite-operaattorit ovat Väyläviraston kilpailutuksella valitsema Geoviitteen käyttäjäryhmä, jonka vastuulla on ylläpitää paikannuspohjaa sekä geometriarekisteriä. Operaattoreiden vastuut on (ilmeisesti) määritetty palvelukuvauksessa, mutta operaattorit tuntuvat tekevän kaikkea ratageometrian hallintaan liittyviä työtä hyvin joustavasti. Operaattoreilla on oltava hyvä tiedot ratageometriasta ja prosesseista, joita geometrian tuottamiseen ja hyödyntämiseen liittyvät. Operaattorit käyttävät usein myös Ratko-järjestelmää, mm. tarkistaakseen Geoviitteestä siirrettyjen tietojen oikeellisuuden tai saadakseen lisätietoa päätöksen tueksi. Operaattoreita on ollut keskimäärin 5 henkilöä. Operaattorit valitaan muutamaksi vuodeksi kerrallaan. Kaksi ensimmäistä kautta (alkaen 2022 syksy) operaattorina on toiminut Welado.
+**K: Onko Geoviitteellä käytössä jokin kehitysmalli tai -prosessi (esim. Scrum, Kanban), ja miten Väylävirasto
+osallistuu kehityksen ohjaukseen?**
 
+V: Lyhyesti voisi sanoa, että asiakas määrittää suurempia suuntaviivoja ja priorisoi tekemistä kunkin hetken tarpeen
+mukaan. Tiimi selvittää asioita, kysyy tietoja asiakkaalta, ehdottaa asiakkaalle ratkaisuja ja toteuttaa asioita
+priorisoidussa järjestyksessä.
 
-**K: Kuka tai ketkä ovat Geoviitteen kehittäjätiimin takana — onko kyseessä Väyläviraston sisäinen tiimi, vai onko kehitys ulkoistettu jollekin toimittajalle?**
+Solitan tiimi on käyttänyt kehityksessä Scrum mallia, mutta suhteellisen väljästi. Meillä (kirjoittaja on osa tiimiä) on
+ollut käytössä alkuun kolmen ja myöhemmin neljän viikon sprintit.
 
-V: Geoviitteen toimittaja, eli kehitystiimi on myös valittu Väyläviraston kilpailutuksella. Kehitystiimin roolitus ja henkilöiden lukumäärä on vaihdellut hieman hankkeen aikana, mutta keskimäärin tiimissä on ollut 4-5 henkilöä. Roolit ovat olleet projektipäällikkö, tekninen arkkitehti, UX/PO sekä kehittäjiä, joskin kaikki muut paitsi projektipäällikkö ovat tehneet muun roolin lisäksi myös kehitystä. Ensimmäistä hanketta on toimittanut Solita Oy, vuodesta 2021 alken. 2026 keväällä oli uusi kilpailutus, jossa seuraavan hankkeen toimittajaksi valittiin TwoDays Oy.
+Sprintin alussa on pidetty suunnittelupalaveri, jossa sovitaan seuraavan sprintin prioriteetit sekä konkreettiset
+tavoitteita kunkin priorisoidun kokonaisuuden osalta. Sprintille on useimmiten priorisoitu työtä enemmän kuin ehditään
+tekemään, niin että kaikki sprintillä tehtävä työ kohdistuisi priorisoituihin kokonaisuuksiin. Asiakas on tässä
+palaverissa mukana. Tehtävien työmääriä on arvoitu vain hyvin korkealla tasolla, jottei töiden organisointi olisi liian
+raskasta, mutta että asiakkaalla olisi kuitenkin ymmärrys kokonaisuuksien suuruusluokasta, jotta priorisointiin olisi
+tarvittavat tiedot olemassa. Tämä ideologia on toiminut tiimillä mielestäni hyvin.
 
+Suunnittelupalaverissa priorisoitavia tehtäviä on määritelty ja jalostettu (refine) tiimin kanssa etukäteen, joten
+kaikilla on jokseenkin selkeä kuva tehtävien sisällöistä. Mikäli jotain tehtävää on tarpeen selvittää tarkemmin, joko
+sprintin alussa tai myöhemmin, siitä keskustellaan pikaviestimissä ja pidetään palaveri, tässäkin noudatetaan
+joustavauutta ja tekemistä tarpeen mukaan.
 
-**K: Onko Geoviitteellä käytössä jokin kehitysmalli tai -prosessi (esim. Scrum, Kanban), ja miten Väylävirasto osallistuu kehityksen ohjaukseen?**
+Refinment-palavereja pidetään tarpeen mukaan. Näissä palaverissa jokin Geoviitteeseen kohdistuva tarve käsitellään
+tarkemmalle/konkreettisemmalle tasolle ja samalla yritetään muodostaa asiasta yhteinen ymmärrys tiimin sisällä.
 
-V: Lyhyesti voisi sanoa, että asiakas määrittää suurempia suuntaviivoja ja priorisoi tekemistä kunkin hetken tarpeen mukaan. Tiimi selvittää asioita, kysyy tietoja asiakkaalta, ehdottaa asiakkaalle ratkaisuja ja toteuttaa asioita priorisoidussa järjestyksessä.
+Joka päivä pidetään daily-palaveri, jossa kerrotaan lähinnä mitä kukin on tehnyt ja mitä aikoo tehdä seuraavaksi.
+Lisäksi käydään läpi mahdollisia ongelmatilanteita tai muuten ajankohtaisia yhteisiä asioita, esim. seuraavan julkaisun
+tilanne.
 
-Solitan tiimi on käyttänyt kehityksessä Scrum mallia, mutta suhteellisen väljästi. Meillä (kirjoittaja on osa tiimiä) on ollut käytössä alkuun kolmen ja myöhemmin neljän viikon sprintit. 
+Sprintin päätteeksi pidetään katselmointi (review), jossa aikaansaannokset esitellään asiakkaalle ja operaattoreille.
+Katselmoinnissa käydään myös läpi yleisiä sprintillä ilmenneitä asioita.
 
-Sprintin alussa on pidetty suunnittelupalaveri, jossa sovitaan seuraavan sprintin prioriteetit sekä konkreettiset tavoitteita kunkin priorisoidun kokonaisuuden osalta. Sprintille on useimmiten priorisoitu työtä enemmän kuin ehditään tekemään, niin että kaikki sprintillä tehtävä työ kohdistuisi priorisoituihin kokonaisuuksiin. Asiakas on tässä palaverissa mukana. Tehtävien työmääriä on arvoitu vain hyvin korkealla tasolla, jottei töiden organisointi olisi liian raskasta, mutta että asiakkaalla olisi kuitenkin ymmärrys kokonaisuuksien suuruusluokasta, jotta priorisointiin olisi tarvittavat tiedot olemassa. Tämä ideologia on toiminut tiimillä mielestäni hyvin.
+Sprintin lopuksi pidetään myös retro, jossa käydään läpi mm. työtapoihin ja hyvinvointiin liittyviä asioita. Hankkeen
+ensimmäisten vuosien aikana työtapoja ja prosesseja hiottiin melko ahkerasti, mutta nykyiset tavat ovat asettuneet melko
+lailla pysyviksi.
 
-Suunnittelupalaverissa priorisoitavia tehtäviä on määritelty ja jalostettu (refine) tiimin kanssa etukäteen, joten kaikilla on jokseenkin selkeä kuva tehtävien sisällöistä. Mikäli jotain tehtävää on tarpeen selvittää tarkemmin, joko sprintin alussa tai myöhemmin, siitä keskustellaan pikaviestimissä ja pidetään palaveri, tässäkin noudatetaan joustavauutta ja tekemistä tarpeen mukaan. 
-
-Refinment-palavereja pidetään tarpeen mukaan. Näissä palaverissa jokin Geoviitteeseen kohdistuva tarve käsitellään tarkemmalle/konkreettisemmalle tasolle ja samalla yritetään muodostaa asiasta yhteinen ymmärrys tiimin sisällä.
-
-Joka päivä pidetään daily-palaveri, jossa kerrotaan lähinnä mitä kukin on tehnyt ja mitä aikoo tehdä seuraavaksi. Lisäksi käydään läpi mahdollisia ongelmatilanteita tai muuten ajankohtaisia yhteisiä asioita, esim. seuraavan julkaisun tilanne.
-
-Sprintin päätteeksi pidetään katselmointi (review), jossa aikaansaannokset esitellään asiakkaalle ja operaattoreille. Katselmoinnissa käydään myös läpi yleisiä sprintillä ilmenneitä asioita.
-
-Sprintin lopuksi pidetään myös retro, jossa käydään läpi mm. työtapoihin ja hyvinvointiin liittyviä asioita. Hankkeen ensimmäisten vuosien aikana työtapoja ja prosesseja hiottiin melko ahkerasti, mutta nykyiset tavat ovat asettuneet melko lailla pysyviksi.
-
-Asiakas on mukana ohjaamassa kehitystä myös sprintin aikana. He ottavat yhteyttä, kun tulee tietoon jokin Geoviitteeseen vaikuttava asia tai tarve. Tiimi myös kysyy asiakkaalta tietoja määritysten ja muiden ratkaisujen tueksi.
+Asiakas on mukana ohjaamassa kehitystä myös sprintin aikana. He ottavat yhteyttä, kun tulee tietoon jokin Geoviitteeseen
+vaikuttava asia tai tarve. Tiimi myös kysyy asiakkaalta tietoja määritysten ja muiden ratkaisujen tueksi.
 
 ---
 
 ## 2026-05-25 — KS
 
-**K: Dokumenteissa mainitaan GK-koordinaatisto (Gauss-Krüger). Voitko selittää, miksi Geoviite käyttää GK-koordinaatistoa eikä esimerkiksi WGS84:ää tai ETRS89:ää — ja miten koordinaatistojen välillä liikutaan järjestelmässä?**
+**K: Dokumenteissa mainitaan GK-koordinaatisto (Gauss-Krüger). Voitko selittää, miksi Geoviite käyttää
+GK-koordinaatistoa eikä esimerkiksi WGS84:ää tai ETRS89:ää — ja miten koordinaatistojen välillä liikutaan
+järjestelmässä?**
 
-V: Seuraavassa puhutaan koordinaatistoista ja koordinaattijärjestelmistä luovasti sekaisin. Geoviitteessä käytetään useampia koordinaattijärjestelmiä. Yhtenäisen paikannuspohjan koordinaatit ovat pääasiassa TM35FIN koordinaattijärjestelmässä, koska se on koko suomen laajuinen yhtenäinen tasokoordinaatisto, jota käyteään laajalti myös RAIDE-järjestelmissä sekä monissa muissa rataverkkoa käsittelevissä järjestelmissä/prosessissa. Koko Suomen yhtenäinen koordinaatisto on käytännöllinen, kun halutaa käsitellä ja verrata koordinaatteja keskenään. Koordinaatiston käsittely tasona helpottaa myös esim. matemaattisia toimenpiteitä, kun pallopintaa ei tarvitse huomioida. Haittapuolena yhtenäisessä ja laajassa tasokoordinaatistossa on mittasuhteiden vääristyminen tasokoordinaatiston laidoilla, esim. metri TM35FIN koordinaatiston länsireunalla on noin 1.002 metriä maastossa. GK koordinaatistot ovat myös tasokoordinaatistoja, mutta kukin GK-kaista määrittää huomattavasti kapeamman alueen maapallosta kuin TM35FIN koordinaatisto, jolloin vääristymä GK-kaistan laidalla ei ehdi kasvaa niin suureksi kuin yhtenäisessä TM35FIN koordinaatistossa. GK-koordinaattijärjestelmässä karttaprojektio on lisäksi sivuava, ei leikkaava, joka vähentää vääristymää koordinaatiston keskimediaanilla. Pienemmän vääristymän vuoksi GK kaistoja suositaan suurempaa tarkkuutta vaativassa paikannuksessa, kuten esimerkiksi geometriasuunnittelussa. Uudet geometriasuunnitelmat ovat pääsääntöisesti GK koordinaatistoissa.
+V: Seuraavassa puhutaan koordinaatistoista ja koordinaattijärjestelmistä luovasti sekaisin. Geoviitteessä käytetään
+useampia koordinaattijärjestelmiä. Yhtenäisen paikannuspohjan koordinaatit ovat pääasiassa TM35FIN
+koordinaattijärjestelmässä, koska se on koko suomen laajuinen yhtenäinen tasokoordinaatisto, jota käyteään laajalti myös
+RAIDE-järjestelmissä sekä monissa muissa rataverkkoa käsittelevissä järjestelmissä/prosessissa. Koko Suomen yhtenäinen
+koordinaatisto on käytännöllinen, kun halutaa käsitellä ja verrata koordinaatteja keskenään. Koordinaatiston käsittely
+tasona helpottaa myös esim. matemaattisia toimenpiteitä, kun pallopintaa ei tarvitse huomioida. Haittapuolena
+yhtenäisessä ja laajassa tasokoordinaatistossa on mittasuhteiden vääristyminen tasokoordinaatiston laidoilla, esim.
+metri TM35FIN koordinaatiston länsireunalla on noin 1.002 metriä maastossa. GK koordinaatistot ovat myös
+tasokoordinaatistoja, mutta kukin GK-kaista määrittää huomattavasti kapeamman alueen maapallosta kuin TM35FIN
+koordinaatisto, jolloin vääristymä GK-kaistan laidalla ei ehdi kasvaa niin suureksi kuin yhtenäisessä TM35FIN
+koordinaatistossa. GK-koordinaattijärjestelmässä karttaprojektio on lisäksi sivuava, ei leikkaava, joka vähentää
+vääristymää koordinaatiston keskimediaanilla. Pienemmän vääristymän vuoksi GK kaistoja suositaan suurempaa tarkkuutta
+vaativassa paikannuksessa, kuten esimerkiksi geometriasuunnittelussa. Uudet geometriasuunnitelmat ovat pääsääntöisesti
+GK koordinaatistoissa.
 
-Poikkeuksena paikannuspohjan koordinaateista muodostavat tasakilometripisteiden tarkat sijainnit, jotka on ilmoitettu siinä GK koordinaattijärjestelmän kaistassa, joka sopii parhaiten kunkin koordinaatin esittämiseen. GK koordinaatistojen käyttö tasakilometripisteiden paikantamisessa johtuu siitä, että tasakilometripisteiden sijainteja käytetään uusissa geometriasuunnitelmissa ja uudet geometriasuunnitelmat suunnitellaan niin ikään GK koordinaatistossa, jolloin suunnittelussa hyödynnettäviä tasakilometripisteiden sijainteja ei tarvitse muuntaa toiseen koordinaatistoon, jolloin ei synny muunnoksessa tapahtuvaa tarkkuuden häviämistä.
+Poikkeuksena paikannuspohjan koordinaateista muodostavat tasakilometripisteiden tarkat sijainnit, jotka on ilmoitettu
+siinä GK koordinaattijärjestelmän kaistassa, joka sopii parhaiten kunkin koordinaatin esittämiseen. GK koordinaatistojen
+käyttö tasakilometripisteiden paikantamisessa johtuu siitä, että tasakilometripisteiden sijainteja käytetään uusissa
+geometriasuunnitelmissa ja uudet geometriasuunnitelmat suunnitellaan niin ikään GK koordinaatistossa, jolloin
+suunnittelussa hyödynnettäviä tasakilometripisteiden sijainteja ei tarvitse muuntaa toiseen koordinaatistoon, jolloin ei
+synny muunnoksessa tapahtuvaa tarkkuuden häviämistä.
 
-Vaikka uudet geometriasuunnitelmat suunnitellaan pääsääntöisesti GK-koordinaatistoissa, on Geoviitteessä myös vanhempia geometriasuunnitelmia, jotka ovat muissa koordinaatistoissa, mm. vanhemmassa KKJ-koordinaatistoissa ja jopa vielä vanhemmissa VVJ-koordinaatistoissa. Geoviite ei tue VVJ-koordinaatiston koordinaattien käsittelyä, esim. muuntamista TM35FIN koordinaatistoon, joten joitain vanhoja geometriasuunnitelmia ei siksi voi hyödyntää raiteen geometrian linkityksessä.
+Vaikka uudet geometriasuunnitelmat suunnitellaan pääsääntöisesti GK-koordinaatistoissa, on Geoviitteessä myös vanhempia
+geometriasuunnitelmia, jotka ovat muissa koordinaatistoissa, mm. vanhemmassa KKJ-koordinaatistoissa ja jopa vielä
+vanhemmissa VVJ-koordinaatistoissa. Geoviite ei tue VVJ-koordinaatiston koordinaattien käsittelyä, esim. muuntamista
+TM35FIN koordinaatistoon, joten joitain vanhoja geometriasuunnitelmia ei siksi voi hyödyntää raiteen geometrian
+linkityksessä.
 
-Geoviitteessä koordinaattien muuntamiseksi koordinaatistosta toiseen käytetään GeoTools-kirjastoa. Lisäksi KKJ-koordinaattien muuntamisessa toisiin järjestelmiin käytetään korjausparametreja sisältävää kolmioverkkoa, jotta muunnoksessa tapahtuva tarkkuuden häviö olisi pienempi.
+Geoviitteessä koordinaattien muuntamiseksi koordinaatistosta toiseen käytetään GeoTools-kirjastoa. Lisäksi
+KKJ-koordinaattien muuntamisessa toisiin järjestelmiin käytetään korjausparametreja sisältävää kolmioverkkoa, jotta
+muunnoksessa tapahtuva tarkkuuden häviö olisi pienempi.
 
 ---
 
-**K: Mainitsit, että Geoviitteessä on geometriasuunnitelmia useissa eri koordinaatistossa (GK-kaistat, KKJ, VVJ). Kun uusi geometriasuunnitelma tuodaan Geoviitteeseen, miten järjestelmä tietää, missä koordinaatistossa suunnitelman koordinaatit ovat — ja mitä tapahtuu, jos koordinaatistotieto puuttuu tai on virheellinen?**
+**K: Mainitsit, että Geoviitteessä on geometriasuunnitelmia useissa eri koordinaatistossa (GK-kaistat, KKJ, VVJ). Kun
+uusi geometriasuunnitelma tuodaan Geoviitteeseen, miten järjestelmä tietää, missä koordinaatistossa suunnitelman
+koordinaatit ovat — ja mitä tapahtuu, jos koordinaatistotieto puuttuu tai on virheellinen?**
 
-V: Geometriasuunnitelma toimitetaan Geoviite-operaattorille tällä hetkellä Inframodel-tiedostona. Tiedosto sisältää mm. tiedon koordinaatistosta. Kuitenkin tiedostossa ilmoitettu koordinaatisto voi olla väärä, eli tiedoston sisältämät koordinaati ovat oikeasti jossain toisessa koordinaatistossa, tämä on kuitenkin harvinainen tilanne. Jos koordinaatisto ei täsmää koordinaatteihin, Geoviite saattaa huomata sen siitä, että koordinaatit eivät ole koordinaatiston sallimalla alueella, tällöin Geoviite ei edes yritä näyttää tiedoston sisältämiä geometrioita kartalla. Myös operaattori voi havaita ongelman silmämääräisesti, kun tiedoston sisältämät raiteen geometriat piirretään kartalla erikoiseen sijaintiin. Ongelmatilanteessa operaattori voi muokata inframodel-tiedostoon (esim. tekstieditorilla) oikean koordinaatiston, jolloin tiedosto sisältää oikean koordinaatiston myös myöhempää käyttöä varten, esim. kun tiedosto välitetään Geoviitteestä tietopyynnön myötä.
+V: Geometriasuunnitelma toimitetaan Geoviite-operaattorille tällä hetkellä Inframodel-tiedostona. Tiedosto sisältää mm.
+tiedon koordinaatistosta. Kuitenkin tiedostossa ilmoitettu koordinaatisto voi olla väärä, eli tiedoston sisältämät
+koordinaati ovat oikeasti jossain toisessa koordinaatistossa, tämä on kuitenkin harvinainen tilanne. Jos koordinaatisto
+ei täsmää koordinaatteihin, Geoviite saattaa huomata sen siitä, että koordinaatit eivät ole koordinaatiston sallimalla
+alueella, tällöin Geoviite ei edes yritä näyttää tiedoston sisältämiä geometrioita kartalla. Myös operaattori voi
+havaita ongelman silmämääräisesti, kun tiedoston sisältämät raiteen geometriat piirretään kartalla erikoiseen
+sijaintiin. Ongelmatilanteessa operaattori voi muokata inframodel-tiedostoon (esim. tekstieditorilla) oikean
+koordinaatiston, jolloin tiedosto sisältää oikean koordinaatiston myös myöhempää käyttöä varten, esim. kun tiedosto
+välitetään Geoviitteestä tietopyynnön myötä.
 
-Operaattori voi valita geometriasuunnitelmalle oikean koordinaatiston myös Geoviitteen käyttöliittymässä, tällöin tieto oikeasta koordinaatistosta on Geoviitteen tietokannassa, mutta koska Geoviite ei muokkaa geometriasuunnitelmatiedoston sisältöä, tiedostoon jää edelleen väärä koordinaatisto.
+Operaattori voi valita geometriasuunnitelmalle oikean koordinaatiston myös Geoviitteen käyttöliittymässä, tällöin tieto
+oikeasta koordinaatistosta on Geoviitteen tietokannassa, mutta koska Geoviite ei muokkaa geometriasuunnitelmatiedoston
+sisältöä, tiedostoon jää edelleen väärä koordinaatisto.
 
 ---
 
-**K: Mainitsit aiemmin, että Geoviite ei tue VVJ-koordinaatiston muuntamista, joten joitain vanhoja geometriasuunnitelmia ei voi hyödyntää linkityksessä. Kuinka iso käytännön ongelma tämä on — onko VVJ-suunnitelmia paljon, ja onko niille mitään suunniteltua ratkaisua?**
+**K: Mainitsit aiemmin, että Geoviite ei tue VVJ-koordinaatiston muuntamista, joten joitain vanhoja
+geometriasuunnitelmia ei voi hyödyntää linkityksessä. Kuinka iso käytännön ongelma tämä on — onko VVJ-suunnitelmia
+paljon, ja onko niille mitään suunniteltua ratkaisua?**
 
-V: VVJ-koordinaatiston geometriasuunnitelmia on Geoviitteessä noin 170 kpl, kaikkiaan suunnitelmia on noin 2400 kpl. VVJ-koordinaatiston suunnitelmat ovat pääasiassa hyvin vanhoja, joten niiden geometriaa tarvitaan harvoin. Kuitenkin joissain tilanteissa, esim. rataverkon dataa eheytettäessä, sijaintiraiteelle on tarve linkittää geometriaa sellaiselta rataverkon alueelta, jolle on oleamssa vain VVJ-koordinaatiston geometriasuunnitelmia. Tässä tilanteessa Geoviite-operaattori on ladannut VVJ-koordinaatiston suunnitelmatiedoston Geoviitteestä, muuntanut suunnitelman suunnitteluohjelmistolla johonkin Geoviitteen tukemaan koordinaatistoon (esim. GK-koordinaatisto) ja ladannut muokatun suunnitelman Geoviitteeseen. Muokatun tiedoston Geoviite-operaattori meta-tiedoittaa niin, että sitä ei sekoita alkuperäiseen geometriasuunnitelmaan, niin ettei sitä epähuomiossa palauteta esim. tietopyyntöjen mukana. Edellä kuvattu korjausprosessi on harmillisen työläs, mutta koska uusia VVJ-koordinaatiston suunnitelmia ei enää tule, toistaiseksi ei ole suunniteltu VVJ-koordinaatistojen tuen kehittämistä Geoviitteeseen.
+V: VVJ-koordinaatiston geometriasuunnitelmia on Geoviitteessä noin 170 kpl, kaikkiaan suunnitelmia on noin 2400 kpl.
+VVJ-koordinaatiston suunnitelmat ovat pääasiassa hyvin vanhoja, joten niiden geometriaa tarvitaan harvoin. Kuitenkin
+joissain tilanteissa, esim. rataverkon dataa eheytettäessä, sijaintiraiteelle on tarve linkittää geometriaa sellaiselta
+rataverkon alueelta, jolle on oleamssa vain VVJ-koordinaatiston geometriasuunnitelmia. Tässä tilanteessa
+Geoviite-operaattori on ladannut VVJ-koordinaatiston suunnitelmatiedoston Geoviitteestä, muuntanut suunnitelman
+suunnitteluohjelmistolla johonkin Geoviitteen tukemaan koordinaatistoon (esim. GK-koordinaatisto) ja ladannut muokatun
+suunnitelman Geoviitteeseen. Muokatun tiedoston Geoviite-operaattori meta-tiedoittaa niin, että sitä ei sekoita
+alkuperäiseen geometriasuunnitelmaan, niin ettei sitä epähuomiossa palauteta esim. tietopyyntöjen mukana. Edellä kuvattu
+korjausprosessi on harmillisen työläs, mutta koska uusia VVJ-koordinaatiston suunnitelmia ei enää tule, toistaiseksi ei
+ole suunniteltu VVJ-koordinaatistojen tuen kehittämistä Geoviitteeseen.
 
 ---
 
-**K: Mainitsit, että paikannuspohja on pääasiassa TM35FIN-koordinaatistossa, mutta karttanäkymässä raiteet pitää tietenkin näyttää myös selainpuolella. Missä koordinaatistossa karttanäkymä toimii frontendissä — ja miten koordinaattimuunnokset hoidetaan backend/frontend-rajapinnassa?**
+**K: Mainitsit, että paikannuspohja on pääasiassa TM35FIN-koordinaatistossa, mutta karttanäkymässä raiteet pitää
+tietenkin näyttää myös selainpuolella. Missä koordinaatistossa karttanäkymä toimii frontendissä — ja miten
+koordinaattimuunnokset hoidetaan backend/frontend-rajapinnassa?**
 
 V: Karttanäkymässä käytetään TM35FIN koordinaatistoa.
 
 ---
 
-**K: Mainitsit aiemmin, että geometriasuunnitelmissa on eroa "tiedostossa tallennetun koordinaatiston" ja "Geoviitteen tietokannassa tallennetun koordinaatiston" välillä. Miten Geoviite käsittelee geometriasuunnitelman sisältämät koordinaatit linkitysvaiheessa — muunnetaanko ne tietokantaan TM35FIN-muodossa, vai säilytetäänkö ne alkuperäisessä koordinaatistossa?**
+**K: Mainitsit aiemmin, että geometriasuunnitelmissa on eroa "tiedostossa tallennetun koordinaatiston" ja "Geoviitteen
+tietokannassa tallennetun koordinaatiston" välillä. Miten Geoviite käsittelee geometriasuunnitelman sisältämät
+koordinaatit linkitysvaiheessa — muunnetaanko ne tietokantaan TM35FIN-muodossa, vai säilytetäänkö ne alkuperäisessä
+koordinaatistossa?**
 
-V: Geometriatiedoston sisältö säilyy Geoviitteessä koskemattomana. Käyttöliittymässä operaattori voi valita geometriasuunnitelmalle koordinaatiston, tämä tieto tallentuu Geoviitteen tietokantaan. Myös geometriasuunnitelman sisältämät koordinaattititiedot (esim. geometriaelementtien tiedot) tallennetaan kantaan operaattorin valitsemassa koordinaatistossa. Kun geometriaelementistä muodostetaan kartalla esitettävää geometriaa, mm. linkitystä varten, koordinaattisijainnit muunnetaan geometriaelementin koordinaatistosta TM35FIN koordinaatistoon. Eli suunniteltu geometria on Geoviitteessä operaattorin valitsemassa koordinaatistossa, joka on useimmiten sama kuin geometriatiedoston sisältämä koordinaatisto, paikannuspohjan koordinaattitiedot (esim. raiteiden geometria, vaihteiden sijainnit jne.) ovat pääasiassa TM35FIN koordinaatistossa.
+V: Geometriatiedoston sisältö säilyy Geoviitteessä koskemattomana. Käyttöliittymässä operaattori voi valita
+geometriasuunnitelmalle koordinaatiston, tämä tieto tallentuu Geoviitteen tietokantaan. Myös geometriasuunnitelman
+sisältämät koordinaattititiedot (esim. geometriaelementtien tiedot) tallennetaan kantaan operaattorin valitsemassa
+koordinaatistossa. Kun geometriaelementistä muodostetaan kartalla esitettävää geometriaa, mm. linkitystä varten,
+koordinaattisijainnit muunnetaan geometriaelementin koordinaatistosta TM35FIN koordinaatistoon. Eli suunniteltu
+geometria on Geoviitteessä operaattorin valitsemassa koordinaatistossa, joka on useimmiten sama kuin geometriatiedoston
+sisältämä koordinaatisto, paikannuspohjan koordinaattitiedot (esim. raiteiden geometria, vaihteiden sijainnit jne.) ovat
+pääasiassa TM35FIN koordinaatistossa.
 
 ---
 
 ## 2026-05-25 — KS (jatkuu)
 
-**K: Millainen on Geoviitteen API — onko se REST, GraphQL vai jokin muu? Mitä se tarjoaa ja kenelle — onko esim. ulkoisten järjestelmien API eri kuin käyttöliittymän käyttämä?**
+**K: Millainen on Geoviitteen API — onko se REST, GraphQL vai jokin muu? Mitä se tarjoaa ja kenelle — onko esim.
+ulkoisten järjestelmien API eri kuin käyttöliittymän käyttämä?**
 
-V: Geoviitteeseen liittyy oikeastaan kolme API-kokonaisuutta. Yksi rajapinta on Geoviitteen käyttöliittymän käyttämä rajapinta. Se noudattaa pääasiassa REST-konventioita ja tarjoilee dataa nimenomaan käyttöliittymän tarpeisiin. Tiedon käsittelyä on optimoitu käyttöliittymän käyttötarpeiden mukaan. Tämän rajapinnan kautta tapahtuu myös Geoviitteen tietojen päivittäminen. Rajapinnan käyttö vaatii Väyläpilven käyttäjätilin ja tiliin liitetyn Geoviite-roolin. Geoviite-rooleja on erilaisia ja niillä on erilaisia oikeuksia.
+V: Geoviitteeseen liittyy oikeastaan kolme API-kokonaisuutta. Yksi rajapinta on Geoviitteen käyttöliittymän käyttämä
+rajapinta. Se noudattaa pääasiassa REST-konventioita ja tarjoilee dataa nimenomaan käyttöliittymän tarpeisiin. Tiedon
+käsittelyä on optimoitu käyttöliittymän käyttötarpeiden mukaan. Tämän rajapinnan kautta tapahtuu myös Geoviitteen
+tietojen päivittäminen. Rajapinnan käyttö vaatii Väyläpilven käyttäjätilin ja tiliin liitetyn Geoviite-roolin.
+Geoviite-rooleja on erilaisia ja niillä on erilaisia oikeuksia.
 
-Geoviite-kokonaisuus sisältää myös viitekehysmuunnin-rajapinnan (lyhenne VKM), jolla koordinaattisijainteja voi muuttaa rataosoitteiksi ja toisin päin. Tämäkin rajapinta noudattaa jokseenkin REST-mallia. VKM-rajapinta on julkinen ja sitä voidaan käyttää ilman tunnistautumista. Julkisen VKM-rajapinnan kutsutiheyttä on rajattu, mutta rajapinnasta on olemassa myös API-avaimella käytettävä versio, jossa kutsurajoitukset ovat huomattavasti sallivammat. Muiden järjestelmien on luonnollista käyttää API-avaimella suojattua versiota. API-avaimen saa pyydettyä Väylävirastolta. Rajapinta on versioitu Semantic Versioning -konvention mukaan.
+Geoviite-kokonaisuus sisältää myös viitekehysmuunnin-rajapinnan (lyhenne VKM), jolla koordinaattisijainteja voi muuttaa
+rataosoitteiksi ja toisin päin. Tämäkin rajapinta noudattaa jokseenkin REST-mallia. VKM-rajapinta on julkinen ja sitä
+voidaan käyttää ilman tunnistautumista. Julkisen VKM-rajapinnan kutsutiheyttä on rajattu, mutta rajapinnasta on olemassa
+myös API-avaimella käytettävä versio, jossa kutsurajoitukset ovat huomattavasti sallivammat. Muiden järjestelmien on
+luonnollista käyttää API-avaimella suojattua versiota. API-avaimen saa pyydettyä Väylävirastolta. Rajapinta on versioitu
+Semantic Versioning -konvention mukaan.
 
-Geoviitteen perustietojen lukemiseksi on olemassa erillinen API, josta sisäisesti käytetään nimeä ext-api. Tästä rajapinnasta on luettavissa lähes kaikki virallisen paikannuspohjan sisältämät tiedot. Tiedot on luettavissa rataverkon versiokohtaisesti, eli on mahdollista lukea myös historiatietoa. Useimmista tietotyypeistä on luettavissa myös muutokset versioittain tai versiovälillä. Nämä muutosrajapinnat mahdollistavat tietojen tehokkaamman syknronoinnin toiseen järjestelmään, kun on mahdollista lukea Geoviitteeseen tietyn ajanhetken (tai oikeastaan version) jälkeen tehdy muutokset. Tämä rajapinta on tarkoitettu toisen järjestelmän käytettäväksi, jolloin tunnistautuminen tapahtuu API-avaimella. Koska API-avaimen käyttäminen on hankalaa selaimella kutsuttaessa, rajapintaa on mahdollista kustua myös Väyläviraston käyttäjänä, kunhan käyttäjätiliin on liitetty jokin Geoviite-oikeus. Väyläviraston käyttäjänä käyttäminen on kätevää mm. rajapinnan testaamiseksi. Rajapinta on versioitu Semantic Versioning -konvention mukaan.
+Geoviitteen perustietojen lukemiseksi on olemassa erillinen API, josta sisäisesti käytetään nimeä ext-api. Tästä
+rajapinnasta on luettavissa lähes kaikki virallisen paikannuspohjan sisältämät tiedot. Tiedot on luettavissa rataverkon
+versiokohtaisesti, eli on mahdollista lukea myös historiatietoa. Useimmista tietotyypeistä on luettavissa myös muutokset
+versioittain tai versiovälillä. Nämä muutosrajapinnat mahdollistavat tietojen tehokkaamman syknronoinnin toiseen
+järjestelmään, kun on mahdollista lukea Geoviitteeseen tietyn ajanhetken (tai oikeastaan version) jälkeen tehdy
+muutokset. Tämä rajapinta on tarkoitettu toisen järjestelmän käytettäväksi, jolloin tunnistautuminen tapahtuu
+API-avaimella. Koska API-avaimen käyttäminen on hankalaa selaimella kutsuttaessa, rajapintaa on mahdollista kustua myös
+Väyläviraston käyttäjänä, kunhan käyttäjätiliin on liitetty jokin Geoviite-oikeus. Väyläviraston käyttäjänä käyttäminen
+on kätevää mm. rajapinnan testaamiseksi. Rajapinta on versioitu Semantic Versioning -konvention mukaan.
 
 ---
 
-**K: Mainitsit, että Geoviite-rooleja on erilaisia ja niillä on erilaisia oikeuksia. Mitä rooleja on olemassa ja mitä kukin rooli saa tehdä järjestelmässä?**
+**K: Mainitsit, että Geoviite-rooleja on erilaisia ja niillä on erilaisia oikeuksia. Mitä rooleja on olemassa ja mitä
+kukin rooli saa tehdä järjestelmässä?**
 
-V: Geoviitteessä on kirjoitushetkellä neljä eri roolia. Operaattori on Geoviite-operaattorin rooli ja sillä on oikeus kaikkiin mahdollisiin toimintoihin. Vain operaattorin roolilla voi muuttaa Geoviitteen sisältämiä tietoja. Kehitys-, testi- ja paikallisessa ympäristössä Geoviitteen kehitystiimillä on oletuksena operaattorin rooli käytössä, jotta testaaminen olisi helppoa.
+V: Geoviitteessä on kirjoitushetkellä neljä eri roolia. Operaattori on Geoviite-operaattorin rooli ja sillä on oikeus
+kaikkiin mahdollisiin toimintoihin. Vain operaattorin roolilla voi muuttaa Geoviitteen sisältämiä tietoja. Kehitys-,
+testi- ja paikallisessa ympäristössä Geoviitteen kehitystiimillä on oletuksena operaattorin rooli käytössä, jotta
+testaaminen olisi helppoa.
 
-Kehitystiimi-roolilla on oikeudet lukea lähes kaikkia Geoviitteen tietoja, paitsi esikatselussa olevia muutoksia. Esikatselun tiedoissa ei ole mitään salaista, joten sekin voisi olla ja olisi hyvä olla kehitystiimin luettavissa, mutta yksinkertaisuuden nimissä sen käsittely on jäänyt toistaiseksi toteuttamatta.
+Kehitystiimi-roolilla on oikeudet lukea lähes kaikkia Geoviitteen tietoja, paitsi esikatselussa olevia muutoksia.
+Esikatselun tiedoissa ei ole mitään salaista, joten sekin voisi olla ja olisi hyvä olla kehitystiimin luettavissa, mutta
+yksinkertaisuuden nimissä sen käsittely on jäänyt toistaiseksi toteuttamatta.
 
-Virastokäyttäjä-roolilla on oikeus katsella kaikkea viralliseen paikannuspohjaan liittyviä tietoja, myös nähdä geometriatietoja, mutta ei ladata geometriasuunnitelmia. Luonnostilaisia tietoja virastokäyttäjälle ei myöskään ole tarpeen näyttää, koska ne ovat muokkauksen alla olevia tietoja, joka voivat sekoittaa käyttäjää.
+Virastokäyttäjä-roolilla on oikeus katsella kaikkea viralliseen paikannuspohjaan liittyviä tietoja, myös nähdä
+geometriatietoja, mutta ei ladata geometriasuunnitelmia. Luonnostilaisia tietoja virastokäyttäjälle ei myöskään ole
+tarpeen näyttää, koska ne ovat muokkauksen alla olevia tietoja, joka voivat sekoittaa käyttäjää.
 
-Konsultti-roolilla on suppeimmat oikeudet. Tämän roolin käyttäjä voi lukea lähes kaikkia virallisen paikannuspohjan tietoja, mutta geometriasuunnitelmia tai tietotuotteita konsultti-roolilla ei näe.
+Konsultti-roolilla on suppeimmat oikeudet. Tämän roolin käyttäjä voi lukea lähes kaikkia virallisen paikannuspohjan
+tietoja, mutta geometriasuunnitelmia tai tietotuotteita konsultti-roolilla ei näe.
 
 ---
 
 ## 2026-05-27 — KS
 
-**K: Mitä tarkoittaa raiteen pilkkominen Geoviitteessä — milloin se tehdään ja mitä käytännössä tapahtuu, kun raide pilkotaan?**
+**K: Mitä tarkoittaa raiteen pilkkominen Geoviitteessä — milloin se tehdään ja mitä käytännössä tapahtuu, kun raide
+pilkotaan?**
 
-V: Rataverkolla on ollut olemassa hyvin pitkiä sijaintiraiteita, jotka menevät usean liikennepaikan läpi. Esim. raide "005" menee Kouvolasta Kajaanin ja on melkein 500km pitkä. Näistä pitkistä raiteista puhutaan usein myös nimillä linjaraiteide tai ratanumeron raide. Liikennepaikkojen alueella linjaraiteen kohdalla on hallinnollisista syistä ollut olemassa myös liikkennepaikan raide. Eli liikennepaikan kohdalla samassa kohdassa on ollut kaksi sijaintiraidetta päällekkäin. Päällekkäistä liikennepaikan raidetta sanotaan duplikaattiraiteeksi.
+V: Rataverkolla on ollut olemassa hyvin pitkiä sijaintiraiteita, jotka menevät usean liikennepaikan läpi. Esim. raide "
+005" menee Kouvolasta Kajaanin ja on melkein 500km pitkä. Näistä pitkistä raiteista puhutaan usein myös nimillä
+linjaraiteide tai ratanumeron raide. Liikennepaikkojen alueella linjaraiteen kohdalla on hallinnollisista syistä ollut
+olemassa myös liikkennepaikan raide. Eli liikennepaikan kohdalla samassa kohdassa on ollut kaksi sijaintiraidetta
+päällekkäin. Päällekkäistä liikennepaikan raidetta sanotaan duplikaattiraiteeksi.
 
-Sijaintiraiteiden päällekkäisyys rataverkolla on aiheuttanut monia ongelmia, koska päällekkäisellä osuudella ratavekko ei ole yksiselitteinen, joten päällekkäisyydestä on haluttu eroon. Liikennepaikkojen kohdalla olevia liikennepaikan raiteita (eli duplikaattiraiteita) tarvitaan edelleen hallinnollisiin tarpeisiin, joten ne on haluttu säilyttää entisellään, joten niitä ei voi poistaa, joten linjaraide pitää poistaa liikennepaikkojen kohdalta, jotta päällekkäisyydestä päästäisiin eroon. Koska sijaintiraiteen geometrian on oltava jatkuva, ei raiteelta voi poistaa pätkää välistä, joten koko linjaraide poistetaan ja liikennepaikkojen väleille luodaan uudet raiteet. Tätä opeeraatiota sanotaan pilkkomiseksi tai splittaamiseksi.
+Sijaintiraiteiden päällekkäisyys rataverkolla on aiheuttanut monia ongelmia, koska päällekkäisellä osuudella ratavekko
+ei ole yksiselitteinen, joten päällekkäisyydestä on haluttu eroon. Liikennepaikkojen kohdalla olevia liikennepaikan
+raiteita (eli duplikaattiraiteita) tarvitaan edelleen hallinnollisiin tarpeisiin, joten ne on haluttu säilyttää
+entisellään, joten niitä ei voi poistaa, joten linjaraide pitää poistaa liikennepaikkojen kohdalta, jotta
+päällekkäisyydestä päästäisiin eroon. Koska sijaintiraiteen geometrian on oltava jatkuva, ei raiteelta voi poistaa
+pätkää välistä, joten koko linjaraide poistetaan ja liikennepaikkojen väleille luodaan uudet raiteet. Tätä opeeraatiota
+sanotaan pilkkomiseksi tai splittaamiseksi.
 
-Pilkkomisessa operaattori valitsee vaihteet, joiden kohdalta linjaraide katkaistaan. Lisäksi operaattori määrittää, mitä katkaisussa syntyville raiteen osuuksille tehdään, eli tuleeko osuudesta uusi liikennepaikkojen välinen raide vai asetetaanko osuuden geometria liikennepaikan raiteelle. Kun Geoviite on muokannut raiteet operaattorin määritysten mukaan, Geoviite linkittää linjaraiteeseen liittyneet vaihteet uudestaan, jotta ne kytkeytyvät oikein uusiin tai muuttuneisiin raiteisiin. Geoviitteessä pilkkomiseen liittyviä muutoksia käsitellään kokonaisuutena, ne on mm. julkaistava yhdessä julkaisussa.
+Pilkkomisessa operaattori valitsee vaihteet, joiden kohdalta linjaraide katkaistaan. Lisäksi operaattori määrittää, mitä
+katkaisussa syntyville raiteen osuuksille tehdään, eli tuleeko osuudesta uusi liikennepaikkojen välinen raide vai
+asetetaanko osuuden geometria liikennepaikan raiteelle. Kun Geoviite on muokannut raiteet operaattorin määritysten
+mukaan, Geoviite linkittää linjaraiteeseen liittyneet vaihteet uudestaan, jotta ne kytkeytyvät oikein uusiin tai
+muuttuneisiin raiteisiin. Geoviitteessä pilkkomiseen liittyviä muutoksia käsitellään kokonaisuutena, ne on mm.
+julkaistava yhdessä julkaisussa.
 
-Raiteen pilkkomisen sisältävä julkaisu viedään Ratkoon erikoiskäsittelyllä. Tämä johtuu pääasiasssa siitä, että Ratkossa ratakohteet on sidottu sijaintiraiteiden pisteisiin, ja kun pilkkomisessa linjaraide poistuu, Ratkossa sen pisteisiin sidotut ratakohteet halutaan siirtyvän pilkkomisessa syntyville uusille raiteille tai liikennepaikalle jäävälle duplikaattiraiteelle.
+Raiteen pilkkomisen sisältävä julkaisu viedään Ratkoon erikoiskäsittelyllä. Tämä johtuu pääasiasssa siitä, että Ratkossa
+ratakohteet on sidottu sijaintiraiteiden pisteisiin, ja kun pilkkomisessa linjaraide poistuu, Ratkossa sen pisteisiin
+sidotut ratakohteet halutaan siirtyvän pilkkomisessa syntyville uusille raiteille tai liikennepaikalle jäävälle
+duplikaattiraiteelle.
 
-Raiteiden pilkkominen on kirjoitushetkellä käynnissä oleva prosessi, joka aloitettiin toukokuun 2026 alussa ja kestää vielä arviolta pari viikkoa. Eli operaattorit pilkkovat raiteita ja pilkotun rataverkon tiedot päivittyvät Ratkoon ja sieltä muihin RAIDE-järjestelmiin. Raiteiden pilkkomista yritettiin RAIDE-järjestelmässä noin vuonna 2021, mutta silloin raiteen ratakohteiden tiedot menivät sekaisin ja niiden korjaaminen vaati suuren manuaalisen työn. Tämän kertaista pilkkomista testattiin laajamittaisesti RAIDE-järjestelmissä syksystä 2025 alkaen, joten nyt pilkkomisen kanssa ollaan luottavaisempia.
+Raiteiden pilkkominen on kirjoitushetkellä käynnissä oleva prosessi, joka aloitettiin toukokuun 2026 alussa ja kestää
+vielä arviolta pari viikkoa. Eli operaattorit pilkkovat raiteita ja pilkotun rataverkon tiedot päivittyvät Ratkoon ja
+sieltä muihin RAIDE-järjestelmiin. Raiteiden pilkkomista yritettiin RAIDE-järjestelmässä noin vuonna 2021, mutta silloin
+raiteen ratakohteiden tiedot menivät sekaisin ja niiden korjaaminen vaati suuren manuaalisen työn. Tämän kertaista
+pilkkomista testattiin laajamittaisesti RAIDE-järjestelmissä syksystä 2025 alkaen, joten nyt pilkkomisen kanssa ollaan
+luottavaisempia.
 
 ---
 
-**K: Mainitsit "duplikaattiraide" — kun pilkkominen on tehty ja linjaraide on poistettu, jääkö liikennepaikan raide (duplikaattiraide) ennalleen omana raiteinaan? Ja miten vaihteet kytkeytyvät sen jälkeen — kytkeytyyvätkö ne liikennepaikalla sekä liikennepaikan raiteeseen että uuteen linjaosuuden raiteeseen?**
+**K: Mainitsit "duplikaattiraide" — kun pilkkominen on tehty ja linjaraide on poistettu, jääkö liikennepaikan raide (
+duplikaattiraide) ennalleen omana raiteinaan? Ja miten vaihteet kytkeytyvät sen jälkeen — kytkeytyyvätkö ne
+liikennepaikalla sekä liikennepaikan raiteeseen että uuteen linjaosuuden raiteeseen?**
 
-V: Liikennepaikan raide jää paikalleen, mutta sen geometria voi vähän muuttua, koska liikennepaikan raiteelle asetetaan geometria linjaraiteelta, operaattorin valitsemien katkaisukohtien väliltä. Pilkkomisen jälkeen liikennepaikan raide ei ole enää duplikaattiraide, koska ei enää ole päällekkäisiä sijaintiraiteita. Pilkkomisessa tapahtuvassa vaihteiden uudelleenlinkityksessä vaihteet kytkeytyvä pilkkomisen jälkeiseen rataverkkoon, eli vaihde linkittyy liikennepaikan raiteeseen, liikennepaikkojen väliseen raiteeseen ja muihin vaihteen kohdalla sijaitseviin rataverkon raiteisiin.
-
----
-
-**K: Mainitsit, että pilkkomisen sisältävä julkaisu viedään Ratkoon "erikoiskäsittelyllä". Mitä tämä erikoiskäsittely tarkoittaa teknisesti — miten se eroaa tavallisesta Geoviite→Ratko-siirrosta?**
-
-V: Ratko-viennistä on tekninen kuvaus erillisessä dokumentissa: https://github.com/finnishtransportagency/geoviite/blob/main/doc/ratkovienti.md
-
----
-
-**K: Mainitsit ext-apin tarjoavan tietoja "rataverkon versiokohtaisesti" ja muutosrajapinnat versioittain. Miten Geoviitteen versiointi toimii — miten versio syntyy ja mitä se tarkoittaa käytännössä?**
-
-V: Rataverkon versio syntyy, kun viralliseen paikannuspohjaan julkaistaan muutos. Geoviitteen API:sta on mahdollista kysyä käsitteiden (sijaintiraide, vaihde, jne.) tiedot tietyssä versiossa. Muutosrajapinnoista on mahdollista kysyä, kuinka käsitteiden tiedot ovat muuttuneet kahden rataverkon version välillä.
+V: Liikennepaikan raide jää paikalleen, mutta sen geometria voi vähän muuttua, koska liikennepaikan raiteelle asetetaan
+geometria linjaraiteelta, operaattorin valitsemien katkaisukohtien väliltä. Pilkkomisen jälkeen liikennepaikan raide ei
+ole enää duplikaattiraide, koska ei enää ole päällekkäisiä sijaintiraiteita. Pilkkomisessa tapahtuvassa vaihteiden
+uudelleenlinkityksessä vaihteet kytkeytyvä pilkkomisen jälkeiseen rataverkkoon, eli vaihde linkittyy liikennepaikan
+raiteeseen, liikennepaikkojen väliseen raiteeseen ja muihin vaihteen kohdalla sijaitseviin rataverkon raiteisiin.
 
 ---
 
-**K: Mainitsit VKM-rajapinnan, jolla voi muuntaa koordinaattisijainteja rataosoitteiksi ja takaisin. Miten tämä muunnos toimii teknisesti — onko kyseessä yksinkertainen lähimmän pisteen haku pituusmittauslinjalta, vai jotain monimutkaisempaa?**
+**K: Mainitsit, että pilkkomisen sisältävä julkaisu viedään Ratkoon "erikoiskäsittelyllä". Mitä tämä erikoiskäsittely
+tarkoittaa teknisesti — miten se eroaa tavallisesta Geoviite→Ratko-siirrosta?**
 
-V: Muuntaminen tapahtuu geokoodauksella, josta on olemassa erillinen dokumentaatio (https://github.com/finnishtransportagency/geoviite/blob/main/doc/geokoodaus.md), joten sitä ei käsitellä tarkemmin tässä.
+V: Ratko-viennistä on tekninen kuvaus erillisessä
+dokumentissa: https://github.com/finnishtransportagency/geoviite/blob/main/doc/ratkovienti.md
 
 ---
 
-**K: Mainitsit "tietotuotteet" konsultti-roolin yhteydessä. Mitä tietotuotteet ovat Geoviitteessä — miten ne eroavat perustiedoista, ja kuka niitä käyttää?**
+**K: Mainitsit ext-apin tarjoavan tietoja "rataverkon versiokohtaisesti" ja muutosrajapinnat versioittain. Miten
+Geoviitteen versiointi toimii — miten versio syntyy ja mitä se tarkoittaa käytännössä?**
 
-V: Tietotuotteet ovat jalostettuja koosteita/raportteja rataverkon tiedoista. Tällä hetkellä tietotuotteita ovat elementtiluettelo, pystygeometria ja ratakilometrien pituudet. Tietotuotteiden käyttöön vaaditaan tällä hetkellä vähintään virastokäyttäjän rooli, joten suoraan Geoviitteestä niitä pääsee lukemaan vain melko pieni joukko käyttäjiä. Geoviite-operaattori voi toimittaa tietotuotteiden tulosteita (CSV-tiedostot) tietopyyntöjen vastauksena.
+V: Rataverkon versio syntyy, kun viralliseen paikannuspohjaan julkaistaan muutos. Geoviitteen API:sta on mahdollista
+kysyä käsitteiden (sijaintiraide, vaihde, jne.) tiedot tietyssä versiossa. Muutosrajapinnoista on mahdollista kysyä,
+kuinka käsitteiden tiedot ovat muuttuneet kahden rataverkon version välillä.
 
-Elementtiluettelo listaa sijaintiraiteisiin linkitetyt geometriaelementit tai geometriasuunnitelman raiteiden geometriaelementit. Käyttötapaus tälle tietotuotteelle on esim. sijaintiraiteiden pienisäteisten kaarteiden hakeminen, jota voidaan käyttää hyväksi pitkien kuljetusten mahdollisten reittien määrityksessä.
+---
 
-Pystygeometria listaa sijaintiraiteisiin linkitetyt tai geometriasuunnitelman raiteiden sisältämä taitepisteet ja kaltevuusjaksot. Näitä tietoja tarvitaan esim. jarrupainolaskelmia tai junien seisonta-alueita määritettäessä.
+**K: Mainitsit VKM-rajapinnan, jolla voi muuntaa koordinaattisijainteja rataosoitteiksi ja takaisin. Miten tämä muunnos
+toimii teknisesti — onko kyseessä yksinkertainen lähimmän pisteen haku pituusmittauslinjalta, vai jotain
+monimutkaisempaa?**
+
+V: Muuntaminen tapahtuu geokoodauksella, josta on olemassa erillinen
+dokumentaatio (https://github.com/finnishtransportagency/geoviite/blob/main/doc/geokoodaus.md), joten sitä ei käsitellä
+tarkemmin tässä.
+
+---
+
+**K: Mainitsit "tietotuotteet" konsultti-roolin yhteydessä. Mitä tietotuotteet ovat Geoviitteessä — miten ne eroavat
+perustiedoista, ja kuka niitä käyttää?**
+
+V: Tietotuotteet ovat jalostettuja koosteita/raportteja rataverkon tiedoista. Tällä hetkellä tietotuotteita ovat
+elementtiluettelo, pystygeometria ja ratakilometrien pituudet. Tietotuotteiden käyttöön vaaditaan tällä hetkellä
+vähintään virastokäyttäjän rooli, joten suoraan Geoviitteestä niitä pääsee lukemaan vain melko pieni joukko käyttäjiä.
+Geoviite-operaattori voi toimittaa tietotuotteiden tulosteita (CSV-tiedostot) tietopyyntöjen vastauksena.
+
+Elementtiluettelo listaa sijaintiraiteisiin linkitetyt geometriaelementit tai geometriasuunnitelman raiteiden
+geometriaelementit. Käyttötapaus tälle tietotuotteelle on esim. sijaintiraiteiden pienisäteisten kaarteiden hakeminen,
+jota voidaan käyttää hyväksi pitkien kuljetusten mahdollisten reittien määrityksessä.
+
+Pystygeometria listaa sijaintiraiteisiin linkitetyt tai geometriasuunnitelman raiteiden sisältämä taitepisteet ja
+kaltevuusjaksot. Näitä tietoja tarvitaan esim. jarrupainolaskelmia tai junien seisonta-alueita määritettäessä.
 
 Ratakilometrien pituuksia tarvitaan ainakin tilastointitarpeisiin.
 
-Geoviitteen API tulee korvaamaan osan tietotuotteiden tarpeesta, koska käyttötapauksiin osallistuu usein toinen järjestelmä. Ihmisen on kuitenkin helpompi lukea tietotuotteiden tulosteita.
+Geoviitteen API tulee korvaamaan osan tietotuotteiden tarpeesta, koska käyttötapauksiin osallistuu usein toinen
+järjestelmä. Ihmisen on kuitenkin helpompi lukea tietotuotteiden tulosteita.
+
+## 2026-08-05 — KS
+
+**K: Mitä reititysjärjestelmä (route planning / routing) tarkoittaa Geoviitteen kontekstissa?**
+
+V: Geoviitteessä reititys tai reitinhaku tarkoittaa rataverkolla tapahtuvaa reitin etsimistä kahden raiteilla
+sijaitsevan kohdan välille. Reitinhaun tulos koostuu raiteiden osuuksista. Reitin muodostuksessa huomioidaan junan
+rajoitukset liikkua vaihteissa, eli reitti ei sisällä sellaisia käännöksiä, joita junalla ei ole mahdollista tehdä.
+Nykyisessä algoritmissa vain raiteen päästä voi lähteä takaisin tulosuuntaan, eli junan kulkusuunnan voi ikään kuin
+kääntää raiteen päässä. Teoriassa junan kulkusuunta olisi mahdollista vaihtaa rataverkolla missä vain, joten nykyinen
+toiminnallisuus on oikean liikennöinnin näkökulmasta turhan rajoittava ja reititys vaatii tältä osin todennäköisesti
+jatkokehitystä. Geoviitteessä reititys ei ole varsinaisesti käyttäjien käyttämä toiminnallisuus, ainakaan tällä
+hetkellä, vaan sitä hyödynnetään esim. liikennepaikkavälin yhteyksien määrittämisessä. Käyttöliittymässä on kuitenkin
+mahdollista käyttää reitinhakua, eli hakea reitti kahden sijainnin välille. Rataverkon reitinhaulle on tarvetta mm.
+Ratko-järjestelmässä, joten reitinhaku julkaistaan muiden tahojen käytettäväksi Geoviitteen ulkoisen rajapinnan kautta.
+Ratko on sisältänyt reitinhaun, mutta koska kyseistä toiminnallisuutta ei ole aktiivisesti ylläpidetty, se on ajan
+saatossa tullut melko epäluotettavaksi. Myöskään Ratkon tietomalli ei ole kovin hyvin soveltuva reitinhakualgoritmille.
+On siis ajateltu, että Ratko siirtyy tulevaisuudessa käyttämään Geoviitteen reitinhakua Geoviitteen rajapinnan kautta.
+Jos Ratko siirtyy käyttämään Geoviitteen reitinhakua, sijaintiraiteen tiedoista voidaan poistaa "topologinen
+kytkeytyminen"-ominaisuustieto, koska kyseistä tietoa on ylläpidetty vain Ratkon reitinhakutoiminnallisuutta varten.
+
+---
+
+**K: Kuinka hyvä nykyinen reitinhakualgoritmi on? Mitkä ovat sen suurimmat rajoitukset tai tunnetut ongelmat?**
+
+V: Reitinhaku toimii luotettavasti ja melko tehokkaasti. Luotettavuuteen vaikuttaa eniten rataverkon datan laatu, mikä
+kirjoitushetkellä on Geoviitteessä jo melko hyvässä kunnossa. Geoviitteen rataverkon tietomallin muuntaminen
+hakualgoritmin käyttämään muotoon on hakutoiminnallisuuden raskain toimenpide. Pääasiallinen rajoitus on mainittu jo
+edellisessä vastauksessa: junan kulkusuunnan kääntäminen on mahdollista vain raiteen päässä.
+
+---
+
+**K: Millä tavalla reitinhaku näkyy tai on käytettävissä Geoviitteen käyttöliittymässä?**
+
+V: Reitinhaku on käyttöliittymässä työkalu, jolla voi valita rataverkolta alku- sekä loppusijainnin ja työkalu näyttää
+kartalla sijaintien välisen reitin.
+
+---
+
+**K: Miten reitinhakualgoritmi toimii teknisesti?**
+
+V: Reitinhakua varten Geoviitteen sisäinen linkki-solmu-malli muutetaan suunnatuksi verkoksi. Varsinainen reitinhaku
+suoritetaan jgrapht-kirjastolla.
+
+---
+
+## 2026-08-05 — Muistiinpano
+
+Geoviitteen reitityksen historiaa
+
+Ratko-järjestelmässä on ollut reititystoiminnallisuus jo useita vuosia. Reititystä on käytetty mm. Ratkon ajolankojen
+määrittämisen tukena. Ratkon reititystoiminnallisuus on kuitenkin toiminut hieman epäluotettavasti, lähinnä
+rataverkon datan ongelmien vuoksi. Myös toiminnallisuuden ylläpito on jäänyt vähälle huomiolle. Kun Ratkoon
+toteutettiin tietomallin muutos mm. raiteiden pilkkomisen tukemiseksi, tehtiin periaatepäätös Ratkon
+reititystoiminnallisuudesta luopumisesta ja reititystoiminnallisuuden rakentamisesta tulevaisuudessa Geoviitteeseen.
+
+Geoviitteen tietomallissa on alusta pitäen huomioitu reitinhaun tarpeet, vaikka reitinhakutoiminnallisuudelle ei
+alkuun ollut tarvetta tiedossa. Geoviitteen tietomalli muutettiin (noin. 2025) linkki-solmu-malliin, jolloin
+tietomallin hyödyntäminen reitinhaussa muuttui entistä helpommaksi. Reitinhaku tuli Geoviitteessä tarpeelliseksi
+toiminnoksi ja toteutettiin liikennepaikkavälin yhteyksien tarkempaa määritystä varten (kevät 2026). Geoviitteen
+ulkoiseen API:in on myös toteutettu rajapinta reitinhaun käyttämiseksi toisista järjestelmistä. Tällä tavoin myös
+Ratko voi hyödyntää Geoviitteen reitinhakua omien toiminnallisuuksien tukemiseksi.
+
+---
