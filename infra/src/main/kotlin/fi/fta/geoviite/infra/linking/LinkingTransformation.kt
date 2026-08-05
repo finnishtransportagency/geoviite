@@ -92,8 +92,9 @@ private fun createAlignmentGeometry(
  * layout data. When these are small, we can just automatically fix them.
  */
 fun fixMapSegmentContinuity(segments: List<LayoutSegment>): List<LayoutSegment> {
-    val segmentPairs = segments.zipWithNext()
-    return if (segmentPairs.all { (s1, s2) -> lineLength(s1.segmentEnd, s2.segmentStart) <= LAYOUT_COORDINATE_DELTA }) {
+    return if (
+        segments.zipWithNext().all { (s1, s2) -> lineLength(s1.segmentEnd, s2.segmentStart) <= LAYOUT_COORDINATE_DELTA }
+    ) {
         segments
     } else {
         val fixedSegments = mutableListOf<LayoutSegment>()

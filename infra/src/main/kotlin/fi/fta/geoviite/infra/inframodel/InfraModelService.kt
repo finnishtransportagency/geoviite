@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -67,7 +66,6 @@ constructor(
     private val geographyService: GeographyService,
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberService: LayoutTrackNumberService,
-    private val locationTrackService: LocationTrackService,
     private val coordinateTransformationService: CoordinateTransformationService,
 ) {
 
