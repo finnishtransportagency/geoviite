@@ -7,12 +7,15 @@ import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.radsToDegrees
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.EdgeM
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
@@ -82,7 +85,50 @@ fun linkLayoutGeometrySection(
 private fun createAlignmentGeometry(
     geometryAlignment: PlanLayoutAlignment,
     mRange: Range<LineM<PlanLayoutAlignmentM>>,
-): List<LayoutSegment> = slice(geometryAlignment, mRange, ALIGNMENT_LINKING_SNAP)
+): List<LayoutSegment> = fixMapSegmentContinuity(slice(geometryAlignment, mRange, ALIGNMENT_LINKING_SNAP))
+
+/**
+ * Sometimes the geometry files contain gaps or inconsistencies between elements (GVT-3584), that would produce invalid
+ * layout data. When these are small, we can just automatically fix them.
+ */
+fun fixMapSegmentContinuity(segments: List<LayoutSegment>): List<LayoutSegment> {
+    return if (
+        segments.zipWithNext().all { (s1, s2) -> lineLength(s1.segmentEnd, s2.segmentStart) <= LAYOUT_COORDINATE_DELTA }
+    ) {
+        segments
+    } else {
+        val fixedSegments = mutableListOf<LayoutSegment>()
+        segments.forEach { segment ->
+            val lastPoint: SegmentPoint? = fixedSegments.lastOrNull()?.segmentEnd
+            val diff = lastPoint?.let { lineLength(it, segment.segmentStart) } ?: 0.0
+            when {
+                // Segments match within margin of error
+                lastPoint == null || diff <= LAYOUT_COORDINATE_DELTA -> fixedSegments.add(segment)
+                // Over 1m gap is a pretty serious issue in the data -> safer not to auto-fix it
+                diff > 1.0 ->
+                    throw LinkingFailureException("Over 1m (${roundTo3Decimals(diff)}m) gap within linked geometry.")
+                else -> {
+                    // Cut the segment if needed to avoid producing a zig-zag connector
+                    val nonOverlapping =
+                        cutSegmentStartingFromPoint(segment, lastPoint)
+                            ?: throw LinkingFailureException("Linked geometry elements are non-continuous.")
+                    createLinkingSegment(lastPoint, nonOverlapping.segmentStart)?.let(fixedSegments::add)
+                    fixedSegments.add(nonOverlapping)
+                }
+            }
+        }
+        fixedSegments
+    }
+}
+
+private fun cutSegmentStartingFromPoint(segment: LayoutSegment, point: IPoint): LayoutSegment? {
+    val closestM = segment.getClosestPointM(point).first
+    return if (segment.length - closestM.distance <= LAYOUT_COORDINATE_DELTA * 2) {
+        null
+    } else {
+        segment.slice(Range(closestM + LAYOUT_COORDINATE_DELTA, segment.segmentEnd.m))
+    }
+}
 
 private fun createLinkingSegment(start: IPoint?, end: IPoint?, tolerance: Double = LAYOUT_M_DELTA): LayoutSegment? {
     if (start == null || end == null) return null

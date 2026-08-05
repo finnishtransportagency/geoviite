@@ -6,6 +6,9 @@ import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LineM
@@ -18,6 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class LinkingTest {
@@ -336,6 +340,69 @@ class LinkingTest {
                     )
             ),
         )
+    }
+
+    @Test
+    fun `fixMapSegmentContinuity bridges a forward gap between segments`() {
+        val segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0)), segment(Point(1.1, 0.0), Point(2.0, 0.0)))
+        val fixed = fixMapSegmentContinuity(segments)
+        assertEquals(3, fixed.size)
+        assertEquals(segments[0].segmentPoints, fixed[0].segmentPoints)
+        // The gap is bridged with a generated connecting segment
+        assertEquals(GeometrySource.GENERATED, fixed[1].source)
+        assertEquals(Point(1.0, 0.0), fixed[1].segmentPoints.first().toPoint())
+        assertEquals(1.1 + LAYOUT_COORDINATE_DELTA, fixed[1].segmentPoints.last().x, 0.0000001)
+        assertEquals(0.0, fixed[1].segmentPoints.last().y, 0.0000001)
+        // The gap-side segment is trimmed by a hair to avoid a near-zero-length zig-zag connector
+        assertEquals(1.1 + LAYOUT_COORDINATE_DELTA, fixed[2].segmentPoints.first().x, 0.0000001)
+        assertEquals(0.0, fixed[2].segmentPoints.first().y, 0.0000001)
+        assertEquals(Point(2.0, 0.0), fixed[2].segmentPoints.last().toPoint())
+    }
+
+    @Test
+    fun `fixMapSegmentContinuity trims a minor zig-zag overlap between segments`() {
+        val segments = listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0)), segment(Point(1.0, 0.0), Point(3.0, 0.0)))
+        val fixed = fixMapSegmentContinuity(segments)
+        assertEquals(2, fixed.size)
+        assertEquals(segments[0].segmentPoints, fixed[0].segmentPoints)
+        // The overlapping start of the latter segment is trimmed off, removing the zig-zag
+        assertEquals(2.001, fixed[1].segmentPoints.first().x, 0.0000001)
+        assertEquals(0.0, fixed[1].segmentPoints.first().y, 0.0000001)
+        assertEquals(Point(3.0, 0.0), fixed[1].segmentPoints.last().toPoint())
+        // Consecutive segments are continuous within the coordinate tolerance
+        fixed.zipWithNext().forEach { (s1, s2) ->
+            assertTrue(lineLength(s1.segmentEnd, s2.segmentStart) <= LAYOUT_COORDINATE_DELTA)
+        }
+    }
+
+    @Test
+    fun `fixMapSegmentContinuity fixes multiple issues along a single segment list`() {
+        val segments =
+            listOf(
+                // Segment 1: as-is
+                segment(Point(0.0, 0.0), Point(1.0, 0.0)),
+                // Segment 2: forward gap from segment 1
+                segment(Point(1.1, 0.0), Point(3.0, 0.0)),
+                // Segment 3: zig-zag overlap with segment 2
+                segment(Point(2.5, 0.0), Point(4.5, 0.0)),
+            )
+        val fixed = fixMapSegmentContinuity(segments)
+        assertEquals(4, fixed.size)
+        // Segment 1 is kept as-is
+        assertEquals(segments[0].segmentPoints, fixed[0].segmentPoints)
+        // The forward gap to segment 2 is bridged with a generated connecting segment
+        assertEquals(GeometrySource.GENERATED, fixed[1].source)
+        assertEquals(Point(1.0, 0.0), fixed[1].segmentPoints.first().toPoint())
+        assertEquals(1.101, fixed[1].segmentPoints.last().x, 0.0000001)
+        assertEquals(0.0, fixed[1].segmentPoints.last().y, 0.0000001)
+        // Segment 2 is trimmed by a hair at its start to avoid a near-zero-length zig-zag connector
+        assertEquals(1.101, fixed[2].segmentPoints.first().x, 0.0000001)
+        assertEquals(0.0, fixed[2].segmentPoints.first().y, 0.0000001)
+        assertEquals(Point(3.0, 0.0), fixed[2].segmentPoints.last().toPoint())
+        // The zig-zag overlap with segment 3 is trimmed off, with no separate connecting segment needed
+        assertEquals(3.001, fixed[3].segmentPoints.first().x, 0.0000001)
+        assertEquals(0.0, fixed[3].segmentPoints.first().y, 0.0000001)
+        assertEquals(Point(4.5, 0.0), fixed[3].segmentPoints.last().toPoint())
     }
 
     @Test
