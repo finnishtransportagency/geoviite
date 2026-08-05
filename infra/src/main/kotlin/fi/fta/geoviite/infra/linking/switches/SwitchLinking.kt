@@ -95,13 +95,22 @@ data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitch
 data class SuggestedSwitch(
     val joints: List<LayoutSwitchJoint>,
     val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
+    /**
+     * Informational. This is used on the UI to display what tracks will be topo-linked to the suggested switch, but the
+     * topology is always recalculated upon saving the suggestion.
+     */
     val topologicallyLinkedTracks: Set<IntId<LocationTrack>>,
     val detachSwitches: Set<IntId<LayoutSwitch>>,
 )
 
 data class SwitchLinkingParameters(val suggestedSwitch: SuggestedSwitch, val geometrySwitchId: IntId<GeometrySwitch>?)
 
-data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
+data class SwitchLinkingTrackLinks(
+    val locationTrackVersion: Int,
+    /** Null indicates simply detaching the switch from the track. */
+    val suggestedLinks: SuggestedLinks?,
+) {
+
     @JsonIgnore fun isLinked(): Boolean = suggestedLinks != null
 }
 
