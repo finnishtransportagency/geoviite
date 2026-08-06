@@ -385,6 +385,7 @@ data class ExtTestModifiedLocationTrackProfileResponseV1(
 data class ExtTestLocationTrackElementListingResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestElementAddressIntervalV1>,
 )
@@ -393,6 +394,7 @@ data class ExtTestLocationTrackElementListingModificationsResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestElementAddressIntervalV1>,
 )
