@@ -32,6 +32,8 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -267,7 +269,14 @@ class LocationTrackDao(
             switchIds = rs.getIntIdArray("switch_ids"),
             operationalPointIds = rs.getIntIdArray<OperationalPoint>("operational_point_ids").toSet(),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
         )
 
     @Transactional
@@ -536,6 +545,86 @@ class LocationTrackDao(
                 rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
             }
             .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsNear", bbox) }
+    }
+
+    @Transactional(readOnly = true)
+    fun fetchOfficialVersionsNearAtMoment(
+        branch: LayoutBranch,
+        bbox: BoundingBox,
+        moment: Instant,
+        includeDeleted: Boolean = false,
+    ): List<LayoutRowVersion<LocationTrack>> {
+        // The spatial filtering must only happen after resolving the version at the moment (with design overrides):
+        // otherwise an older version whose geometry was near the bounding box could be incorrectly returned
+        val sql =
+            """
+            select id, design_id, false as draft, version
+              from (
+                select distinct on (id) id, design_id, version, layout_context_id, state, bounding_box
+                  from (
+                    select distinct on (id, design_id)
+                      id,
+                      design_id,
+                      design_id is not null as is_design,
+                      deleted,
+                      design_asset_state,
+                      state,
+                      layout_context_id,
+                      bounding_box,
+                      version
+                      from layout.location_track_version
+                      where not draft
+                        and (design_id is null or design_id = :design_id)
+                        and change_time <= :moment
+                      order by id, design_id, change_time desc, version desc
+                  ) candidate
+                  where not deleted and design_asset_state is distinct from 'CANCELLED'
+                  order by id, is_design desc
+              ) location_track
+              where (:include_deleted or state != 'DELETED')
+                and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                                          location_track.bounding_box)
+                and exists(
+                  select *
+                    from layout.location_track_version_edge lt_edge
+                      inner join layout.edge on edge.id = lt_edge.edge_id
+                    where location_track.id = lt_edge.location_track_id
+                      and location_track.layout_context_id = lt_edge.location_track_layout_context_id
+                      and location_track.version = lt_edge.location_track_version
+                      and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                                                edge.bounding_box)
+                      and exists(
+                        select *
+                          from layout.edge_segment
+                            inner join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
+                          where edge_segment.edge_id = edge.id
+                            and postgis.st_intersects(
+                              postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                              segment_geometry.bounding_box
+                            )
+                      )
+                );
+            """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "x_min" to bbox.min.x,
+                "y_min" to bbox.min.y,
+                "x_max" to bbox.max.x,
+                "y_max" to bbox.max.y,
+                "layout_srid" to LAYOUT_SRID.code,
+                "design_id" to branch.designId?.intValue,
+                "moment" to Timestamp.from(moment),
+                "include_deleted" to includeDeleted,
+            )
+
+        jdbcTemplate.setForceCustomPlan()
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchOfficialVersionsNearAtMoment", bbox) }
     }
 
     @Cacheable(CACHE_COMMON_LOCATION_TRACK_OWNER, sync = true)

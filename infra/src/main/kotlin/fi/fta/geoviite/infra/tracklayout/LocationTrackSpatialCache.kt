@@ -88,7 +88,7 @@ data class LocationTrackCacheHit(
             ?: error("Closest point is outside of track geometry")
 }
 
-private val cacheHitComparator =
+internal val cacheHitComparator =
     compareBy<LocationTrackCacheHit>(
         { it.distance }, // Primary sort by distance
         { if (it.track.duplicateOf == null) 0 else 1 }, // Favor non-duplicates as tie-breaker
