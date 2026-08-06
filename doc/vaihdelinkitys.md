@@ -103,7 +103,7 @@ FittedSwitch-olion muodossa.
 Vaihdepisteet asetellaan vaihderakenteen mukaan, sillä oletuksella, että geometriavaihteen pisteet vastaavat
 rakennetta. Sitten haetaan vaan, mille raiteille nämä vaihdepisteet sitten osuvat, ja miten.
 
-### Paikannuspohjan vainteen asettelu pisteeseen
+### Paikannuspohjan vaihteen asettelu pisteeseen
 
 Keskeisin funktio on findBestSwitchFitForAllPointsInSamplingGrid, joka hoitaa ylätasolla koko laskennan vuon, missä:
 
@@ -135,7 +135,7 @@ saanut siirtämällä pisteet kaarelle.
 
 ## Topologialinkkitietojen rikastaminen vaihde-ehdotukseen
 
-Koska käyttöliittymällä halutaan näyttää, mitkä raitteet päättyvät vaihteelle, vaihde-ehdotuksen luomisen viimeisenä
+Koska käyttöliittymällä halutaan näyttää, mitkä raiteet päättyvät vaihteelle, vaihde-ehdotuksen luomisen viimeisenä
 vaiheena ajetaan muistinvaraisesti raidetopologian päivitys, mutta jätetään sen tulokset tallentamatta.
 
 
