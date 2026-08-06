@@ -1,7 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -83,9 +82,8 @@ constructor(
 
     private fun getSplitData(branch: LayoutBranch, startMoment: Instant, endMoment: Instant): List<BoundaryChangeData> {
         val splits = publicationDao.fetchPublishedSplitsBetween(startMoment, endMoment)
-        val locationTrackOids = locationTrackDao.fetchExternalIds(branch, splits.flatMap { it.allTrackIds }.distinct())
+        val trackOidRefs = oidReferences(locationTrackDao, branch, splits.flatMap { it.allTrackIds }.distinct())
         val publications = publicationDao.getPublications(splits.map { it.publicationId }.toSet())
-        val getTrackOid = { id: DomainId<LocationTrack> -> locationTrackOids[id]?.oid ?: throwOidNotFound(branch, id) }
         val sourceTracks: Map<LayoutRowVersion<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
             locationTrackService
                 .getManyWithGeometries(splits.flatMap { s -> s.segments.map { t -> t.sourceTrackVersion } }.distinct())
@@ -104,10 +102,10 @@ constructor(
                     val targetTrack =
                         targetTracks[target.targetTrackVersion] ?: throwLocationTrackNotFound(target.targetTrackVersion)
                     BoundaryChangeSegmentData(
-                        sourceTrackOid = getTrackOid(sourceTrack.id),
+                        sourceTrackOid = trackOidRefs.get(sourceTrack.id),
                         sourceTrack = sourceTrack,
                         sourceGeometry = sourceGeometry,
-                        targetTrackOid = getTrackOid(targetTrack.id),
+                        targetTrackOid = trackOidRefs.get(targetTrack.id),
                         targetTrack = targetTrack,
                         splitOperation = target.operation,
                         sourceEdgeIndices = target.sourceEdgeIndices,
@@ -119,7 +117,7 @@ constructor(
                     ?: throwTrackNumberNotFound(branch, moment, trackNumberId)
             val geocodingContext =
                 geocodingContexts(trackNumberId, moment) ?: throwGeocodingContextNotFound(branch, moment, trackNumberId)
-            val trackNumberOid = oidLookup(trackNumberDao, branch, trackNumberId)
+            val trackNumberOid = oidReference(trackNumberDao, branch, trackNumberId)
             BoundaryChangeData(
                 publication = publication,
                 type = ExtTrackBoundaryChangeTypeV1.SPLIT,
@@ -140,9 +138,8 @@ constructor(
         if (moves.isEmpty()) return emptyList()
 
         val allTrackIds = moves.flatMap { it.allTrackIds }.distinct()
-        val locationTrackOids = locationTrackDao.fetchExternalIds(branch, allTrackIds)
+        val trackOidRefs = oidReferences(locationTrackDao, branch, allTrackIds)
         val publications = publicationDao.getPublications(moves.map { it.publicationId }.toSet())
-        val getTrackOid = { id: DomainId<LocationTrack> -> locationTrackOids[id]?.oid ?: throwOidNotFound(branch, id) }
 
         val sourceTracks: Map<LayoutRowVersion<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
             locationTrackService.getManyWithGeometries(moves.map { it.shortenedTrackVersion }.distinct()).associateBy {
@@ -163,10 +160,10 @@ constructor(
 
             val segment =
                 BoundaryChangeSegmentData(
-                    sourceTrackOid = getTrackOid(sourceTrack.id),
+                    sourceTrackOid = trackOidRefs.get(sourceTrack.id),
                     sourceTrack = sourceTrack,
                     sourceGeometry = sourceGeometry,
-                    targetTrackOid = getTrackOid(targetTrack.id),
+                    targetTrackOid = trackOidRefs.get(targetTrack.id),
                     targetTrack = targetTrack,
                     splitOperation = null,
                     sourceEdgeIndices = move.edgeRange,
@@ -178,7 +175,7 @@ constructor(
                     ?: throwTrackNumberNotFound(branch, moment, trackNumberId)
             val geocodingContext =
                 geocodingContexts(trackNumberId, moment) ?: throwGeocodingContextNotFound(branch, moment, trackNumberId)
-            val trackNumberOid = oidLookup(trackNumberDao, branch, trackNumberId)
+            val trackNumberOid = oidReference(trackNumberDao, branch, trackNumberId)
 
             BoundaryChangeData(
                 publication = publication,

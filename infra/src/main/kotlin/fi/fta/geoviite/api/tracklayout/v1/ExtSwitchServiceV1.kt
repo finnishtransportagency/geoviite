@@ -286,11 +286,11 @@ constructor(
                 (t, _) ->
                 t.switchIds.any(switchIds::contains)
             }
-        val trackExtIds = locationTrackDao.fetchExternalIds(branch, tracksAndGeoms.map { it.first.id as IntId })
+        val trackOidRefs = oidReferences(locationTrackDao, branch, tracksAndGeoms.map { it.first.id as IntId })
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         return tracksAndGeoms
             .flatMap { (track, geom) ->
-                val trackOid = trackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id)
+                val trackOid = trackOidRefs.get(track.id)
                 track.switchIds.mapNotNull { switchId ->
                     produceIf(switchIds.contains(switchId)) {
                         val geocodingContext =

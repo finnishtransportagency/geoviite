@@ -3,7 +3,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -69,13 +68,9 @@ constructor(
         val trackGeometryById = tracksWithGeometry.associate { (t, g) -> (t.id as IntId<LocationTrack>) to g }
         val trackById = tracksWithGeometry.associate { (t, _) -> (t.id as IntId<LocationTrack>) to t }
 
-        // fetchExternalIds returns only OIDs from this branch; inherited OIDs from parent branches are not included.
-        // This works correctly on main. Design branch routing is a known open problem — OIDs may be missing there.
-        val trackExtIds: Map<IntId<LocationTrack>, RatkoExternalId<LocationTrack>> =
-            locationTrackDao.fetchExternalIds(branch, trackIds)
-        val trackNumberExtIds: Map<IntId<LayoutTrackNumber>, RatkoExternalId<LayoutTrackNumber>> =
-            trackNumberDao.fetchExternalIds(branch)
-        val switchExtIds: Map<IntId<LayoutSwitch>, RatkoExternalId<LayoutSwitch>> = switchDao.fetchExternalIds(branch)
+        val trackOidRefs = oidReferences(locationTrackDao, branch, trackIds)
+        val trackNumberOidRefs = oidReferences(trackNumberDao, branch)
+        val switchOidRefs = oidReferences(switchDao, branch)
 
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
 
@@ -87,13 +82,9 @@ constructor(
                 val geometry =
                     trackGeometryById[section.trackId]
                         ?: error("LocationTrack geometry not found in routing result: trackId=${section.trackId}")
-                val trackOid =
-                    trackExtIds[section.trackId]?.oid
-                        ?: error("LocationTrack OID not found: trackId=${section.trackId}")
+                val trackOid = trackOidRefs.get(section.trackId)
                 val trackNumberId = track.trackNumberId as IntId<LayoutTrackNumber>
-                val trackNumberOid =
-                    trackNumberExtIds[trackNumberId]?.oid
-                        ?: error("TrackNumber OID not found: trackNumberId=$trackNumberId")
+                val trackNumberOid = trackNumberOidRefs.get(trackNumberId)
                 val geocodingContext = getGeocodingContext(trackNumberId)
 
                 val (alkuM, loppuM) =
@@ -121,7 +112,7 @@ constructor(
                             alkuPoint,
                             alkuAddress?.formatFixedDecimals(3),
                             geometry,
-                            switchExtIds,
+                            switchOidRefs,
                             srid,
                         ),
                     loppu =
@@ -130,7 +121,7 @@ constructor(
                             loppuPoint,
                             loppuAddress?.formatFixedDecimals(3),
                             geometry,
-                            switchExtIds,
+                            switchOidRefs,
                             srid,
                         ),
                     suunta =
@@ -154,7 +145,7 @@ constructor(
         point: IPoint,
         rataosoite: String?,
         geometry: LocationTrackGeometry,
-        switchExtIds: Map<IntId<LayoutSwitch>, RatkoExternalId<LayoutSwitch>>,
+        switchOidRefs: ExtOidReferencesV1<LayoutSwitch>,
         srid: Srid,
     ): ExtRouteSectionEndpointV1 {
         val switchLink = geometry.trackSwitchLinks.firstOrNull { tsl -> isSameM(tsl.location.m, m) }
@@ -162,12 +153,7 @@ constructor(
 
         val (tyyppi, vaihdeOid) =
             when {
-                switchLink != null ->
-                    ExtRouteEndpointTypeV1.VAIHDE to
-                        ExtOidV1(
-                            switchExtIds[switchLink.switchId]?.oid
-                                ?: error("Switch OID not found: switchId=${switchLink.switchId}")
-                        )
+                switchLink != null -> ExtRouteEndpointTypeV1.VAIHDE to ExtOidV1(switchOidRefs.get(switchLink.switchId))
                 isTrackEnd(m, trackLength) -> ExtRouteEndpointTypeV1.RAITEEN_PAA to null
                 else -> ExtRouteEndpointTypeV1.SIJAINTI_RAITEELLA to null
             }
