@@ -466,5 +466,5 @@ export const useLayoutDesign = (
     useLoader(
         () =>
             layoutBranch === 'MAIN' ? undefined : getLayoutDesignByBranch(changeTime, layoutBranch),
-        [layoutBranch],
+        [layoutBranch, changeTime],
     );
