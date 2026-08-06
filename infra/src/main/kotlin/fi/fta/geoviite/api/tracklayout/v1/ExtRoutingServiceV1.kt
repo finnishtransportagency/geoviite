@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -12,6 +11,8 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -39,8 +40,10 @@ constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val switchDao: LayoutSwitchDao,
     private val geocodingService: GeocodingService,
+    private val layoutDesignService: LayoutDesignService,
 ) {
     fun getExtRoute(
+        designOid: ExtOidV1<LayoutDesign>?,
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
         startX: Double,
@@ -48,8 +51,8 @@ constructor(
         endX: Double,
         endY: Double,
     ): ExtRouteResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        val branch = publication.layoutBranch.branch
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publication = publicationService.getPublicationByUuidOrLatest(branch, layoutVersion?.value)
         val moment = publication.publicationTime
         val srid = coordinateSystem(extCoordinateSystem)
 
@@ -57,7 +60,7 @@ constructor(
         val endPoint = toLayoutCoordinate(endX, endY, srid)
 
         val routeResult =
-            routingService.getRoute(branch.official, startPoint, endPoint, MAX_ROUTE_SEEK_DISTANCE) ?: return null
+            routingService.getRoute(branch, moment, startPoint, endPoint, MAX_ROUTE_SEEK_DISTANCE) ?: return null
 
         val trackIds = routeResult.route.sections.map { it.trackId }.distinct()
         val tracksWithGeometry =

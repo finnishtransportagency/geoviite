@@ -3,8 +3,12 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -28,8 +32,13 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtRoutingIT @Autowired constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServiceV1) :
-    DBTestBase() {
+class ExtRoutingIT
+@Autowired
+constructor(
+    mockMvc: MockMvc,
+    private val extTestDataService: ExtApiTestDataServiceV1,
+    private val layoutDesignDao: LayoutDesignDao,
+) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -154,5 +163,136 @@ class ExtRoutingIT @Autowired constructor(mockMvc: MockMvc, private val extTestD
             TRACK_LAYOUT_VERSION to "00000000-0000-0000-0000-000000000000",
             httpStatus = HttpStatus.NOT_FOUND,
         )
+    }
+
+    @Test
+    fun `Design route reports the design branch OIDs of the routed assets`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 1000.0)
+        val (trackNumberId, trackNumberOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
+        val publication = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackNumberOid = testDBService.generateOid(trackNumberId, designBranch)
+        val designTrackOid = testDBService.generateOid(trackId, designBranch)
+
+        // The design has no publications of its own, so it is viewed at the latest publication overall
+        val response = api.routingInDesign(designOid).get(startX = 0.0, startY = 100.0, endX = 0.0, endY = 900.0)
+        assertEquals(publication.uuid.toString(), response.rataverkon_versio)
+
+        val section = response.reitti.reitin_osat.single()
+        assertEquals(designTrackOid.toString(), section.sijaintiraide_oid)
+        assertEquals(designTrackNumberOid.toString(), section.ratanumero_oid)
+
+        // The main route is unaffected and keeps reporting the main branch OIDs
+        val mainSection =
+            api.routing.get(startX = 0.0, startY = 100.0, endX = 0.0, endY = 900.0).reitti.reitin_osat.single()
+        assertEquals(trackOid.toString(), mainSection.sijaintiraide_oid)
+        assertEquals(trackNumberOid.toString(), mainSection.ratanumero_oid)
+    }
+
+    @Test
+    fun `Design route serves a track published in the design that the main route does not have`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 1000.0)
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val (trackId, _) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        // A track that exists only in the design, too far from the main track to be reachable from it
+        val designStart = Point(500.0, 0.0)
+        val designEnd = Point(500.0, 1000.0)
+        val (designTrackId, designTrackOid) =
+            designDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(designStart, designEnd)),
+            )
+        val designPublication = testDBService.publish(designBranch, locationTracks = listOf(designTrackId))
+
+        val response = api.routingInDesign(designOid).get(startX = 500.0, startY = 100.0, endX = 500.0, endY = 900.0)
+        assertEquals(designPublication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(designTrackOid.toString(), response.reitti.reitin_osat.single().sijaintiraide_oid)
+
+        // The design-only track does not exist on the main branch at all
+        api.routing.assertNoRoute(startX = 500.0, startY = 100.0, endX = 500.0, endY = 900.0)
+    }
+
+    @Test
+    fun `Design route reports main branch OIDs for assets that have no design OID`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 1000.0)
+        val (trackNumberId, trackNumberOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+
+        // No design OIDs are generated: the route runs over assets inherited from the main branch, and referring to
+        // them by their main branch OIDs is what keeps every section of the design route addressable.
+        val section =
+            api.routingInDesign(designOid)
+                .get(startX = 0.0, startY = 100.0, endX = 0.0, endY = 900.0)
+                .reitti
+                .reitin_osat
+                .single()
+        assertEquals(trackOid.toString(), section.sijaintiraide_oid)
+        assertEquals(trackNumberOid.toString(), section.ratanumero_oid)
+    }
+
+    @Test
+    fun `Design route reports the design OID of a switch endpoint`() {
+        val structure = switchStructureYV60_300_1_9()
+        val joint1 = switchJoint(1, Point(0.0, 0.0))
+        val joint2 = switchJoint(2, Point(100.0, 0.0))
+        val ids = extTestDataService.insertSwitchAndTracks(mainDraftContext, listOf(joint1 to joint2), structure)
+        extTestDataService.publishInMain(listOf(ids))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designSwitchOid = testDBService.generateOid(ids.switch.id, designBranch)
+
+        val response = api.routingInDesign(designOid).get(startX = 0.0, startY = 0.0, endX = 100.0, endY = 0.0)
+        val switchOids =
+            response.reitti.reitin_osat.flatMap { listOf(it.alku, it.loppu) }.mapNotNull { it.vaihde_oid }.distinct()
+        assertEquals(listOf(designSwitchOid.toString()), switchOids)
+    }
+
+    @Test
+    fun `Returns 404 for non-existing suunnitelma_oid`() {
+        testDBService.publish() // ensure at least one publication exists
+        api.routingInDesign(Oid<LayoutDesign>("1.2.246.578.13.999.999"))
+            .getWithExpectedError(
+                startX = 0.0,
+                startY = 0.0,
+                endX = 0.0,
+                endY = 100.0,
+                httpStatus = HttpStatus.NOT_FOUND,
+            )
     }
 }
