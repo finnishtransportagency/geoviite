@@ -2,14 +2,14 @@ package fi.fta.geoviite.infra.cloudfront
 
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.cloudfront.KeyUtils.Companion.parseBase64DerToPrivateKey
-import java.text.SimpleDateFormat
-import java.time.Duration
-import java.time.Instant
-import java.util.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import software.amazon.awssdk.services.cloudfront.CloudFrontUtilities
 import software.amazon.awssdk.services.cloudfront.model.CustomSignerRequest
+import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.Instant
+import java.util.*
 
 @Component
 class CookieSigner {
@@ -53,8 +53,7 @@ class CookieSigner {
         val cookieAttributes = "SameSite=Lax; Path=/; Secure; HttpOnly; Expires=${df.format(Date.from(expiresOn))}"
         val keyPairIdCookie = "CloudFront-Key-Pair-Id=${customPolicyCookies.keyPairIdHeaderValue()};$cookieAttributes"
         val policyCookie = "CloudFront-Policy=${customPolicyCookies.policyHeaderValue()};$cookieAttributes"
-        val signatureCookie =
-            "CloudFront-Signature=${customPolicyCookies.signatureHeaderValue()};$cookieAttributes"
+        val signatureCookie = "CloudFront-Signature=${customPolicyCookies.signatureHeaderValue()};$cookieAttributes"
 
         return CloudFrontCookies(
             policy = policyCookie,
