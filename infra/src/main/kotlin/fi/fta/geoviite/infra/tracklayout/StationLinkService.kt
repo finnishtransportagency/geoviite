@@ -106,7 +106,7 @@ private fun createConnectingTracks(
 
 private fun calculateTrackConnections(
     stationLinkData: StationLinkData,
-    getPathToStation: (LocationTrackCacheHit, IntId<OperationalPoint>) -> Pair<TrackMeter, Double>?,
+    getPathToStation: (PointNearTrack, IntId<OperationalPoint>) -> Pair<TrackMeter, Double>?,
     opFilter: IntId<OperationalPoint>? = null,
 ): List<TrackStationConnection> {
     val stationConnectionPairs =
@@ -176,7 +176,7 @@ private data class RouteCalculator(
     private val connectableStations = ConcurrentHashMap<IntId<OperationalPoint>, Optional<ConnectableStation>>()
 
     fun getPathToStation(
-        fromTrackPoint: LocationTrackCacheHit,
+        fromTrackPoint: PointNearTrack,
         stationId: IntId<OperationalPoint>,
     ): Pair<TrackMeter, Double>? =
         getConnectableStation(stationId)?.connectingLocations?.let { stationLocations ->
@@ -209,7 +209,7 @@ private data class RouteCalculator(
         opId: IntId<OperationalPoint>,
         opLocation: Point,
         getGeocodingContext: (IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>?,
-    ): List<Pair<TrackMeter, LocationTrackCacheHit>> =
+    ): List<Pair<TrackMeter, PointNearTrack>> =
         connectingTracks.values
             .filter { t -> t.operationalPointIds.contains(opId) }
             .mapNotNull { track ->
@@ -220,7 +220,7 @@ private data class RouteCalculator(
                         ?.let { (opAddress, _) -> context.getTrackLocation(track.geometry, opAddress) }
                         ?.let { trackLocation ->
                             // The distance (op <-> track-point) is not a part of the route -> set distance to 0.0
-                            val hit = LocationTrackCacheHit(track.track, track.geometry, trackLocation.point, 0.0)
+                            val hit = PointNearTrack(track.track, track.geometry, trackLocation.point, 0.0)
                             trackLocation.address to hit
                         }
                 }
@@ -234,13 +234,13 @@ private data class StationLinkData(
 ) {
     fun getClosestTrackStationLocations(
         track: ConnectingTrack
-    ): List<Pair<IntId<OperationalPoint>, LocationTrackCacheHit>> =
+    ): List<Pair<IntId<OperationalPoint>, PointNearTrack>> =
         track.operationalPointIds.mapNotNull { opId -> getClosestTrackPoint(track.id, opId)?.let { opId to it } }
 
     private val closestTrackPoints =
-        ConcurrentHashMap<Pair<IntId<LocationTrack>, IntId<OperationalPoint>>, Optional<LocationTrackCacheHit>>()
+        ConcurrentHashMap<Pair<IntId<LocationTrack>, IntId<OperationalPoint>>, Optional<PointNearTrack>>()
 
-    fun getClosestTrackPoint(trackId: IntId<LocationTrack>, opId: IntId<OperationalPoint>): LocationTrackCacheHit? =
+    fun getClosestTrackPoint(trackId: IntId<LocationTrack>, opId: IntId<OperationalPoint>): PointNearTrack? =
         closestTrackPoints
             .computeIfAbsent(trackId to opId) { (tId, oId) ->
                 val track = connectingTracks.getValue(tId)
@@ -249,7 +249,7 @@ private data class StationLinkData(
                     op.location?.let { location ->
                         track.geometry.getClosestPoint(location)?.first?.let { closest ->
                             // The distance (op <-> track-point) is not a part of the route -> set distance to 0.0
-                            LocationTrackCacheHit(track.track, track.geometry, closest, 0.0)
+                            PointNearTrack(track.track, track.geometry, closest, 0.0)
                         }
                     }
                 Optional.ofNullable(closestPoint)
@@ -259,7 +259,7 @@ private data class StationLinkData(
 
 private data class ConnectableStation(
     val op: OperationalPoint,
-    val connectingLocations: List<Pair<TrackMeter, LocationTrackCacheHit>>,
+    val connectingLocations: List<Pair<TrackMeter, PointNearTrack>>,
 )
 
 private data class ConnectingTrack(

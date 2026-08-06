@@ -244,7 +244,7 @@ data class RoutingGraph(
     fun getEdges(): Map<RoutingEdge, Pair<RoutingVertex, RoutingVertex>> =
         jgraph.edgeSet().associateWith { edge -> jgraph.getEdgeSource(edge) to jgraph.getEdgeTarget(edge) }
 
-    fun findPath(start: LocationTrackCacheHit, end: LocationTrackCacheHit): Route? {
+    fun findPath(start: PointNearTrack, end: PointNearTrack): Route? {
         val edges = findPathEdges(start, end)
         return edges
             ?.flatMap { edge -> toRouteSections(edge, setOf(start.track.id as IntId, end.track.id as IntId)) }
@@ -320,7 +320,7 @@ data class RoutingGraph(
                     ?: sections.minByOrNull { it.trackId.intValue }
             }
 
-    fun findPathEdges(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<RoutingEdge>? {
+    fun findPathEdges(start: PointNearTrack, end: PointNearTrack): List<RoutingEdge>? {
         val (startEdge, startMRange) = start.getEdge()
         val (endEdge, endMRange) = end.getEdge()
         val startEdgeM = start.closestPoint.m.toEdgeM(startMRange.min)

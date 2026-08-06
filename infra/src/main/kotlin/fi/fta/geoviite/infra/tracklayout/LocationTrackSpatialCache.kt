@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -77,24 +76,6 @@ data class SpatialCacheEntry(
     val segmentData: List<Pair<SpatialCacheSegment, Rectangle>>,
 )
 
-data class LocationTrackCacheHit(
-    val track: LocationTrack,
-    val geometry: DbLocationTrackGeometry,
-    val closestPoint: AlignmentPoint<LocationTrackM>,
-    val distance: Double,
-) {
-    fun getEdge(): Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>> =
-        geometry.getEdgeAtM(closestPoint.m)?.let { (e, r) -> e as DbLayoutEdge to r }
-            ?: error("Closest point is outside of track geometry")
-}
-
-internal val cacheHitComparator =
-    compareBy<LocationTrackCacheHit>(
-        { it.distance }, // Primary sort by distance
-        { if (it.track.duplicateOf == null) 0 else 1 }, // Favor non-duplicates as tie-breaker
-        { it.track.version?.id?.intValue }, // Stable ordering by ID
-    )
-
 data class ContextCache(
     private val getTrack: (LayoutRowVersion<LocationTrack>) -> LocationTrack,
     private val getGeometry: (LayoutRowVersion<LocationTrack>) -> DbLocationTrackGeometry,
@@ -105,12 +86,12 @@ data class ContextCache(
     val size: Int
         get() = items.size
 
-    fun getClosestTrack(location: IPoint, thresholdMeters: Double = 100.0): LocationTrackCacheHit? =
+    fun getClosestTrack(location: IPoint, thresholdMeters: Double = 100.0): PointNearTrack? =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
             .fold(Double.MAX_VALUE to null) {
-                (currentMinDistance, currentHit): Pair<Double, LocationTrackCacheHit?>,
-                entry ->
+                    (currentMinDistance, currentHit): Pair<Double, PointNearTrack?>,
+                    entry ->
                 val segment = entry.value()
                 val geometry = getGeometry(segment.locationTrackVersion)
                 val bbox = geometry.boundingBox!!
@@ -130,11 +111,11 @@ data class ContextCache(
             }
             .let { (_, hit) -> hit }
 
-    fun getClosestTracks(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
+    fun getClosestTracks(location: IPoint, thresholdMeters: Double = 100.0): List<PointNearTrack> =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
             .mapNotNull { entry -> createHit(entry.value(), location, thresholdMeters) }
-            .sortedWith(cacheHitComparator)
+            .sorted()
             .distinctBy { it.track.id }
 
     fun getWithinBoundingBox(boundingBox: BoundingBox): List<Pair<LocationTrack, DbLocationTrackGeometry>> =
@@ -154,14 +135,14 @@ data class ContextCache(
         segment: SpatialCacheSegment,
         location: IPoint,
         thresholdMeters: Double,
-    ): LocationTrackCacheHit? {
+    ): PointNearTrack? {
         val geometry = getGeometry(segment.locationTrackVersion)
         val (layoutSegment, segmentM) = geometry.getSegmentWithM(segment.segmentIndex)
         val closestPointM = layoutSegment.getClosestPointM(segmentM.min, location).first
         val closestPoint = layoutSegment.seekPointAtM(segmentM.min, closestPointM).point
         val distance = lineLength(location, closestPoint)
         return if (distance < thresholdMeters) {
-            LocationTrackCacheHit(getTrack(segment.locationTrackVersion), geometry, closestPoint, distance)
+            PointNearTrack(getTrack(segment.locationTrackVersion), geometry, closestPoint, distance)
         } else {
             null
         }

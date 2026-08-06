@@ -106,28 +106,26 @@ class RoutingService(
         }
     }
 
-    private fun getClosestTrack(key: GraphCacheKey, location: Point, thresholdMeters: Double): LocationTrackCacheHit? {
+    private fun getClosestTrack(key: GraphCacheKey, location: Point, thresholdMeters: Double): PointNearTrack? {
         val bbox = boundingBoxAroundPoint(location, thresholdMeters)
         val versions =
             when (key.context.state) {
                 OFFICIAL -> locationTrackDao.fetchOfficialVersionsNearAtMoment(key.context.branch, bbox, key.changeTime)
                 DRAFT -> locationTrackDao.fetchVersionsNear(key.context, bbox)
             }
-        return versions
-            .mapNotNull { version -> createHit(version, location, thresholdMeters) }
-            .minWithOrNull(cacheHitComparator)
+        return versions.mapNotNull { version -> createHit(version, location, thresholdMeters) }.minOrNull()
     }
 
     private fun createHit(
         version: LayoutRowVersion<LocationTrack>,
         location: Point,
         thresholdMeters: Double,
-    ): LocationTrackCacheHit? {
+    ): PointNearTrack? {
         val geometry = alignmentDao.fetch(version)
         return geometry.getClosestPoint(location)?.let { (closestPoint, _) ->
             val distance = lineLength(location, closestPoint)
             if (distance < thresholdMeters) {
-                LocationTrackCacheHit(locationTrackDao.fetch(version), geometry, closestPoint, distance)
+                PointNearTrack(locationTrackDao.fetch(version), geometry, closestPoint, distance)
             } else {
                 null
             }
@@ -135,7 +133,7 @@ class RoutingService(
     }
 }
 
-private fun toClosestTrackPoint(requestedPoint: Point, hit: LocationTrackCacheHit): ClosestTrackPoint =
+private fun toClosestTrackPoint(requestedPoint: Point, hit: PointNearTrack): ClosestTrackPoint =
     ClosestTrackPoint(
         locationTrackId = hit.track.id as IntId<LocationTrack>,
         requestedLocation = requestedPoint,
