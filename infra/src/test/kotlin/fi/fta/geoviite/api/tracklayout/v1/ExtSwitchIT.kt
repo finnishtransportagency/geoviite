@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -54,6 +56,7 @@ constructor(
     private val extTestDataService: ExtApiTestDataServiceV1,
     private val switchLibrary: SwitchLibraryService,
     private val switchService: LayoutSwitchService,
+    private val layoutDesignDao: LayoutDesignDao,
 ) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -642,6 +645,86 @@ constructor(
                 assertEquals(currentVersion.toString(), response.loppuversio)
                 assertCollectionMatches(response.vaihteet, *(changed.toTypedArray()))
             }
+    }
+
+    @Test
+    fun `Design routes resolve design OIDs and serve the inherited switch`() {
+        val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)
+        val mainPublication = extTestDataService.publishInMain(listOf(switchSetup))
+        val oid = switchSetup.switch.oid
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designSwitchOid = testDBService.generateOid(switchSetup.switch.id, designBranch)
+
+        api.switchInDesign(designOid).get(oid).let { response ->
+            assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(designSwitchOid.toString(), response.vaihde.vaihde_oid)
+            assertEquals(oid.toString(), response.vaihde.virallinen_vaihde_oid)
+        }
+        api.switchCollectionInDesign(designOid).get().vaihteet.single().let { switch ->
+            assertEquals(designSwitchOid.toString(), switch.vaihde_oid)
+            assertEquals(oid.toString(), switch.virallinen_vaihde_oid)
+        }
+
+        // The main route is unaffected and reports no separate official OID
+        assertNull(api.switch.get(oid).vaihde.virallinen_vaihde_oid)
+    }
+
+    @Test
+    fun `Design routes do not serve a switch without an OID in the design`() {
+        val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)
+        val mainPublication = extTestDataService.publishInMain(listOf(switchSetup))
+        val oid = switchSetup.switch.oid
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+
+        api.switchInDesign(designOid).getWithExpectedError(oid.toString(), httpStatus = HttpStatus.NOT_FOUND)
+        api.switchInDesign(designOid)
+            .getModifiedWithExpectedError(
+                oid.toString(),
+                TRACK_LAYOUT_VERSION_FROM to mainPublication.uuid.toString(),
+                httpStatus = HttpStatus.NOT_FOUND,
+            )
+        assertEquals(emptyList<ExtTestSwitchV1>(), api.switchCollectionInDesign(designOid).get().vaihteet)
+    }
+
+    @Test
+    fun `Switch change published in a design is returned by the design modifications routes`() {
+        val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)
+        val mainPublication = extTestDataService.publishInMain(listOf(switchSetup))
+        val oid = switchSetup.switch.oid
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designSwitchOid = testDBService.generateOid(switchSetup.switch.id, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        designContext.mutate(switchSetup.switch.id) { s -> s.copy(name = SwitchName(s.name.toString() + "-DESIGN")) }
+        val designPublication = testDBService.publish(designBranch, switches = listOf(switchSetup.switch.id))
+        val designName =
+            testDBService.testContext(designBranch, PublicationState.OFFICIAL).fetch(switchSetup.switch.id)!!.name
+
+        api.switchInDesign(designOid).getModifiedBetween(oid, mainPublication.uuid, designPublication.uuid).let {
+            response ->
+            assertEquals(mainPublication.uuid.toString(), response.alkuversio)
+            assertEquals(designPublication.uuid.toString(), response.loppuversio)
+            assertEquals(designSwitchOid.toString(), response.vaihde.vaihde_oid)
+            assertEquals(oid.toString(), response.vaihde.virallinen_vaihde_oid)
+            assertEquals(designName.toString(), response.vaihde.vaihdetunnus)
+        }
+        api.switchCollectionInDesign(designOid).getModifiedBetween(mainPublication.uuid, designPublication.uuid).let {
+            response ->
+            assertEquals(designName.toString(), response.vaihteet.single().vaihdetunnus)
+        }
+
+        // The design-only change is not visible on the main routes
+        api.switch.assertNoModificationSince(oid, mainPublication.uuid)
+        api.switchCollection.assertNoModificationSince(mainPublication.uuid)
     }
 
     private fun assertChangesBetween(

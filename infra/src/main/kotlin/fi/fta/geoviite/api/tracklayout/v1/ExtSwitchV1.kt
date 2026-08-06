@@ -36,6 +36,9 @@ data class ExtSwitchTrackJointV1(
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtSwitchV1(
     @Schema(example = "1.2.246.578.13.123.456") @JsonProperty(SWITCH_OID) val switchOid: ExtOidV1<LayoutSwitch>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_SWITCH_OID)
+    val officialSwitchOid: ExtOidV1<LayoutSwitch>?,
     @Schema(type = "string", example = "HKI V0046") @JsonProperty(SWITCH_NAME) val switchName: SwitchName,
     @Schema(type = "string", example = "YV60-300-1:9-O") @JsonProperty(TYPE) val type: SwitchType,
     @JsonProperty(SWITCH_HAND) val hand: ExtSwitchHandV1,

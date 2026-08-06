@@ -218,6 +218,7 @@ data class ExtTestSwitchTrackLinkV1(val sijaintiraide_oid: String, val pisteet: 
 
 data class ExtTestSwitchV1(
     val vaihde_oid: String,
+    val virallinen_vaihde_oid: String?,
     val vaihdetunnus: String,
     val tyyppi: String,
     val katisyys: String,
