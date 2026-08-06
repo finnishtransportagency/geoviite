@@ -198,6 +198,50 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             assetCollectionClazz = ExtTestTrackKmsCollectionResponseV1::class,
         )
 
+    fun trackNumbersInDesign(designOid: Oid<*>) =
+        AssetApi<Oid<*>, ExtTestTrackNumberResponseV1, ExtTestModifiedTrackNumberResponseV1>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/${oid}" },
+            assetClazz = ExtTestTrackNumberResponseV1::class,
+            modifiedUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/${oid}/muutokset"
+            },
+            modifiedClazz = ExtTestModifiedTrackNumberResponseV1::class,
+        )
+
+    fun trackNumberCollectionInDesign(designOid: Oid<*>) =
+        AssetCollectionApi(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot" },
+            assetCollectionClazz = ExtTestTrackNumberCollectionResponseV1::class,
+            modifiedAssetCollectionUrl = {
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/muutokset"
+            },
+            modifiedAssetCollectionClazz = ExtTestModifiedTrackNumberCollectionResponseV1::class,
+        )
+
+    fun trackNumberGeometryInDesign(designOid: Oid<*>) =
+        AssetApi<Oid<*>, ExtTestTrackNumberGeometryResponseV1, ExtTestModifiedTrackNumberGeometryResponseV1>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/${oid}/geometria" },
+            assetClazz = ExtTestTrackNumberGeometryResponseV1::class,
+            modifiedUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/${oid}/geometria/muutokset"
+            },
+            modifiedClazz = ExtTestModifiedTrackNumberGeometryResponseV1::class,
+        )
+
+    fun trackNumberKmsInDesign(designOid: Oid<*>) =
+        AssetApi<Oid<*>, ExtTestTrackKmsResponseV1, Nothing>(
+            assetUrl = { oid ->
+                "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/${oid}/ratakilometrit"
+            },
+            assetClazz = ExtTestTrackKmsResponseV1::class,
+        )
+
+    fun trackNumberKmsCollectionInDesign(designOid: Oid<*>) =
+        AssetCollectionApi<ExtTestTrackKmsCollectionResponseV1, Nothing>(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/ratanumerot/ratakilometrit" },
+            assetCollectionClazz = ExtTestTrackKmsCollectionResponseV1::class,
+        )
+
     val switch =
         AssetApi<Oid<*>, ExtTestSwitchResponseV1, ExtTestModifiedSwitchResponseV1>(
             assetUrl = { oid -> "/geoviite/paikannuspohja/v1/vaihteet/${oid}" },

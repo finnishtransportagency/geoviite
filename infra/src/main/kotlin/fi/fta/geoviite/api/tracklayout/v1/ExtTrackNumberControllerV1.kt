@@ -2,6 +2,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -38,7 +39,7 @@ constructor(
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/ratanumerot")
+    @GetMapping("/ratanumerot", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman haku")
     @ApiResponses(
@@ -63,6 +64,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberCollection(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         layoutVersion: ExtLayoutVersionV1?,
@@ -73,9 +75,9 @@ constructor(
         @RequestParam(TRACK_NUMBER, required = false)
         trackNumberFilter: String?,
     ): ExtTrackNumberCollectionResponseV1 =
-        extTrackNumberService.getExtTrackNumberCollection(layoutVersion, coordinateSystem, trackNumberFilter)
+        extTrackNumberService.getExtTrackNumberCollection(designOid, layoutVersion, coordinateSystem, trackNumberFilter)
 
-    @GetMapping("/ratanumerot/muutokset")
+    @GetMapping("/ratanumerot/muutokset", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/muutokset")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman muutosten haku")
     @ApiResponses(
@@ -109,6 +111,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberCollectionModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
         layoutVersionFrom: ExtLayoutVersionV1,
@@ -126,12 +129,13 @@ constructor(
             .getExtTrackNumberCollectionModifications(
                 layoutVersionFrom,
                 layoutVersionTo,
+                designOid,
                 coordinateSystem,
                 trackNumberFilter,
             )
             .let(::toResponse)
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron haku OID-tunnuksella")
     @ApiResponses(
@@ -162,6 +166,7 @@ constructor(
             ]
     )
     fun getExtTrackNumber(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: ExtOidV1<LayoutTrackNumber>,
@@ -172,9 +177,12 @@ constructor(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtTrackNumberResponseV1> =
-        extTrackNumberService.getExtTrackNumber(oid, layoutVersion, coordinateSystem).let(::toResponse)
+        extTrackNumberService.getExtTrackNumber(oid, layoutVersion, designOid, coordinateSystem).let(::toResponse)
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset")
+    @GetMapping(
+        "/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset",
+        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset",
+    )
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(
         summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
@@ -219,6 +227,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: ExtOidV1<LayoutTrackNumber>,
@@ -233,10 +242,13 @@ constructor(
         coordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtModifiedTrackNumberResponseV1> =
         extTrackNumberService
-            .getExtTrackNumberModifications(oid, layoutVersionFrom, layoutVersionTo, coordinateSystem)
+            .getExtTrackNumberModifications(oid, layoutVersionFrom, layoutVersionTo, designOid, coordinateSystem)
             .let(::toResponse)
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")
+    @GetMapping(
+        "/ratanumerot/{${TRACK_NUMBER_OID}}/geometria",
+        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}/geometria",
+    )
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron geometrian haku OID-tunnuksella")
     @ApiResponses(
@@ -267,6 +279,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberGeometry(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: ExtOidV1<LayoutTrackNumber>,
@@ -288,6 +301,7 @@ constructor(
     ): ResponseEntity<ExtTrackNumberGeometryResponseV1> =
         extTrackNumberGeometryService
             .getExtTrackNumberGeometry(
+                designOid,
                 oid,
                 layoutVersion,
                 extResolution,
@@ -297,7 +311,10 @@ constructor(
             )
             .let(::toResponse)
 
-    @GetMapping("/ratanumerot/{$TRACK_NUMBER_OID}/geometria/muutokset")
+    @GetMapping(
+        "/ratanumerot/{$TRACK_NUMBER_OID}/geometria/muutokset",
+        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{$TRACK_NUMBER_OID}/geometria/muutokset",
+    )
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron geometrian muutosten haku OID-tunnuksella")
     @ApiResponses(
@@ -328,6 +345,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberGeometryModifications(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: ExtOidV1<LayoutTrackNumber>,
@@ -352,6 +370,7 @@ constructor(
     ): ResponseEntity<ExtTrackNumberModifiedGeometryResponseV1> =
         extTrackNumberGeometryService
             .getExtTrackNumberGeometryModifications(
+                designOid,
                 oid,
                 layoutVersionFrom,
                 layoutVersionTo,

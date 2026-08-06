@@ -2528,6 +2528,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
         trackNumberId: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
     ): Change<LayoutRowVersion<LayoutTrackNumber>>? {
         val sql =
             """
@@ -2542,7 +2543,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               ) as old_version
               from publication.track_number ptn
                 inner join publication.publication publication on ptn.publication_id = publication.id
-              where publication.design_id is null
+              where publication.design_id is not distinct from :design_id
                 and ptn.id = :track_number_id
                 and publication.publication_time > :start_time
                 and publication.publication_time <= :end_time
@@ -2561,6 +2562,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
                 "track_number_id" to trackNumberId.intValue,
+                "design_id" to layoutBranch.designId?.intValue,
             )
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
@@ -2576,18 +2578,22 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
         id: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
     ): LayoutRowVersion<LayoutTrackNumber>? =
-        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id).singleOrNull()
+        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, layoutBranch, id)
+            .singleOrNull()
 
     fun fetchPublishedTrackNumbersBetween(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
     ): List<LayoutRowVersion<LayoutTrackNumber>> =
-        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id = null)
+        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, layoutBranch, id = null)
 
     private fun fetchPublishedTrackNumbersBetweenInternal(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
         id: IntId<LayoutTrackNumber>?,
     ): List<LayoutRowVersion<LayoutTrackNumber>> {
         val sql =
@@ -2598,7 +2604,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               ptn.version
             from publication.track_number ptn
               join publication.publication publication on ptn.publication_id = publication.id
-            where publication.design_id is null
+            where publication.design_id is not distinct from :design_id
               and (:tn_id::int is null or ptn.id = :tn_id)
               and publication.publication_time > :start_time
               and publication.publication_time <= :end_time
@@ -2611,6 +2617,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
                 "tn_id" to id?.intValue,
+                "design_id" to layoutBranch.designId?.intValue,
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }

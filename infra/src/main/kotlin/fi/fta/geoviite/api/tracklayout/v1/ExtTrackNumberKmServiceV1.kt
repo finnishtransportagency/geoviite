@@ -2,7 +2,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -11,6 +11,8 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -26,37 +28,42 @@ constructor(
     private val publicationService: PublicationService,
     private val geocodingService: GeocodingService,
     private val trackNumberDao: LayoutTrackNumberDao,
+    private val layoutDesignService: LayoutDesignService,
 ) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getExtTrackNumberKmsCollection(
+        designOid: ExtOidV1<LayoutDesign>?,
         trackLayoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
     ): ExtTrackKmsCollectionResponseV1 {
-        val publication =
-            publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion?.value)
-        return createTrackNumberKmsCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publication = publicationService.getPublicationByUuidOrLatest(branch, trackLayoutVersion?.value)
+        return createTrackNumberKmsCollectionResponse(publication, branch, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtTrackNumberKms(
         oid: ExtOidV1<LayoutTrackNumber>,
+        designOid: ExtOidV1<LayoutDesign>?,
         trackLayoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
     ): ExtTrackKmsResponseV1? {
-        val publication =
-            publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion?.value)
-        return createTrackKmResponse(oid.value, publication, coordinateSystem(extCoordinateSystem))
+        val branch = branchByDesignOid(layoutDesignService, designOid)
+        val publication = publicationService.getPublicationByUuidOrLatest(branch, trackLayoutVersion?.value)
+        val id = idLookup(trackNumberDao, oid.value)
+        val oids = branchOids(trackNumberDao, branch, oid.value, id)
+        return createTrackKmResponse(oids, id, publication, branch, coordinateSystem(extCoordinateSystem))
     }
 
     private fun createTrackKmResponse(
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        oids: BranchOidsV1<LayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         publication: Publication,
+        branch: LayoutBranch,
         coordinateSystem: Srid,
     ): ExtTrackKmsResponseV1? {
-        val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val trackNumberId = idLookup(trackNumberDao, trackNumberOid)
         return trackNumberDao
             .getOfficialAtMoment(branch, trackNumberId, moment)
             ?.takeIf { it.exists }
@@ -66,23 +73,29 @@ constructor(
                 ExtTrackKmsResponseV1(
                     trackLayoutVersion = ExtLayoutVersionV1(publication),
                     coordinateSystem = ExtSridV1(coordinateSystem),
-                    trackNumberKms = getExtTrackKms(trackNumberOid, trackNumber, geocodingContext, coordinateSystem),
+                    trackNumberKms =
+                        getExtTrackKms(oids.oid, oids.officialOid, trackNumber, geocodingContext, coordinateSystem),
                 )
             }
     }
 
     private fun createTrackNumberKmsCollectionResponse(
         publication: Publication,
+        branch: LayoutBranch,
         coordinateSystem: Srid,
     ): ExtTrackKmsCollectionResponseV1 {
-        val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
+        val allTrackNumbers = trackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+        val trackNumberExtIds =
+            trackNumberDao.fetchExternalIds(branch, allTrackNumbers.map { trackNumber -> trackNumber.id as IntId })
+        // A track number with no OID in a design branch is not part of the design's externally published state and is
+        // not listed by the design's collection routes.
         val trackNumbers =
-            trackNumberDao.listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime).filter {
-                it.exists
-            }
-        val trackNumberIds = trackNumbers.map { trackNumber -> trackNumber.id as IntId }
-        val trackNumberExtIds = trackNumberDao.fetchExternalIds(branch, trackNumberIds)
+            if (branch == LayoutBranch.main) allTrackNumbers
+            else allTrackNumbers.filter { tn -> trackNumberExtIds.containsKey(tn.id as IntId) }
+        val officialExtIdsIfBranch =
+            if (branch == LayoutBranch.main) mapOf()
+            else trackNumberDao.fetchExternalIds(LayoutBranch.main, trackNumbers.map { tn -> tn.id as IntId })
         val geocodingContexts = trackNumbers.associate {
             it.id to geocodingService.getGeocodingContextAtMoment(branch, it.id as IntId, moment)
         }
@@ -92,13 +105,20 @@ constructor(
             trackNumberKms =
                 trackNumbers.map { tn ->
                     val oid = trackNumberExtIds[tn.id as IntId]?.oid ?: throwOidNotFound(branch, tn.id)
-                    getExtTrackKms(oid, tn, geocodingContexts[tn.id], coordinateSystem)
+                    getExtTrackKms(
+                        oid,
+                        officialExtIdsIfBranch[tn.id]?.oid,
+                        tn,
+                        geocodingContexts[tn.id],
+                        coordinateSystem,
+                    )
                 },
         )
     }
 
     private fun getExtTrackKms(
         trackNumberOid: Oid<LayoutTrackNumber>,
+        officialTrackNumberOid: Oid<LayoutTrackNumber>?,
         trackNumber: LayoutTrackNumber,
         geocodingContext: GeocodingContext<ReferenceLineM>?,
         coordinateSystem: Srid,
@@ -106,6 +126,7 @@ constructor(
         return ExtTrackNumberKmsV1(
             trackNumber = trackNumber.number,
             trackNumberOid = ExtOidV1(trackNumberOid),
+            officialTrackNumberOid = officialTrackNumberOid?.let(::ExtOidV1),
             trackKms =
                 geocodingContext?.kms?.map { km ->
                     val kmPost = geocodingContext.kmPosts.find { kmp -> kmp.kmNumber == km.kmNumber }

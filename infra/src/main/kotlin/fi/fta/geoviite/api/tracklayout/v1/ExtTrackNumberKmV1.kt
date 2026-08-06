@@ -15,6 +15,9 @@ data class ExtTrackNumberKmsV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_TRACK_NUMBER_OID)
+    val officialTrackNumberOid: ExtOidV1<LayoutTrackNumber>?,
     @JsonProperty(TRACK_KMS) val trackKms: List<ExtTrackKmV1>,
 )
 

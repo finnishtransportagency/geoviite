@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -28,9 +30,11 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
+import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -39,7 +43,11 @@ import org.springframework.test.web.servlet.MockMvc
 @AutoConfigureMockMvc
 class ExtTrackNumberIT
 @Autowired
-constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumberDao) : DBTestBase() {
+constructor(
+    mockMvc: MockMvc,
+    private val layoutTrackNumberDao: LayoutTrackNumberDao,
+    private val layoutDesignDao: LayoutDesignDao,
+) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -630,6 +638,102 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumbe
                 Point(64.0, 0.0),
             )
         }
+    }
+
+    @Test
+    fun `Design routes resolve design OIDs and serve the inherited track number`() {
+        val (tnId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackNumberOid = testDBService.generateOid(tnId, designBranch)
+
+        api.trackNumbersInDesign(designOid).get(oid).let { response ->
+            assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(designTrackNumberOid.toString(), response.ratanumero.ratanumero_oid)
+            assertEquals(oid.toString(), response.ratanumero.virallinen_ratanumero_oid)
+        }
+        api.trackNumberGeometryInDesign(designOid).get(oid).let { response ->
+            assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(designTrackNumberOid.toString(), response.ratanumero_oid)
+            assertEquals(oid.toString(), response.virallinen_ratanumero_oid)
+            assertNotNull(response.osoitevali)
+        }
+
+        // The main routes are unaffected and report no separate official OID
+        assertEquals(oid.toString(), api.trackNumbers.get(oid).ratanumero.ratanumero_oid)
+        assertNull(api.trackNumbers.get(oid).ratanumero.virallinen_ratanumero_oid)
+        assertNull(api.trackNumberGeometry.get(oid).virallinen_ratanumero_oid)
+    }
+
+    @Test
+    fun `Design routes do not serve a track number without an OID in the design`() {
+        val (tnId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+
+        api.trackNumbersInDesign(designOid).getWithExpectedError(oid.toString(), httpStatus = HttpStatus.NOT_FOUND)
+        api.trackNumbersInDesign(designOid)
+            .getModifiedWithExpectedError(
+                oid.toString(),
+                TRACK_LAYOUT_VERSION_FROM to mainPublication.uuid.toString(),
+                httpStatus = HttpStatus.NOT_FOUND,
+            )
+        api.trackNumberGeometryInDesign(designOid)
+            .getWithExpectedError(oid.toString(), httpStatus = HttpStatus.NOT_FOUND)
+        api.trackNumberGeometryInDesign(designOid)
+            .getModifiedWithExpectedError(
+                oid.toString(),
+                TRACK_LAYOUT_VERSION_FROM to mainPublication.uuid.toString(),
+                httpStatus = HttpStatus.NOT_FOUND,
+            )
+    }
+
+    @Test
+    fun `Track number change published in a design is returned by the design modifications routes`() {
+        val (tnId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackNumberOid = testDBService.generateOid(tnId, designBranch)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val designDescription = "track number description in design"
+        designDraftContext.mutate(tnId) { tn -> tn.copy(description = TrackNumberDescription(designDescription)) }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        api.trackNumbersInDesign(designOid).getModifiedBetween(oid, mainPublication.uuid, designPublication.uuid).let {
+            response ->
+            assertEquals(mainPublication.uuid.toString(), response.alkuversio)
+            assertEquals(designPublication.uuid.toString(), response.loppuversio)
+            assertEquals(designTrackNumberOid.toString(), response.ratanumero.ratanumero_oid)
+            assertEquals(oid.toString(), response.ratanumero.virallinen_ratanumero_oid)
+            assertEquals(designDescription, response.ratanumero.kuvaus)
+        }
+        assertEquals(designDescription, api.trackNumbersInDesign(designOid).get(oid).ratanumero.kuvaus)
+
+        // The design-only change is not visible on the main routes
+        api.trackNumbers.assertNoModificationSince(oid, mainPublication.uuid)
+        assertNotEquals(designDescription, api.trackNumbers.get(oid).ratanumero.kuvaus)
     }
 
     private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>, publication: Publication? = null): ExtTestTrackNumberV1 =
