@@ -14,6 +14,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "34.4"
 val kotlinVersion = "2.3.21"
+val jacksonVersion = "2.22.1"
 
 plugins {
     id("org.springframework.boot") version "3.5.16"
@@ -59,23 +60,37 @@ dependencies {
     // The dep itself needs to be explicit or the constraints below won't work
     implementation("org.apache.commons:commons-text:1.15.0")
     implementation("org.apache.commons:commons-lang3:3.20.0")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.22.1")
-    testImplementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
+
+    // Common libs that come with various versions in transitive deps -> explicitly set the version
+    implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
+    implementation("com.fasterxml.jackson:jackson-bom:$jacksonVersion")
+    implementation("com.google.errorprone:error_prone_annotations:2.49.0")
+    implementation("com.google.guava:guava:33.5.0-jre")
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
+    implementation("javax.measure:unit-api:2.2")
+
+    // swagger-parser pulls a vulnerable version of rhino -> override with newer version
     testImplementation("org.mozilla:rhino:1.9.1")
+
     constraints {
+        // Common libs that come with various versions in transitive deps -> explicitly set the version
+        implementation("com.fasterxml.jackson.core:jackson-core:${jacksonVersion}")
+        implementation("com.fasterxml.jackson:jackson-bom:${jacksonVersion}")
+        implementation("com.google.errorprone:error_prone_annotations:2.49.0")
+        implementation("com.google.guava:guava:33.6.0-jre")
+        implementation("com.google.code.findbugs:jsr305:3.0.2")
+        implementation("javax.measure:unit-api:2.2")
+
         // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17 has a vulnerable transitive dependency
         implementation("org.apache.commons:commons-text:1.15.0")
         implementation("org.apache.commons:commons-lang3:3.20.0")
 
-        // com.amazonaws:aws-java-sdk-cloudfront:1.12.797 has a vulnerable transitive dependency
-        implementation("com.fasterxml.jackson.core:jackson-core:2.22.1")
-
-        testImplementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
+        // swagger-parser pulls a vulnerable version of rhino -> override with newer version
         testImplementation("org.mozilla:rhino:1.9.1")
     }
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.797") { exclude("commons-logging", "commons-logging") }
+    implementation("software.amazon.awssdk:cloudfront:2.50.2")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -88,8 +103,8 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("org.flywaydb:flyway-core:11.20.3")
     implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
