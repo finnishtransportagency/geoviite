@@ -63,9 +63,9 @@ dependencies {
 
     // Common libs that come with various versions in transitive deps -> explicitly set the version
     implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
-    implementation("com.fasterxml.jackson:jackson-bom:$jacksonVersion")
+    implementation(platform("com.fasterxml.jackson:jackson-bom:$jacksonVersion"))
     implementation("com.google.errorprone:error_prone_annotations:2.49.0")
-    implementation("com.google.guava:guava:33.5.0-jre")
+    implementation("com.google.guava:guava:33.6.0-jre")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
     implementation("javax.measure:unit-api:2.2")
 
