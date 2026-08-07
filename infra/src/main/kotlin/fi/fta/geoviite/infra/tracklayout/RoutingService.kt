@@ -70,12 +70,31 @@ class RoutingService(
         startLocation: Point,
         endLocation: Point,
         trackSeekDistance: Double,
+    ): RouteResult? = getRoute(context, getGraph(context), startLocation, endLocation, trackSeekDistance)
+
+    fun getRoute(
+        branch: LayoutBranch,
+        moment: Instant,
+        startLocation: Point,
+        endLocation: Point,
+        trackSeekDistance: Double,
+    ): RouteResult? {
+        val graph = getGraph(branch, moment)
+        return getRoute(branch.official, graph, startLocation, endLocation, trackSeekDistance)
+    }
+
+    private fun getRoute(
+        context: LayoutContext,
+        graph: RoutingGraph,
+        startLocation: Point,
+        endLocation: Point,
+        trackSeekDistance: Double,
     ): RouteResult? {
         val trackCache = locationTrackSpatialCache.get(context)
         val startTrackHit = trackCache.getClosestTrack(startLocation, trackSeekDistance)
         val endTrackHit = trackCache.getClosestTrack(endLocation, trackSeekDistance)
         return if (startTrackHit != null && endTrackHit != null) {
-            getGraph(context).findPath(startTrackHit, endTrackHit)?.let { route ->
+            graph.findPath(startTrackHit, endTrackHit)?.let { route ->
                 RouteResult(
                     startConnection = toClosestTrackPoint(startLocation, startTrackHit),
                     endConnection = toClosestTrackPoint(endLocation, endTrackHit),

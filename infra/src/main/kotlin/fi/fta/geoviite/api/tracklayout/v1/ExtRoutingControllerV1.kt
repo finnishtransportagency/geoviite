@@ -2,6 +2,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
 const val EXT_ROUTING_TAG_V1 = "Reititys"
@@ -27,7 +29,7 @@ const val EXT_ROUTING_TAG_V1 = "Reititys"
 )
 class ExtRoutingControllerV1(private val extRoutingService: ExtRoutingServiceV1) {
 
-    @GetMapping("/reititys")
+    @GetMapping("/reititys", "/suunnitelmat/{${DESIGN_OID}}/reititys")
     @Tag(name = EXT_ROUTING_TAG_V1)
     @Operation(summary = "Reitti kahden koordinaattisijainnin välillä")
     @ApiResponses(
@@ -57,6 +59,7 @@ class ExtRoutingControllerV1(private val extRoutingService: ExtRoutingServiceV1)
             ]
     )
     fun getExtRoute(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         layoutVersion: ExtLayoutVersionV1?,
@@ -68,5 +71,7 @@ class ExtRoutingControllerV1(private val extRoutingService: ExtRoutingServiceV1)
         @Parameter(description = "Reitin loppusijainnin x-koordinaatti") @RequestParam(END_X) endX: Double,
         @Parameter(description = "Reitin loppusijainnin y-koordinaatti") @RequestParam(END_Y) endY: Double,
     ): ResponseEntity<ExtRouteResponseV1> =
-        extRoutingService.getExtRoute(layoutVersion, extCoordinateSystem, startX, startY, endX, endY).let(::toResponse)
+        extRoutingService
+            .getExtRoute(designOid, layoutVersion, extCoordinateSystem, startX, startY, endX, endY)
+            .let(::toResponse)
 }

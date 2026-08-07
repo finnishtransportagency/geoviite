@@ -248,6 +248,9 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
 
     val routing = RoutingApi(routingUrl = { "/geoviite/paikannuspohja/v1/reititys" })
 
+    fun routingInDesign(designOid: Oid<*>) =
+        RoutingApi(routingUrl = { "/geoviite/paikannuspohja/v1/suunnitelmat/${designOid}/reititys" })
+
     val stationLinkCollection =
         AssetCollectionApi<ExtTestStationLinkCollectionResponseV1, Nothing>(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/liikennepaikkavalit" },
