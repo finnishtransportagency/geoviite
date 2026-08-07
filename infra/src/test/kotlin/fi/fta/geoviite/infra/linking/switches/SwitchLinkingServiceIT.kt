@@ -1221,7 +1221,9 @@ constructor(
                             localizationKey =
                                 LocalizationKey.of("validation.layout.split.track-links-missing-after-relinking"),
                             params =
-                                LocalizationParams(mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")),
+                                LocalizationParams(
+                                    mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")
+                                ),
                         ),
                     ),
             )

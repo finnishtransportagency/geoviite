@@ -601,7 +601,9 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 0.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
+                    .copy(
+                        segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))
+                    ),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -634,7 +636,9 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 1.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
+                    .copy(
+                        segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))
+                    ),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -667,7 +671,9 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(8.0, 0.0), Point(8.0, 0.0) to Point(9.0, 1.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))),
+                    .copy(
+                        segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))
+                    ),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )

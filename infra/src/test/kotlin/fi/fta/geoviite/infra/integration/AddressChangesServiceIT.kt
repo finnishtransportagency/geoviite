@@ -295,14 +295,20 @@ constructor(
                     Point(100.0, 100.0) to TrackMeter(2, 1),
                     Point(100.0, 200.0) to TrackMeter(2, 101),
                 ),
-                createEmptyAddresses(Point(100.0, 100.0) to TrackMeter(2, 1), Point(100.0, 200.0) to TrackMeter(2, 101)),
+                createEmptyAddresses(
+                    Point(100.0, 100.0) to TrackMeter(2, 1),
+                    Point(100.0, 200.0) to TrackMeter(2, 101),
+                ),
             ),
         )
         assertEquals(
             setOf(KmNumber(3)),
             resolveChangedGeometryKilometers(
                 createAddresses(Point(100.0, 100.0) to TrackMeter(3, 1), Point(100.0, 200.0) to TrackMeter(3, 101)),
-                createEmptyAddresses(Point(100.0, 100.0) to TrackMeter(3, 1), Point(100.0, 200.0) to TrackMeter(3, 101)),
+                createEmptyAddresses(
+                    Point(100.0, 100.0) to TrackMeter(3, 1),
+                    Point(100.0, 200.0) to TrackMeter(3, 101),
+                ),
             ),
         )
         assertEquals(

@@ -1051,7 +1051,10 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
+                mapOf(
+                    "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
+                    "switch" to "TV123",
+                ),
             ),
         )
     }
@@ -2012,7 +2015,8 @@ constructor(
                 .save(
                     switch(
                         name = switchName,
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                        joints =
+                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
                     )
                 )
                 .id
@@ -2158,7 +2162,8 @@ constructor(
                 .save(
                     switch(
                         name = "impossiboru switch name",
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 0.0), null)),
+                        joints =
+                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 0.0), null)),
                     )
                 )
                 .id
@@ -2552,7 +2557,13 @@ constructor(
                         location = Point(5.0, 5.0),
                         uicCode = "123",
                         polygon =
-                            Polygon(Point(0.0, 0.0), Point(5.0, 0.0), Point(5.0, 5.0), Point(0.0, 5.0), Point(0.0, 0.0)),
+                            Polygon(
+                                Point(0.0, 0.0),
+                                Point(5.0, 0.0),
+                                Point(5.0, 5.0),
+                                Point(0.0, 5.0),
+                                Point(0.0, 0.0),
+                            ),
                     )
                 )
                 .id

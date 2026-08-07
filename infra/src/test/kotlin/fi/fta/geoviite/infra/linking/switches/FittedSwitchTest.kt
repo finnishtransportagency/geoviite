@@ -105,7 +105,10 @@ class FittedSwitchTest {
                             JointNumber(5),
                             geometryWithSwitchNodes.segments[2].segmentStart.toPoint(),
                         ),
-                        SwitchStructureJoint(JointNumber(2), geometryWithSwitchNodes.segments[3].segmentStart.toPoint()),
+                        SwitchStructureJoint(
+                            JointNumber(2),
+                            geometryWithSwitchNodes.segments[3].segmentStart.toPoint(),
+                        ),
                     ),
                 switchStructure,
                 tracksAndGeometries = listOf(locationTrack to cropNothing(trackId, geometryWithSwitchNodes)),

@@ -162,9 +162,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    private val ratkoJsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val ratkoJsonMapper = jsonMapper {
+        addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+    }
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     data class RatkoStatus(val connectionStatus: RatkoConnectionStatus, val ratkoStatusCode: Int?)
 
@@ -790,9 +791,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             runCatching { ratkoJsonMapper.readValue<RatkoErrorResponse>(responseBody) }.getOrNull()
         }
 
-    private fun getBodyJsonForLog(body: Any?): String =
-        runCatching { body?.let { it as? String ?: ratkoJsonMapper.writeValueAsString(it) } ?: "null" }
-            .getOrDefault("[JSON Serialization failed!]")
+    private fun getBodyJsonForLog(body: Any?): String = runCatching {
+        body?.let { it as? String ?: ratkoJsonMapper.writeValueAsString(it) } ?: "null"
+    }
+        .getOrDefault("[JSON Serialization failed!]")
 
     fun getSignalAsset(x: Int, y: Int, z: Int, cluster: Boolean): ByteArray? =
         getSpec("${combinePaths(MAP_ASSET_PATH, "$x", "$y", "$z")}?assetType=signal&cluster=${cluster}&state=IN USE")

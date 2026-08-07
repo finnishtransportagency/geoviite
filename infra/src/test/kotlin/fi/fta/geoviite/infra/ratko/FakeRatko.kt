@@ -72,9 +72,10 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 
 class FakeRatko(port: Int) {
 
-    private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val jsonMapper = jsonMapper {
+        addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+    }
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     private val planItemIdTransformer = PlanItemIdTransformer()
 

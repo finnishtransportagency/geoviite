@@ -159,7 +159,8 @@ constructor(
         return ExtOperationalPointCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
-            operationalPointCollection = createExtOperationalPoints(branch, moment, coordinateSystem, operationalPoints),
+            operationalPointCollection =
+                createExtOperationalPoints(branch, moment, coordinateSystem, operationalPoints),
         )
     }
 

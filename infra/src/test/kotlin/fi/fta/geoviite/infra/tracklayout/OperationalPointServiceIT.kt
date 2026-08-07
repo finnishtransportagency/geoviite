@@ -215,7 +215,13 @@ constructor(
                 operationalPoint(
                     location = Point(7.0, 7.0),
                     polygon =
-                        Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0)),
+                        Polygon(
+                            Point(0.0, 0.0),
+                            Point(10.0, 0.0),
+                            Point(10.0, 10.0),
+                            Point(0.0, 10.0),
+                            Point(0.0, 0.0),
+                        ),
                 )
             )
         assertEquals(
