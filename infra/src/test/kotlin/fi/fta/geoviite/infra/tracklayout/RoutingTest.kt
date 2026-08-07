@@ -1042,9 +1042,9 @@ class RoutingTest {
 private fun routeSection(trackId: Int, startM: Double, endM: Double, direction: EdgeDirection) =
     RouteSection(IntId(trackId), Range(LineM(startM), LineM(endM)), direction)
 
-private fun trackCacheHit(geometry: DbLocationTrackGeometry, target: Point): LocationTrackCacheHit =
+private fun trackCacheHit(geometry: DbLocationTrackGeometry, target: Point): PointNearTrack =
     geometry.getClosestPoint(target)!!.first.let { closest ->
-        LocationTrackCacheHit(
+        PointNearTrack(
             track = locationTrack(IntId(1), id = geometry.trackId),
             geometry = geometry,
             closestPoint = closest,

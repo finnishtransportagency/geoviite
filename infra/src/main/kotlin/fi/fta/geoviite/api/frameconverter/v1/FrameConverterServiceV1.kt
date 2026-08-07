@@ -26,11 +26,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackCacheHit
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.PointNearTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.Left
@@ -141,7 +141,7 @@ constructor(
 
     private fun calculateCoordinateToTrackAddressResponse(
         request: ValidCoordinateToTrackAddressRequestV1,
-        closestTrack: LocationTrackCacheHit,
+        closestTrack: PointNearTrack,
         locationTrackOid: Oid<LocationTrack>?,
         params: FrameConverterQueryParamsV1,
         trackNumberInfo: Map<IntId<LayoutTrackNumber>, TrackNumberDetails>,
@@ -472,7 +472,7 @@ constructor(
     private fun createCoordinateToTrackAddressResponse(
         request: ValidCoordinateToTrackAddressRequestV1,
         params: FrameConverterQueryParamsV1,
-        closestTrack: LocationTrackCacheHit,
+        closestTrack: PointNearTrack,
         trackNumberDetails: TrackNumberDetails,
         geocodedAddress: AddressAndM,
         locationTrackOid: Oid<LocationTrack>?,
@@ -679,13 +679,13 @@ private fun pointToFrameConverterCoordinate(
 }
 
 private fun distinctTrackNumberIdsFromCacheHits(
-    nearbyTracks: List<List<LocationTrackCacheHit>>
+    nearbyTracks: List<List<PointNearTrack>>
 ): List<IntId<LayoutTrackNumber>> {
     return nearbyTracks.flatten().map { cacheHit -> cacheHit.track.trackNumberId }.distinct()
 }
 
 private fun distinctLocationTrackIdsFromCacheHits(
-    nearbyTracks: List<List<LocationTrackCacheHit>>
+    nearbyTracks: List<List<PointNearTrack>>
 ): List<IntId<LocationTrack>> {
     return nearbyTracks.flatten().map { cacheHit -> cacheHit.track.id as IntId }.distinct()
 }

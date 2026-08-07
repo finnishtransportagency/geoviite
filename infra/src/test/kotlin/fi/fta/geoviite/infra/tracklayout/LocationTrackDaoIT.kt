@@ -676,7 +676,10 @@ constructor(
         )
         assertEquals(
             listOf(officialTrackVersion),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.official,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
         )
     }
 
@@ -771,6 +774,184 @@ constructor(
                 false,
                 null,
             ),
+        )
+    }
+
+    @Test
+    fun `fetchOfficialVersionsNearAtMoment() finds versions by moment and location`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val v0Time = locationTrackDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
+
+        val trackV1 =
+            mainOfficialContext.save(
+                locationTrack(trackNumber),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
+        val farAwayTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumber),
+                trackGeometryOfSegments(segment(Point(1000.0, 0.0), Point(1010.0, 0.0))),
+            )
+        // Draft-only rows should never be visible to the official-at-moment query
+        mainDraftContext.save(
+            locationTrack(trackNumber),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        val v1Time = locationTrackDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
+
+        val trackV2 =
+            mainOfficialContext.save(
+                locationTrackDao.fetch(trackV1),
+                trackGeometryOfSegments(segment(Point(0.0, 50.0), Point(10.0, 50.0))),
+            )
+        val v2Time = locationTrackDao.fetchChangeTime()
+
+        val originalLocation = boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)
+        val movedLocation = boundingBoxAroundPoint(Point(0.0, 50.0), 1.0)
+        val farAwayLocation = boundingBoxAroundPoint(Point(1000.0, 0.0), 1.0)
+
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, originalLocation, v0Time),
+        )
+        assertEquals(
+            listOf(trackV1),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, originalLocation, v1Time),
+        )
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, movedLocation, v1Time),
+        )
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, originalLocation, v2Time),
+        )
+        assertEquals(
+            listOf(trackV2),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, movedLocation, v2Time),
+        )
+        assertEquals(
+            listOf(farAwayTrack),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, farAwayLocation, v2Time),
+        )
+    }
+
+    @Test
+    fun `fetchOfficialVersionsNearAtMoment() filters deleted tracks unless requested`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val trackV1 = mainOfficialContext.save(locationTrack(trackNumber), geometry)
+        val v1Time = locationTrackDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
+
+        val trackV2 =
+            mainOfficialContext.save(locationTrackDao.fetch(trackV1).copy(state = LocationTrackState.DELETED), geometry)
+        val v2Time = locationTrackDao.fetchChangeTime()
+
+        val bbox = boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)
+        assertEquals(
+            listOf(trackV1),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, bbox, v1Time),
+        )
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, bbox, v2Time),
+        )
+        assertEquals(
+            listOf(trackV2),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, bbox, v2Time, includeDeleted = true),
+        )
+    }
+
+    @Test
+    fun `fetchOfficialVersionsNearAtMoment() resolves design overrides before spatial filtering`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val mainTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumber),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
+        val designOnlyTrack =
+            designOfficialContext.save(
+                locationTrack(trackNumber),
+                trackGeometryOfSegments(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+            )
+        val v1Time = locationTrackDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
+
+        // Override the main-branch track in the design, moving it to a new location
+        val designCopy = designOfficialContext.copyFrom(mainTrack)
+        val designCopyMoved =
+            designOfficialContext.save(
+                locationTrackDao.fetch(designCopy),
+                trackGeometryOfSegments(segment(Point(200.0, 0.0), Point(210.0, 0.0))),
+            )
+        val v2Time = locationTrackDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
+
+        designOfficialContext.save(
+            asDesignOfficial(
+                locationTrackDao.fetch(
+                    designDraftContext.save(cancelled(locationTrackDao.fetch(designCopy), designBranch.designId))
+                ),
+                designBranch.designId,
+            )
+        )
+        val v3Time = locationTrackDao.fetchChangeTime()
+
+        val mainLocation = boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)
+        val designOnlyLocation = boundingBoxAroundPoint(Point(100.0, 0.0), 1.0)
+        val movedLocation = boundingBoxAroundPoint(Point(200.0, 0.0), 1.0)
+
+        // The main branch does not see any design rows
+        assertEquals(
+            listOf(mainTrack),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, mainLocation, v2Time),
+        )
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, designOnlyLocation, v2Time),
+        )
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(LayoutBranch.main, movedLocation, v2Time),
+        )
+
+        // Before the design override, the design branch sees the main track at its original location
+        assertEquals(
+            listOf(mainTrack),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(designBranch, mainLocation, v1Time),
+        )
+        assertEquals(
+            listOf(designOnlyTrack),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(designBranch, designOnlyLocation, v1Time),
+        )
+
+        // After the override, the design branch must not find the track at the main-branch location, even though the
+        // main-branch row still intersects the bounding box
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(designBranch, mainLocation, v2Time),
+        )
+        assertEquals(
+            listOf(designCopyMoved),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(designBranch, movedLocation, v2Time),
+        )
+
+        // After the design row is cancelled, the design branch falls back to the main-branch row
+        assertEquals(
+            listOf(mainTrack),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(designBranch, mainLocation, v3Time),
+        )
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(designBranch, movedLocation, v3Time),
         )
     }
 

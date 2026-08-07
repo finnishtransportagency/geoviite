@@ -11,14 +11,16 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import java.time.Instant
 
 @GeoviiteService
 class RoutingService(
-    private val locationTrackSpatialCache: LocationTrackSpatialCache,
     private val locationTrackDao: LocationTrackDao,
+    private val alignmentDao: LayoutAlignmentDao,
     private val trackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
@@ -32,19 +34,21 @@ class RoutingService(
     override fun cacheStats() = mapOf("routing-graph" to graphCache.stats())
 
     fun getClosestTrackPoint(context: LayoutContext, location: Point, maxDistance: Double): ClosestTrackPoint? =
-        locationTrackSpatialCache.get(context).getClosestTrack(location, maxDistance)?.let { hit ->
+        getClosestTrack(contextCacheKey(context), location, maxDistance)?.let { hit ->
             toClosestTrackPoint(location, hit)
         }
 
     fun getGraph(branch: LayoutBranch, moment: Instant): RoutingGraph = getGraph(GraphCacheKey(branch.official, moment))
 
-    fun getGraph(context: LayoutContext): RoutingGraph {
+    fun getGraph(context: LayoutContext): RoutingGraph = getGraph(contextCacheKey(context))
+
+    private fun contextCacheKey(context: LayoutContext): GraphCacheKey {
         val changeTime =
             when (context.state) {
                 OFFICIAL -> publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH
                 DRAFT -> maxOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime())
             }
-        return getGraph(GraphCacheKey(context, changeTime))
+        return GraphCacheKey(context, changeTime)
     }
 
     private fun getGraph(key: GraphCacheKey): RoutingGraph = graphCache.get(key, ::createGraph)
@@ -70,7 +74,7 @@ class RoutingService(
         startLocation: Point,
         endLocation: Point,
         trackSeekDistance: Double,
-    ): RouteResult? = getRoute(context, getGraph(context), startLocation, endLocation, trackSeekDistance)
+    ): RouteResult? = getRoute(contextCacheKey(context), startLocation, endLocation, trackSeekDistance)
 
     fun getRoute(
         branch: LayoutBranch,
@@ -78,21 +82,17 @@ class RoutingService(
         startLocation: Point,
         endLocation: Point,
         trackSeekDistance: Double,
-    ): RouteResult? {
-        val graph = getGraph(branch, moment)
-        return getRoute(branch.official, graph, startLocation, endLocation, trackSeekDistance)
-    }
+    ): RouteResult? = getRoute(GraphCacheKey(branch.official, moment), startLocation, endLocation, trackSeekDistance)
 
     private fun getRoute(
-        context: LayoutContext,
-        graph: RoutingGraph,
+        key: GraphCacheKey,
         startLocation: Point,
         endLocation: Point,
         trackSeekDistance: Double,
     ): RouteResult? {
-        val trackCache = locationTrackSpatialCache.get(context)
-        val startTrackHit = trackCache.getClosestTrack(startLocation, trackSeekDistance)
-        val endTrackHit = trackCache.getClosestTrack(endLocation, trackSeekDistance)
+        val graph = getGraph(key)
+        val startTrackHit = getClosestTrack(key, startLocation, trackSeekDistance)
+        val endTrackHit = getClosestTrack(key, endLocation, trackSeekDistance)
         return if (startTrackHit != null && endTrackHit != null) {
             graph.findPath(startTrackHit, endTrackHit)?.let { route ->
                 RouteResult(
@@ -105,9 +105,35 @@ class RoutingService(
             null
         }
     }
+
+    private fun getClosestTrack(key: GraphCacheKey, location: Point, thresholdMeters: Double): PointNearTrack? {
+        val bbox = boundingBoxAroundPoint(location, thresholdMeters)
+        val versions =
+            when (key.context.state) {
+                OFFICIAL -> locationTrackDao.fetchOfficialVersionsNearAtMoment(key.context.branch, bbox, key.changeTime)
+                DRAFT -> locationTrackDao.fetchVersionsNear(key.context, bbox)
+            }
+        return versions.mapNotNull { version -> createHit(version, location, thresholdMeters) }.minOrNull()
+    }
+
+    private fun createHit(
+        version: LayoutRowVersion<LocationTrack>,
+        location: Point,
+        thresholdMeters: Double,
+    ): PointNearTrack? {
+        val geometry = alignmentDao.fetch(version)
+        return geometry.getClosestPoint(location)?.let { (closestPoint, _) ->
+            val distance = lineLength(location, closestPoint)
+            if (distance < thresholdMeters) {
+                PointNearTrack(locationTrackDao.fetch(version), geometry, closestPoint, distance)
+            } else {
+                null
+            }
+        }
+    }
 }
 
-private fun toClosestTrackPoint(requestedPoint: Point, hit: LocationTrackCacheHit): ClosestTrackPoint =
+private fun toClosestTrackPoint(requestedPoint: Point, hit: PointNearTrack): ClosestTrackPoint =
     ClosestTrackPoint(
         locationTrackId = hit.track.id as IntId<LocationTrack>,
         requestedLocation = requestedPoint,

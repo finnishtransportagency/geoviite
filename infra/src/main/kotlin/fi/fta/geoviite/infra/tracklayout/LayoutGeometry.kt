@@ -659,6 +659,28 @@ data class AlignmentPoint<M : AnyM<M>>(
     }
 }
 
+data class PointNearTrack(
+    val track: LocationTrack,
+    val geometry: DbLocationTrackGeometry,
+    val closestPoint: AlignmentPoint<LocationTrackM>,
+    val distance: Double,
+) : Comparable<PointNearTrack> {
+    fun getEdge(): Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>> =
+        geometry.getEdgeAtM(closestPoint.m)?.let { (e, r) -> e as DbLayoutEdge to r }
+            ?: error("Closest point is outside of track geometry")
+
+    override fun compareTo(other: PointNearTrack): Int = comparator.compare(this, other)
+
+    companion object {
+        private val comparator =
+            compareBy<PointNearTrack>(
+                { it.distance }, // Primary sort by distance
+                { if (it.track.duplicateOf == null) 0 else 1 }, // Favor non-duplicates as tie-breaker
+                { it.track.version?.id?.intValue }, // Stable ordering by ID
+            )
+    }
+}
+
 fun verifyPointValues(x: Double, y: Double, m: Double, z: Double?, cant: Double?) {
     require(x.isFinite() && y.isFinite() && m.isFinite()) { "Cannot create layout point of: x=$x y=$y m=$m" }
     require(z?.isFinite() != false) { "Invalid Z value: $z" }
