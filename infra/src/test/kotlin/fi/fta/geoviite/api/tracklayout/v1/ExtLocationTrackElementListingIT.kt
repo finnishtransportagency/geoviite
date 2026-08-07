@@ -3,6 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.FIN_GK25_SRID
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -15,6 +16,7 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
@@ -34,13 +36,16 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtLocationTrackElementListingIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
+class ExtLocationTrackElementListingIT
+@Autowired
+constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -59,6 +64,7 @@ class ExtLocationTrackElementListingIT @Autowired constructor(mockMvc: MockMvc) 
 
         assertEquals(publication.uuid.toString(), response.rataverkon_versio)
         assertEquals(oid.toString(), response.sijaintiraide_oid)
+        assertNull(response.virallinen_sijaintiraide_oid, "Main route should not report a separate official OID")
         assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)
 
         response.osoitevalit.single().also { interval ->
@@ -282,6 +288,110 @@ class ExtLocationTrackElementListingIT @Autowired constructor(mockMvc: MockMvc) 
                 assertNotNull(element.suunnitelma)
             }
         }
+    }
+
+    @Test
+    fun `Design route resolves design OIDs and serves the inherited element listing`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 500.0)
+        val plan = insertPlan(listOf(line(start, end)))
+        val elements = plan.alignments[0].elements
+        val trackNumberId = insertTrackNumberWithReferenceLine(elements)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        val mainPublication =
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackOid = testDBService.generateOid(trackId, designBranch)
+
+        val response = api.locationTrackElementListingInDesign(designOid).get(oid)
+        assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(designTrackOid.toString(), response.sijaintiraide_oid)
+        assertEquals(oid.toString(), response.virallinen_sijaintiraide_oid)
+        response.osoitevalit.single().geometriaelementit.single().also { element ->
+            assertEquals("suora", element.tyyppi)
+            assertNotNull(element.suunnitelma)
+        }
+    }
+
+    @Test
+    fun `Design route returns 404 for a track without an OID in the design`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 500.0)
+        val plan = insertPlan(listOf(line(start, end)))
+        val elements = plan.alignments[0].elements
+        val trackNumberId = insertTrackNumberWithReferenceLine(elements)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        val mainPublication =
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+
+        val designApi = api.locationTrackElementListingInDesign(designOid)
+        designApi.getWithExpectedError(oid.toString(), httpStatus = HttpStatus.NOT_FOUND)
+        designApi.getModifiedWithExpectedError(
+            oid.toString(),
+            TRACK_LAYOUT_VERSION_FROM to mainPublication.uuid.toString(),
+            httpStatus = HttpStatus.NOT_FOUND,
+        )
+    }
+
+    @Test
+    fun `Element change published in a design is returned by the design modifications route`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 300.0)
+        val plan1 = insertPlan(listOf(line(start, end)), fileName = FileName("design_mod_v1.xml"))
+        val elements1 = plan1.alignments[0].elements
+        val trackNumberId = insertTrackNumberWithReferenceLine(elements1)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements1))
+        val mainPublication =
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackOid = testDBService.generateOid(trackId, designBranch)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        // Re-link the track to a different plan in the design (different element id → different element listing)
+        val plan2 = insertPlan(listOf(line(start, end)), fileName = FileName("design_mod_v2.xml"))
+        val elements2 = plan2.alignments[0].elements
+        val (track, _) = designDraftContext.fetchLocationTrackWithGeometry(trackId)!!
+        designDraftContext.save(track, trackGeometryOfElements(elements2))
+        val designPublication = testDBService.publish(designBranch, locationTracks = listOf(trackId))
+
+        val response =
+            api.locationTrackElementListingInDesign(designOid)
+                .getModifiedBetween(oid, mainPublication.uuid, designPublication.uuid)
+        assertEquals(mainPublication.uuid.toString(), response.alkuversio)
+        assertEquals(designPublication.uuid.toString(), response.loppuversio)
+        assertEquals(designTrackOid.toString(), response.sijaintiraide_oid)
+        assertEquals(oid.toString(), response.virallinen_sijaintiraide_oid)
+        response.osoitevalit.single().geometriaelementit.single().also { element -> assertNotNull(element.suunnitelma) }
+
+        // The design-only change is not visible on the main route
+        api.locationTrackElementListing.assertNoModificationSince(oid, mainPublication.uuid)
+    }
+
+    @Test
+    fun `Unknown OID on the modifications route returns 404 even when the compared versions are the same`() {
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
+            )
+        val publication = testDBService.publish(trackNumbers = listOf(trackNumberId))
+
+        api.locationTrackElementListing.getModifiedWithExpectedError(
+            "1.2.246.578.13.999.999",
+            TRACK_LAYOUT_VERSION_FROM to publication.uuid.toString(),
+            TRACK_LAYOUT_VERSION_TO to publication.uuid.toString(),
+            httpStatus = HttpStatus.NOT_FOUND,
+        )
     }
 
     private fun insertTrackNumberWithReferenceLine(

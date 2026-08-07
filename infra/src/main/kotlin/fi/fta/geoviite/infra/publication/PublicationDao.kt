@@ -2619,18 +2619,21 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
         id: IntId<LayoutSwitch>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
     ): LayoutRowVersion<LayoutSwitch>? =
-        fetchPublishedSwitchesBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id).singleOrNull()
+        fetchPublishedSwitchesBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, layoutBranch, id).singleOrNull()
 
     fun fetchPublishedSwitchesBetween(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
     ): List<LayoutRowVersion<LayoutSwitch>> =
-        fetchPublishedSwitchesBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id = null)
+        fetchPublishedSwitchesBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, layoutBranch, id = null)
 
     private fun fetchPublishedSwitchesBetweenInternal(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
+        layoutBranch: LayoutBranch,
         id: IntId<LayoutSwitch>?,
     ): List<LayoutRowVersion<LayoutSwitch>> {
         val sql =
@@ -2641,7 +2644,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               ps.version
             from publication.switch ps
               join publication.publication publication on ps.publication_id = publication.id
-            where publication.design_id is null
+            where publication.design_id is not distinct from :design_id
               and (:switch_id::int is null or ps.id = :switch_id)
               and publication.publication_time > :start_time
               and publication.publication_time <= :end_time
@@ -2654,6 +2657,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
                 "switch_id" to id?.intValue,
+                "design_id" to layoutBranch.designId?.intValue,
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }

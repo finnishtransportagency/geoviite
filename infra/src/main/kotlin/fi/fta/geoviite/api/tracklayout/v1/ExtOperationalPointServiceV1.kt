@@ -274,12 +274,12 @@ constructor(
         operationalPointIds: Set<IntId<OperationalPoint>>,
     ): Map<IntId<OperationalPoint>, List<Oid<LocationTrack>>> {
         val locationTracks = locationTrackDao.listOfficialAtMoment(branch, moment)
-        val trackExtIds = locationTrackDao.fetchExternalIds(branch, locationTracks.map { it.id as IntId })
+        val trackOidRefs = oidReferences(locationTrackDao, branch, locationTracks.map { it.id as IntId })
 
         return locationTracks
             .filter { track -> track.operationalPointIds.any(operationalPointIds::contains) }
             .flatMap { track ->
-                val trackOid = trackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id)
+                val trackOid = trackOidRefs.get(track.id)
                 track.operationalPointIds.filter(operationalPointIds::contains).map { opId -> opId to trackOid }
             }
             .groupBy({ it.first }, { it.second })
@@ -291,16 +291,11 @@ constructor(
         operationalPointIds: Set<IntId<OperationalPoint>>,
     ): Map<IntId<OperationalPoint>, List<Oid<LayoutSwitch>>> {
         val switches = switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
-        val switchExtIds = switchDao.fetchExternalIds(branch, switches.map { it.id as IntId })
+        val switchOidRefs = oidReferences(switchDao, branch, switches.map { it.id as IntId })
 
         return switches
             .filter { switch -> switch.operationalPointId?.let(operationalPointIds::contains) == true }
-            .mapNotNull { switch ->
-                switch.operationalPointId?.let { opId ->
-                    val switchOid = switchExtIds[switch.id]?.oid ?: throwOidNotFound(branch, switch.id)
-                    opId to switchOid
-                }
-            }
+            .mapNotNull { switch -> switch.operationalPointId?.let { opId -> opId to switchOidRefs.get(switch.id) } }
             .groupBy({ it.first }, { it.second })
     }
 }

@@ -218,6 +218,7 @@ data class ExtTestSwitchTrackLinkV1(val sijaintiraide_oid: String, val pisteet: 
 
 data class ExtTestSwitchV1(
     val vaihde_oid: String,
+    val virallinen_vaihde_oid: String?,
     val vaihdetunnus: String,
     val tyyppi: String,
     val katisyys: String,
@@ -385,6 +386,7 @@ data class ExtTestModifiedLocationTrackProfileResponseV1(
 data class ExtTestLocationTrackElementListingResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestElementAddressIntervalV1>,
 )
@@ -393,6 +395,7 @@ data class ExtTestLocationTrackElementListingModificationsResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val sijaintiraide_oid: String,
+    val virallinen_sijaintiraide_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestElementAddressIntervalV1>,
 )

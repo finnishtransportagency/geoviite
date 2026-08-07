@@ -12,8 +12,6 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.ratko.IExternalIdDao
-import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -281,7 +279,7 @@ constructor(
             officialOid = officialOid,
             track = track,
             geometry = geometry,
-            trackNumberOid = oidLookupWithInheritance(trackNumberDao, branch, track.trackNumberId),
+            trackNumberOid = oidReference(trackNumberDao, branch, track.trackNumberId),
             trackNumber =
                 trackNumberDao.getOfficialAtMoment(branch, track.trackNumberId, moment)
                     ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
@@ -290,12 +288,6 @@ constructor(
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                 },
         )
-
-    private inline fun <reified T : LayoutAsset<T>> oidLookupWithInheritance(
-        dao: IExternalIdDao<T>,
-        branch: LayoutBranch,
-        id: IntId<T>,
-    ): Oid<T> = dao.fetchExternalIdsWithInheritance(branch, listOf(id))[id]?.oid ?: throwOidNotFound(branch, id)
 
     private fun getLocationTrackData(
         branch: LayoutBranch,
@@ -315,15 +307,14 @@ constructor(
         val officialExtIdsIfBranch =
             if (branch == LayoutBranch.main) mapOf()
             else locationTrackDao.fetchExternalIds(LayoutBranch.main, locationTrackIds)
-        val trackNumberExtIds = trackNumberDao.fetchExternalIdsWithInheritance(branch, distinctTrackNumberIds)
+        val trackNumberOidRefs = oidReferences(trackNumberDao, branch, distinctTrackNumberIds)
         return tracksAndGeoms.map { (track, geom) ->
             LocationTrackData(
                 officialOid = officialExtIdsIfBranch[track.id]?.oid,
                 oid = locationTrackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id),
                 track = track,
                 geometry = geom,
-                trackNumberOid =
-                    trackNumberExtIds[track.trackNumberId]?.oid ?: throwOidNotFound(branch, track.trackNumberId),
+                trackNumberOid = trackNumberOidRefs.get(track.trackNumberId),
                 trackNumber =
                     trackNumbers[track.trackNumberId] ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
                 geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) },

@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -50,25 +49,24 @@ constructor(
     private fun createExtStationLinks(branch: LayoutBranch, stationLinks: List<StationLink>): List<ExtStationLinkV1> {
         val trackNumbers =
             layoutTrackNumberDao.fetchMany(stationLinks.map { it.trackNumberVersion }).associateBy { it.id as IntId }
-        val trackNumberExtIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumbers.keys)
+        val trackNumberOidRefs = oidReferences(layoutTrackNumberDao, branch, trackNumbers.keys)
 
         val operationalPointVersions =
             stationLinks.flatMap { listOf(it.startOperationalPointVersion, it.endOperationalPointVersion) }.distinct()
         val operationalPoints = operationalPointDao.fetchMany(operationalPointVersions).associateBy { it.id as IntId }
-        val operationalPointExtIds = operationalPointDao.fetchExternalIds(branch, operationalPoints.keys)
+        val operationalPointOidRefs = oidReferences(operationalPointDao, branch, operationalPoints.keys)
 
         val locationTrackIds = stationLinks.flatMap { it.locationTrackIds }.distinct()
-        val locationTrackExtIds = locationTrackDao.fetchExternalIds(branch, locationTrackIds)
+        val locationTrackOidRefs = oidReferences(locationTrackDao, branch, locationTrackIds)
 
         return stationLinks.map { link ->
             createExtStationLink(
                 link,
                 trackNumbers,
-                trackNumberExtIds,
-                operationalPointExtIds,
+                trackNumberOidRefs,
+                operationalPointOidRefs,
                 operationalPoints,
-                locationTrackExtIds,
-                branch,
+                locationTrackOidRefs,
             )
         }
     }
@@ -76,30 +74,24 @@ constructor(
     private fun createExtStationLink(
         stationLink: StationLink,
         trackNumbers: Map<IntId<LayoutTrackNumber>, LayoutTrackNumber>,
-        trackNumberExtIds: Map<IntId<LayoutTrackNumber>, RatkoExternalId<LayoutTrackNumber>>,
-        operationalPointExtIds: Map<IntId<OperationalPoint>, RatkoExternalId<OperationalPoint>>,
+        trackNumberOidRefs: ExtOidReferencesV1<LayoutTrackNumber>,
+        operationalPointOidRefs: ExtOidReferencesV1<OperationalPoint>,
         operationalPoints: Map<IntId<OperationalPoint>, OperationalPoint>,
-        locationTrackExtIds: Map<IntId<LocationTrack>, RatkoExternalId<LocationTrack>>,
-        branch: LayoutBranch,
+        locationTrackOidRefs: ExtOidReferencesV1<LocationTrack>,
     ): ExtStationLinkV1 {
-        val trackNumberExtId =
-            trackNumberExtIds[stationLink.trackNumberId]?.oid ?: throwOidNotFound(branch, stationLink.trackNumberId)
+        val trackNumberExtId = trackNumberOidRefs.get(stationLink.trackNumberId)
         val trackNumber =
             requireNotNull(trackNumbers[stationLink.trackNumberId]) {
                 "Track number ${stationLink.trackNumberId} not found"
             }
 
-        val startOpExtId =
-            operationalPointExtIds[stationLink.startOperationalPointId]?.oid
-                ?: throwOidNotFound(branch, stationLink.startOperationalPointId)
+        val startOpExtId = operationalPointOidRefs.get(stationLink.startOperationalPointId)
         val startOp =
             requireNotNull(operationalPoints[stationLink.startOperationalPointId]) {
                 "Operational point ${stationLink.startOperationalPointId} not found"
             }
 
-        val endOpExtId =
-            operationalPointExtIds[stationLink.endOperationalPointId]?.oid
-                ?: throwOidNotFound(branch, stationLink.endOperationalPointId)
+        val endOpExtId = operationalPointOidRefs.get(stationLink.endOperationalPointId)
         val endOp =
             requireNotNull(operationalPoints[stationLink.endOperationalPointId]) {
                 "Operational point ${stationLink.endOperationalPointId} not found"
@@ -107,7 +99,7 @@ constructor(
 
         val locationTrackOids =
             stationLink.locationTrackIds.map { trackId ->
-                val oid = locationTrackExtIds[trackId]?.oid ?: throwOidNotFound(branch, trackId)
+                val oid = locationTrackOidRefs.get(trackId)
                 ExtStationLinkTrackV1(locationTrackOid = ExtOidV1(oid))
             }
 
