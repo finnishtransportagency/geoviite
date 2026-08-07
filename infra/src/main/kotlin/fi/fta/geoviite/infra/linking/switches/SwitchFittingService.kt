@@ -852,43 +852,64 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     nearbyLocationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): PointAssociation<FittedSwitch> {
     val (grid, switchId) = request
+    val croppedTracks = cropTracksToGridArea(nearbyLocationTracks, grid, switchStructure)
+    val transformations = findPossibleSwitchTransformations(grid, croppedTracks, switchStructure)
+    val fits =
+        transformations.map(parallel = true) { transformation ->
+            fitSwitch(transformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
+        }
+    val originallyLinkedTracks = getOriginallyLinkedTrackJoints(nearbyLocationTracks, switchId)
+    return selectBestFitForEachGridPoint(fits, switchStructure, originallyLinkedTracks)
+}
+
+private fun cropTracksToGridArea(
+    nearbyLocationTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    grid: SamplingGridPoints,
+    switchStructure: SwitchStructure,
+): List<Pair<LocationTrack, CroppedTrackGeometry>> {
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
     val gridBbox = grid.bounds + bboxExpansion
+    return nearbyLocationTracks.map { (track, geometry) -> track to cropPoints(track.id as IntId, geometry, gridBbox) }
+}
+
+private fun findPossibleSwitchTransformations(
+    grid: SamplingGridPoints,
+    croppedTracks: List<Pair<LocationTrack, CroppedTrackGeometry>>,
+    switchStructure: SwitchStructure,
+): PointAssociation<SwitchPositionTransformation> {
     val pointBboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
     val pointBboxes =
         grid.points.associateWith { point -> BoundingBox(0.0..pointBboxSize, 0.0..pointBboxSize).centerAt(point) }
-
-    val croppedTracks = nearbyLocationTracks.map { (track, geometry) ->
-        track to cropPoints(track.id as IntId, geometry, gridBbox)
-    }
     val croppedGeometriesById = croppedTracks.associate { (_, geometry) -> geometry.id to geometry }
 
     val intersections =
         findTrackIntersectionsForGridPoints(croppedTracks.map { (_, geometry) -> geometry.id to geometry }, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
-    val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
 
-    val transformations =
-        intersections.mapMulti(parallel = true) { intersection, points ->
-            if (points.none { point -> pointBboxes[point]?.contains(intersection.point) == true }) setOf()
-            else {
-                findTransformations(
-                        intersection.point,
-                        croppedGeometriesById.getValue(intersection.alignment1Id),
-                        croppedGeometriesById.getValue(intersection.alignment2Id),
-                        switchAlignmentsContainingSharedJoint[0],
-                        switchAlignmentsContainingSharedJoint[1],
-                        sharedSwitchJoint,
-                        switchStructure,
-                    )
-                    .toSet()
-            }
+    return intersections.mapMulti(parallel = true) { intersection, points ->
+        if (points.none { point -> pointBboxes[point]?.contains(intersection.point) == true }) setOf()
+        else {
+            findTransformations(
+                    intersection.point,
+                    croppedGeometriesById.getValue(intersection.alignment1Id),
+                    croppedGeometriesById.getValue(intersection.alignment2Id),
+                    switchAlignmentsContainingSharedJoint[0],
+                    switchAlignmentsContainingSharedJoint[1],
+                    sharedSwitchJoint,
+                    switchStructure,
+                )
+                .toSet()
         }
-    val fits =
-        transformations.map(parallel = true) { transformation ->
-            fitSwitch(transformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
-        }
-    val originallyLinkedTracks = getOriginallyLinkedTrackJoints(nearbyLocationTracks, switchId).toSet()
+    }
+}
+
+private fun selectBestFitForEachGridPoint(
+    fits: PointAssociation<FittedSwitch>,
+    switchStructure: SwitchStructure,
+    originallyLinkedTracks: Set<Pair<IntId<LocationTrack>, JointNumber>>,
+): PointAssociation<FittedSwitch> {
+    val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
+    val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
     return fits.aggregateByPoint(parallel = true) { point, pointFits ->
         selectBestSuggestedSwitch(pointFits, switchStructure, farthestJoint, point, originallyLinkedTracks)
     }

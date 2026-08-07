@@ -24,7 +24,8 @@ Geoviitteen dokumentaatio säilytetään versionhallinnassa, koodin rinnalla mar
 * [Riippuvuuksien hallinta](riippuvuuksien_hallinta.md)
 * [Tietokanta](tietokanta.md)
 * [Tietomalli](tietomalli.md)
-* [Välimuisti](välimuisti.md)
+* [Vaihdelinkitys](vaihdelinkitys.md)
+* [Välimuisti](valimuisti.md)
 * [Virhekäsittely](virhekasittely.md)
 
 ### Koodikäytännöt
