@@ -25,7 +25,7 @@ Layout asset version rows are keyed by { id, layout_context_id, version }, aka L
 Assets have three notions of existence:
 
 - Business-logic lifecycle state: Based on `state`, `state_category` or similar. `includeDeleted` parameters and the
-  `LayoutAsset#exists` method reference this. 
+  `LayoutAsset#exists` method reference this.
 - Actual existence in a given context at a given time. An asset that only ever existed in a draft context can simply
   be fully deleted. They do leave behind a trace in the asset type's version table, as a version row with the `deleted`
   flag set.
