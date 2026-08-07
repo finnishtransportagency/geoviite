@@ -13,6 +13,9 @@ data class ExtTrackNumberV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_TRACK_NUMBER_OID)
+    val officialTrackNumberOid: ExtOidV1<LayoutTrackNumber>?,
     @Schema(type = "string", example = "001") @JsonProperty(TRACK_NUMBER) val trackNumber: TrackNumber,
     @Schema(type = "string", example = "Helsinki - Kirkkonummi (PR) - Karjaa - Turku")
     @JsonProperty(DESCRIPTION)
@@ -44,6 +47,9 @@ data class ExtTrackNumberGeometryResponseV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_TRACK_NUMBER_OID)
+    val officialTrackNumberOid: ExtOidV1<LayoutTrackNumber>?,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_INTERVAL) val trackInterval: ExtCenterLineTrackIntervalV1?,
 )
@@ -56,6 +62,9 @@ data class ExtTrackNumberModifiedGeometryResponseV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(OFFICIAL_TRACK_NUMBER_OID)
+    val officialTrackNumberOid: ExtOidV1<LayoutTrackNumber>?,
     @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtModifiedCenterLineTrackIntervalV1>,
 )
 

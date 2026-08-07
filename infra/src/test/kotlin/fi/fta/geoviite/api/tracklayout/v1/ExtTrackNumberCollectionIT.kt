@@ -6,10 +6,12 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -20,6 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,7 +36,11 @@ import org.springframework.test.web.servlet.MockMvc
 @AutoConfigureMockMvc
 class ExtTrackNumberCollectionIT
 @Autowired
-constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackNumberService) : DBTestBase() {
+constructor(
+    mockMvc: MockMvc,
+    private val layoutTrackNumberService: LayoutTrackNumberService,
+    private val layoutDesignDao: LayoutDesignDao,
+) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -401,5 +408,72 @@ constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackN
         api.trackNumberCollection.getModifiedSince(fromPublication, TRACK_NUMBER to "atch").also { response ->
             assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })
         }
+    }
+
+    @Test
+    fun `Design collection route lists only track numbers with an OID in the design`() {
+        val (inDesignId, inDesignOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(someSegment()),
+            )
+        val (notInDesignId, notInDesignOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(someSegment()),
+            )
+        testDBService.publish(trackNumbers = listOf(inDesignId, notInDesignId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackNumberOid = testDBService.generateOid(inDesignId, designBranch)
+
+        api.trackNumberCollectionInDesign(designOid).get().ratanumerot.let { trackNumbers ->
+            assertEquals(listOf(designTrackNumberOid.toString()), trackNumbers.map { it.ratanumero_oid })
+            assertEquals(inDesignOid.toString(), trackNumbers.single().virallinen_ratanumero_oid)
+        }
+
+        // The main collection is unaffected and reports no separate official OIDs
+        api.trackNumberCollection.get().ratanumerot.let { trackNumbers ->
+            assertEquals(
+                setOf(inDesignOid.toString(), notInDesignOid.toString()),
+                trackNumbers.map { it.ratanumero_oid }.toSet(),
+            )
+            assertTrue(trackNumbers.all { it.virallinen_ratanumero_oid == null })
+        }
+    }
+
+    @Test
+    fun `Track number change published in a design is only visible in the design collection modifications`() {
+        val (tnId, oid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(someSegment()),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackNumberOid = testDBService.generateOid(tnId, designBranch)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val designDescription = "track number description in design"
+        designDraftContext.mutate(tnId) { tn -> tn.copy(description = TrackNumberDescription(designDescription)) }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        api.trackNumberCollectionInDesign(designOid)
+            .getModifiedBetween(mainPublication.uuid, designPublication.uuid)
+            .let { response ->
+                assertEquals(mainPublication.uuid.toString(), response.alkuversio)
+                assertEquals(designPublication.uuid.toString(), response.loppuversio)
+                assertEquals(designTrackNumberOid.toString(), response.ratanumerot.single().ratanumero_oid)
+                assertEquals(oid.toString(), response.ratanumerot.single().virallinen_ratanumero_oid)
+                assertEquals(designDescription, response.ratanumerot.single().kuvaus)
+            }
+
+        // The design-only change is not visible on the main collection routes
+        api.trackNumberCollection.assertNoModificationSince(mainPublication.uuid)
     }
 }

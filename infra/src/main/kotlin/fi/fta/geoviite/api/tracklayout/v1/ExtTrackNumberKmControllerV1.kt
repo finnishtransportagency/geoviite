@@ -2,6 +2,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -33,7 +34,7 @@ class ExtTrackNumberKmControllerV1
 constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/ratanumerot/ratakilometrit")
+    @GetMapping("/ratanumerot/ratakilometrit", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/ratakilometrit")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman ratakilometrien haku")
     @ApiResponses(
@@ -58,6 +59,7 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
             ]
     )
     fun getExtTrackNumberKmsCollection(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         layoutVersion: ExtLayoutVersionV1?,
@@ -65,9 +67,12 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
     ): ExtTrackKmsCollectionResponseV1 =
-        extTrackNumberKmsService.getExtTrackNumberKmsCollection(layoutVersion, extCoordinateSystem)
+        extTrackNumberKmsService.getExtTrackNumberKmsCollection(designOid, layoutVersion, extCoordinateSystem)
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit")
+    @GetMapping(
+        "/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit",
+        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit",
+    )
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron ratakilometrien haku OID-tunnuksella")
     @ApiResponses(
@@ -98,6 +103,7 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
             ]
     )
     fun getExtTrackNumberKms(
+        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: ExtOidV1<LayoutTrackNumber>,
@@ -108,5 +114,7 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtTrackKmsResponseV1> =
-        extTrackNumberKmsService.getExtTrackNumberKms(oid, layoutVersion, extCoordinateSystem).let(::toResponse)
+        extTrackNumberKmsService
+            .getExtTrackNumberKms(oid, designOid, layoutVersion, extCoordinateSystem)
+            .let(::toResponse)
 }

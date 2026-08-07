@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -33,7 +34,8 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
+class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) :
+    DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -218,6 +220,53 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
             api.trackNumberKmsCollection.getAtVersion(deletePublication.uuid).ratanumeroiden_ratakilometrit.find {
                 it.ratanumero_oid == tnOid.toString()
             }
+        )
+    }
+
+    @Test
+    fun `Design routes resolve design OIDs for track number kms`() {
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter.ZERO),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
+            )
+        val kmpId = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(500.0, 0.0))).id
+        val (otherTnId, otherTnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter.ZERO),
+                referenceLineGeometry(segment(Point(0.0, 100.0), Point(1000.0, 100.0))),
+            )
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId, otherTnId), kmPosts = listOf(kmpId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        val designTrackNumberOid = testDBService.generateOid(tnId, designBranch)
+
+        val designResponse = api.trackNumberKmsInDesign(designOid).get(tnOid)
+        assertEquals(mainPublication.uuid.toString(), designResponse.rataverkon_versio)
+        assertEquals(designTrackNumberOid.toString(), designResponse.ratanumeron_ratakilometrit.ratanumero_oid)
+        assertEquals(tnOid.toString(), designResponse.ratanumeron_ratakilometrit.virallinen_ratanumero_oid)
+        assertEquals(2, designResponse.ratanumeron_ratakilometrit.ratakilometrit.size)
+
+        // Only the track number with an OID in the design is listed by the design collection route
+        assertEquals(
+            listOf(designResponse.ratanumeron_ratakilometrit),
+            api.trackNumberKmsCollectionInDesign(designOid).get().ratanumeroiden_ratakilometrit,
+        )
+
+        // A track number without an OID in the design is not served by the design routes
+        api.trackNumberKmsInDesign(designOid)
+            .getWithExpectedError(otherTnOid.toString(), httpStatus = HttpStatus.NOT_FOUND)
+
+        // The main routes are unaffected and report no separate official OID
+        api.trackNumberKms.get(tnOid).also { response ->
+            assertEquals(tnOid.toString(), response.ratanumeron_ratakilometrit.ratanumero_oid)
+            assertNull(response.ratanumeron_ratakilometrit.virallinen_ratanumero_oid)
+        }
+        assertEquals(
+            setOf(tnOid.toString(), otherTnOid.toString()),
+            api.trackNumberKmsCollection.get().ratanumeroiden_ratakilometrit.map { it.ratanumero_oid }.toSet(),
         )
     }
 

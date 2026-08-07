@@ -112,6 +112,7 @@ data class ExtTestTrackBoundaryChangeResponseV1(
 
 data class ExtTestTrackNumberV1(
     val ratanumero_oid: String,
+    val virallinen_ratanumero_oid: String?,
     val ratanumero: String,
     val kuvaus: String,
     val tila: String,
@@ -135,6 +136,7 @@ data class ExtTestModifiedTrackNumberResponseV1(
 data class ExtTestTrackNumberGeometryResponseV1(
     val rataverkon_versio: String,
     val ratanumero_oid: String,
+    val virallinen_ratanumero_oid: String?,
     val koordinaatisto: String,
     val osoitevali: ExtTestGeometryIntervalV1?,
 )
@@ -143,6 +145,7 @@ data class ExtTestModifiedTrackNumberGeometryResponseV1(
     val alkuversio: String,
     val loppuversio: String,
     val ratanumero_oid: String,
+    val virallinen_ratanumero_oid: String?,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestModifiedGeometryIntervalV1>,
 )
@@ -180,6 +183,7 @@ data class ExtTestTrackKmV1(
 data class ExtTestTrackNumberKmsV1(
     val ratanumero: String,
     val ratanumero_oid: String,
+    val virallinen_ratanumero_oid: String?,
     val ratakilometrit: List<ExtTestTrackKmV1>,
 )
 
