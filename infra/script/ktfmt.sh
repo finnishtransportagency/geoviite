@@ -86,10 +86,14 @@ java_home="${JAVA_HOME:-}"
 if $windows && [[ -n "$java_home" ]]; then
     java_home="$(cygpath -u -- "$java_home")"
 fi
-if [[ -n "$java_home" ]] && [[ -x "$java_home/bin/java" || -x "$java_home/bin/java.exe" ]]; then
+if [[ -n "$java_home" ]] && [[ -x "$java_home/bin/java" ]]; then
     java_bin="$java_home/bin/java"
     javac_bin="$java_home/bin/javac"
     jar_bin="$java_home/bin/jar"
+elif $windows && [[ -n "$java_home" ]] && [[ -x "$java_home/bin/java.exe" ]]; then
+    java_bin="$java_home/bin/java.exe"
+    javac_bin="$java_home/bin/javac.exe"
+    jar_bin="$java_home/bin/jar.exe"
 fi
 
 sha256_of() {
