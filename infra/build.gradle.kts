@@ -95,6 +95,8 @@ dependencies {
     implementation("com.zaxxer:HikariCP:7.1.0")
     implementation("org.flywaydb:flyway-core:11.20.3")
     implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
+    // Used by postgresql driver as runtime, but kotlin needs it at compile-time for nullability annotations
+    implementation("org.checkerframework:checker-qual:3.55.1")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
