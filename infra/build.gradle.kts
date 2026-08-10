@@ -18,7 +18,7 @@ val jacksonVersion = "2.22.1"
 plugins {
     id("org.springframework.boot") version "3.5.16"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.jk1.dependency-license-report") version "3.1.2"
+    id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.spring") version "2.4.10"
@@ -51,7 +51,7 @@ dependencies {
     // Common libs that come with various versions in transitive deps -> explicitly set the version
     implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
     implementation(platform("com.fasterxml.jackson:jackson-bom:$jacksonVersion"))
-    implementation("com.google.errorprone:error_prone_annotations:2.49.0")
+    implementation("com.google.errorprone:error_prone_annotations:2.50.0")
     implementation("com.google.guava:guava:33.6.0-jre")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
     implementation("javax.measure:unit-api:2.2")
@@ -63,7 +63,7 @@ dependencies {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
         implementation("com.fasterxml.jackson.core:jackson-core:${jacksonVersion}")
         implementation("com.fasterxml.jackson:jackson-bom:${jacksonVersion}")
-        implementation("com.google.errorprone:error_prone_annotations:2.49.0")
+        implementation("com.google.errorprone:error_prone_annotations:2.50.0")
         implementation("com.google.guava:guava:33.6.0-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
         implementation("javax.measure:unit-api:2.2")
@@ -77,8 +77,8 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.50.2")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
+    implementation("software.amazon.awssdk:cloudfront:2.51.2")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -119,7 +119,7 @@ dependencies {
     implementation("jakarta.activation:jakarta.activation-api:2.1.4")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.5")
     implementation("com.github.davidmoten:rtree2:0.9.3")
-    implementation("commons-validator:commons-validator:1.10.1") {
+    implementation("commons-validator:commons-validator:1.11.0") {
         exclude("commons-logging", "commons-logging")
         exclude("commons-collections", "commons-collections")
     }
@@ -132,10 +132,10 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")
-    testImplementation("org.wiremock:wiremock-jetty12:3.13.1")
-    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
-    testImplementation("io.projectreactor:reactor-test:3.8.5")
-    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42")
+    testImplementation("org.wiremock:wiremock-jetty12:3.13.2")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.3")
+    testImplementation("io.projectreactor:reactor-test:3.8.6")
+    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.46")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
 }
 
