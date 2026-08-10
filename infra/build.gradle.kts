@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "34.4"
-val kotlinVersion = "2.3.21"
+val kotlinVersion = "2.4.10"
 val jacksonVersion = "2.22.1"
 
 plugins {
@@ -20,8 +20,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
-    kotlin("jvm") version "2.3.21"
-    kotlin("plugin.spring") version "2.3.21"
+    kotlin("jvm") version "2.4.10"
+    kotlin("plugin.spring") version "2.4.10"
 }
 
 group = "fi.fta.geoviite"
@@ -114,6 +114,8 @@ dependencies {
     implementation("com.auth0:java-jwt:4.6.0")
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.10.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.7.13")
+    // Used by postgresql driver as runtime, but kotlin needs it at compile-time for nullability annotations
+    compileOnly("org.checkerframework:checker-qual:3.55.1")
     implementation("jakarta.activation:jakarta.activation-api:2.1.4")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.5")
     implementation("com.github.davidmoten:rtree2:0.9.3")
