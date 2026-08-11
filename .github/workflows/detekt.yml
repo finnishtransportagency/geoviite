@@ -14,13 +14,13 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: 25
           distribution: 'temurin'
 
       - name: Download detekt
         run: |
           curl -sSL -o /tmp/detekt.jar \
-          https://github.com/detekt/detekt/releases/download/v1.23.1/detekt-cli-1.23.1-all.jar
+          https://github.com/detekt/detekt/releases/download/v1.23.8/detekt-cli-1.23.8-all.jar
 
       - name: Checkout the branch that triggered the workflow
         uses: actions/checkout@v7
