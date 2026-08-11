@@ -386,7 +386,7 @@
             "DESIGN": "Suunnitelmatila"
         },
         "PlanApplicability": {
-            "PLANNING": "Suunnitelma",
+            "PLANNING": "Suunnittelu",
             "MAINTENANCE": "Kunnossapito",
             "STATISTICS": "Tilastointi",
             "UNKNOWN": "Ei tiedossa"
@@ -1710,7 +1710,7 @@
         "start-km": "Alkuratakilometri",
         "end-km": "Loppuratakilometri",
         "paikannuspalvelu-plans": "Paikannuspalvelun suunnitelmat",
-        "applicable-for-plans": "Rekisteri",
+        "applicable-for-plans": "Suunnittelu",
         "applicable-for-maintenance": "Kunnossapito",
         "applicable-for-statistics": "Tilastointi",
         "select-all": "Valitse kaikki",
