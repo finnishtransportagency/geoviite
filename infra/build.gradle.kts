@@ -191,8 +191,6 @@ tasks.register<Test>("integrationtest-without-cache") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
-    // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
-    jvmArgs("-javaagent:${mockitoAgent.asPath}")
 }
 
 tasks.register<Test>("ui-test-selenium-local") {
@@ -200,8 +198,6 @@ tasks.register<Test>("ui-test-selenium-local") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
-    // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
-    jvmArgs("-javaagent:${mockitoAgent.asPath}")
 }
 
 tasks.register<Test>("ui-test-selenium-docker") {
@@ -214,8 +210,6 @@ tasks.register<Test>("ui-test-selenium-docker") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
-    // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
-    jvmArgs("-javaagent:${mockitoAgent.asPath}")
 }
 
 tasks.withType<AbstractArchiveTask> {
