@@ -184,8 +184,6 @@ tasks.register<Test>("integrationtest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
-    // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
-    jvmArgs("-javaagent:${mockitoAgent.asPath}")
 }
 
 tasks.register<Test>("integrationtest-without-cache") {
