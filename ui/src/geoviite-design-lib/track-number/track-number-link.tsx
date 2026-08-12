@@ -9,6 +9,7 @@ import { LoaderStatus } from 'utils/react-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import styles from './track-number-link.scss';
 
 export type TrackNumberLinkContainerProps = {
     trackNumberId?: LayoutTrackNumberId;
@@ -73,7 +74,9 @@ export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
                 {trackNumber.number}
             </AnchorLink>
             {trackNumber.state === 'DELETED' ? (
-                <span>&nbsp;({t('enum.LayoutState.DELETED')})</span>
+                <span className={styles['track-number-link__deleted']}>
+                    &nbsp;({t('enum.LayoutState.DELETED')})
+                </span>
             ) : (
                 ''
             )}

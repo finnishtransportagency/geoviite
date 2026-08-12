@@ -153,10 +153,12 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     qaId="location-track-track-number"
                     label={t('tool-panel.location-track.track-number')}
                     value={
-                        <TrackNumberLinkContainer
-                            trackNumberId={trackNumber?.id}
-                            disabled={isLinkingOrSplitting}
-                        />
+                        <div>
+                            <TrackNumberLinkContainer
+                                trackNumberId={trackNumber?.id}
+                                disabled={isLinkingOrSplitting}
+                            />
+                        </div>
                     }
                 />
                 <InfoboxField
