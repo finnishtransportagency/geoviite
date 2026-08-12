@@ -30,13 +30,10 @@ For reporting vulnerabilities or security defects, see [SECURITY.md](./SECURITY.
 
 - IntelliJ Idea (Ultimate)
     - Kotlin plugin
-- JDK 17: Favor [Temurin](https://adoptium.net/temurin/releases/)
+- JDK 25: Favor [Temurin](https://adoptium.net/temurin/releases/)
     - MacBook installation:
         ```
-        curl -O -L https://raw.githubusercontent.com/Homebrew/homebrew-cask/4565865e9d7c3d3018ee8aa67803ea68c54dde86/Casks/temurin.rb
-        ```
-        ```
-        brew install --cask temurin.rb
+        brew install --cask temurin@25
         ```
     - After installing the JDK, make sure Idea uses it in: File -> Project Structure -> (Left bar) Platform Settings ->
       SDKs

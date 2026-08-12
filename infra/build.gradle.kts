@@ -24,13 +24,17 @@ plugins {
     kotlin("plugin.spring") version "2.3.21"
 }
 
+// Mockito's inline mock maker needs to attach as a Java agent. Since JDK 21, self-attaching is deprecated.
+// See https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+val mockitoAgent = configurations.create("mockitoAgent")
+
 group = "fi.fta.geoviite"
 
 version = "SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
+    sourceCompatibility = JavaVersion.VERSION_25
+    toolchain { languageVersion.set(JavaLanguageVersion.of(25)) }
 }
 
 repositories {
@@ -137,6 +141,8 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test:3.8.6")
     testImplementation("io.swagger.parser.v3:swagger-parser:2.1.46")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
+    // Explicit agent-jar for Mockito's inline mock maker, see the mockitoAgent configuration declaration above.
+    mockitoAgent("org.mockito:mockito-core") { isTransitive = false }
 }
 
 licenseReport {
@@ -152,7 +158,7 @@ licenseReport {
 tasks.withType<KotlinCompile> {
     compilerOptions {
         freeCompilerArgs = listOf("-Xjsr305=strict", "-Xconsistent-data-class-copy-visibility")
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_25)
     }
 }
 
@@ -170,6 +176,8 @@ tasks.withType<Test> {
     testLogging.exceptionFormat = FULL
     // testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
+    // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
+    jvmArgs("-javaagent:${mockitoAgent.asPath}")
 }
 
 tasks.register<Test>("integrationtest") {
