@@ -89,7 +89,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.51.2")
+    implementation("software.amazon.awssdk:cloudfront:2.51.3")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -189,6 +189,10 @@ tasks.withType<Test> {
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
     // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
     jvmArgs("-javaagent:${mockitoAgent.asPath}")
+    // Netty (via WireMock's Jetty12 server) calls System::loadLibrary for its native transport, which JDK 24+
+    // flags as a restricted-method warning (JEP 472). Silence it until Netty ships native-access-enabling
+    // manifest entries.
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 tasks.register<Test>("integrationtest") {
