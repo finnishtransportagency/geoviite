@@ -175,7 +175,7 @@ constructor(
         }
     }
 
-    override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
+    override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
         builder.serializationInclusion(JsonInclude.Include.NON_NULL)
 
@@ -186,7 +186,7 @@ constructor(
 
 inline fun <reified T : Enum<T>> enumCaseInsensitive(value: String): T = enumValueOf(value.uppercase())
 
-inline fun <reified T> FormatterRegistry.addStringConstructorConverter(noinline initializer: (String) -> T) {
+inline fun <reified T : Any> FormatterRegistry.addStringConstructorConverter(noinline initializer: (String) -> T) {
     addConverter(String::class.java, T::class.java, initializer)
     addConverter(T::class.java, String::class.java) { t -> t.toString() }
 }

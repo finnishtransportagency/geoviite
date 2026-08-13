@@ -8,7 +8,7 @@ import org.springframework.transaction.support.TransactionTemplate
 @Profile("nodb")
 @Component
 class NoTransactionTemplate : TransactionTemplate() {
-    override fun <T> execute(action: TransactionCallback<T>): T? {
+    override fun <T> execute(action: TransactionCallback<T>): T {
         throw Exception("No transaction template in nodb tests")
     }
 

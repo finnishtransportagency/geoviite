@@ -89,4 +89,5 @@ private fun reflectParams(joinPoint: JoinPoint): List<Pair<String, *>> {
             method.parameterAnnotations[index].none { annotation -> annotation is DoNotWriteToLog }
         }
         .zip(joinPoint.args)
+        .mapNotNull { (name, arg) -> name?.let { it to arg } }
 }

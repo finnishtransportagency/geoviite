@@ -16,7 +16,7 @@ val kotlinVersion = "2.4.10"
 val jacksonVersion = "2.22.1"
 
 plugins {
-    id("org.springframework.boot") version "3.5.16"
+    id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
@@ -78,6 +78,14 @@ dependencies {
 
         // swagger-parser pulls a vulnerable version of rhino -> override with newer version
         testImplementation("org.mozilla:rhino:1.9.1")
+
+        // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
+        // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
+        // Force the ee10 artifacts up to match the resolved core Jetty version.
+        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-servlets:12.1.10")
+        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-servlet:12.1.10")
+        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-webapp:12.1.10")
+        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.10")
     }
 
     // Actual deps
@@ -86,12 +94,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-jackson2")
     implementation("org.springframework.boot:spring-boot-starter-log4j2")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
@@ -133,6 +143,7 @@ dependencies {
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.9")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")

@@ -13,9 +13,9 @@ class SpringContextUtility : ApplicationContextAware {
     companion object {
         var applicationContext: ApplicationContext? = null
 
-        inline fun <reified T> getBean(): T = getContext().getBean(T::class.java)
+        inline fun <reified T : Any> getBean(): T = getContext().getBean(T::class.java)
 
-        inline fun <reified T> getProperty(key: String): T =
+        inline fun <reified T : Any> getProperty(key: String): T =
             getContext().environment.getProperty(key, T::class.java)
                 ?: throw IllegalStateException("No such property: $key")
 

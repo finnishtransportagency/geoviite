@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.configuration
 
 import com.github.benmanes.caffeine.cache.stats.CacheStats
-import org.springframework.boot.actuate.health.Health
-import org.springframework.boot.actuate.health.HealthIndicator
+import org.springframework.boot.health.contributor.Health
+import org.springframework.boot.health.contributor.HealthIndicator
 import org.springframework.cache.CacheManager
 import org.springframework.cache.caffeine.CaffeineCache
 import org.springframework.cache.support.NoOpCacheManager

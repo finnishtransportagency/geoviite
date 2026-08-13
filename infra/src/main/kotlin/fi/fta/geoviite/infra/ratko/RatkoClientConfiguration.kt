@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.logging.copyThreadContextToReactiveResponseThread
 import fi.fta.geoviite.infra.logging.integrationCall
 import java.time.Duration
@@ -13,6 +14,8 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import org.springframework.http.codec.json.Jackson2JsonDecoder
+import org.springframework.http.codec.json.Jackson2JsonEncoder
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
@@ -40,6 +43,7 @@ constructor(
     @Value("\${geoviite.ratko.username:}") private val basicAuthUsername: String,
     @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
     @Value("\${geoviite.ratko.bulk-transfers-enabled:}") val bulkTransfersEnabled: Boolean,
+    private val objectMapper: ObjectMapper,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(RatkoClient::class.java)
@@ -56,7 +60,15 @@ constructor(
                 .filter(logResponse())
                 .filter(copyThreadContextToReactiveResponseThread())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .codecs { it.defaultCodecs().maxInMemorySize(10 * 1024 * 1024) }
+                .codecs { configurer ->
+                    configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)
+                    // Boot 4 defaults reactive codecs to Jackson 3, which doesn't understand Kotlin's
+                    // "is"-prefixed boolean properties (e.g. isPlanContext) without jackson-module-kotlin
+                    // support. Use our Kotlin-aware Jackson 2 ObjectMapper instead, matching the rest of
+                    // the codebase, which stayed on Jackson 2.
+                    configurer.defaultCodecs().jacksonJsonEncoder(Jackson2JsonEncoder(objectMapper))
+                    configurer.defaultCodecs().jacksonJsonDecoder(Jackson2JsonDecoder(objectMapper))
+                }
 
         if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
             webClientBuilder.defaultHeaders { header -> header.setBasicAuth(basicAuthUsername, basicAuthPassword) }

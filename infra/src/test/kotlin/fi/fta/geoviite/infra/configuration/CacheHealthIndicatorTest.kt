@@ -4,7 +4,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
-import org.springframework.boot.actuate.health.Status
+import org.springframework.boot.health.contributor.Status
 import org.springframework.cache.caffeine.CaffeineCacheManager
 import org.springframework.cache.support.NoOpCacheManager
 
