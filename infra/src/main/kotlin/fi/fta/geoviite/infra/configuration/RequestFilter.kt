@@ -5,9 +5,9 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.TokenExpiredException
 import com.auth0.jwt.interfaces.DecodedJWT
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.jacksonMapperBuilder
+import tools.jackson.module.kotlin.readValue
 import correlationId
 import currentUser
 import currentUserRole
@@ -71,7 +71,7 @@ const val ALGORITHM_ES256 = "ES256"
 
 val slowRequestThreshold: Duration = Duration.ofSeconds(5)
 
-val objectMapper = jacksonObjectMapper()
+val objectMapper: JsonMapper = jacksonMapperBuilder().build()
 
 @ConditionalOnWebApplication
 @Component
@@ -94,7 +94,7 @@ constructor(
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val authorizationService: AuthorizationService by lazy { SpringContextUtility.getBean() }
-    private val objectMapper: ObjectMapper by lazy { SpringContextUtility.getBean() }
+    private val objectMapper: JsonMapper by lazy { SpringContextUtility.getBean() }
 
     private val jwkProvider: UrlJwkProvider by lazy {
         check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }

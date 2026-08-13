@@ -1,5 +1,5 @@
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import org.junit.jupiter.api.Test
@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.MockMvc
 @AutoConfigureMockMvc
 class ExtApiAuthIT @Autowired constructor(mockMvc: MockMvc) {
 
-    private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
+    private val mapper = JsonMapper().rebuild().changeDefaultPropertyInclusion { it.withValueInclusion(JsonInclude.Include.NON_NULL) }.build()
 
     val testApi = TestApi(mapper, mockMvc)
 

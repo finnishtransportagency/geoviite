@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.localization
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_BASIC
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,7 +15,7 @@ class LocalizationController @Autowired constructor(val localizationService: Loc
     @PreAuthorize(AUTH_BASIC)
     fun getLocalization(@PathVariable("language") language: LocalizationLanguage): Any {
         return localizationService.getLocalization(language).let { translation ->
-            ObjectMapper().readValue(translation.localization, Any::class.java)
+            JsonMapper().readValue(translation.localization, Any::class.java)
         }
     }
 }

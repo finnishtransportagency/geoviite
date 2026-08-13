@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.localization
 
-import com.fasterxml.jackson.databind.json.JsonMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.util.FileName
 import java.io.File

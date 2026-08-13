@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.core.JsonGenerator
-import com.fasterxml.jackson.databind.JsonSerializer
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializerProvider
-import com.fasterxml.jackson.databind.module.SimpleModule
+import tools.jackson.core.JsonGenerator
+import tools.jackson.databind.SerializationContext
+import tools.jackson.databind.ValueSerializer
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.module.SimpleModule
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
@@ -21,19 +21,21 @@ import java.time.Instant
 const val SAMPLE_TOKEN =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 
-private class UnsafeSerializer : JsonSerializer<UnsafeString>() {
-    override fun serialize(value: UnsafeString, gen: JsonGenerator, serializers: SerializerProvider) {
+private class UnsafeSerializer : ValueSerializer<UnsafeString>() {
+    override fun serialize(value: UnsafeString, gen: JsonGenerator, serializers: SerializationContext) {
         gen.writeString(value.unsafeValue)
     }
 }
 
-class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable {
+class FakeProjektiVelho(port: Int, jsonMapper: JsonMapper) : AutoCloseable {
     private val wireMock: WireMockServer = WireMockServer(options().port(port))
+    val jsonMapper: JsonMapper =
+        jsonMapper
+            .rebuild()
+            .addModule(SimpleModule("TestUnsafeSerializer").addSerializer(UnsafeString::class.java, UnsafeSerializer()))
+            .build()
 
     init {
-        val module = SimpleModule("TestUnsafeSerializer")
-        module.addSerializer(UnsafeString::class.java, UnsafeSerializer())
-        jsonMapper.registerModule(module)
         wireMock.start()
     }
 

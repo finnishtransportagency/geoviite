@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.common
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.TestApi
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
@@ -14,7 +14,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class LayoutBranchConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: MockMvc) {
+class LayoutBranchConversionTest @Autowired constructor(mapper: JsonMapper, mockMvc: MockMvc) {
 
     val testApi = TestApi(mapper, mockMvc)
 
@@ -97,7 +97,7 @@ class LayoutBranchConversionTest @Autowired constructor(mapper: ObjectMapper, mo
         val testObject = LayoutBranchTestObject(LayoutBranch.main)
         assertEquals(testApi.response(testObject), testApi.doPost("$LAYOUT_TEST_URL/body", testObject, HttpStatus.OK))
         assertEquals(
-            testApi.response(testObject),
+            testApi.response(MainBranchTestObject(LayoutBranch.main)),
             testApi.doPost("$LAYOUT_TEST_URL/body/main", testObject, HttpStatus.OK),
         )
     }
@@ -105,10 +105,10 @@ class LayoutBranchConversionTest @Autowired constructor(mapper: ObjectMapper, mo
     @Test
     fun `design layout branch in body works`() {
         val testObject = DesignBranchTestObject(LayoutBranch.design(IntId(123)))
-        assertEquals(testApi.response(testObject), testApi.doPost("$LAYOUT_TEST_URL/body", testObject, HttpStatus.OK))
         assertEquals(
-            testApi.response(testObject),
-            testApi.doPost("$LAYOUT_TEST_URL/body/design", testObject, HttpStatus.OK),
+            testApi.response(LayoutBranchTestObject(LayoutBranch.design(IntId(123)))),
+            testApi.doPost("$LAYOUT_TEST_URL/body", testObject, HttpStatus.OK),
         )
+        assertEquals(testApi.response(testObject), testApi.doPost("$LAYOUT_TEST_URL/body/design", testObject, HttpStatus.OK))
     }
 }

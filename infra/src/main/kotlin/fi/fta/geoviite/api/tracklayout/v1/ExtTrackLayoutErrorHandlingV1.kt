@@ -1,8 +1,8 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
-import com.fasterxml.jackson.databind.exc.ValueInstantiationException
+import tools.jackson.databind.exc.MismatchedInputException
+import tools.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.infra.error.ErrorDescription
 import fi.fta.geoviite.infra.error.ErrorPriority
 import fi.fta.geoviite.infra.error.GeoviiteErrorResponse

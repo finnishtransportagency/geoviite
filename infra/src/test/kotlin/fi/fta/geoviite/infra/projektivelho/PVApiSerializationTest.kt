@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.util.UnsafeString
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("dev", "test", "nodb")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
+class PVApiSerializationTest @Autowired constructor(val mapper: JsonMapper) {
 
     @Test
     fun `SearchStatus is serialized and deserialized correctly`() {

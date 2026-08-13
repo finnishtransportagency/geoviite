@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -32,7 +32,7 @@ constructor(
     private val pvIntegrationService: PVIntegrationService,
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
-    private val jsonMapper: ObjectMapper,
+    private val jsonMapper: JsonMapper,
 ) : DBTestBase() {
 
     fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)

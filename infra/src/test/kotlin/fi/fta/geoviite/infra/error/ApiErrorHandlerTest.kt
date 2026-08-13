@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.error
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.hello.ERROR_TEST_URL
 import fi.fta.geoviite.infra.hello.ErrorTestBody
@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class ApiErrorHandlerTest @Autowired constructor(mapper: ObjectMapper, mockMvc: MockMvc) {
+class ApiErrorHandlerTest @Autowired constructor(mapper: JsonMapper, mockMvc: MockMvc) {
     val testApi = TestApi(mapper, mockMvc)
 
     @Test

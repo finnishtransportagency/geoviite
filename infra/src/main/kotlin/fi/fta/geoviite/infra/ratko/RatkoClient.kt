@@ -1,14 +1,14 @@
 package fi.fta.geoviite.infra.ratko
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.fasterxml.jackson.module.kotlin.treeToValue
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.KotlinFeature
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
+import tools.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.treeToValue
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
@@ -164,8 +164,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     private val ratkoJsonMapper = jsonMapper {
         addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+        disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     }
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     data class RatkoStatus(val connectionStatus: RatkoConnectionStatus, val ratkoStatusCode: Int?)
 
@@ -427,7 +427,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 }
                 .block(defaultBlockTimeout)
 
-        val switchJsonObject = ObjectMapper().readTree(responseJson) as ObjectNode
+        val switchJsonObject = JsonMapper().readTree(responseJson) as ObjectNode
         switchJsonObject.put("state", state.value)
         switchJsonObject.remove("temporalStartTime")
         switchJsonObject.get("properties")?.forEach { property -> (property as ObjectNode).remove("validityStart") }

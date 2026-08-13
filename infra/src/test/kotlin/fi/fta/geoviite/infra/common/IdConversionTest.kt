@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.common
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.TestApi
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: MockMvc) {
+class IdConversionTest @Autowired constructor(mapper: JsonMapper, mockMvc: MockMvc) {
 
     val testApi = TestApi(mapper, mockMvc)
 

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.projektivelho.FakeProjektiVelho
@@ -43,7 +43,7 @@ class ProjektiVelhoTestUI
 constructor(
     @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvDao: PVDao,
-    private val jsonMapper: ObjectMapper,
+    private val jsonMapper: JsonMapper,
 ) : SeleniumTest() {
 
     fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.authorization
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.configuration.HTTP_HEADER_JWT_DATA
@@ -79,7 +79,7 @@ class AuthorizationIT
 constructor(
     authorizationDao: AuthorizationDao,
     authorizationService: AuthorizationService,
-    mapper: ObjectMapper,
+    mapper: JsonMapper,
     mockMvc: MockMvc,
 ) : DBTestBase() {
 

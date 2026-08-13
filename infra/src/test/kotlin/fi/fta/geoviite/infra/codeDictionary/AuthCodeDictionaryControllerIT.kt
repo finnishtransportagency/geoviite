@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.codeDictionary
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.DBTestBase
 import kotlin.text.Charsets.UTF_8
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 @ActiveProfiles("dev", "test", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc
-class AuthCodeDictionaryControllerIT @Autowired constructor(val objectMapper: ObjectMapper, val mockMvc: MockMvc) :
+class AuthCodeDictionaryControllerIT @Autowired constructor(val objectMapper: JsonMapper, val mockMvc: MockMvc) :
     DBTestBase() {
 
     @Test

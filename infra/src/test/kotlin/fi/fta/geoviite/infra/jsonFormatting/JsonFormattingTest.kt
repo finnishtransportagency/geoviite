@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.jsonFormatting
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.TestApi
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class JsonFormattingTest @Autowired constructor(val mapper: ObjectMapper, mockMvc: MockMvc) {
+class JsonFormattingTest @Autowired constructor(val mapper: JsonMapper, mockMvc: MockMvc) {
     val testApi = TestApi(mapper, mockMvc)
 
     @Test

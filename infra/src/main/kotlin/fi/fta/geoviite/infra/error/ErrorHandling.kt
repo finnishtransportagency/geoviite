@@ -5,9 +5,9 @@ import com.auth0.jwt.exceptions.InvalidClaimException
 import com.auth0.jwt.exceptions.JWTDecodeException
 import com.auth0.jwt.exceptions.SignatureVerificationException
 import com.auth0.jwt.exceptions.TokenExpiredException
-import com.fasterxml.jackson.core.JsonParseException
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
-import com.fasterxml.jackson.databind.exc.ValueInstantiationException
+import tools.jackson.core.exc.StreamReadException
+import tools.jackson.databind.exc.MismatchedInputException
+import tools.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.api.tracklayout.v1.createExtApiErrorResponseV1
 import fi.fta.geoviite.infra.configuration.GeoviiteRequestType
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -250,7 +250,7 @@ fun describe(ex: Exception): ErrorDescription? {
                 priority = ErrorPriority.LOW,
             )
 
-        is JsonParseException ->
+        is StreamReadException ->
             ErrorDescription(message = "Failed to parse JSON input", key = "error.bad-request.invalid-body")
 
         is ValueInstantiationException ->

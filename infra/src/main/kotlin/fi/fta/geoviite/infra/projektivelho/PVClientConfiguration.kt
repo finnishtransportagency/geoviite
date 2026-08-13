@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.logging.integrationCall
 import java.time.Duration
 import org.slf4j.Logger
@@ -14,8 +14,8 @@ import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
-import org.springframework.http.codec.json.Jackson2JsonDecoder
-import org.springframework.http.codec.json.Jackson2JsonEncoder
+import org.springframework.http.codec.json.JacksonJsonDecoder
+import org.springframework.http.codec.json.JacksonJsonEncoder
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
@@ -41,7 +41,7 @@ constructor(
     @Value("\${geoviite.projektivelho.auth_url:}") private val projektiVelhoAuthUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.secret_key:}") private val projektiVelhoPassword: String,
-    private val objectMapper: ObjectMapper,
+    private val objectMapper: JsonMapper,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(PVClient::class.java)
@@ -76,9 +76,8 @@ constructor(
                 .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 .codecs { codecs ->
                     codecs.defaultCodecs().maxInMemorySize(MAX_FILE_BUFFER_SIZE)
-                    // See RatkoClientConfiguration for why we need to force Jackson 2 codecs here.
-                    codecs.defaultCodecs().jacksonJsonEncoder(Jackson2JsonEncoder(objectMapper))
-                    codecs.defaultCodecs().jacksonJsonDecoder(Jackson2JsonDecoder(objectMapper))
+                    codecs.defaultCodecs().jacksonJsonEncoder(JacksonJsonEncoder(objectMapper))
+                    codecs.defaultCodecs().jacksonJsonDecoder(JacksonJsonDecoder(objectMapper))
                 }
 
         return PVWebClient(webClientBuilder.build())
