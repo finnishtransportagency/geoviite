@@ -1,10 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import tools.jackson.core.JsonGenerator
-import tools.jackson.databind.SerializationContext
-import tools.jackson.databind.ValueSerializer
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.databind.module.SimpleModule
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
@@ -17,6 +12,11 @@ import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
 import fi.fta.geoviite.infra.util.UnsafeString
 import java.time.Instant
+import tools.jackson.core.JsonGenerator
+import tools.jackson.databind.SerializationContext
+import tools.jackson.databind.ValueSerializer
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.module.SimpleModule
 
 const val SAMPLE_TOKEN =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"

@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra
 
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.error.ApiErrorResponse
 import jakarta.servlet.DispatcherType
 import kotlin.test.assertTrue
@@ -14,6 +12,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.result.isEqualTo
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 
 class TestApi(val mapper: JsonMapper, val mockMvc: MockMvc) {
 

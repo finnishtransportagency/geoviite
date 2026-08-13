@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.localization
 
-import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_BASIC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import tools.jackson.databind.json.JsonMapper
 
 @GeoviiteController("/localization")
 class LocalizationController @Autowired constructor(val localizationService: LocalizationService) {

@@ -8,6 +8,9 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import fi.fta.geoviite.infra.logging.SPAN_IDS_KEY
 import fi.fta.geoviite.infra.logging.copyThreadContextToReactiveResponseThread
 import fi.fta.geoviite.infra.logging.withLogSpan
+import java.net.URI
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import org.apache.logging.log4j.ThreadContext
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -19,9 +22,6 @@ import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.ExchangeFunction
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.net.URI
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 private const val MOCK_SERVER_PORT = 1080
 

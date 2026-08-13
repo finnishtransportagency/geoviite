@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.configuration
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS
-import tools.jackson.module.kotlin.jacksonMapperBuilder
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtLayoutVersionV1
@@ -65,6 +63,8 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import org.springframework.web.servlet.resource.PathResourceResolver
+import tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 
 @ConditionalOnWebApplication
 @EnableWebMvc

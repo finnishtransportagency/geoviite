@@ -1,19 +1,19 @@
 package fi.fta.geoviite.infra.authorization
 
-import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.configuration.HTTP_HEADER_JWT_DATA
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import tools.jackson.databind.json.JsonMapper
 
 /*
 Generated via jwt.io

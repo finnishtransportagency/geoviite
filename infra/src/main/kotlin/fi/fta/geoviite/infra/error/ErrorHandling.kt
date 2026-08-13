@@ -5,9 +5,6 @@ import com.auth0.jwt.exceptions.InvalidClaimException
 import com.auth0.jwt.exceptions.JWTDecodeException
 import com.auth0.jwt.exceptions.SignatureVerificationException
 import com.auth0.jwt.exceptions.TokenExpiredException
-import tools.jackson.core.exc.StreamReadException
-import tools.jackson.databind.exc.MismatchedInputException
-import tools.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.api.tracklayout.v1.createExtApiErrorResponseV1
 import fi.fta.geoviite.infra.configuration.GeoviiteRequestType
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -51,6 +48,9 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException
 import org.springframework.web.multipart.support.MissingServletRequestPartException
 import org.springframework.web.servlet.NoHandlerFoundException
 import org.springframework.web.servlet.resource.NoResourceFoundException
+import tools.jackson.core.exc.StreamReadException
+import tools.jackson.databind.exc.MismatchedInputException
+import tools.jackson.databind.exc.ValueInstantiationException
 
 fun handleErrorResponseCreation(
     exception: Exception,

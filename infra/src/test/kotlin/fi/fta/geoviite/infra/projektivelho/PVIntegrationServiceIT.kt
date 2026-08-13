@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -22,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import tools.jackson.databind.json.JsonMapper
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])

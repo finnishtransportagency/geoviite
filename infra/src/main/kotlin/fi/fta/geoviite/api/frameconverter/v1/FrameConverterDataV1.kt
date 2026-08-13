@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonUnwrapped
 import com.fasterxml.jackson.annotation.JsonValue
-import tools.jackson.databind.annotation.JsonDeserialize
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
@@ -24,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
+import tools.jackson.databind.annotation.JsonDeserialize
 
 typealias FrameConverterIdentifierV1 = FreeText
 

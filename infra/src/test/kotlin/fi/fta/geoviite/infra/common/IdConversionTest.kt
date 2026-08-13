@@ -1,17 +1,17 @@
 package fi.fta.geoviite.infra.common
 
-import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.TestApi
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.OK
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import tools.jackson.databind.json.JsonMapper
 
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest

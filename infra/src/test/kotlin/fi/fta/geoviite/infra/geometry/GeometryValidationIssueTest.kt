@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.geometry
 
-import tools.jackson.module.kotlin.jacksonObjectMapper
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
+import tools.jackson.module.kotlin.jacksonObjectMapper
 
 class GeometryValidationIssueTest {
 

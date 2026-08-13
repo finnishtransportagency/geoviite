@@ -1,14 +1,5 @@
 package fi.fta.geoviite.infra.ratko
 
-import tools.jackson.databind.DeserializationFeature
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.databind.node.ObjectNode
-import tools.jackson.module.kotlin.KotlinFeature
-import tools.jackson.module.kotlin.jsonMapper
-import tools.jackson.module.kotlin.kotlinModule
-import tools.jackson.module.kotlin.readValue
-import tools.jackson.module.kotlin.treeToValue
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
@@ -72,6 +63,15 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.KotlinFeature
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
+import tools.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.treeToValue
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 

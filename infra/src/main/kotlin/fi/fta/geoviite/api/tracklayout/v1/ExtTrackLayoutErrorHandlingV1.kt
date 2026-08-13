@@ -1,8 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import tools.jackson.databind.exc.MismatchedInputException
-import tools.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.infra.error.ErrorDescription
 import fi.fta.geoviite.infra.error.ErrorPriority
 import fi.fta.geoviite.infra.error.GeoviiteErrorResponse
@@ -19,6 +17,8 @@ import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.NoHandlerFoundException
+import tools.jackson.databind.exc.MismatchedInputException
+import tools.jackson.databind.exc.ValueInstantiationException
 
 internal const val ERROR_KEY_BASE = "ext-api.track-layout.v1.error"
 

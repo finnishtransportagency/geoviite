@@ -1,13 +1,5 @@
 package fi.fta.geoviite.infra.ratko
 
-import tools.jackson.databind.DeserializationFeature
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.node.ObjectNode
-import tools.jackson.module.kotlin.KotlinFeature
-import tools.jackson.module.kotlin.jsonMapper
-import tools.jackson.module.kotlin.kotlinModule
-import tools.jackson.module.kotlin.readValue
-import tools.jackson.module.kotlin.treeToValue
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.delete
@@ -63,6 +55,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.KotlinFeature
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
+import tools.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.treeToValue
 
 @ConditionalOnProperty("geoviite.ratko.test-port")
 @GeoviiteService

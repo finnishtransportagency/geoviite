@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.projektivelho
 
+import fi.fta.geoviite.infra.common.Oid
+import java.time.Instant
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.node.ArrayNode
 import tools.jackson.databind.node.JsonNodeFactory
 import tools.jackson.databind.node.ObjectNode
-import fi.fta.geoviite.infra.common.Oid
-import java.time.Instant
 
 enum class PVApiSearchType(val apiValue: String) {
     TARGET_SEARCH("kohdeluokkahaku"),

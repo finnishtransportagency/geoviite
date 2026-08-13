@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.logging.integrationCall
 import java.time.Duration
 import org.slf4j.Logger
@@ -21,6 +20,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import tools.jackson.databind.json.JsonMapper
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 

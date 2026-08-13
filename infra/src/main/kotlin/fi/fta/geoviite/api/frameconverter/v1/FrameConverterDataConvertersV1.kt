@@ -1,9 +1,9 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
+import java.io.IOException
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.ValueDeserializer
-import java.io.IOException
 
 class FrameConverterLocationTrackTypeDeserializerV1 : ValueDeserializer<FrameConverterLocationTrackTypeV1>() {
     @Throws(IOException::class)

@@ -5,9 +5,6 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.TokenExpiredException
 import com.auth0.jwt.interfaces.DecodedJWT
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.module.kotlin.jacksonMapperBuilder
-import tools.jackson.module.kotlin.readValue
 import correlationId
 import currentUser
 import currentUserRole
@@ -59,6 +56,9 @@ import org.springframework.stereotype.Component
 import org.springframework.web.context.request.ServletWebRequest
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.filter.OncePerRequestFilter
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.jacksonMapperBuilder
+import tools.jackson.module.kotlin.readValue
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"

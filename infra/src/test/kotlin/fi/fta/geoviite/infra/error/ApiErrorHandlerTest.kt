@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.error
 
-import tools.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.hello.ERROR_TEST_URL
 import fi.fta.geoviite.infra.hello.ErrorTestBody
@@ -8,11 +7,12 @@ import fi.fta.geoviite.infra.hello.ErrorTestResponse
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpStatus.*
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import tools.jackson.databind.json.JsonMapper
 
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
