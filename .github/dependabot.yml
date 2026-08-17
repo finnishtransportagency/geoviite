@@ -11,42 +11,42 @@ updates:
       - dependency-name: "*"
         update-types: [ "version-update:semver-major" ]
     groups:
-      spring-boot:
+      infra-spring-boot:
         patterns:
           - "org.springframework*"
           - "io.spring*"
           - "org.springdoc*"
           - "com.fasterxml.jackson*"
-      kotlin:
+      infra-kotlin:
         patterns:
           - "org.jetbrains.kotlin*"
           - "jvm"
           - "plugin.spring"
-      flyway:
+      infra-flyway:
         patterns:
           - "org.flywaydb*"
-      geotools:
+      infra-geotools:
         patterns:
           - "org.geotools*"
-      auth0:
+      infra-auth0:
         patterns:
           - "com.auth0*"
-      jakarta-xml:
+      infra-jakarta-xml:
         patterns:
           - "jakarta.activation*"
           - "jakarta.xml.bind*"
           - "org.glassfish.jaxb*"
-      test-dependencies:
+      infra-test:
         dependency-type: "development"
         patterns:
           - "org.mock-server*"
           - "org.apache.httpcomponents*"
           - "io.projectreactor:reactor-test"
-      gradle:
+      infra-gradle:
         patterns:
           - "gradle"
           - "gradle-wrapper"
-      other:
+      infra-other:
         patterns:
           - "*"
 
@@ -60,7 +60,7 @@ updates:
       - dependency-name: "*"
         update-types: [ "version-update:semver-major" ]
     groups:
-      toolchain:
+      ui-toolchain:
         patterns:
           - "webpack"
           - "webpack-*"
@@ -78,7 +78,7 @@ updates:
           - "ts-node"
           - "prettier"
           - "sass"
-      react:
+      ui-react:
         patterns:
           - "react"
           - "react-*"
@@ -88,11 +88,11 @@ updates:
           - "redux-*"
           - "i18next"
           - "i18next-*"
-      openlayers:
+      ui-openlayers:
         patterns:
           - "ol"
           - "proj4"
-      other:
+      ui-other:
         patterns:
           - "*"
 
