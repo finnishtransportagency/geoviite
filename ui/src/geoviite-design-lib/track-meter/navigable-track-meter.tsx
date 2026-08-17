@@ -24,16 +24,17 @@ const NavigableTrackMeter: React.FC<NavigableTrackMeterProps> = ({
     mapNavigationBboxOffset = MAP_POINT_DEFAULT_BBOX_OFFSET,
     displayDecimals,
 }: NavigableTrackMeterProps) => {
-    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
+    const showArea = React.useMemo(() => createDelegates(trackLayoutActionCreators).showArea, []);
+
+    const showLocationOnMap =
+        location &&
+        (() => {
+            showArea(calculateBoundingBoxToShowAroundLocation(location, mapNavigationBboxOffset));
+        });
 
     return (
         <TrackMeter
-            onClickAction={() =>
-                location &&
-                delegates.showArea(
-                    calculateBoundingBoxToShowAroundLocation(location, mapNavigationBboxOffset),
-                )
-            }
+            onClickAction={showLocationOnMap}
             trackMeter={trackMeter}
             displayDecimals={displayDecimals}
             placeholder={placeholder}
