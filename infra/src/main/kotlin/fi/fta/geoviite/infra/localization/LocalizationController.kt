@@ -11,11 +11,13 @@ import tools.jackson.databind.json.JsonMapper
 @GeoviiteController("/localization")
 class LocalizationController @Autowired constructor(val localizationService: LocalizationService) {
 
+    private val jsonMapper: JsonMapper = JsonMapper()
+
     @GetMapping("/{language}.json")
     @PreAuthorize(AUTH_BASIC)
     fun getLocalization(@PathVariable("language") language: LocalizationLanguage): Any {
         return localizationService.getLocalization(language).let { translation ->
-            JsonMapper().readValue(translation.localization, Any::class.java)
+            jsonMapper.readValue(translation.localization, Any::class.java)
         }
     }
 }

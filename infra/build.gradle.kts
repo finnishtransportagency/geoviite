@@ -14,11 +14,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val geotoolsVersion = "34.4"
 val kotlinVersion = "2.4.10"
 
-// Geoviite mainly uses Spring 4 default of Jackson 3 (version managed by spring), but some
-// dependencies also use the older 2 version. Versions 2 & 3 exist purely in separate namespaces,
-// so they can co-exist safely. Still, we'll want to be rid of this when the deps are updated to use Jackson 3.
-val jackson2Version = "2.22.1"
-
 plugins {
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
@@ -57,8 +52,10 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.20.0")
 
     // Common libs that come with various versions in transitive deps -> explicitly set the version
-    implementation("com.fasterxml.jackson.core:jackson-core:$jackson2Version")
-    implementation(platform("com.fasterxml.jackson:jackson-bom:$jackson2Version"))
+
+    // Geoviite mainly uses Spring 4 default of Jackson 3 (version managed by spring), but some
+    // dependencies also use the older Jackson 2. Versions 2 & 3 can co-exist safely.
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.1"))
     implementation("com.google.errorprone:error_prone_annotations:2.50.0")
     implementation("com.google.guava:guava:33.6.0-jre")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
@@ -67,10 +64,12 @@ dependencies {
     // swagger-parser pulls a vulnerable version of rhino -> override with newer version
     testImplementation("org.mozilla:rhino:1.9.1")
 
+    // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
+    // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
+    testImplementation(platform("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.10"))
+
     constraints {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
-        implementation("com.fasterxml.jackson.core:jackson-core:${jackson2Version}")
-        implementation("com.fasterxml.jackson:jackson-bom:${jackson2Version}")
         implementation("com.google.errorprone:error_prone_annotations:2.50.0")
         implementation("com.google.guava:guava:33.6.0-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
@@ -82,14 +81,6 @@ dependencies {
 
         // swagger-parser pulls a vulnerable version of rhino -> override with newer version
         testImplementation("org.mozilla:rhino:1.9.1")
-
-        // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
-        // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
-        // Force the ee10 artifacts up to match the resolved core Jetty version.
-        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-servlets:12.1.10")
-        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-servlet:12.1.10")
-        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-webapp:12.1.10")
-        testImplementation("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.10")
     }
 
     // Actual deps

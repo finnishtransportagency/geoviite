@@ -65,7 +65,6 @@ import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.JsonNode
-import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.node.ObjectNode
 import tools.jackson.module.kotlin.KotlinFeature
 import tools.jackson.module.kotlin.jsonMapper
@@ -427,7 +426,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 }
                 .block(defaultBlockTimeout)
 
-        val switchJsonObject = JsonMapper().readTree(responseJson) as ObjectNode
+        val switchJsonObject = ratkoJsonMapper.readTree(responseJson) as ObjectNode
         switchJsonObject.put("state", state.value)
         switchJsonObject.remove("temporalStartTime")
         switchJsonObject.get("properties")?.forEach { property -> (property as ObjectNode).remove("validityStart") }
