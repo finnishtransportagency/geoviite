@@ -23,22 +23,27 @@ import org.springframework.web.reactive.function.client.ExchangeFunction
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
-const val MOCK_SERVER_PORT = 1080
+private const val MOCK_SERVER_PORT = 1080
 
 class ThreadContextMiddlewareTest {
 
-    private lateinit var wireMock: WireMockServer
+    private var wireMock: WireMockServer? = null
 
     @BeforeEach
     fun startMockServer() {
-        wireMock = WireMockServer(options().port(MOCK_SERVER_PORT))
-        wireMock.start()
-        wireMock.stubFor(get(urlEqualTo("/example")).willReturn(aResponse().withStatus(200).withBody("mock response")))
+        wireMock =
+            WireMockServer(options().port(MOCK_SERVER_PORT)).also {
+                it.start()
+                it.stubFor(
+                    get(urlEqualTo("/example")).willReturn(aResponse().withStatus(200).withBody("mock response"))
+                )
+            }
     }
 
     @AfterEach
     fun stopMockServer() {
-        wireMock.stop()
+        wireMock?.stop()
+        wireMock = null
     }
 
     @Test

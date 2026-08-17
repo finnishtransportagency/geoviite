@@ -41,13 +41,13 @@ fun NamedParameterJdbcTemplate.setForceCustomPlan() {
     update("set local plan_cache_mode = force_custom_plan;", mapOf<String, Any>())
 }
 
-fun <T> NamedParameterJdbcTemplate.batchUpdateIndexed(
+fun <T : Any> NamedParameterJdbcTemplate.batchUpdateIndexed(
     sql: String,
     items: List<T>,
     paramSetter: ParameterizedPreparedStatementSetter<Pair<Int, T>>,
 ) = batchUpdate(sql, items.mapIndexed { index, item -> index to item }, paramSetter)
 
-fun <T> NamedParameterJdbcTemplate.batchUpdate(
+fun <T : Any> NamedParameterJdbcTemplate.batchUpdate(
     sql: String,
     items: List<T>,
     paramSetter: ParameterizedPreparedStatementSetter<T>,

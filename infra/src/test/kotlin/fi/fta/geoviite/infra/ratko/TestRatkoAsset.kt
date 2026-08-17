@@ -78,6 +78,8 @@ data class InterfaceRatkoRouteNumber(
     val state: RatkoRouteNumberState,
     val rowMetadata: RatkoMetadata = RatkoMetadata(),
     val nodecollection: InterfaceRatkoNodes?,
+    val isPlanContext: Boolean,
+    val planItemIds: List<Int>?,
 )
 
 fun ratkoRouteNumber(
@@ -87,7 +89,18 @@ fun ratkoRouteNumber(
     state: RatkoRouteNumberState = RatkoRouteNumberState(RatkoRouteNumberStateType.VALID),
     rowMetadata: RatkoMetadata = RatkoMetadata(),
     nodecollection: InterfaceRatkoNodes = InterfaceRatkoNodes(listOf(), RatkoNodesType.POINT),
-) = InterfaceRatkoRouteNumber(id, name, description, state, rowMetadata, nodecollection)
+    planItemIds: List<Int>? = null,
+) =
+    InterfaceRatkoRouteNumber(
+        id,
+        name,
+        description,
+        state,
+        rowMetadata,
+        nodecollection,
+        planItemIds = planItemIds,
+        isPlanContext = !planItemIds.isNullOrEmpty(),
+    )
 
 fun ratkoLocationTrack(
     id: String,

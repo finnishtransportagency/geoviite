@@ -2,11 +2,11 @@ package fi.fta.geoviite.api.frameconverter.v1
 
 import TestGeoJsonFeatureCollection
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.TestApi
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
+import tools.jackson.databind.json.JsonMapper
 
 typealias FrameConverterUrl = String
 
@@ -17,7 +17,11 @@ const val RESPONSE_BASIC_FEATURE_KEY = "perustiedot"
 const val RESPONSE_DETAILED_FEATURE_KEY = "lisatiedot"
 
 class FrameConverterTestApiService(mockMvc: MockMvc) {
-    private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
+    private val mapper =
+        JsonMapper()
+            .rebuild()
+            .changeDefaultPropertyInclusion { it.withValueInclusion(JsonInclude.Include.NON_NULL) }
+            .build()
     val testApi = TestApi(mapper, mockMvc)
 
     fun fetchFeatureCollectionSingle(

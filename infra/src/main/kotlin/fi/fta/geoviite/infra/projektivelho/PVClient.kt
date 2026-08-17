@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
@@ -27,6 +25,8 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
 val reLoginOffset: Duration = Duration.ofSeconds(60)
@@ -53,7 +53,7 @@ const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V2_PATH/projektijoukko"
 @ConditionalOnBean(PVClientConfiguration::class)
 class PVClient
 @Autowired
-constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient, val jsonMapper: ObjectMapper) {
+constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient, val jsonMapper: JsonMapper) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val accessToken: AtomicReference<PVAccessToken?> = AtomicReference(null)
 
@@ -120,7 +120,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
         classes.get(encodingTypeDictionary(dictionaryToGet)).let { asset ->
             val version = asset.get("uusin-nimikkeistoversio").intValue()
             asset.get("nimikkeistoversiot").get(version.toString()).let { nodes ->
-                nodes.fieldNames().asSequence().toList().map { code ->
+                nodes.propertyNames().asSequence().toList().map { code ->
                     PVApiDictionaryEntry(
                         code = PVDictionaryCode(code),
                         name = UnsafeString(nodes.get(code).get("otsikko").textValue()),
@@ -144,17 +144,18 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
         return getOptional<PVApiAssignment>("$ASSIGNMENT_PATH/$oid", get404toNull("oid=$oid"))
     }
 
-    private inline fun <reified T> get404toNull(message: String): (ex: WebClientResponseException) -> Mono<T> = { ex ->
-        if (ex.statusCode.value() == 404) {
-            logger.warn(
-                "Could not GET ${T::class.simpleName} from ProjektiVelho: " +
-                    "$message status=${ex.statusCode} result=${ex.message.let(::formatForLog)}"
-            )
-            Mono.empty()
-        } else {
-            Mono.error(ex)
+    private inline fun <reified T : Any> get404toNull(message: String): (ex: WebClientResponseException) -> Mono<T> =
+        { ex ->
+            if (ex.statusCode.value() == 404) {
+                logger.warn(
+                    "Could not GET ${T::class.simpleName} from ProjektiVelho: " +
+                        "$message status=${ex.statusCode} result=${ex.message.let(::formatForLog)}"
+                )
+                Mono.empty()
+            } else {
+                Mono.error(ex)
+            }
         }
-    }
 
     private fun getJsonOptional(uri: String): JsonNode? = getOptional<String>(uri)?.let(jsonMapper::readTree)
 

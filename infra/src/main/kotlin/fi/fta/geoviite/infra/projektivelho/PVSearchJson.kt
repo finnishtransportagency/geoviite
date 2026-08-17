@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
-import com.fasterxml.jackson.databind.node.ObjectNode
 import fi.fta.geoviite.infra.common.Oid
 import java.time.Instant
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.ArrayNode
+import tools.jackson.databind.node.JsonNodeFactory
+import tools.jackson.databind.node.ObjectNode
 
 enum class PVApiSearchType(val apiValue: String) {
     TARGET_SEARCH("kohdeluokkahaku"),
@@ -36,16 +36,16 @@ enum class PVApiSearchOperator(val apiValue: String) {
 
 fun searchRoot(settings: JsonNode, formula: JsonNode, targetCategories: JsonNode): ObjectNode =
     JsonNodeFactory.instance.objectNode().also { rootNode ->
-        rootNode.set<JsonNode>(SETTINGS, settings)
-        rootNode.set<JsonNode>(FORMULA, formula)
-        rootNode.set<JsonNode>(TARGET_CATEGORIES, targetCategories)
+        rootNode.set(SETTINGS, settings)
+        rootNode.set(FORMULA, formula)
+        rootNode.set(TARGET_CATEGORIES, targetCategories)
     }
 
 fun settings(searchType: PVApiSearchType, maxResultCount: Int, ordering: JsonNode): ObjectNode =
     JsonNodeFactory.instance.objectNode().also { settingsNode ->
         settingsNode.put(SEARCH_TYPE, searchType.apiValue)
         settingsNode.put(RESULT_LIMIT, maxResultCount)
-        settingsNode.set<JsonNode>(ORDER_BY, ordering)
+        settingsNode.set(ORDER_BY, ordering)
     }
 
 fun multiArgumentOperation(operator: PVApiSearchOperator, vararg children: JsonNode): ArrayNode =

@@ -31,7 +31,8 @@ constructor(
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/own-details")
     fun getOwnDetails(): User {
-        return SecurityContextHolder.getContext().authentication.principal as User
+        return SecurityContextHolder.getContext().authentication?.principal as? User
+            ?: throw ApiUnauthorizedException("No authenticated user")
     }
 
     @PreAuthorize(AUTH_BASIC)

@@ -1487,8 +1487,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
 
     fun fetchChangeTime(): Instant {
         val sql = "select max(publication_time) as publication_time from publication.publication"
-        return jdbcTemplate.query(sql) { rs, _ -> rs.getInstantOrNull("publication_time") }.first()
-            ?: Instant.ofEpochSecond(0)
+        return jdbcTemplate
+            .query(sql) { rs, _ -> rs.getInstantOrNull("publication_time") ?: Instant.ofEpochSecond(0) }
+            .first()
     }
 
     private fun saveTrackNumberChanges(

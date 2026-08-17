@@ -13,11 +13,14 @@ import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import org.springframework.http.codec.json.JacksonJsonDecoder
+import org.springframework.http.codec.json.JacksonJsonEncoder
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import tools.jackson.databind.json.JsonMapper
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 
@@ -38,6 +41,7 @@ constructor(
     @Value("\${geoviite.projektivelho.auth_url:}") private val projektiVelhoAuthUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.secret_key:}") private val projektiVelhoPassword: String,
+    private val objectMapper: JsonMapper,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(PVClient::class.java)
@@ -70,7 +74,11 @@ constructor(
                 .filter(logRequest())
                 .filter(logResponse())
                 .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                .codecs { codecs -> codecs.defaultCodecs().maxInMemorySize(MAX_FILE_BUFFER_SIZE) }
+                .codecs { codecs ->
+                    codecs.defaultCodecs().maxInMemorySize(MAX_FILE_BUFFER_SIZE)
+                    codecs.defaultCodecs().jacksonJsonEncoder(JacksonJsonEncoder(objectMapper))
+                    codecs.defaultCodecs().jacksonJsonDecoder(JacksonJsonDecoder(objectMapper))
+                }
 
         return PVWebClient(webClientBuilder.build())
     }

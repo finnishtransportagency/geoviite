@@ -2,19 +2,19 @@ package fi.fta.geoviite.api.frameconverter.v1
 
 import TestGeoJsonFeatureCollection
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import tools.jackson.databind.exc.ValueInstantiationException
+import tools.jackson.databind.json.JsonMapper
 
 private val API_URLS = listOf("/rata-vkm/v1/rataosoitteet", "/rata-vkm/v1/koordinaatit")
 
@@ -30,7 +30,11 @@ private val API_URLS = listOf("/rata-vkm/v1/rataosoitteet", "/rata-vkm/v1/koordi
 )
 @AutoConfigureMockMvc
 class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
-    private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
+    private val mapper =
+        JsonMapper()
+            .rebuild()
+            .changeDefaultPropertyInclusion { it.withValueInclusion(JsonInclude.Include.NON_NULL) }
+            .build()
 
     val testApi = TestApi(mapper, mockMvc)
 

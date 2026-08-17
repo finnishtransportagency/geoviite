@@ -167,5 +167,9 @@ fun assertMatches(expected: LayoutSwitchJoint, actual: LayoutSwitchJoint) {
 fun <M : AnyM<M>> assertEquals(a: LineM<M>, b: LineM<M>, absoluteTolerance: Double, message: String? = null) =
     assertEquals(a.distance, b.distance, absoluteTolerance, message)
 
-fun <M : AnyM<M>> assertEquals(a: LineM<M>, b: LineM<M>, absoluteTolerance: Double, messageSupplier: Supplier<String>) =
-    assertEquals(a.distance, b.distance, absoluteTolerance, messageSupplier)
+fun <M : AnyM<M>> assertEquals(
+    a: LineM<M>,
+    b: LineM<M>,
+    absoluteTolerance: Double,
+    messageSupplier: Supplier<String?>,
+) = assertEquals(a.distance, b.distance, absoluteTolerance, messageSupplier)

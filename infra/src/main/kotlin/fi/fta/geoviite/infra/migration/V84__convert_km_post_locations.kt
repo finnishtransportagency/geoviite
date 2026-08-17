@@ -32,12 +32,8 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
                 .trimIndent()
         val rows =
             jdbcTemplate
-                .query(sql) { rs, _ ->
-                    rs.getPointOrNull("x", "y")?.let { point ->
-                        rs.getRowVersion<LayoutKmPost>("id", "version") to point
-                    }
-                }
-                .filterNotNull()
+                .query(sql) { rs, _ -> rs.getRowVersion<LayoutKmPost>("id", "version") to rs.getPointOrNull("x", "y") }
+                .mapNotNull { (rowVersion, location) -> location?.let { rowVersion to it } }
 
         val updateSql =
             """

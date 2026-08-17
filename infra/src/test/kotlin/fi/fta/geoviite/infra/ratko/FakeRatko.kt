@@ -1,13 +1,5 @@
 package fi.fta.geoviite.infra.ratko
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.fasterxml.jackson.module.kotlin.treeToValue
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.delete
@@ -63,6 +55,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import tools.jackson.databind.DeserializationFeature
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.KotlinFeature
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
+import tools.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.treeToValue
 
 @ConditionalOnProperty("geoviite.ratko.test-port")
 @GeoviiteService
@@ -74,8 +74,8 @@ class FakeRatko(port: Int) {
 
     private val jsonMapper = jsonMapper {
         addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) })
+        disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     }
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     private val planItemIdTransformer = PlanItemIdTransformer()
 

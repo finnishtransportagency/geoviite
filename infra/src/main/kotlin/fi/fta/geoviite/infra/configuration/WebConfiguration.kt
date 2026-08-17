@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.configuration
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtLayoutVersionV1
@@ -59,12 +58,13 @@ import org.springframework.format.FormatterRegistry
 import org.springframework.http.CacheControl
 import org.springframework.http.converter.ByteArrayHttpMessageConverter
 import org.springframework.http.converter.HttpMessageConverter
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import org.springframework.web.servlet.resource.PathResourceResolver
+import tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 
 @ConditionalOnWebApplication
 @EnableWebMvc
@@ -175,18 +175,21 @@ constructor(
         }
     }
 
-    override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
-        val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
-        builder.serializationInclusion(JsonInclude.Include.NON_NULL)
+    override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>>) {
+        val mapper =
+            jacksonMapperBuilder()
+                .disable(WRITE_DATES_AS_TIMESTAMPS)
+                .changeDefaultPropertyInclusion { it.withValueInclusion(JsonInclude.Include.NON_NULL) }
+                .build()
 
         converters.add(ByteArrayHttpMessageConverter())
-        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
+        converters.add(JacksonJsonHttpMessageConverter(mapper))
     }
 }
 
 inline fun <reified T : Enum<T>> enumCaseInsensitive(value: String): T = enumValueOf(value.uppercase())
 
-inline fun <reified T> FormatterRegistry.addStringConstructorConverter(noinline initializer: (String) -> T) {
+inline fun <reified T : Any> FormatterRegistry.addStringConstructorConverter(noinline initializer: (String) -> T) {
     addConverter(String::class.java, T::class.java, initializer)
     addConverter(T::class.java, String::class.java) { t -> t.toString() }
 }

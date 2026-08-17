@@ -13,10 +13,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "34.4"
 val kotlinVersion = "2.4.10"
-val jacksonVersion = "2.22.1"
 
 plugins {
-    id("org.springframework.boot") version "3.5.16"
+    id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
@@ -47,26 +46,19 @@ configurations { all { exclude("org.springframework.boot", "spring-boot-starter-
 ext["selenium.version"] = "4.41.0"
 
 dependencies {
-    // Version overrides for transitive deps (due to known vulnerabilities)
-    // The dep itself needs to be explicit or the constraints below won't work
-    implementation("org.apache.commons:commons-text:1.15.0")
-    implementation("org.apache.commons:commons-lang3:3.20.0")
+    // Geoviite mainly uses Spring 4 default of Jackson 3 (version managed by spring), but some
+    // dependencies also use the older Jackson 2. Versions 2 & 3 can co-exist safely.
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.1"))
 
-    // Common libs that come with various versions in transitive deps -> explicitly set the version
-    implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
-    implementation(platform("com.fasterxml.jackson:jackson-bom:$jacksonVersion"))
-    implementation("com.google.errorprone:error_prone_annotations:2.50.0")
-    implementation("com.google.guava:guava:33.6.0-jre")
-    implementation("com.google.code.findbugs:jsr305:3.0.2")
-    implementation("javax.measure:unit-api:2.2")
+    // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
+    // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
+    testImplementation(platform("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.10"))
 
-    // swagger-parser pulls a vulnerable version of rhino -> override with newer version
-    testImplementation("org.mozilla:rhino:1.9.1")
-
+    // Override versions for transitive deps with known vulnerabilities
+    // Note: Idea dependency analyzer doesn't understand these, so it might show conflict warning for versions, but
+    // these should still restrict the versions that actually get pulled.
     constraints {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
-        implementation("com.fasterxml.jackson.core:jackson-core:${jacksonVersion}")
-        implementation("com.fasterxml.jackson:jackson-bom:${jacksonVersion}")
         implementation("com.google.errorprone:error_prone_annotations:2.50.0")
         implementation("com.google.guava:guava:33.6.0-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
@@ -81,7 +73,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.51.2")
+    implementation("software.amazon.awssdk:cloudfront:2.51.3")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -90,12 +82,13 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
+    implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
     implementation("com.zaxxer:HikariCP:7.1.0")
     implementation("org.flywaydb:flyway-core:11.20.3")
     implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
@@ -133,6 +126,7 @@ dependencies {
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.9")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")
@@ -171,6 +165,7 @@ tasks.withType<Jar> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    maxHeapSize = "2g"
     systemProperty("browser.name", System.getProperty("browser.name"))
     systemProperty("browser.headless", System.getProperty("browser.headless"))
     testLogging.exceptionFormat = FULL
@@ -178,6 +173,10 @@ tasks.withType<Test> {
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
     // Explicitly attach Mockito's inline mock maker as a Java agent instead of letting it self-attach
     jvmArgs("-javaagent:${mockitoAgent.asPath}")
+    // Netty (via WireMock's Jetty12 server) calls System::loadLibrary for its native transport, which JDK 24+
+    // flags as a restricted-method warning (JEP 472). Silence it until Netty ships native-access-enabling
+    // manifest entries.
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 tasks.register<Test>("integrationtest") {

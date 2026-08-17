@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.projektivelho.FakeProjektiVelho
@@ -33,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import tools.jackson.databind.json.JsonMapper
 
 const val TESTFILE_SIMPLE_ANONYMIZED_PATH: String = "src/test/resources/inframodel/testfile_simple_anonymized.xml"
 
@@ -43,7 +43,7 @@ class ProjektiVelhoTestUI
 constructor(
     @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvDao: PVDao,
-    private val jsonMapper: ObjectMapper,
+    private val jsonMapper: JsonMapper,
 ) : SeleniumTest() {
 
     fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)

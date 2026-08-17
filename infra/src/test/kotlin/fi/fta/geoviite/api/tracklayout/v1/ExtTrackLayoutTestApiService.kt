@@ -1,7 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Uuid
@@ -9,9 +8,13 @@ import fi.fta.geoviite.infra.publication.Publication
 import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 
 class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
-    val testApiMapper = jacksonObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
+    val testApiMapper =
+        jacksonMapperBuilder()
+            .changeDefaultPropertyInclusion { it.withValueInclusion(JsonInclude.Include.NON_NULL) }
+            .build()
     val testApiConnection = TestApi(testApiMapper, mockMvc)
 
     val trackLayoutVersion =
