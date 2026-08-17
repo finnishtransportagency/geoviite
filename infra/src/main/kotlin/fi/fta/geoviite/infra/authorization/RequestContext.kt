@@ -44,3 +44,13 @@ fun <T> withUser(user: UserName, op: () -> T): T {
         currentUser.clear()
     }
 }
+
+fun <T> withTempUser(user: UserName, op: () -> T): T {
+    val originalUser = currentUser.get()
+    currentUser.set(user)
+    return try {
+        op()
+    } finally {
+        currentUser.set(originalUser)
+    }
+}

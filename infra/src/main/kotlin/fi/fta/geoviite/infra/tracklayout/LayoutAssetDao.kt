@@ -276,14 +276,14 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               deleted
             from ${table.versionTable} 
             where id = :id and draft = true and design_id is not distinct from :design_id
-            order by change_time desc limit 1
+            order by change_time desc, version desc limit 1
           ),
           newest_official as (
             select 
               change_time
             from ${table.versionTable} 
             where id = :id and draft = false and design_id is not distinct from :design_id
-            order by change_time desc limit 1
+            order by change_time desc, version desc limit 1
           )
           select 
             (select min(change_time) from ${table.versionTable} where id = :id and version = 1) as creation_time,
