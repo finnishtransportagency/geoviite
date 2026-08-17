@@ -52,7 +52,7 @@ dependencies {
 
     // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
     // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
-    testImplementation(platform("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.10"))
+    testImplementation(platform("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.12"))
 
     // Override versions for transitive deps with known vulnerabilities
     // Note: Idea dependency analyzer doesn't understand these, so it might show conflict warning for versions, but
@@ -73,7 +73,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.51.3")
+    implementation("software.amazon.awssdk:cloudfront:2.53.0")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -131,7 +131,7 @@ dependencies {
     // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
     testImplementation("org.seleniumhq.selenium:selenium-java")
     testImplementation("org.wiremock:wiremock-jetty12:3.13.2")
-    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.3")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.4")
     testImplementation("io.projectreactor:reactor-test:3.8.6")
     testImplementation("io.swagger.parser.v3:swagger-parser:2.1.46")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
