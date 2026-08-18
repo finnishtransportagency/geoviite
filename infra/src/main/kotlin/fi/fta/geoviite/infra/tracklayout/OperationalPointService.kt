@@ -175,7 +175,7 @@ class OperationalPointService(
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
             val official = get(branch.official, id)
 
-            // Avoid deleting ID row, which the DAO's #deleteDraft would do since this is draft-only
+            // Remove the user's draft row first so we can (optionally) recreate a Ratko-derived draft as "Geoviite".
             dao.deleteRow(LayoutRowId(id, branch.draft))
             // If we have ratko-changes, those should be forced to remain as draft. We create them as a
             // separate draft, done by "Geoviite" user, so it doesn't look like the user did it.
