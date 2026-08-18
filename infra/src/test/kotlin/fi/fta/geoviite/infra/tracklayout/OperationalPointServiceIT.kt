@@ -1,7 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.TEST_USER
+import fi.fta.geoviite.infra.authorization.GEOVIITE
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.SavingFailureException
@@ -9,10 +12,10 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
-import kotlin.test.assertContains
-import kotlin.test.assertNull
+import fi.fta.geoviite.infra.util.getInstant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
@@ -21,6 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -264,6 +270,10 @@ constructor(
         val draftPointVersion = mainDraftContext.copyFrom(officialPointVersion)
         operationalPointService.deleteDraft(LayoutBranch.main, draftPointVersion.id)
         assertEquals(officialPointVersion, mainDraftContext.fetchVersion(officialPointVersion.id))
+        getDraftMetadata(officialPointVersion.id).last().also {
+            assertEquals(TEST_USER, it.changeUser)
+            assertTrue(it.deleted)
+        }
     }
 
     @Test
@@ -285,6 +295,11 @@ constructor(
 
         assertEquals(null, mainDraftContext.fetch(point)?.rinfType)
         assertEquals(1, mainDraftContext.fetch(point)?.ratkoVersion)
+        // The previous draft is deleted by the test user and the reset draft is created by the Geoviite user
+        getDraftMetadata(point, 3).also { metadata ->
+            assertEquals(metadata.map { it.deleted }, listOf(false, true, false))
+            assertEquals(metadata.map { it.changeUser }, listOf(TEST_USER, TEST_USER, GEOVIITE))
+        }
     }
 
     @Test
@@ -304,6 +319,11 @@ constructor(
 
         operationalPointService.deleteDraft(LayoutBranch.main, officialVersion.id)
         assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(officialVersion.id)?.state)
+        // The previous draft is deleted by the test user and the reset draft is created by the Geoviite user
+        getDraftMetadata(officialVersion.id, 3).also { metadata ->
+            assertEquals(metadata.map { it.deleted }, listOf(false, true, false))
+            assertEquals(metadata.map { it.changeUser }, listOf(TEST_USER, TEST_USER, GEOVIITE))
+        }
     }
 
     @Test
@@ -323,6 +343,11 @@ constructor(
 
         operationalPointService.deleteDraft(LayoutBranch.main, draftVersion.id)
         assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(draftVersion.id)?.state)
+        // The previous draft is deleted by the test user and the reset draft is created by the Geoviite user
+        getDraftMetadata(draftVersion.id, 3).also { metadata ->
+            assertEquals(metadata.map { it.deleted }, listOf(false, true, false))
+            assertEquals(metadata.map { it.changeUser }, listOf(TEST_USER, TEST_USER, GEOVIITE))
+        }
     }
 
     @Test
@@ -362,6 +387,11 @@ constructor(
         assertEquals(polygon, mainDraftContext.fetch(point)?.polygon)
         assertEquals(1, mainOfficialContext.fetch(point)?.ratkoVersion)
         assertEquals(2, mainDraftContext.fetch(point)?.ratkoVersion)
+        // The previous draft is deleted by the test user and the reset draft is created by the Geoviite user
+        getDraftMetadata(point, 3).also { metadata ->
+            assertEquals(metadata.map { it.deleted }, listOf(false, true, false))
+            assertEquals(metadata.map { it.changeUser }, listOf(TEST_USER, TEST_USER, GEOVIITE))
+        }
     }
 
     @Test
@@ -696,4 +726,32 @@ constructor(
             externalPointId,
         )
     }
+
+    private data class OpMetaData(
+        val changeUser: String,
+        val changeTime: Instant,
+        val version: Int,
+        val deleted: Boolean,
+    )
+
+    private fun getDraftMetadata(id: IntId<OperationalPoint>, count: Int = 1): List<OpMetaData> =
+        jdbc
+            .query(
+                """
+                select change_user, change_time, version, deleted
+                  from layout.operational_point_version
+                 where id = :id and draft = true   
+                 order by version desc limit :count
+                """
+                    .trimIndent(),
+                mapOf("id" to id.intValue, "count" to count),
+            ) { rs, _ ->
+                OpMetaData(
+                    changeUser = rs.getString("change_user"),
+                    changeTime = rs.getInstant("change_time"),
+                    version = rs.getInt("version"),
+                    deleted = rs.getBoolean("deleted"),
+                )
+            }
+            .reversed()
 }
