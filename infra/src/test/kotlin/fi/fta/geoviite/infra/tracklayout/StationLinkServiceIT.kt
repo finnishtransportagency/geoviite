@@ -28,8 +28,8 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks returns correct links when connected through switches`() {
         val moment0 = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links -> assertTrue(links.isEmpty()) }
 
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumber(
@@ -94,7 +94,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         // Time after data init
         val moment1 = testDBService.getDbTime()
 
-        val links = stationLinkService.getStationLinks(mainOfficialContext.context)
+        val links = stationLinkService.getStationLinks(mainOfficialContext.context).links
         links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
@@ -123,14 +123,14 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1))
 
         // Verify that the 0-moment links is still empty
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links -> assertTrue(links.isEmpty()) }
     }
 
     @Test
     fun `getStationLinks returns correct links for tracks directly connected to operational points`() {
         val moment0 = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links -> assertTrue(links.isEmpty()) }
 
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumber(
@@ -166,7 +166,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         // Time after data init
         val moment1 = testDBService.getDbTime()
 
-        val links = stationLinkService.getStationLinks(mainOfficialContext.context)
+        val links = stationLinkService.getStationLinks(mainOfficialContext.context).links
         links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
@@ -194,7 +194,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1))
 
         // Verify that the 0-moment links is still empty
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links -> assertTrue(links.isEmpty()) }
     }
 
     @Test
@@ -272,7 +272,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         // Create a publication to generate a reference-point for routing cache
         testDBService.createPublication()
 
-        stationLinkService.getStationLinks(MainLayoutContext.official).also { links ->
+        stationLinkService.getStationLinks(MainLayoutContext.official).links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
                 listOf(
@@ -310,7 +310,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
 
         testDBService.createPublication()
 
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
             // Only the OP1-OP2 link should exist; OLP should be excluded entirely
             assertEquals(
                 listOf(op1 to op2),
@@ -319,7 +319,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify moment-based fetch also excludes OLP
-        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).links.also { links ->
             // Only the OP1-OP2 link should exist; OLP should be excluded entirely
             assertEquals(
                 listOf(op1 to op2),
@@ -403,30 +403,30 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         val expectedLength = calculateDistance(LAYOUT_SRID, Point(10.0, 5.0), Point(190.0, 5.0))
 
         // Without filter: should find the link
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
 
         // With filter by OP1: should still find the same link
-        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op1.id).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op1.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
 
         // With filter by OP2: should still find the same link
-        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op2.id).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op2.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
 
         // Verify moment-based fetch with filters works too
         val moment = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op1.id).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op1.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
-        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op2.id).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op2.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
@@ -454,7 +454,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         testDBService.createPublication()
 
         // Should not throw and should produce a link between the two existing OPs only
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
             assertEquals(
                 listOf(op1 to op2),
                 links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
@@ -462,7 +462,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify moment-based fetch also handles the broken reference gracefully
-        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).links.also { links ->
             assertEquals(
                 listOf(op1 to op2),
                 links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },

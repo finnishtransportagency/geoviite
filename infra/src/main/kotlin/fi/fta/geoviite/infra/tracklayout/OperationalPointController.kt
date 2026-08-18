@@ -185,7 +185,7 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
     ): List<StationLink> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return stationLinkService.getStationLinks(context, id)
+        return stationLinkService.getStationLinks(context, id).links
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

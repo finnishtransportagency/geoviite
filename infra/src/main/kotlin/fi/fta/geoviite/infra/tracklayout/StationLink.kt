@@ -25,3 +25,22 @@ data class StationLink(
     val locationTrackIds: List<IntId<LocationTrack>>
         get() = locationTrackVersions.map { it.id }
 }
+
+enum class StationLinkIssueType { UNREACHABLE_STATION_MIDPOINT, SUSPICIOUSLY_LONG_ROUTE }
+
+enum class StationLinkIssueSeverity { WARNING, ERROR }
+
+data class StationLinkIssue(
+    val type: StationLinkIssueType,
+    val severity: StationLinkIssueSeverity,
+    val operationalPointId: IntId<OperationalPoint>,
+    val otherOperationalPointId: IntId<OperationalPoint>?,
+    val locationTrackId: IntId<LocationTrack>?,
+    val trackNumberId: IntId<LayoutTrackNumber>?,
+    val details: Map<String, String> = emptyMap(),
+)
+
+data class StationLinkResult(
+    val links: List<StationLink>,
+    val issues: List<StationLinkIssue>,
+)
