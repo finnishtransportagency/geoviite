@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.GeoviiteOidDao
 import fi.fta.geoviite.infra.common.IntId
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.transaction.annotation.Transactional
+import withTempUser
 
 @GeoviiteService
 class OperationalPointService(
@@ -173,18 +175,23 @@ class OperationalPointService(
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
             val official = get(branch.official, id)
 
+            // Remove the user's draft row first so we can (optionally) recreate a Ratko-derived draft as "Geoviite".
+            dao.deleteRow(LayoutRowId(id, branch.draft))
+            // If we have ratko-changes, those should be forced to remain as draft. We create them as a
+            // separate draft, done by "Geoviite" user, so it doesn't look like the user did it.
             if (official != null) {
                 if (draftRatkoVersion != official.ratkoVersion || draft.state != official.state) {
-                    dao.save(
-                        asDraft(LayoutBranch.main, official.copy(ratkoVersion = draftRatkoVersion, state = draft.state))
-                    )
-                } else {
-                    dao.deleteRow(LayoutRowId(id, branch.draft))
+                    withTempUser(UserName.Geoviite) {
+                        dao.save(
+                            asDraft(
+                                LayoutBranch.main,
+                                official.copy(ratkoVersion = draftRatkoVersion, state = draft.state),
+                            )
+                        )
+                    }
                 }
             } else {
-                // avoid deleting ID row, which the DAO's #deleteDraft would do since this is draft-only
-                dao.deleteRow(LayoutRowId(id, branch.draft))
-                dao.insertRatkoPoint(id, draftRatkoVersion, draft.state)
+                withTempUser(UserName.Geoviite) { dao.insertRatkoPoint(id, draftRatkoVersion, draft.state) }
             }
             draftVersion
         }
