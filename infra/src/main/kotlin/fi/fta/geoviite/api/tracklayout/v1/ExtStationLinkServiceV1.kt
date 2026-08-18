@@ -39,7 +39,7 @@ constructor(
     private fun createStationLinkCollectionResponse(publication: Publication): ExtStationLinkCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val stationLinks = stationLinkService.getStationLinks(branch, moment)
+        val stationLinks = stationLinkService.getStationLinks(branch, moment).links
         return ExtStationLinkCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             connectionCollection = createExtStationLinks(branch, stationLinks),

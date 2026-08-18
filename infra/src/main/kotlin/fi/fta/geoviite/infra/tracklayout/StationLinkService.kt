@@ -29,21 +29,27 @@ class StationLinkService(
         branch: LayoutBranch,
         moment: Instant,
         opFilter: IntId<OperationalPoint>? = null,
-    ): List<StationLink> =
+    ): StationLinkResult =
         getLinkData(branch, moment)
             .let { (data, routeCalculator) ->
                 calculateTrackConnections(data, routeCalculator::getPathToStation, opFilter)
-            }
-            .let(::combineToStationLinks)
+            }.let(::combineToStationLinks)
+            .let { stationLinks -> StationLinkResult(links = stationLinks, issues = emptyList()) }
 
-    fun getStationLinks(context: LayoutContext, opFilter: IntId<OperationalPoint>? = null): List<StationLink> =
+    fun getStationLinks(
+        context: LayoutContext,
+        opFilter: IntId<OperationalPoint>? = null,
+    ): StationLinkResult =
         getLinkData(context)
             .let { (data, routeCalculator) ->
                 calculateTrackConnections(data, routeCalculator::getPathToStation, opFilter)
-            }
-            .let(::combineToStationLinks)
+            }.let(::combineToStationLinks)
+            .let { stationLinks -> StationLinkResult(links = stationLinks, issues = emptyList()) }
 
-    private fun getLinkData(branch: LayoutBranch, moment: Instant): Pair<StationLinkData, RouteCalculator> {
+    private fun getLinkData(
+        branch: LayoutBranch,
+        moment: Instant,
+    ): Pair<StationLinkData, RouteCalculator> {
         val tracksWithGeometry = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment)
         val operationalPoints =
             operationalPointDao
