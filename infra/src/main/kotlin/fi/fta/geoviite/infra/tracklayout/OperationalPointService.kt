@@ -191,9 +191,7 @@ class OperationalPointService(
                     }
                 }
             } else {
-                withTempUser(UserName.Geoviite) {
-                    dao.insertRatkoPoint(id, draftRatkoVersion, draft.state)
-                }
+                withTempUser(UserName.Geoviite) { dao.insertRatkoPoint(id, draftRatkoVersion, draft.state) }
             }
             draftVersion
         }
