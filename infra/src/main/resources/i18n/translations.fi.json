@@ -110,6 +110,7 @@
         },
         "input": {
             "generic": "Tarkasta syötekentät ja yritä uudestaan",
+            "invalid-coordinate": "Koordinaatti ({{x}}, {{y}}) on liian kaukana Suomen alueesta",
             "validation": {
                 "Oid": "OID on virheellinen",
                 "Srid": "SRID (EPSG-koodi) {{value}} on virheellinen",

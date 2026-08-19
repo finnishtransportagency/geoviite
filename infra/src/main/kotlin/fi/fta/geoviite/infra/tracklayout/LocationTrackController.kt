@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.error.InvalidInputCoordinateException
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometryService
@@ -367,6 +368,7 @@ class LocationTrackController(
         @PathVariable("endpointType") endpointType: EndpointType,
         @RequestBody extendTo: Point,
     ): IntId<LocationTrack> {
+        if (!isValidLayoutCoordinate(extendTo)) throw InvalidInputCoordinateException(extendTo)
         return locationTrackService.extendTrack(layoutBranch, id, endpointType, extendTo).id
     }
 }

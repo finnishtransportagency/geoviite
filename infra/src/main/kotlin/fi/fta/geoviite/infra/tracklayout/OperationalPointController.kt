@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.error.InvalidInputCoordinateException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -105,6 +106,7 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: Point,
     ): IntId<OperationalPoint> {
+        if (!isValidLayoutCoordinate(request)) throw InvalidInputCoordinateException(request)
         return operationalPointService.updateLocation(layoutBranch, id, request).id
     }
 
