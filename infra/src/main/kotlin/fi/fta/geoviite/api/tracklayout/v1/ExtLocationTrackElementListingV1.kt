@@ -48,44 +48,45 @@ data class ExtElementAddressIntervalV1(
 @Schema(title = "Geometriaelementti")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtGeometryElementV1(
-    @Schema(description = "Geometriaelementin tyyppi") @JsonProperty(TYPE) val type: ExtElementTypeV1,
-    @Schema(description = "Elementin alkupiste sijaintiraiteen paikannuspohjassa")
-    @JsonProperty(ELEMENT_LOCATION_START)
+    @Schema(description = "Geometriaelementin tyyppi") @JsonProperty(TYPE) val type: ExtGeometryElementTypeV1,
+    @Schema(description = "Elementin alkupiste pyydetyssä koordinaattijärjestelmässä")
+    @JsonProperty(GEOMETRY_ELEMENT_LOCATION_START)
     val locationStart: ExtAddressPointV1,
-    @Schema(description = "Elementin loppupiste sijaintiraiteen paikannuspohjassa")
-    @JsonProperty(ELEMENT_LOCATION_END)
+    @Schema(description = "Elementin loppupiste pyydetyssä koordinaattijärjestelmässä")
+    @JsonProperty(GEOMETRY_ELEMENT_LOCATION_END)
     val locationEnd: ExtAddressPointV1,
-    @Schema(description = "Elementin pituus metreinä") @JsonProperty(ELEMENT_LENGTH) val length: BigDecimal,
-    @Schema(description = "Viite lähdesuunnitelmaan, null jos segmentti ei ole linkitetty suunnitelmaan")
+    @Schema(description = "Elementin pituus metreinä") @JsonProperty(GEOMETRY_ELEMENT_LENGTH) val length: BigDecimal,
+    @Schema(
+        description =
+            "Koordinaatit suunnitelman alkuperäisessä järjestelmässä, null jos segmentti ei ole linkitetty suunnitelmaan"
+    )
     @JsonProperty(PLAN_REFERENCE)
-    val plan: ExtGeometryPlanReferenceV1?,
+    val planCoordinates: ExtGeometryPlanCoordinatesV1?,
     @Schema(description = "Kaarresäde elementin alussa ja lopussa")
-    @JsonProperty(ELEMENT_RADIUS)
-    val radius: ExtElementRadiusV1?,
+    @JsonProperty(GEOMETRY_ELEMENT_RADIUS)
+    val radius: ExtGeometryElementRadiusV1?,
     @Schema(description = "Kallistus elementin alussa ja lopussa")
-    @JsonProperty(ELEMENT_CANT)
-    val cant: ExtElementCantV1?,
+    @JsonProperty(GEOMETRY_ELEMENT_CANT)
+    val cant: ExtGeometryElementCantV1?,
     @Schema(description = "Suuntakulma elementin alussa ja lopussa (gooni)")
-    @JsonProperty(ELEMENT_DIRECTION)
-    val direction: ExtElementDirectionV1,
-    @Schema(description = "Elementtiin liittyvät huomiot") @JsonProperty(REMARKS) val notes: List<ExtElementNoteV1>,
+    @JsonProperty(GEOMETRY_ELEMENT_DIRECTION)
+    val direction: ExtGeometryElementDirectionV1,
+    @Schema(description = "Elementtiin liittyvät huomiot")
+    @JsonProperty(REMARKS)
+    val notes: List<ExtGeometryElementNoteV1>,
 )
 
-@Schema(title = "Suunnitelman koordinaattiviite")
+@Schema(title = "Koordinaatit suunnitelman alkuperäisessä järjestelmässä")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtGeometryPlanReferenceV1(
+data class ExtGeometryPlanCoordinatesV1(
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: String?,
-    @JsonProperty(ELEMENT_LOCATION_START) val locationStart: ExtPlanCoordinateV1,
-    @JsonProperty(ELEMENT_LOCATION_END) val locationEnd: ExtPlanCoordinateV1,
+    @JsonProperty(GEOMETRY_ELEMENT_LOCATION_START) val locationStart: ExtCoordinateV1,
+    @JsonProperty(GEOMETRY_ELEMENT_LOCATION_END) val locationEnd: ExtCoordinateV1,
 )
 
-@Schema(title = "Suunnitelman koordinaatti")
+@Schema(title = "Geometriaelementin kaarresäde")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtPlanCoordinateV1(val x: Double, val y: Double)
-
-@Schema(title = "Kaarresäde")
-@JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtElementRadiusV1(
+data class ExtGeometryElementRadiusV1(
     @Schema(description = "Kaarresäde elementin alussa (metriä)")
     @JsonProperty(ELEMENT_START_VALUE)
     val startValue: BigDecimal?,
@@ -94,9 +95,9 @@ data class ExtElementRadiusV1(
     val endValue: BigDecimal?,
 )
 
-@Schema(title = "Kallistus")
+@Schema(title = "Geometriaelementin kallistus")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtElementCantV1(
+data class ExtGeometryElementCantV1(
     @Schema(description = "Kallistus elementin alussa (millimetriä)")
     @JsonProperty(ELEMENT_START_VALUE)
     val startValue: BigDecimal?,
@@ -105,20 +106,20 @@ data class ExtElementCantV1(
     val endValue: BigDecimal?,
 )
 
-@Schema(title = "Suuntakulma")
+@Schema(title = "Geometriaelementin suuntakulma")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtElementDirectionV1(
-    @Schema(description = "Suuntakulma elementin alussa (gooni)")
+data class ExtGeometryElementDirectionV1(
+    @Schema(description = "Suuntakulma elementin alussa (gooni, arvoalue 0-400, 0 = pohjoinen)")
     @JsonProperty(ELEMENT_START_VALUE)
     val startValue: BigDecimal,
-    @Schema(description = "Suuntakulma elementin lopussa (gooni)")
+    @Schema(description = "Suuntakulma elementin lopussa (gooni, arvoalue 0-400, 0 = pohjoinen)")
     @JsonProperty(ELEMENT_END_VALUE)
     val endValue: BigDecimal,
 )
 
-@Schema(title = "Elementtihuomio")
+@Schema(title = "Geometriaelementin huomio")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtElementNoteV1(
+data class ExtGeometryElementNoteV1(
     @JsonProperty(REMARK_CODE) val code: String,
     @JsonProperty(REMARK_DESCRIPTION) val description: String,
 )
@@ -134,7 +135,7 @@ const val FI_EI_ELEMENTTIA = "ei_elementtia"
     type = "string",
     allowableValues = [FI_SUORA, FI_KAARI, FI_SIIRTYMAKAARI, FI_SIIRTYMAKAARI_HELMERT, FI_EI_ELEMENTTIA],
 )
-enum class ExtElementTypeV1(val value: String) {
+enum class ExtGeometryElementTypeV1(val value: String) {
     LINE(FI_SUORA),
     CURVE(FI_KAARI),
     CLOTHOID(FI_SIIRTYMAKAARI),
@@ -144,7 +145,7 @@ enum class ExtElementTypeV1(val value: String) {
     @JsonValue override fun toString() = value
 
     companion object {
-        fun of(type: TrackGeometryElementType): ExtElementTypeV1 =
+        fun of(type: TrackGeometryElementType): ExtGeometryElementTypeV1 =
             when (type) {
                 TrackGeometryElementType.LINE -> LINE
                 TrackGeometryElementType.CURVE -> CURVE

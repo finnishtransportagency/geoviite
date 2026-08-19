@@ -241,20 +241,20 @@ constructor(
     private fun toExtGeometryElement(listing: ElementListing, coordinateSystem: Srid): ExtGeometryElementV1 {
         val (layoutStart, layoutEnd) = toLayoutCoordinates(listing)
         return ExtGeometryElementV1(
-            type = ExtElementTypeV1.of(listing.elementType),
+            type = ExtGeometryElementTypeV1.of(listing.elementType),
             locationStart = toExtAddressPoint(layoutStart, listing.start.address, coordinateSystem),
             locationEnd = toExtAddressPoint(layoutEnd, listing.end.address, coordinateSystem),
             length = listing.lengthMeters,
-            plan = toExtPlanReference(listing),
+            planCoordinates = toExtPlanReference(listing),
             radius =
                 if (listing.start.radiusMeters != null || listing.end.radiusMeters != null) {
-                    ExtElementRadiusV1(listing.start.radiusMeters, listing.end.radiusMeters)
+                    ExtGeometryElementRadiusV1(listing.start.radiusMeters, listing.end.radiusMeters)
                 } else null,
             cant =
                 if (listing.start.cant != null || listing.end.cant != null) {
-                    ExtElementCantV1(listing.start.cant, listing.end.cant)
+                    ExtGeometryElementCantV1(listing.start.cant, listing.end.cant)
                 } else null,
-            direction = ExtElementDirectionV1(listing.start.directionGrads, listing.end.directionGrads),
+            direction = ExtGeometryElementDirectionV1(listing.start.directionGrads, listing.end.directionGrads),
             notes = toExtNotes(listing),
         )
     }
@@ -269,27 +269,29 @@ constructor(
         }
     }
 
-    private fun toExtPlanReference(listing: ElementListing): ExtGeometryPlanReferenceV1? {
+    private fun toExtPlanReference(listing: ElementListing): ExtGeometryPlanCoordinatesV1? {
         if (listing.planId == null) return null
-        return ExtGeometryPlanReferenceV1(
+        return ExtGeometryPlanCoordinatesV1(
             coordinateSystem = listing.coordinateSystemSrid?.toString(),
-            locationStart = ExtPlanCoordinateV1(listing.start.coordinate.x, listing.start.coordinate.y),
-            locationEnd = ExtPlanCoordinateV1(listing.end.coordinate.x, listing.end.coordinate.y),
+            locationStart = ExtCoordinateV1(listing.start.coordinate.x, listing.start.coordinate.y),
+            locationEnd = ExtCoordinateV1(listing.end.coordinate.x, listing.end.coordinate.y),
         )
     }
 
-    private fun toExtNotes(listing: ElementListing): List<ExtElementNoteV1> {
-        val notes = mutableListOf<ExtElementNoteV1>()
+    private fun toExtNotes(listing: ElementListing): List<ExtGeometryElementNoteV1> {
+        val notes = mutableListOf<ExtGeometryElementNoteV1>()
         if (listing.isPartial) {
             notes.add(
-                ExtElementNoteV1(
+                ExtGeometryElementNoteV1(
                     code = NOTE_PARTIAL_ELEMENT,
                     description = "Raide sisältää vain osan geometriaelementistä",
                 )
             )
         }
         if (listing.connectedSwitchName != null) {
-            notes.add(ExtElementNoteV1(code = NOTE_SWITCH_ELEMENT, description = "Elementti kuuluu vaihteeseen"))
+            notes.add(
+                ExtGeometryElementNoteV1(code = NOTE_SWITCH_ELEMENT, description = "Elementti kuuluu vaihteeseen")
+            )
         }
         return notes
     }
