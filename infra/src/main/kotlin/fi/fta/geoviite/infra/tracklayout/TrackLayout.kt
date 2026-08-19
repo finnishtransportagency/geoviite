@@ -29,7 +29,7 @@ val LAYOUT_COORDINATE_BOUNDS = LAYOUT_EPSG_BOUNDS + 100000.0
 /** Check for whether a user-provided coordinate is within the sane bounds of the layout coordinate system. */
 fun isValidLayoutCoordinate(point: IPoint): Boolean = LAYOUT_COORDINATE_BOUNDS.contains(point)
 
-/** Throw if input coordinate is within the sane bounds of the layout coordinate system. */
+/** Throw if input coordinate is outside the sane bounds of the layout coordinate system. */
 fun requireValidInputCoordinate(point: IPoint): IPoint =
     if (isValidLayoutCoordinate(point)) point else throw InvalidInputCoordinateException(point)
 
