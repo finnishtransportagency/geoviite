@@ -9,18 +9,28 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssueType.SUSPICIOUSLY_LONG_ROUTE
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssueType.UNREACHABLE_STATION_MIDPOINT
+import fi.fta.geoviite.infra.util.Either
+import fi.fta.geoviite.infra.util.Left
+import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.jvm.optionals.getOrNull
+import kotlin.to
 
 @GeoviiteService
 class StationLinkService(
     private val operationalPointDao: OperationalPointDao,
     private val layoutSwitchDao: LayoutSwitchDao,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
+    private val locationTrackDao: LocationTrackDao,
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
     private val routingService: RoutingService,
@@ -33,8 +43,13 @@ class StationLinkService(
         getLinkData(branch, moment)
             .let { (data, routeCalculator) ->
                 calculateTrackConnections(data, routeCalculator::getPathToStation, opFilter)
-            }.let(::combineToStationLinks)
-            .let { stationLinks -> StationLinkResult(links = stationLinks, issues = emptyList()) }
+            }
+            .let { (connections, issues) ->
+                StationLinkResult(
+                    links = connections.let(::combineToStationLinks),
+                    issues = issues,
+                )
+            }
 
     fun getStationLinks(
         context: LayoutContext,
@@ -43,8 +58,23 @@ class StationLinkService(
         getLinkData(context)
             .let { (data, routeCalculator) ->
                 calculateTrackConnections(data, routeCalculator::getPathToStation, opFilter)
-            }.let(::combineToStationLinks)
-            .let { stationLinks -> StationLinkResult(links = stationLinks, issues = emptyList()) }
+            }
+            .let { (connections, issues) ->
+                StationLinkResult(
+                    links = connections.let(::combineToStationLinks),
+                    issues = issues,
+                )
+            }
+
+    fun getStationLinks(context: ValidationContext): StationLinkResult =
+        getLinkData(context)
+            .let { (data, routeCalculator) -> calculateTrackConnections(data, routeCalculator::getPathToStation) }
+            .let { (connections, issues) ->
+                StationLinkResult(
+                    links = connections.let(::combineToStationLinks),
+                    issues = issues,
+                )
+            }
 
     private fun getLinkData(
         branch: LayoutBranch,
@@ -93,6 +123,61 @@ class StationLinkService(
             )
         return linkData to routeCalculator
     }
+
+    private fun getLinkData(context: ValidationContext): Pair<StationLinkData, RouteCalculator> {
+        val tracksWithGeometry =
+            getMergedData(
+                context,
+                locationTrackDao,
+                getCandidates = { context.publicationSet.locationTracks },
+                getValues = { locationTrackService.getManyWithGeometries(it) },
+            )
+        val operationalPoints =
+            getMergedData(
+                    context,
+                    operationalPointDao,
+                    getCandidates = { context.publicationSet.operationalPoints },
+                    getValues = { operationalPointDao.fetchMany(it) },
+                )
+                .filter { it.ratoType != OperationalPointRatoType.OLP }
+                .associateBy { it.id as IntId }
+        val switches =
+            getMergedData(
+                context,
+                layoutSwitchDao,
+                getCandidates = { context.publicationSet.switches },
+                getValues = { layoutSwitchDao.fetchMany(it) },
+            )
+        val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, operationalPoints.keys)
+        val trackNumberIds = connectingTracks.values.map { it.track.trackNumberId }
+        val trackNumberVersions = run {
+            val baseById =
+                layoutTrackNumberDao.fetchVersions(context.target.baseContext, trackNumberIds).associateBy { it.id }
+            val candidateById = context.publicationSet.trackNumbers.associateBy { it.id }
+            (baseById + candidateById)
+        }
+        val linkData = StationLinkData(trackNumberVersions, connectingTracks, operationalPoints)
+        val routeCalculator =
+            RouteCalculator(
+                operationalPoints,
+                connectingTracks,
+                routingGraph = routingService.getGraph(context, tracksWithGeometry, switches),
+                getGeocodingContext = context::getGeocodingContext,
+            )
+        return linkData to routeCalculator
+    }
+}
+
+private fun <T : LayoutAsset<T>, V, SaveParams> getMergedData(
+    context: ValidationContext,
+    dao: LayoutAssetDao<T, SaveParams>,
+    getCandidates: () -> List<LayoutRowVersion<T>>,
+    getValues: (List<LayoutRowVersion<T>>) -> List<V>,
+): List<V> {
+    val baseById = dao.fetchVersions(context.target.baseContext, includeDeleted = false).associateBy { it.id }
+    val candidateById = getCandidates().associateBy { it.id }
+    val merged = (baseById + candidateById).values.toList() // candidates overwrite when ids match
+    return getValues(merged)
 }
 
 private fun createConnectingTracks(
@@ -112,9 +197,9 @@ private fun createConnectingTracks(
 
 private fun calculateTrackConnections(
     stationLinkData: StationLinkData,
-    getPathToStation: (PointNearTrack, IntId<OperationalPoint>) -> Pair<TrackMeter, Double>?,
+    getPathToStation: (PointNearTrack, IntId<OperationalPoint>) -> StationPath?,
     opFilter: IntId<OperationalPoint>? = null,
-): List<TrackStationConnection> {
+): Pair<List<TrackStationConnection>, List<StationLinkIssue>> {
     val stationConnectionPairs =
         stationLinkData.connectingTracks.values
             .filter { opFilter == null || it.operationalPointIds.contains(opFilter) }
@@ -130,29 +215,123 @@ private fun calculateTrackConnections(
 
     return stationConnectionPairs
         .parallelStream()
-        .map { (connection1, connection2) ->
+        .flatMap { (connection1, connection2) ->
             val (op1Id, op1ClosestPoint) = connection1
             val (op2Id, op2ClosestPoint) = connection2
             val trackDistance = abs(op2ClosestPoint.closestPoint.m - op1ClosestPoint.closestPoint.m).distance
             val s1Link = getPathToStation(op1ClosestPoint, op1Id)
             val s2Link = getPathToStation(op2ClosestPoint, op2Id)
-            if (s1Link != null && s2Link != null) {
-                val distance = s1Link.second + trackDistance + s2Link.second
-                TrackStationConnection(
-                    trackVersion = op1ClosestPoint.track.getVersionOrThrow(),
-                    trackNumberVersion =
-                        stationLinkData.trackNumberVersions.getValue(op1ClosestPoint.track.trackNumberId),
-                    station1Version = stationLinkData.operationalPoints.getValue(op1Id).getVersionOrThrow(),
-                    station2Version = stationLinkData.operationalPoints.getValue(op2Id).getVersionOrThrow(),
-                    length = distance,
-                    startAddress = s1Link.first,
-                    endAddress = s2Link.first,
-                )
-            } else null
+
+            buildList {
+                addIssues(s1Link, s2Link, op1Id, op2Id, op1ClosestPoint, op2ClosestPoint)
+
+                if (s1Link != null && s2Link != null) {
+                    val distance = s1Link.routeDistance + trackDistance + s2Link.routeDistance
+                    add(
+                        Left(
+                            TrackStationConnection(
+                                trackVersion = op1ClosestPoint.track.getVersionOrThrow(),
+                                trackNumberVersion =
+                                    stationLinkData.trackNumberVersions.getValue(op1ClosestPoint.track.trackNumberId),
+                                station1Version = stationLinkData.operationalPoints.getValue(op1Id).getVersionOrThrow(),
+                                station2Version = stationLinkData.operationalPoints.getValue(op2Id).getVersionOrThrow(),
+                                length = distance,
+                                startAddress = s1Link.address,
+                                endAddress = s2Link.address,
+                            )
+                        )
+                    )
+                }
+            }
+                .stream()
         }
         .toList()
-        .filterNotNull()
+        .partition { it is Left<TrackStationConnection> }
+        .let { (lefts, rights) ->
+            lefts.map { (it as Left<TrackStationConnection>).value } to
+                rights.map { (it as Right<StationLinkIssue>).value }
+        }
 }
+
+private fun MutableList<Either<TrackStationConnection, StationLinkIssue>>.addIssues(
+    s1Link: StationPath?,
+    s2Link: StationPath?,
+    op1Id: IntId<OperationalPoint>,
+    op2Id: IntId<OperationalPoint>,
+    op1ClosestPoint: PointNearTrack,
+    op2ClosestPoint: PointNearTrack,
+) {
+    if (s1Link == null) {
+        add(
+            UNREACHABLE_STATION_MIDPOINT.buildStationLinkIssue(
+                mainOp = op1Id,
+                secondaryOp = op2Id,
+                closestTrackPoint = op1ClosestPoint,
+                details = emptyMap(),
+            )
+        )
+    }
+    if (s2Link == null) {
+        add(
+            UNREACHABLE_STATION_MIDPOINT.buildStationLinkIssue(
+                mainOp = op2Id,
+                secondaryOp = op1Id,
+                closestTrackPoint = op2ClosestPoint,
+                details = emptyMap(),
+            )
+        )
+    }
+    if (s1Link != null && s1Link.routeDistance > 2 * s1Link.straightLineDistance) {
+        add(
+            SUSPICIOUSLY_LONG_ROUTE.buildStationLinkIssue(
+                mainOp = op1Id,
+                secondaryOp = op2Id,
+                closestTrackPoint = op1ClosestPoint,
+                details =
+                    mapOf(
+                        "stationRouteDistance" to s1Link.routeDistance.toString(),
+                        "stationStraightLineDistance" to s1Link.straightLineDistance.toString(),
+                    ),
+            )
+        )
+    }
+    if (s2Link != null && s2Link.routeDistance > 2 * s2Link.straightLineDistance) {
+        add(
+            SUSPICIOUSLY_LONG_ROUTE.buildStationLinkIssue(
+                mainOp = op2Id,
+                secondaryOp = op1Id,
+                closestTrackPoint = op2ClosestPoint,
+                details =
+                    mapOf(
+                        "stationRouteDistance" to s2Link.routeDistance.toString(),
+                        "stationStraightLineDistance" to s2Link.straightLineDistance.toString(),
+                    ),
+            )
+        )
+    }
+}
+
+private fun StationLinkIssueType.buildStationLinkIssue(
+    mainOp: IntId<OperationalPoint>,
+    secondaryOp: IntId<OperationalPoint>,
+    closestTrackPoint: PointNearTrack,
+    details: Map<String, String>,
+) =
+    Right(
+        StationLinkIssue(
+            type = this,
+            severity =
+                when (this) {
+                    UNREACHABLE_STATION_MIDPOINT -> StationLinkIssueSeverity.ERROR
+                    SUSPICIOUSLY_LONG_ROUTE -> StationLinkIssueSeverity.WARNING
+                },
+            operationalPointId = mainOp,
+            otherOperationalPointId = secondaryOp,
+            locationTrackId = closestTrackPoint.track.id as IntId,
+            trackNumberId = closestTrackPoint.track.trackNumberId,
+            details = details,
+        )
+    )
 
 private fun combineToStationLinks(trackConnections: List<TrackStationConnection>): List<StationLink> =
     trackConnections
@@ -184,20 +363,31 @@ private data class RouteCalculator(
     fun getPathToStation(
         fromTrackPoint: PointNearTrack,
         stationId: IntId<OperationalPoint>,
-    ): Pair<TrackMeter, Double>? =
+    ): StationPath? =
         getConnectableStation(stationId)?.connectingLocations?.let { stationLocations ->
             stationLocations
                 // If any station point is on the same track, we can just skip the routing
                 .firstOrNull { (_, location) -> location.track.id == fromTrackPoint.track.id }
                 ?.let { (address, location) ->
-                    address to abs(location.closestPoint.m - fromTrackPoint.closestPoint.m).distance
+                    StationPath(
+                        address = address,
+                        routeDistance = abs(location.closestPoint.m - fromTrackPoint.closestPoint.m).distance,
+                        straightLineDistance = (location.closestPoint - fromTrackPoint.closestPoint).magnitude(),
+                    )
                 }
                 // If not, we need to route all points to find the shortest path
                 ?: stationLocations
                     .mapNotNull { (address, location) ->
-                        routingGraph.findPath(fromTrackPoint, location)?.totalLength?.let { address to it }
+                        routingGraph.findPath(fromTrackPoint, location)?.totalLength?.let { routeDistance ->
+                            StationPath(
+                                address = address,
+                                routeDistance = routeDistance,
+                                straightLineDistance =
+                                    (location.closestPoint - fromTrackPoint.closestPoint).magnitude(),
+                            )
+                        }
                     }
-                    .minByOrNull { it.second }
+                    .minByOrNull { it.routeDistance }
         }
 
     private fun getConnectableStation(opId: IntId<OperationalPoint>): ConnectableStation? =
@@ -246,9 +436,9 @@ private data class StationLinkData(
 
     fun getClosestTrackPoint(trackId: IntId<LocationTrack>, opId: IntId<OperationalPoint>): PointNearTrack? =
         closestTrackPoints
-            .computeIfAbsent(trackId to opId) { (tId, oId) ->
+            .computeIfAbsent(trackId to opId) { (tId, opId) ->
                 val track = connectingTracks.getValue(tId)
-                val op = operationalPoints.getValue(oId)
+                val op = operationalPoints.getValue(opId)
                 val closestPoint =
                     op.location?.let { location ->
                         track.geometry.getClosestPoint(location)?.first?.let { closest ->
@@ -264,6 +454,12 @@ private data class StationLinkData(
 private data class ConnectableStation(
     val op: OperationalPoint,
     val connectingLocations: List<Pair<TrackMeter, PointNearTrack>>,
+)
+
+private data class StationPath(
+    val address: TrackMeter,
+    val routeDistance: Double,
+    val straightLineDistance: Double,
 )
 
 private data class ConnectingTrack(
