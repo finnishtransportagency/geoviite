@@ -16,7 +16,7 @@ import java.time.Instant
 
 val LAYOUT_SRID = ETRS89_TM35FIN_SRID
 
-/** Bounds from epsg.io for EPSG:3067 (ETRS89 / TM35FIN) * */
+/** Bounds from epsg.io for EPSG:3067 (ETRS89 / TM35FIN). */
 val LAYOUT_EPSG_BOUNDS = BoundingBox(43547.79..764796.72, 6522236.87..7795461.19)
 
 /**
