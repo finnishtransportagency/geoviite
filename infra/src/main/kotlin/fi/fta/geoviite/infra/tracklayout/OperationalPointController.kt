@@ -117,6 +117,9 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: Polygon,
     ): IntId<OperationalPoint> {
+        request.points.forEach { point ->
+            if (!isValidLayoutCoordinate(point)) throw InvalidInputCoordinateException(point)
+        }
         return operationalPointService.updatePolygon(layoutBranch, id, request).id
     }
 
