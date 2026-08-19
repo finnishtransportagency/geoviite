@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.error.InvalidInputCoordinateException
 import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -25,8 +26,12 @@ val LAYOUT_EPSG_BOUNDS = BoundingBox(43547.79..764796.72, 6522236.87..7795461.19
  */
 val LAYOUT_COORDINATE_BOUNDS = LAYOUT_EPSG_BOUNDS + 100000.0
 
-/** Pure check for whether a user-provided coordinate is within the sane bounds of the layout coordinate system. */
+/** Check for whether a user-provided coordinate is within the sane bounds of the layout coordinate system. */
 fun isValidLayoutCoordinate(point: IPoint): Boolean = LAYOUT_COORDINATE_BOUNDS.contains(point)
+
+/** Throw if input coordinate is within the sane bounds of the layout coordinate system. */
+fun requireValidInputCoordinate(point: IPoint): IPoint =
+    if (isValidLayoutCoordinate(point)) point else throw InvalidInputCoordinateException(point)
 
 enum class LayoutState(val category: LayoutStateCategory) {
     IN_USE(LayoutStateCategory.EXISTING),
