@@ -1488,6 +1488,7 @@
         "empty-track-number-description": "Kuvaus on tyhjä",
         "new-track-number-creation-failed": "Uuden ratanumeron luonti epäonnistui",
         "vertical-coordinate-system-field": "Korkeusjärjestelmä",
+        "restore-plan-vertical-coordinate-system": "Palauta alkuperäinen: {{value}}",
         "save-changes": "Tallenna muutokset",
         "information-missing": "Ei tiedossa",
         "not-linked": "Ei linkitetty",
