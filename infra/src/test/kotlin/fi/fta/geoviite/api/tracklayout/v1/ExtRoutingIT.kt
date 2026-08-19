@@ -153,7 +153,8 @@ constructor(
                 locationTrack(trackNumberId),
                 trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(0.0, 1000.0))),
             )
-        val originalPublication = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+        val originalPublication =
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         // Move the same track (same id/oid) far away and publish again, so "now" and the original moment disagree
         // about where the track is.
