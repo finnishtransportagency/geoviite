@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.FILENAME_DATE_FORMATTER
@@ -110,6 +111,17 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): IntId<LayoutTrackNumber> {
         return trackNumberService.deleteDraft(branch, id).id
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/draft/{id}/extend/{endpointType}")
+    fun extendReferenceLine(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+        @PathVariable("endpointType") endpointType: EndpointType,
+        @RequestBody extendTo: Point,
+    ): IntId<LayoutTrackNumber> {
+        return trackNumberService.extendReferenceLine(branch, id, endpointType, extendTo).id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
