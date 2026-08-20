@@ -141,6 +141,46 @@ constructor(
     }
 
     @Test
+    fun `Route uses the closest track point as it existed at the requested rataverkon_versio moment`() {
+        // Reference line spans the whole area so that geocoding never blocks the route lookup itself.
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 3000.0))),
+            )
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(0.0, 1000.0))),
+            )
+        val originalPublication =
+            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        // Move the same track (same id/oid) far away and publish again, so "now" and the original moment disagree
+        // about where the track is.
+        val track = requireNotNull(mainDraftContext.fetch(trackId))
+        mainDraftContext.save(track, trackGeometryOfSegments(segment(Point(0.0, 2000.0), Point(0.0, 3000.0))))
+        testDBService.publish(locationTracks = listOf(trackId))
+
+        // At the original moment, the closest track point must be resolved against the track's original location,
+        // not its current (moved) location.
+        val responseAtOriginalMoment =
+            api.routing.get(
+                startX = 0.0,
+                startY = 100.0,
+                endX = 0.0,
+                endY = 900.0,
+                TRACK_LAYOUT_VERSION to originalPublication.uuid.toString(),
+            )
+        assertEquals(originalPublication.uuid.toString(), responseAtOriginalMoment.rataverkon_versio)
+        assertEquals(trackOid.toString(), responseAtOriginalMoment.reitti.reitin_osat.single().sijaintiraide_oid)
+
+        // At the current moment, the track is no longer near its original location, so no route should be found
+        // there even though it existed at that location in the original publication.
+        api.routing.assertNoRoute(startX = 0.0, startY = 100.0, endX = 0.0, endY = 900.0)
+    }
+
+    @Test
     fun `Returns 400 for invalid rataverkon_versio format`() {
         api.routing.getWithExpectedError(
             startX = 0.0,
