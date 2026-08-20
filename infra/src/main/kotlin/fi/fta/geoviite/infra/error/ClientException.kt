@@ -63,6 +63,15 @@ class CoordinateTransformationException(point: IPoint, sourceSrid: Srid, targetS
             localizationParams("sourceSrid" to sourceSrid, "targetSrid" to targetSrid, "x" to point.x, "y" to point.y),
     )
 
+class InvalidInputCoordinateException(point: IPoint, cause: Throwable? = null) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Input coordinate is out of bounds: x=${point.x} y=${point.y}",
+        cause = cause,
+        localizedMessageKey = "error.input.invalid-coordinate",
+        localizedMessageParams = localizationParams("x" to point.x, "y" to point.y),
+    )
+
 class LinkingFailureException(
     message: String,
     cause: Throwable? = null,

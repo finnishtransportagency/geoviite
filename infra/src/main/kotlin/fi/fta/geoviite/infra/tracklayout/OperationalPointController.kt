@@ -105,6 +105,7 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: Point,
     ): IntId<OperationalPoint> {
+        requireValidInputCoordinate(request)
         return operationalPointService.updateLocation(layoutBranch, id, request).id
     }
 
@@ -115,6 +116,7 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: Polygon,
     ): IntId<OperationalPoint> {
+        request.points.forEach(::requireValidInputCoordinate)
         return operationalPointService.updatePolygon(layoutBranch, id, request).id
     }
 
