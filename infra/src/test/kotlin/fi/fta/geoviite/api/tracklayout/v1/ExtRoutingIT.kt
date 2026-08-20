@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -294,21 +295,26 @@ constructor(
             )
         val (trackId, trackOid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
-        val publication = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+        val v1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
-        // Publish again with something unrelated to create a newer version
-        testDBService.publish()
+        // Delete the track and publish again — routing on the latest version should now fail
+        mainDraftContext.mutate(trackId) { it.copy(state = LocationTrackState.DELETED) }
+        testDBService.publish(locationTracks = listOf(trackId))
 
+        // Current state: no route (track is deleted)
+        api.routing.assertNoRoute(startX = 0.0, startY = 100.0, endX = 0.0, endY = 900.0)
+
+        // Historical v1: route still found via the now-deleted track
         val response =
             api.routing.get(
                 startX = 0.0,
                 startY = 100.0,
                 endX = 0.0,
                 endY = 900.0,
-                TRACK_LAYOUT_VERSION to publication.uuid.toString(),
+                TRACK_LAYOUT_VERSION to v1.uuid.toString(),
             )
 
-        assertEquals(publication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(v1.uuid.toString(), response.rataverkon_versio)
         assertEquals(trackOid.toString(), response.reitti.reitin_osat.single().sijaintiraide_oid)
     }
 
