@@ -23,30 +23,45 @@ import { createEndPointTick, getEndPointTickStyle } from 'map/layers/utils/align
 
 const layerName: MapLayerName = 'alignment-extension-layer';
 
-const extensionLineStroke = new Stroke({
-    color: mapStyles.alignmentExtensionLine,
+const lineDashLengthMain = 5;
+const lineDashLengthSecondary = 5;
+const color = mapStyles.selectedLayoutAlignmentInterval;
+
+const extensionLineStrokeForeground = new Stroke({
+    color: color,
     width: 2,
-    lineDash: [8, 6],
+    lineDash: [lineDashLengthMain, lineDashLengthSecondary],
+});
+const extensionLineStrokeBackground = new Stroke({
+    color: 'white',
+    width: 2,
 });
 
-const extensionLineStyle = new Style({ stroke: extensionLineStroke });
+const extensionLineStyles = [
+    new Style({ stroke: extensionLineStrokeBackground }),
+    new Style({ stroke: extensionLineStrokeForeground }),
+];
 
 const extensionTickStyle = new Style({
-    stroke: new Stroke({ color: mapStyles.alignmentExtensionLine, width: 2 }),
+    stroke: new Stroke({ color: color, width: 2 }),
 });
 
 const createExtensionLineFeature = (from: Point, to: Point): Feature<LineString> => {
     const feature = new Feature({
         geometry: new LineString([pointToCoords(from), pointToCoords(to)]),
     });
-    feature.setStyle(extensionLineStyle);
+    feature.setStyle(extensionLineStyles);
     return feature;
 };
 
 export const extensionSketchStyle = (from: Point, to: Point): Style[] => [
     new Style({
         geometry: new LineString([pointToCoords(from), pointToCoords(to)]),
-        stroke: extensionLineStroke,
+        stroke: extensionLineStrokeBackground,
+    }),
+    new Style({
+        geometry: new LineString([pointToCoords(from), pointToCoords(to)]),
+        stroke: extensionLineStrokeForeground,
     }),
     getEndPointTickStyle(pointToCoords(from), pointToCoords(to), 'end', extensionTickStyle),
 ];
