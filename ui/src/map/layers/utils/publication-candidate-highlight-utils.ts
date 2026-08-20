@@ -504,8 +504,8 @@ export const createCandidateOperationalPointAreaFeature = (
     });
     feature.setStyle([
         new Style({
-            stroke: new Stroke({ color, width: borderWidth }),
-            fill: new Fill({ color: hexToRgba(color, 0.5) }),
+            stroke: new Stroke({ color: hexToRgba(color, 0.5), width: borderWidth }),
+            fill: new Fill({ color: hexToRgba(color, 0.2) }),
             zIndex,
         }),
     ]);
