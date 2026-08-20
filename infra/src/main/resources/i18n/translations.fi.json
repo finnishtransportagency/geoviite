@@ -802,6 +802,8 @@
             }
         },
         "alignment": {
+            "start-point": "Alkupiste",
+            "end-point": "Loppupiste",
             "geometry": {
                 "title": "Raidegeometria: raide",
                 "name": "Nimi",
@@ -885,8 +887,6 @@
             "type": "Raidetyyppi",
             "identifier": "OID",
             "track-location-heading": "Raiteen sijaintitiedot",
-            "start-point": "Alkupiste",
-            "end-point": "Loppupiste",
             "start-coordinates": "Alkukoordinaatit",
             "end-coordinates": "Loppukoordinaatit",
             "show-on-map": "Kohdista kartalla",

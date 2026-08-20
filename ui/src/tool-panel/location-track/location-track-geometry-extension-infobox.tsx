@@ -138,8 +138,8 @@ const LocationTrackGeometryExtensionInfobox: React.FC<
                         ? t('tool-panel.location-track.geometry-extension.draw-hint')
                         : t(
                               extension.end === 'START'
-                                  ? 'tool-panel.location-track.start-point'
-                                  : 'tool-panel.location-track.end-point',
+                                  ? 'tool-panel.alignment.start-point'
+                                  : 'tool-panel.alignment.end-point',
                           )}
                 </InfoboxField>
                 <InfoboxButtons>

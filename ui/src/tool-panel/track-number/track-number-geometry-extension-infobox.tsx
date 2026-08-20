@@ -107,8 +107,8 @@ const TrackNumberGeometryExtensionInfobox: React.FC<TrackNumberGeometryExtension
                         ? t('tool-panel.reference-line.geometry-extension.draw-hint')
                         : t(
                               extension.end === 'START'
-                                  ? 'tool-panel.location-track.start-point'
-                                  : 'tool-panel.location-track.end-point',
+                                  ? 'tool-panel.alignment.start-point'
+                                  : 'tool-panel.alignment.end-point',
                           )}
                 </InfoboxField>
                 <InfoboxButtons>
