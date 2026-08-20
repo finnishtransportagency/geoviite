@@ -578,6 +578,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             geometryPlan.units.verticalCoordinateSystem ||
                             ''
                         }
+                        planVerticalCoordinateSystem={
+                            geometryPlan.units.verticalCoordinateSystem || undefined
+                        }
                         changeInOverrideParametersField={changeInOverrideParametersField}
                         getVisibleErrorsByProp={
                             profileInformationAvailable(geometryPlan.alignments)
