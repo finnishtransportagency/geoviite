@@ -121,6 +121,7 @@ class LayoutTrackNumberController(
         @PathVariable("endpointType") endpointType: EndpointType,
         @RequestBody extendTo: Point,
     ): IntId<LayoutTrackNumber> {
+        requireValidInputCoordinate(extendTo)
         return trackNumberService.extendReferenceLine(branch, id, endpointType, extendTo).id
     }
 

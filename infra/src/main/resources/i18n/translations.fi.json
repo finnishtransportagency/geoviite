@@ -797,8 +797,7 @@
                 "extension-end": "Jatkettava pää",
                 "draw-hint": "Klikkaa kartalta jatkeen päätepiste pituusmittauslinjan suunnassa",
                 "clear": "Tyhjennä",
-                "extension-saved": "Pituusmittauslinjaa {{trackNumber}} jatkettu",
-                "extension-failed": "Pituusmittauslinjan jatkaminen epäonnistui"
+                "extension-saved": "Pituusmittauslinjaa {{trackNumber}} jatkettu"
             }
         },
         "alignment": {

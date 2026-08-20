@@ -94,8 +94,7 @@ fun extendGeometry(
         when (endpointType) {
             EndpointType.START ->
                 listOf(manualSegment(extendTo, requireNotNull(geometry.firstSegmentStart))) + geometry.segments
-            EndpointType.END ->
-                geometry.segments + manualSegment(requireNotNull(geometry.lastSegmentEnd), extendTo)
+            EndpointType.END -> geometry.segments + manualSegment(requireNotNull(geometry.lastSegmentEnd), extendTo)
         }
     return geometry.withSegments(newSegments)
 }

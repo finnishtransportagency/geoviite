@@ -45,9 +45,7 @@ export const TrackNumberGeometryExtensionInfoboxContainer: React.FC<
                         extension.location,
                     );
                 } catch {
-                    Snackbar.error(
-                        t('tool-panel.reference-line.geometry-extension.extension-failed'),
-                    );
+                    // The api client already toasts the backend's failure message.
                     return;
                 }
                 Snackbar.success(
