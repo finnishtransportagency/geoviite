@@ -28,6 +28,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssue
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssueType
+import fi.fta.geoviite.infra.tracklayout.StationLinkService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,6 +52,7 @@ constructor(
     private val geocodingCacheService: GeocodingCacheService,
     private val splitService: SplitService,
     private val trackBoundaryMoveService: TrackBoundaryMoveService,
+    private val stationLinkService: StationLinkService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -124,6 +128,9 @@ constructor(
         val linkedSwitchIds = trackIds.flatMap(validationContext::getPotentiallyAffectedSwitchIds).distinct()
         validationContext.preloadSwitchVersions(linkedSwitchIds)
         validationContext.preloadSwitchTrackLinks(linkedSwitchIds)
+        val linkedOperationalPointIds =
+            trackIds.flatMap(validationContext::getPotentiallyAffectedOperationalPointIdsbyTrackId).distinct()
+        validationContext.preloadStationLinkIssuesByOperationalPoints(linkedOperationalPointIds)
 
         return trackIds.map { id -> ValidatedAsset(id, validateLocationTrack(id, validationContext)) }
     }
@@ -152,6 +159,9 @@ constructor(
         validationContext.preloadSwitchVersions(switchIds)
         validationContext.preloadSwitchTrackLinks(switchIds)
         validationContext.preloadSwitchesByName(switchIds)
+        val linkedOperationalPointIds =
+            switchIds.flatMap(validationContext::getPotentiallyAffectedOperationalPointIdsbySwitchId).distinct()
+        validationContext.preloadStationLinkIssuesByOperationalPoints(linkedOperationalPointIds)
 
         return switchIds.map { id -> ValidatedAsset(id, validateSwitch(id, validationContext)) }
     }
@@ -215,6 +225,7 @@ constructor(
         validationContext.preloadOperationalPointsByUicCode(ids)
         validationContext.preloadLocationTracksByOperationalPoints(ids)
         validationContext.preloadSwitchesByOperationalPoints(ids)
+        validationContext.preloadStationLinkIssuesByOperationalPoints(ids)
 
         return ids.map { id -> ValidatedAsset(id, validateOperationalPoint(id, validationContext)) }
     }
@@ -253,6 +264,7 @@ constructor(
             switchLibraryService = switchLibraryService,
             splitService = splitService,
             trackBoundaryMoveService = trackBoundaryMoveService,
+            stationLinkService = stationLinkService,
             publicationSet = publicationSet,
         )
 
@@ -481,13 +493,21 @@ constructor(
                         switchDao.get(row.context, row.id)
                     },
                 )
+            val stationLinkIssues =
+                switch.operationalPointId?.let { opId ->
+                    validationContext.getStationLinkIssuesByOperationalPoint(opId).map { issue ->
+                        issue.toValidationIssue(validationContext)
+                    }
+                } ?: emptyList()
+
             return nameIssues +
                 incomingReferencesIssues +
                 outgoingReferencesIssues +
                 structureIssues +
                 duplicationIssues +
                 oidDuplicationIssues +
-                jointConnectionsDifferIssues
+                jointConnectionsDifferIssues +
+                stationLinkIssues
         }
     }
 
@@ -521,8 +541,15 @@ constructor(
         val incomingReferenceIssues =
             validateReferencesToLocationTrack(trackLivenessType, validationContext.getDuplicateTracks(id))
 
+        val stationLinkIssues =
+            validationContext
+                .getLocationTrack(id)
+                ?.operationalPointIds
+                ?.flatMap { validationContext.getStationLinkIssuesByOperationalPoint(it) }
+                ?.map { it.toValidationIssue(validationContext) } ?: emptyList()
+
         return if (trackAndGeometry == null) {
-            trackNetworkTopologyIssues + incomingReferenceIssues
+            trackNetworkTopologyIssues + incomingReferenceIssues + stationLinkIssues
         } else {
             val (track, geometry) = trackAndGeometry
             val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
@@ -610,7 +637,8 @@ constructor(
                 trackNetworkTopologyIssues +
                 incomingReferenceIssues +
                 outgoingReferenceIssues +
-                switchConnectivityIssues)
+                switchConnectivityIssues +
+                stationLinkIssues)
         }
     }
 
@@ -715,6 +743,11 @@ constructor(
                     validationContext.target.validationTargetType,
                 )
 
+        val stationLinkIssues =
+            validationContext.getStationLinkIssuesByOperationalPoint(operationalPoint.id as IntId).map { issue ->
+                issue.toValidationIssue(validationContext)
+            }
+
         return nameDuplicationIssues +
             abbreviationDuplicationIssues +
             uicCodeIssues +
@@ -723,7 +756,8 @@ constructor(
             rinfIdDuplicationIssues +
             polygonOverlapIssues +
             locationIssues +
-            geometryQualityIssues
+            geometryQualityIssues +
+            stationLinkIssues
     }
 
     private fun validateGeocodingContext(
@@ -750,3 +784,19 @@ constructor(
             }
         }
 }
+
+private fun StationLinkIssue.toValidationIssue(validationContext: ValidationContext) =
+    when (this.type) {
+        StationLinkIssueType.UNREACHABLE_STATION_MIDPOINT ->
+            validationError(
+                "$VALIDATION_STATION_LINK.unreachable-midpoint",
+                "station" to validationContext.getOperationalPoint(this.operationalPointId)?.name,
+                "track" to this.locationTrackId?.let { validationContext.getLocationTrack(it)?.name },
+            )
+        StationLinkIssueType.SUSPICIOUSLY_LONG_ROUTE ->
+            validationWarning(
+                "$VALIDATION_STATION_LINK.suspiciously-long-route",
+                "station" to validationContext.getOperationalPoint(this.operationalPointId)?.name,
+                "track" to this.locationTrackId?.let { validationContext.getLocationTrack(it)?.name },
+            )
+    }

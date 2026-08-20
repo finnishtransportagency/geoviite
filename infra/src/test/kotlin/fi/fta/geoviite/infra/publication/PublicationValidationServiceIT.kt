@@ -41,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.M_CALC
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.RinfId
@@ -2909,6 +2910,71 @@ constructor(
                         it.localizationKey.toString() ==
                             "validation.layout.operational-point.reference-from-switch.deleted"
                 }
+        )
+    }
+
+    @Test
+    fun `station link issues are surfaced in operational point, switch, and location track validation`() {
+        val trackNumber =
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(60.0, 0.0)))
+            )
+        // OP2's location is outside the reference line's addressable range (0..60), so the link between
+        // OP1 and OP2 cannot be resolved on OP2's side, producing an unreachable-midpoint issue.
+        val op1 = mainDraftContext.save(operationalPoint(name = "OP1", location = Point(20.0, 0.0))).id
+        val op2 = mainDraftContext.save(operationalPoint(name = "OP2", location = Point(80.0, 0.0))).id
+
+        // The connecting track directly references both operational points, so it should surface the
+        // issue in location track validation too. Its own geometry stays within the addressable range,
+        // since an out-of-range track endpoint would break address lookups for every point on it.
+        val track =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumber.id, name = "connecting-track", operationalPointIds = setOf(op1, op2)),
+                    trackGeometry(
+                        edge(segments = listOf(segment(Point(15.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))
+                    ),
+                )
+                .id
+
+        // A switch linked to OP2 should also surface the issue in switch validation
+        val switchId = mainDraftContext.save(switch(name = "switch-at-op2", operationalPointId = op2)).id
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(
+                    locationTracks = listOf(track),
+                    switches = listOf(switchId),
+                    operationalPoints = listOf(op1, op2),
+                ),
+            )
+
+        val expectedIssue =
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.station-link.unreachable-midpoint",
+                mapOf("station" to "OP2", "track" to "connecting-track"),
+            )
+
+        // Both operational points involved in the link should see the issue
+        assertContains(
+            validation.validatedAsPublicationUnit.operationalPoints.find { it.id == op1 }!!.issues,
+            expectedIssue,
+        )
+        assertContains(
+            validation.validatedAsPublicationUnit.operationalPoints.find { it.id == op2 }!!.issues,
+            expectedIssue,
+        )
+        // The switch linked to the affected operational point should see the issue
+        assertContains(
+            validation.validatedAsPublicationUnit.switches.find { it.id == switchId }!!.issues,
+            expectedIssue,
+        )
+        // The location track directly referencing the affected operational points should see the issue
+        assertContains(
+            validation.validatedAsPublicationUnit.locationTracks.find { it.id == track }!!.issues,
+            expectedIssue,
         )
     }
 

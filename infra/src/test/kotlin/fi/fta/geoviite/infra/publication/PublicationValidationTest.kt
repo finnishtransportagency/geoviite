@@ -567,7 +567,8 @@ class PublicationValidationTest {
             )
         val trackWithoutEndSwitch = trackWithoutSwitches.copy(startSwitchId = switch.id as IntId)
         val trackWithoutStartSwitch = trackWithoutSwitches.copy(endSwitchId = switch.id as IntId)
-        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switch.id as IntId, endSwitchId = switch.id as IntId)
+        val trackWithBothSwitches =
+            trackWithoutSwitches.copy(startSwitchId = switch.id as IntId, endSwitchId = switch.id as IntId)
 
         assertContainsError(
             true,
