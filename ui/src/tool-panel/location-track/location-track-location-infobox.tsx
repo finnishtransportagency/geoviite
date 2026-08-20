@@ -10,7 +10,12 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { Button, ButtonIconPosition, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import {
+    Button,
+    ButtonIconPosition,
+    ButtonSize,
+    ButtonVariant,
+} from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
@@ -130,20 +135,20 @@ const isSplittablePoint = (
 
 type LocationTrackEndpointAddressInfoProps = {
     endpoint: AlignmentEndPoint | undefined;
-    locationTrack: LayoutLocationTrack | undefined;
 };
 
 const LocationTrackEndpointAddressInfo: React.FC<LocationTrackEndpointAddressInfoProps> = ({
     endpoint,
-    locationTrack,
 }) => {
     const { t } = useTranslation();
     return (
         <React.Fragment>
-            {endpoint?.address ? (
-                <NavigableTrackMeter trackMeter={endpoint.address} location={endpoint.point} />
-            ) : locationTrack?.boundingBox ? (
-                <span>{t('tool-panel.location-track.unresolvable')}</span>
+            {endpoint?.point ? (
+                <NavigableTrackMeter
+                    trackMeter={endpoint?.address}
+                    location={endpoint.point}
+                    placeholder={t('tool-panel.location-track.unresolvable')}
+                />
             ) : (
                 <span>{t('tool-panel.location-track.no-geometry')}</span>
             )}
@@ -565,7 +570,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 label={t('tool-panel.location-track.start-location')}>
                                 <LocationTrackEndpointAddressInfo
                                     endpoint={startAndEndPoints?.start}
-                                    locationTrack={locationTrack}
                                 />
                             </InfoboxField>
                             <InfoboxField
@@ -573,7 +577,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 label={t('tool-panel.location-track.end-location')}>
                                 <LocationTrackEndpointAddressInfo
                                     endpoint={startAndEndPoints?.end}
-                                    locationTrack={locationTrack}
                                 />
                             </InfoboxField>
 
