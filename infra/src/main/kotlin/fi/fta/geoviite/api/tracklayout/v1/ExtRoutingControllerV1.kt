@@ -66,10 +66,10 @@ class ExtRoutingControllerV1(private val extRoutingService: ExtRoutingServiceV1)
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
-        @Parameter(description = "Reitin alkusijainnin x-koordinaatti") @RequestParam(START_X) startX: Double,
-        @Parameter(description = "Reitin alkusijainnin y-koordinaatti") @RequestParam(START_Y) startY: Double,
-        @Parameter(description = "Reitin loppusijainnin x-koordinaatti") @RequestParam(END_X) endX: Double,
-        @Parameter(description = "Reitin loppusijainnin y-koordinaatti") @RequestParam(END_Y) endY: Double,
+        @Parameter(description = "Reitin alkusijainnin x-koordinaatti") @RequestParam(ROUTE_START_X) startX: Double,
+        @Parameter(description = "Reitin alkusijainnin y-koordinaatti") @RequestParam(ROUTE_START_Y) startY: Double,
+        @Parameter(description = "Reitin loppusijainnin x-koordinaatti") @RequestParam(ROUTE_END_X) endX: Double,
+        @Parameter(description = "Reitin loppusijainnin y-koordinaatti") @RequestParam(ROUTE_END_Y) endY: Double,
     ): ResponseEntity<ExtRouteResponseV1> =
         extRoutingService
             .getExtRoute(designOid, layoutVersion, extCoordinateSystem, startX, startY, endX, endY)

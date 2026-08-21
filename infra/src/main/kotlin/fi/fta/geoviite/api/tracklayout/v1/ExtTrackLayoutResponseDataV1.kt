@@ -295,6 +295,12 @@ enum class ExtAreaTypeV1(val value: String) {
     @JsonValue override fun toString() = value
 }
 
+const val FI_TRACK_POSITION = "sijainti_raiteella"
+const val FI_SWITCH_ENDPOINT = "vaihde"
+const val FI_TRACK_END = "raiteen_paa"
+const val FI_ASCENDING = "nouseva"
+const val FI_DESCENDING = "laskeva"
+
 const val FI_SPLIT = "raiteen_jakaminen"
 const val FI_BOUNDARY_MOVE = "vaihtumiskohdan_siirto"
 

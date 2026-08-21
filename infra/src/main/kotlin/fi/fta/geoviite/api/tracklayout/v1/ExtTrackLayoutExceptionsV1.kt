@@ -1,13 +1,16 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import java.time.Instant
 import org.springframework.http.HttpStatus
 
@@ -65,3 +68,12 @@ fun throwLocationTrackNotFound(version: LayoutRowVersion<LocationTrack>): Nothin
 fun throwNonGeocodablePvi(): Nothing = error("Non geocodable points should not be included in profile")
 
 fun throwNonGeocodableElementInterval(): Nothing = error("No geocodable interval found in element listing")
+
+fun throwRouteTrackNotFound(trackId: IntId<LocationTrack>): Nothing =
+    error("LocationTrack not found in routing result: trackId=$trackId")
+
+fun throwRouteTrackGeometryNotFound(trackId: IntId<LocationTrack>): Nothing =
+    error("LocationTrack geometry not found in routing result: trackId=$trackId")
+
+fun throwRoutePointAtMNotFound(m: LineM<LocationTrackM>, trackId: IntId<LocationTrack>): Nothing =
+    error("Point at M not found on geometry: m=$m trackId=$trackId")
