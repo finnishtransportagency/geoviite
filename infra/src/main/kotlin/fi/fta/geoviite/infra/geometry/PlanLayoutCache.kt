@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.CoordinateTransformationException
@@ -95,18 +96,7 @@ class PlanLayoutCache(
         val csName = getCoordinateSystemName(geometryPlan.units)
         if (srid == null) {
             logger.warn("Layout conversion failed. Plan has no SRID: id=$id file=$fileName")
-            return {
-                null to
-                    GeometryValidationIssue(
-                        localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.srid-missing"),
-                        issueType = GeometryIssueType.TRANSFORMATION_ERROR,
-                        params =
-                            buildMap {
-                                srid?.let { put("srid", it.toString()) }
-                                csName?.let { put("coordinateSystemName", it.toString()) }
-                            },
-                    )
-            }
+            return { null to createTransformationValidationIssue(null, csName, "srid-missing") }
         }
         val planToLayoutTransformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
         val planToGkTransformation = coordinateTransformationService.getTransformationToGkFin(srid)
@@ -115,36 +105,12 @@ class PlanLayoutCache(
 
         if (polygon == null) {
             logger.warn("Layout conversion failed. Plan bounds could not be resolved: id=$id file=$fileName")
-            return {
-                null to
-                    GeometryValidationIssue(
-                        localizationKey =
-                            LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.bounds-resolution-failed"),
-                        issueType = GeometryIssueType.TRANSFORMATION_ERROR,
-                        params =
-                            buildMap {
-                                put("srid", srid.toString())
-                                csName?.let { put("coordinateSystemName", it.toString()) }
-                            },
-                    )
-            }
+            return { null to createTransformationValidationIssue(srid, csName, "bounds-resolution-failed") }
         } else if (!polygon.points.all { point -> validHeightTriangulationArea.contains(point) }) {
             logger.warn(
                 "Layout conversion failed. Plan bounds are outside the height triangulation network: id=$id file=$fileName"
             )
-            return {
-                null to
-                    GeometryValidationIssue(
-                        localizationKey =
-                            LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.bounds-outside-finland"),
-                        issueType = GeometryIssueType.TRANSFORMATION_ERROR,
-                        params =
-                            buildMap {
-                                put("srid", srid.toString())
-                                csName?.let { put("coordinateSystemName", it.toString()) }
-                            },
-                    )
-            }
+            return { null to createTransformationValidationIssue(srid, csName, "bounds-outside-finland") }
         }
         val heightTriangles = heightTriangleDao.fetchTriangles(polygon)
         val trackNumberId =
@@ -202,32 +168,27 @@ class PlanLayoutCache(
             ) to null
         } catch (e: CoordinateTransformationException) {
             logger.warn("Could not convert plan coordinates: id=$id srid=$srid file=$fileName", e)
-            null to
-                GeometryValidationIssue(
-                    localizationKey =
-                        LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.coordinate-transformation-failed"),
-                    issueType = GeometryIssueType.TRANSFORMATION_ERROR,
-                    params =
-                        buildMap {
-                            srid?.let { put("srid", it.toString()) }
-                            csName?.let { put("coordinateSystemName", it.toString()) }
-                        },
-                )
+            null to createTransformationValidationIssue(srid, csName, "coordinate-transformation-failed")
         } catch (e: Exception) {
             logger.warn("Failed to convert plan to layout form: id=$id srid=$srid file=$fileName", e)
-            null to
-                GeometryValidationIssue(
-                    localizationKey =
-                        LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.plan-transformation-failed"),
-                    issueType = GeometryIssueType.TRANSFORMATION_ERROR,
-                    params =
-                        buildMap {
-                            srid?.let { put("srid", it.toString()) }
-                            csName?.let { put("coordinateSystemName", it.toString()) }
-                        },
-                )
+            null to createTransformationValidationIssue(srid, csName, "plan-transformation-failed")
         }
     }
+
+    private fun createTransformationValidationIssue(
+        srid: Srid?,
+        csName: CoordinateSystemName?,
+        key: String,
+    ): GeometryValidationIssue =
+        GeometryValidationIssue(
+            localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key"),
+            issueType = GeometryIssueType.TRANSFORMATION_ERROR,
+            localizationParams =
+                buildMap {
+                    srid?.let { put("srid", it.code.toString()) }
+                    csName?.let { put("coordinateSystemName", it.toString()) }
+                },
+        )
 
     private fun getCoordinateSystemName(units: GeometryUnits): CoordinateSystemName? {
         val planCsName = units.coordinateSystemName
