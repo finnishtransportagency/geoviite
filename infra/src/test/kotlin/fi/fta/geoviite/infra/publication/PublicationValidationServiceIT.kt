@@ -316,7 +316,7 @@ constructor(
                     publicationService.collectPublicationCandidates(PublicationInMain),
                     publicationRequestIds(locationTracks = listOf(*publishableTracks)),
                 )
-            val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].issues
+            val trackErrors = validation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues }
             return trackErrors.find { error ->
                 error.localizationKey ==
                     LocalizationKey.of(
