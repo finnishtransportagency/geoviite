@@ -789,9 +789,20 @@
             "end-points-updated": "Pituusmittauslinjan päätepisteet päivitetty",
             "reference-line-singular": "Pituusmittauslinja",
             "reference-line-plural": "Pituusmittauslinjat",
-            "no-geometry": "Pituusmittauslinjalla ei ole geometriaa"
+            "no-geometry": "Pituusmittauslinjalla ei ole geometriaa",
+            "geometry-extension": {
+                "menu-item": "Jatka pituusmittauslinjan geometriaa",
+                "title": "Pituusmittauslinjan jatkaminen",
+                "track-number": "Ratanumero",
+                "extension-end": "Jatkettava pää",
+                "draw-hint": "Klikkaa kartalta jatkeen päätepiste pituusmittauslinjan suunnassa",
+                "clear": "Tyhjennä",
+                "extension-saved": "Pituusmittauslinjaa {{trackNumber}} jatkettu"
+            }
         },
         "alignment": {
+            "start-point": "Alkupiste",
+            "end-point": "Loppupiste",
             "geometry": {
                 "title": "Raidegeometria: raide",
                 "name": "Nimi",
@@ -875,8 +886,6 @@
             "type": "Raidetyyppi",
             "identifier": "OID",
             "track-location-heading": "Raiteen sijaintitiedot",
-            "start-point": "Alkupiste",
-            "end-point": "Loppupiste",
             "start-coordinates": "Alkukoordinaatit",
             "end-coordinates": "Loppukoordinaatit",
             "show-on-map": "Kohdista kartalla",
