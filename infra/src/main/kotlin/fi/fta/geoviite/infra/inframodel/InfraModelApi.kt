@@ -65,7 +65,7 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
                             if (e is HasLocalizedMessage) e.localizationKey
                             else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC),
                         issueType = GeometryIssueType.PARSING_ERROR,
-                        params = if (e is HasLocalizedMessage) e.localizationParams.params else emptyMap(),
+                        localizationParams = if (e is HasLocalizedMessage) e.localizationParams.params else emptyMap(),
                     )
                 ),
             geometryPlan = null,
