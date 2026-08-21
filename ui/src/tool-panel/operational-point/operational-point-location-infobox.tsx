@@ -78,45 +78,47 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
             ? isValidPolygon(layoutState.linkingState.area.points.map(pointToCoords), false)
             : true;
 
-    const saveLocation = () => {
+    const saveLocation = async () => {
         if (
             layoutState.linkingState?.type === LinkingType.PlacingOperationalPoint &&
             !!layoutState.linkingState.location
         ) {
+            setLocationUpdateInProgress(true);
             try {
-                setLocationUpdateInProgress(true);
-                updateInternalOperationalPointLocation(
+                await updateInternalOperationalPointLocation(
                     layoutState.linkingState.operationalPoint.id,
                     layoutState.linkingState.location,
                     layoutContext,
-                ).then(() => {
-                    SnackBar.success('tool-panel.operational-point.location-update-succeeded');
-                    onStopPlacingLocation();
-                });
+                );
+            } catch {
+                return;
             } finally {
                 setLocationUpdateInProgress(false);
             }
+            SnackBar.success('tool-panel.operational-point.location-update-succeeded');
+            onStopPlacingLocation();
         }
     };
 
-    const savePolygon = () => {
+    const savePolygon = async () => {
         if (
             layoutState.linkingState?.type === LinkingType.PlacingOperationalPointArea &&
             !!layoutState.linkingState.area
         ) {
+            setLocationUpdateInProgress(true);
             try {
-                setLocationUpdateInProgress(true);
-                updateOperationalPointArea(
+                await updateOperationalPointArea(
                     layoutState.linkingState.operationalPoint.id,
                     layoutState.linkingState.area,
                     layoutContext,
-                ).then(() => {
-                    SnackBar.success('tool-panel.operational-point.area-update-succeeded');
-                    onStopPlacingArea();
-                });
+                );
+            } catch {
+                return;
             } finally {
                 setLocationUpdateInProgress(false);
             }
+            SnackBar.success('tool-panel.operational-point.area-update-succeeded');
+            onStopPlacingArea();
         }
     };
 

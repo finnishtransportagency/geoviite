@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -84,7 +85,7 @@ constructor(
     }
 
     @Test
-    fun `Route starting at the beginning of a track produces raiteen_paa start endpoint`() {
+    fun `Route starting at the beginning of a track produces track end endpoint`() {
         val start = Point(0.0, 0.0)
         val end = Point(0.0, 1000.0)
         val (trackNumberId, _) =
@@ -96,11 +97,11 @@ constructor(
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
         testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
-        // Start exactly at track origin → m=0 → raiteen_pää
+        // Start exactly at track origin → m=0 → raiteen_paa
         val response = api.routing.get(startX = 0.0, startY = 0.0, endX = 0.0, endY = 500.0)
 
         val section = response.reitti.reitin_osat.single()
-        assertEquals("raiteen_pää", section.alku.tyyppi)
+        assertEquals("raiteen_paa", section.alku.tyyppi)
         assertEquals("sijainti_raiteella", section.loppu.tyyppi)
     }
 
@@ -281,6 +282,40 @@ constructor(
         val switchOids =
             response.reitti.reitin_osat.flatMap { listOf(it.alku, it.loppu) }.mapNotNull { it.vaihde_oid }.distinct()
         assertEquals(listOf(designSwitchOid.toString()), switchOids)
+    }
+
+    @Test
+    fun `Routing result is stable when queried with a specific publication version`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 1000.0)
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
+        val v1 = testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        // Delete the track and publish again — routing on the latest version should now fail
+        mainDraftContext.mutate(trackId) { it.copy(state = LocationTrackState.DELETED) }
+        testDBService.publish(locationTracks = listOf(trackId))
+
+        // Current state: no route (track is deleted)
+        api.routing.assertNoRoute(startX = 0.0, startY = 100.0, endX = 0.0, endY = 900.0)
+
+        // Historical v1: route still found via the now-deleted track
+        val response =
+            api.routing.get(
+                startX = 0.0,
+                startY = 100.0,
+                endX = 0.0,
+                endY = 900.0,
+                TRACK_LAYOUT_VERSION to v1.uuid.toString(),
+            )
+
+        assertEquals(v1.uuid.toString(), response.rataverkon_versio)
+        assertEquals(trackOid.toString(), response.reitti.reitin_osat.single().sijaintiraide_oid)
     }
 
     @Test

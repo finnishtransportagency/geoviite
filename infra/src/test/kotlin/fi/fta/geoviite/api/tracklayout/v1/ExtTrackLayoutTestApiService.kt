@@ -535,10 +535,10 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         ): ExtTestRouteResponseV1 {
             val coordinateParams =
                 mapOf(
-                    START_X to startX.toString(),
-                    START_Y to startY.toString(),
-                    END_X to endX.toString(),
-                    END_Y to endY.toString(),
+                    ROUTE_START_X to startX.toString(),
+                    ROUTE_START_Y to startY.toString(),
+                    ROUTE_END_X to endX.toString(),
+                    ROUTE_END_Y to endY.toString(),
                 )
             return internalGet(ExtTestRouteResponseV1::class, routingUrl(), coordinateParams + params.toMap())
         }
@@ -553,10 +553,10 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         ): ExtTestErrorResponseV1 {
             val coordinateParams =
                 mapOf(
-                    START_X to startX.toString(),
-                    START_Y to startY.toString(),
-                    END_X to endX.toString(),
-                    END_Y to endY.toString(),
+                    ROUTE_START_X to startX.toString(),
+                    ROUTE_START_Y to startY.toString(),
+                    ROUTE_END_X to endX.toString(),
+                    ROUTE_END_Y to endY.toString(),
                 )
             return internalGet(
                 ExtTestErrorResponseV1::class,
@@ -575,10 +575,10 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         ) {
             val coordinateParams =
                 mapOf(
-                    START_X to startX.toString(),
-                    START_Y to startY.toString(),
-                    END_X to endX.toString(),
-                    END_Y to endY.toString(),
+                    ROUTE_START_X to startX.toString(),
+                    ROUTE_START_Y to startY.toString(),
+                    ROUTE_END_X to endX.toString(),
+                    ROUTE_END_Y to endY.toString(),
                 )
             internalGetWithoutBody(routingUrl(), coordinateParams + params.toMap(), HttpStatus.NO_CONTENT)
         }

@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.RoutingService
+import java.math.RoundingMode
 import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -79,74 +80,70 @@ constructor(
 
         val sections =
             routeResult.route.sections.map { section ->
-                val track =
-                    trackById[section.trackId]
-                        ?: error("LocationTrack not found in routing result: trackId=${section.trackId}")
-                val geometry =
-                    trackGeometryById[section.trackId]
-                        ?: error("LocationTrack geometry not found in routing result: trackId=${section.trackId}")
+                val track = trackById[section.trackId] ?: throwRouteTrackNotFound(section.trackId)
+                val geometry = trackGeometryById[section.trackId] ?: throwRouteTrackGeometryNotFound(section.trackId)
                 val trackOid = trackOidRefs.get(section.trackId)
                 val trackNumberId = track.trackNumberId as IntId<LayoutTrackNumber>
                 val trackNumberOid = trackNumberOidRefs.get(trackNumberId)
                 val geocodingContext = getGeocodingContext(trackNumberId)
 
-                val (alkuM, loppuM) =
+                val (startM, endM) =
                     when (section.direction) {
                         EdgeDirection.UP -> section.mRange.min to section.mRange.max
                         EdgeDirection.DOWN -> section.mRange.max to section.mRange.min
                     }
 
-                val alkuPoint =
-                    geometry.getPointAtM(alkuM)
-                        ?: error("Point at M not found on geometry: m=$alkuM trackId=${section.trackId}")
-                val loppuPoint =
-                    geometry.getPointAtM(loppuM)
-                        ?: error("Point at M not found on geometry: m=$loppuM trackId=${section.trackId}")
+                val startPoint = geometry.getPointAtM(startM) ?: throwRoutePointAtMNotFound(startM, section.trackId)
+                val endPoint = geometry.getPointAtM(endM) ?: throwRoutePointAtMNotFound(endM, section.trackId)
 
-                val alkuAddress = geocodingContext?.getAddress(alkuPoint)?.first
-                val loppuAddress = geocodingContext?.getAddress(loppuPoint)?.first
+                val startAddress = geocodingContext?.getAddress(startPoint)?.first
+                val endAddress = geocodingContext?.getAddress(endPoint)?.first
 
                 ExtRouteSectionV1(
-                    sijaintiraideOid = ExtOidV1(trackOid),
-                    ratanumeroOid = ExtOidV1(trackNumberOid),
-                    alku =
+                    locationTrackOid = ExtOidV1(trackOid),
+                    trackNumberOid = ExtOidV1(trackNumberOid),
+                    start =
                         buildEndpoint(
-                            alkuM,
-                            alkuPoint,
-                            alkuAddress?.formatFixedDecimals(3),
+                            startM,
+                            startPoint,
+                            startAddress?.formatFixedDecimals(3),
                             geometry,
                             switchOidRefs,
                             srid,
                         ),
-                    loppu =
+                    end =
                         buildEndpoint(
-                            loppuM,
-                            loppuPoint,
-                            loppuAddress?.formatFixedDecimals(3),
+                            endM,
+                            endPoint,
+                            endAddress?.formatFixedDecimals(3),
                             geometry,
                             switchOidRefs,
                             srid,
                         ),
-                    suunta =
+                    direction =
                         when (section.direction) {
-                            EdgeDirection.UP -> ExtRouteDirectionV1.NOUSEVA
-                            EdgeDirection.DOWN -> ExtRouteDirectionV1.LASKEVA
+                            EdgeDirection.UP -> ExtRouteDirectionV1.ASCENDING
+                            EdgeDirection.DOWN -> ExtRouteDirectionV1.DESCENDING
                         },
-                    pituus = section.length,
+                    length = section.length.toBigDecimal().setScale(3, RoundingMode.HALF_UP),
                 )
             }
 
         return ExtRouteResponseV1(
-            rataverkonVersio = ExtLayoutVersionV1(publication),
-            koordinaatisto = ExtSridV1(srid),
-            reitti = ExtRouteV1(pituus = sections.sumOf { it.pituus }, reitinOsat = sections),
+            layoutVersion = ExtLayoutVersionV1(publication),
+            coordinateSystem = ExtSridV1(srid),
+            route =
+                ExtRouteV1(
+                    totalLength = sections.sumOf { it.length },
+                    sections = sections,
+                ),
         )
     }
 
     private fun buildEndpoint(
         m: LineM<LocationTrackM>,
         point: IPoint,
-        rataosoite: String?,
+        trackAddress: String?,
         geometry: LocationTrackGeometry,
         switchOidRefs: ExtOidReferencesV1<LayoutSwitch>,
         srid: Srid,
@@ -154,22 +151,22 @@ constructor(
         val switchLink = geometry.trackSwitchLinks.firstOrNull { tsl -> isSameM(tsl.location.m, m) }
         val trackLength = geometry.length
 
-        val (tyyppi, vaihdeOid) =
+        val (type, switchOid) =
             when {
-                switchLink != null -> ExtRouteEndpointTypeV1.VAIHDE to ExtOidV1(switchOidRefs.get(switchLink.switchId))
-                isTrackEnd(m, trackLength) -> ExtRouteEndpointTypeV1.RAITEEN_PAA to null
-                else -> ExtRouteEndpointTypeV1.SIJAINTI_RAITEELLA to null
+                switchLink != null -> ExtRouteEndpointTypeV1.SWITCH to ExtOidV1(switchOidRefs.get(switchLink.switchId))
+                isTrackEnd(m, trackLength) -> ExtRouteEndpointTypeV1.TRACK_END to null
+                else -> ExtRouteEndpointTypeV1.TRACK_POSITION to null
             }
 
         val outputPoint = if (srid == LAYOUT_SRID) point else transformNonKKJCoordinate(LAYOUT_SRID, srid, point)
 
         return ExtRouteSectionEndpointV1(
-            tyyppi = tyyppi,
-            vaihdeOid = vaihdeOid,
-            rataosoite = rataosoite,
+            type = type,
+            switchOid = switchOid,
+            trackAddress = trackAddress,
             x = outputPoint.x,
             y = outputPoint.y,
-            mArvo = m.distance,
+            mValue = m.distance.toBigDecimal().setScale(3, RoundingMode.HALF_UP),
         )
     }
 

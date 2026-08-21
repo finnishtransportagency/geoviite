@@ -367,6 +367,7 @@ class LocationTrackController(
         @PathVariable("endpointType") endpointType: EndpointType,
         @RequestBody extendTo: Point,
     ): IntId<LocationTrack> {
+        requireValidInputCoordinate(extendTo)
         return locationTrackService.extendTrack(layoutBranch, id, endpointType, extendTo).id
     }
 }
