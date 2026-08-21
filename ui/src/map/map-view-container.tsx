@@ -13,11 +13,12 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { PublicationCandidate } from 'publication/publication-model';
-import { MapToolMenuItem, MapToolId } from 'map/tools/tool-model';
+import { MapToolId, MapToolMenuItem } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
 import { RouteLocation } from 'track-layout/track-layout-slice';
 import { stopExtendingAlignment } from 'linking/alignment-extension-utils';
+import { MapLayerName } from 'map/map-model';
 
 const emptyFn = () => void 0;
 
@@ -104,6 +105,7 @@ type MapViewContainerProps = {
     designPublicationMode?: DesignPublicationMode;
     mapTools: MapToolMenuItem[];
     hoveredRouteLocation?: RouteLocation;
+    forcedHiddenLayers?: MapLayerName[];
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     layoutContext,
@@ -115,6 +117,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     designPublicationMode,
     mapTools,
     hoveredRouteLocation,
+    forcedHiddenLayers = [],
 }) => {
     const mapContext = React.useContext(MapContext);
 
@@ -129,6 +132,10 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.designPublicationMode = designPublicationMode;
     mapProps.mapTools = mapTools;
     mapProps.hoveredRouteLocation = hoveredRouteLocation;
+    mapProps.map = React.useMemo(
+        () => ({ ...mapProps.map, forcedHiddenLayers: forcedHiddenLayers }),
+        [mapProps.map, forcedHiddenLayers],
+    );
 
     return <MapView {...mapProps} />;
 };

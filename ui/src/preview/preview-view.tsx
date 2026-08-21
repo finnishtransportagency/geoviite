@@ -663,6 +663,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         publicationCandidates={diplayedOnMapPublicationCandidates}
                         mapTools={mapTools}
                         designPublicationMode={designPublicationMode}
+                        forcedHiddenLayers={['operational-points-area-layer']}
                     />
                 </MapContext.Provider>
                 <PreviewFooter
