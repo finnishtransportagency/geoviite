@@ -631,29 +631,25 @@ const trackLayoutSlice = createSlice({
                 enableLayerMenuItem(state.map, 'geometry-alignment');
                 enableLayerMenuItem(state.map, 'geometry-switch');
                 enableLayerMenuItem(state.map, 'geometry-km-post');
-                selectionReducers.setPlanVisibility(state.selection, action);
+            }
+            const forcedVisiblePlan = getForcedVisibleGeometry(state.linkingState);
+            if (!visible && forcedVisiblePlan?.id === plan.id) {
+                selectionReducers.setPlanVisibility(state.selection, {
+                    ...action,
+                    payload: { plan: forcedVisiblePlan, visible: true },
+                });
+                clearPlanSelection(state.selection, {
+                    id: plan.id,
+                    alignments: plan.alignments.filter(
+                        (id) => !forcedVisiblePlan.alignments.includes(id),
+                    ),
+                    switches: plan.switches.filter(
+                        (id) => !forcedVisiblePlan.switches.includes(id),
+                    ),
+                    kmPosts: plan.kmPosts.filter((id) => !forcedVisiblePlan.kmPosts.includes(id)),
+                });
             } else {
-                const forcedVisiblePlan = getForcedVisibleGeometry(state.linkingState);
-                if (forcedVisiblePlan?.id === plan.id) {
-                    selectionReducers.setPlanVisibility(state.selection, {
-                        ...action,
-                        payload: { plan: forcedVisiblePlan, visible: true },
-                    });
-                    clearPlanSelection(state.selection, {
-                        id: plan.id,
-                        alignments: plan.alignments.filter(
-                            (id) => !forcedVisiblePlan.alignments.includes(id),
-                        ),
-                        switches: plan.switches.filter(
-                            (id) => !forcedVisiblePlan.switches.includes(id),
-                        ),
-                        kmPosts: plan.kmPosts.filter(
-                            (id) => !forcedVisiblePlan.kmPosts.includes(id),
-                        ),
-                    });
-                } else {
-                    selectionReducers.setPlanVisibility(state.selection, action);
-                }
+                selectionReducers.setPlanVisibility(state.selection, action);
             }
 
             state.selectedToolPanelTab = updateSelectedToolPanelTab(

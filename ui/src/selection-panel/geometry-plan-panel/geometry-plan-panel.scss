@@ -60,7 +60,7 @@ $accordion-right-padding: 20px;
         }
 
         &--forced {
-            cursor: not-allowed;
+            pointer-events: none;
             fill: vayla-design.$color-blue-default;
             opacity: 0.5;
         }

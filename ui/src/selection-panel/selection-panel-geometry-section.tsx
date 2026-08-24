@@ -3,14 +3,14 @@ import { Eye, VisibilityState } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { GeometryPlanPanel } from 'selection-panel/geometry-plan-panel/geometry-plan-panel';
 import {
+    aggregateVisibility,
+    isPlanFullyVisible,
+    mergeVisiblePlans,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
-    aggregateVisibility,
-    isPlanFullyVisible,
-    mergeVisiblePlans,
     wholePlanVisibility,
 } from 'selection/selection-store';
 import * as React from 'react';
@@ -211,9 +211,6 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         planIdsInViewport.some((planId) => planId === p.id),
     );
 
-    // Only used to compute the aggregate (hidden/partial/visible) display state, so that a plan
-    // whose only visible item is the actively-linked (forced) one is shown as partial rather than
-    // looking indistinguishable from fully hidden.
     const effectiveVisiblePlansInView = mergeVisiblePlans(visiblePlansInView, forcedVisiblePlan);
 
     const isPlanFullyVisibleInView = (planId: GeometryPlanId): boolean =>

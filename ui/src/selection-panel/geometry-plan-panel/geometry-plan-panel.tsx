@@ -100,9 +100,6 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
         [visiblePlans, forcedVisiblePlan],
     );
 
-    // The real (non-forced-merged) entry is what should actually be added/removed when the user
-    // toggles visibility; the forced-merged entry below is only for the aggregate display state,
-    // so that "only the forced item is visible" reads as partial rather than fully hidden.
     const planEntry = visiblePlans.find((p) => p.id === planHeader.id);
     const effectivePlanEntry = effectiveVisiblePlans.find((p) => p.id === planHeader.id);
 
