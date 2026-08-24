@@ -134,7 +134,7 @@ const PlanVisibilityToggle: React.FC<{
             className={styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']}>
             {planId && section.isLinked && (
                 <Eye
-                    visibility={isVisible}
+                    visibility={isVisible ? 'visible' : 'hidden'}
                     disabled={disabled}
                     onVisibilityToggle={() => {
                         togglePlanVisibility(planId, section.alignmentId);

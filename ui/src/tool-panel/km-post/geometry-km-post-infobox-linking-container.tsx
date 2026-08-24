@@ -54,7 +54,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
             }
             startLinking={(id) => {
                 delegates.addForcedVisibleLayer(linkingLayers);
-                delegates.startKmPostLinking(id);
+                delegates.startKmPostLinking({ geometryKmPostId: id, geometryPlanId: planId });
             }}
             stopLinking={() => {
                 delegates.removeForcedVisibleLayer(linkingLayers);

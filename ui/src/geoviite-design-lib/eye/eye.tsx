@@ -4,15 +4,17 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
+export type VisibilityState = 'hidden' | 'partial' | 'visible';
+
 type EyeProps = {
-    visibility?: boolean;
+    visibility?: VisibilityState;
     fetchingContent?: boolean;
     onVisibilityToggle: React.MouseEventHandler;
     disabled?: boolean;
     extraClassName?: string;
 };
 export const Eye: React.FC<EyeProps> = ({
-    visibility,
+    visibility = 'hidden',
     fetchingContent,
     onVisibilityToggle,
     disabled = false,
@@ -22,7 +24,8 @@ export const Eye: React.FC<EyeProps> = ({
 
     const iconClassName = createClassName(
         styles['eye-icon'],
-        visibility && styles['eye--visible'],
+        visibility === 'visible' && styles['eye--visible'],
+        visibility === 'partial' && styles['eye--partial'],
         disabled && styles['eye--disabled'],
     );
 

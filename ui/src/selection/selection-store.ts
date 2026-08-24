@@ -23,6 +23,7 @@ import {
 } from 'geometry/geometry-model';
 import { PublicationId } from 'publication/publication-model';
 import { objectEquals } from 'utils/object-utils';
+import { VisibilityState } from 'geoviite-design-lib/eye/eye';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -343,28 +344,24 @@ export const selectionReducers = {
         const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.id);
 
         if (isPlanVisible) {
-            const selectedItems = state.selectedItems;
-
-            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
-
-            selectedItems.geometryKmPostIds = [
-                ...selectedItems.geometryKmPostIds.filter(
-                    ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
-                ),
-            ];
-            selectedItems.geometrySwitchIds = [
-                ...selectedItems.geometrySwitchIds.filter(
-                    ({ geometryId }) => !plan?.switches.includes(geometryId),
-                ),
-            ];
-            selectedItems.geometryAlignmentIds = [
-                ...selectedItems.geometryAlignmentIds.filter(
-                    (ga) => !plan?.alignments.includes(ga.geometryId),
-                ),
-            ];
+            removePlanVisibilityAndSelection(state, plan);
         } else {
             const newVisiblePlan = plan ? [plan] : [];
             state.visiblePlans = [...state.visiblePlans, ...newVisiblePlan];
+        }
+    },
+    // Unlike togglePlanVisibility (which flips existence), this sets an explicit visible/hidden
+    // state. Used by aggregate (plan/project) eyes, whose visual tri-state (hidden/partial/visible)
+    // requires deterministic "show everything"/"hide everything" semantics rather than a toggle.
+    setPlanVisibility: (
+        state: Selection,
+        { payload }: PayloadAction<{ plan: VisiblePlanLayout; visible: boolean }>,
+    ): void => {
+        const { plan, visible } = payload;
+        if (visible) {
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan.id), plan];
+        } else {
+            removePlanVisibilityAndSelection(state, plan);
         }
     },
     toggleAlignmentVisibility: (
@@ -429,6 +426,31 @@ export const selectionReducers = {
         });
     },
 };
+
+export function clearPlanSelection(state: Selection, plan: VisiblePlanLayout): void {
+    const selectedItems = state.selectedItems;
+
+    selectedItems.geometryKmPostIds = [
+        ...selectedItems.geometryKmPostIds.filter(
+            ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
+        ),
+    ];
+    selectedItems.geometrySwitchIds = [
+        ...selectedItems.geometrySwitchIds.filter(
+            ({ geometryId }) => !plan?.switches.includes(geometryId),
+        ),
+    ];
+    selectedItems.geometryAlignmentIds = [
+        ...selectedItems.geometryAlignmentIds.filter(
+            (ga) => !plan?.alignments.includes(ga.geometryId),
+        ),
+    ];
+}
+
+function removePlanVisibilityAndSelection(state: Selection, plan: VisiblePlanLayout): void {
+    state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
+    clearPlanSelection(state, plan);
+}
 
 function toggleVisibility(
     state: Selection,
@@ -497,4 +519,60 @@ export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout
         kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
         alignments: plan.alignments.map((a) => a.header.id),
     };
+}
+
+export function aggregateVisibility(anyVisible: boolean, allVisible: boolean): VisibilityState {
+    if (allVisible) return 'visible';
+    if (anyVisible) return 'partial';
+    return 'hidden';
+}
+
+// Determines whether every item of a plan is visible. Without the plan's layout loaded, we can't
+// know its full item set, so an existing (possibly partial) entry is optimistically treated as
+// fully visible; this only affects aggregate display and is reconciled once the layout loads.
+export function isPlanFullyVisible(
+    visiblePlan: VisiblePlanLayout | undefined,
+    planLayout: GeometryPlanLayout | undefined,
+): boolean {
+    if (!visiblePlan) return false;
+    if (!planLayout) return true;
+
+    return (
+        planLayout.alignments.every((a) => visiblePlan.alignments.includes(a.header.id)) &&
+        planLayout.switches.every(
+            (s) => !s.sourceId || visiblePlan.switches.includes(s.sourceId),
+        ) &&
+        planLayout.kmPosts.every((k) => !k.sourceId || visiblePlan.kmPosts.includes(k.sourceId))
+    );
+}
+
+export function mergeVisiblePlans(
+    visiblePlans: VisiblePlanLayout[],
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
+): VisiblePlanLayout[] {
+    if (!forcedVisiblePlan) return visiblePlans;
+
+    const existingPlan = visiblePlans.find((p) => p.id === forcedVisiblePlan.id);
+    const mergedPlan: VisiblePlanLayout = {
+        id: forcedVisiblePlan.id,
+        alignments: deduplicate([
+            ...(existingPlan?.alignments ?? []),
+            ...forcedVisiblePlan.alignments,
+        ]),
+        switches: deduplicate([...(existingPlan?.switches ?? []), ...forcedVisiblePlan.switches]),
+        kmPosts: deduplicate([...(existingPlan?.kmPosts ?? []), ...forcedVisiblePlan.kmPosts]),
+    };
+
+    return [...visiblePlans.filter((p) => p.id !== forcedVisiblePlan.id), mergedPlan];
+}
+
+export function isGeometryForcedVisible(
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
+    planId: GeometryPlanId,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
+): boolean {
+    return (
+        forcedVisiblePlan?.id === planId && (forcedVisiblePlan[type] as string[]).includes(itemId)
+    );
 }

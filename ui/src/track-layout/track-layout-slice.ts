@@ -11,6 +11,7 @@ import {
 } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
 import {
+    clearPlanSelection,
     initialSelectionState,
     isEmptyItemCollections,
     itemCollectionsMatch,
@@ -352,6 +353,49 @@ export function getSelectableItemTypes(
     }
 }
 
+export function getForcedVisibleGeometry(
+    linkingState?: LinkingState | undefined,
+): VisiblePlanLayout | undefined {
+    switch (linkingState?.type) {
+        case LinkingType.UnknownAlignment:
+        case LinkingType.LinkingGeometryWithAlignment:
+        case LinkingType.LinkingGeometryWithEmptyAlignment:
+            return {
+                id: linkingState.geometryPlanId,
+                alignments: [linkingState.geometryAlignmentId],
+                switches: [],
+                kmPosts: [],
+            };
+        case LinkingType.LinkingGeometrySwitch:
+            return {
+                id: linkingState.geometryPlanId,
+                alignments: [],
+                switches: [linkingState.geometrySwitchId],
+                kmPosts: [],
+            };
+        case LinkingType.LinkingKmPost:
+            return {
+                id: linkingState.geometryPlanId,
+                alignments: [],
+                switches: [],
+                kmPosts: [linkingState.geometryKmPostId],
+            };
+        case LinkingType.LinkingAlignment:
+        case LinkingType.PlacingLayoutSwitch:
+        case LinkingType.LinkingLayoutSwitch:
+        case LinkingType.PlacingOperationalPoint:
+        case LinkingType.PlacingOperationalPointArea:
+        case LinkingType.LinkingOperationalPointSwitches:
+        case LinkingType.LinkingOperationalPointTracks:
+        case LinkingType.TrackBoundaryMove:
+        case LinkingType.ExtendingAlignment:
+        case undefined:
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(linkingState);
+    }
+}
+
 function filterSelectOptionsByItemTypes(
     options: OnSelectOptions,
     itemTypes: (keyof ItemCollections)[],
@@ -581,24 +625,80 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<VisiblePlanLayout>,
         ): void => {
-            if (!state.linkingState) {
-                const isPlanVisible = state.selection.visiblePlans.some(
-                    (p) => p.id === action.payload?.id,
-                );
+            // Note: plan-level visibility toggling used to be blanket-disabled during any linking
+            // state here (in addition to the UI disabling the eye icons). Now that the UI allows
+            // toggling unrelated plans/assets during linking (only the actively linked geometry is
+            // forced visible, via a merge at read-time), this reducer must always apply the toggle.
+            const isPlanVisible = state.selection.visiblePlans.some(
+                (p) => p.id === action.payload?.id,
+            );
 
-                if (!isPlanVisible) {
-                    enableLayerMenuItem(state.map, 'geometry-alignment');
-                    enableLayerMenuItem(state.map, 'geometry-switch');
-                    enableLayerMenuItem(state.map, 'geometry-km-post');
-                }
-
-                selectionReducers.togglePlanVisibility(state.selection, action);
-                state.selectedToolPanelTab = updateSelectedToolPanelTab(
-                    state.selection,
-                    state.linkingState,
-                    state.selectedToolPanelTab,
-                );
+            if (!isPlanVisible) {
+                enableLayerMenuItem(state.map, 'geometry-alignment');
+                enableLayerMenuItem(state.map, 'geometry-switch');
+                enableLayerMenuItem(state.map, 'geometry-km-post');
             }
+
+            selectionReducers.togglePlanVisibility(state.selection, action);
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.linkingState,
+                state.selectedToolPanelTab,
+            );
+        },
+        // Deterministic counterpart to togglePlanVisibility, used by aggregate (plan/project/
+        // select-all) eyes so that their tri-state (hidden/partial/visible) display always has an
+        // unambiguous "show everything"/"hide everything" action, rather than a toggle whose effect
+        // would depend on incidental existing state.
+        setPlanVisibility: (
+            state: TrackLayoutState,
+            action: PayloadAction<{ plan: VisiblePlanLayout; visible: boolean }>,
+        ): void => {
+            const { plan, visible } = action.payload;
+
+            if (visible) {
+                enableLayerMenuItem(state.map, 'geometry-alignment');
+                enableLayerMenuItem(state.map, 'geometry-switch');
+                enableLayerMenuItem(state.map, 'geometry-km-post');
+                selectionReducers.setPlanVisibility(state.selection, action);
+            } else {
+                // Hiding "the rest" of a plan must never actually hide (or deselect) the geometry
+                // currently being linked: doing so used to clear its selection, which made the
+                // linking infobox disappear, while linking itself remained active and unreachable
+                // (its selection was gone, but re-selecting it was still blocked by linkingState).
+                // So instead of removing the whole plan entry, collapse it down to just the forced
+                // item, keeping it visible and selected.
+                const forcedVisiblePlan = getForcedVisibleGeometry(state.linkingState);
+                if (forcedVisiblePlan?.id === plan.id) {
+                    selectionReducers.setPlanVisibility(state.selection, {
+                        ...action,
+                        payload: { plan: forcedVisiblePlan, visible: true },
+                    });
+                    // The forced item's own selection must be kept (handled above by routing
+                    // through the "visible" branch, which never clears selections), but anything
+                    // else that's being hidden should still be deselected, same as normal hiding.
+                    clearPlanSelection(state.selection, {
+                        id: plan.id,
+                        alignments: plan.alignments.filter(
+                            (id) => !forcedVisiblePlan.alignments.includes(id),
+                        ),
+                        switches: plan.switches.filter(
+                            (id) => !forcedVisiblePlan.switches.includes(id),
+                        ),
+                        kmPosts: plan.kmPosts.filter(
+                            (id) => !forcedVisiblePlan.kmPosts.includes(id),
+                        ),
+                    });
+                } else {
+                    selectionReducers.setPlanVisibility(state.selection, action);
+                }
+            }
+
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.linkingState,
+                state.selectedToolPanelTab,
+            );
         },
         toggleAlignmentVisibility: (
             state: TrackLayoutState,
