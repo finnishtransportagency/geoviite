@@ -337,22 +337,6 @@ export const selectionReducers = {
     clearPublicationSelection: (state: Selection) => {
         state.publicationId = undefined;
     },
-    togglePlanVisibility: (
-        state: Selection,
-        { payload: plan }: PayloadAction<VisiblePlanLayout>,
-    ): void => {
-        const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.id);
-
-        if (isPlanVisible) {
-            removePlanVisibilityAndSelection(state, plan);
-        } else {
-            const newVisiblePlan = plan ? [plan] : [];
-            state.visiblePlans = [...state.visiblePlans, ...newVisiblePlan];
-        }
-    },
-    // Unlike togglePlanVisibility (which flips existence), this sets an explicit visible/hidden
-    // state. Used by aggregate (plan/project) eyes, whose visual tri-state (hidden/partial/visible)
-    // requires deterministic "show everything"/"hide everything" semantics rather than a toggle.
     setPlanVisibility: (
         state: Selection,
         { payload }: PayloadAction<{ plan: VisiblePlanLayout; visible: boolean }>,
