@@ -39,6 +39,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import java.time.Instant
 
+@Deprecated("Set up test-specific data inline using the test utility functions instead")
 class HelsinkiTestData private constructor() {
     companion object {
         const val GEOMETRY_PLAN_NAME = "Helsinki test project"

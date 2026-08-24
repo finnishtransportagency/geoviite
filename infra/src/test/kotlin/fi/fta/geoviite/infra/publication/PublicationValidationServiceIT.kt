@@ -70,10 +70,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westLayoutKmPosts
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLocationTrack
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLineGeometry
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -3077,17 +3073,36 @@ constructor(
 
     @Test
     fun `design mode location track rename can be merged to main`() {
-        val tnId =
-            mainOfficialContext
-                .createLayoutTrackNumber(trackNumber = HKI_TRACK_NUMBER_1, geometry = westReferenceLineGeometry())
-                .id
+        val refLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 150.0)))
+        val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 10.0), Point(0.0, 140.0)))
+        val tnId = mainOfficialContext.createLayoutTrackNumber(geometry = refLineGeometry).id
         testDBService.generateOid(tnId, LayoutBranch.main)
         val (ltId, _) =
             mainOfficialContext.saveWithOid(
                 locationTrack(trackNumberId = tnId, name = "Original Name"),
-                westMainLocationTrack(tnId).second,
+                trackGeometry,
             )
-        westLayoutKmPosts(tnId).forEach(kmPostDao::save)
+        listOf(
+                kmPost(
+                    trackNumberId = tnId,
+                    km = KmNumber("0001"),
+                    gkLocation = kmPostGkLocation(Point(0.0, 0.0)),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = tnId,
+                    km = KmNumber("0002"),
+                    gkLocation = kmPostGkLocation(Point(0.0, 75.0)),
+                    draft = false,
+                ),
+                kmPost(
+                    trackNumberId = tnId,
+                    km = KmNumber("0003"),
+                    gkLocation = kmPostGkLocation(Point(0.0, 150.0)),
+                    draft = false,
+                ),
+            )
+            .forEach(kmPostDao::save)
 
         val design = testDBService.createDesignBranch()
         val designDraftCtx = testDBService.testContext(design, DRAFT)
@@ -3100,7 +3115,7 @@ constructor(
             locationTrackDao
                 .fetch(mainVersion)
                 .copy(nameStructure = trackNameStructure("Design Name", LocationTrackNamingScheme.FREE_TEXT, null)),
-            westMainLocationTrack(tnId).second,
+            trackGeometry,
         )
 
         // Publish within design (design_draft → design_official), mirrors the "stage" step in UI
