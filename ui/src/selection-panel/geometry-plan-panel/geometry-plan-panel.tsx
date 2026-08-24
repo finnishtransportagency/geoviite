@@ -427,7 +427,6 @@ function createKmPostRow(
                 <Icons.Eye
                     color={IconColor.INHERIT}
                     onClick={() =>
-                        isKmPostSelected ||
                         isKmPostForced ||
                         (planKmPost.sourceId &&
                             onToggleKmPostVisibility({
@@ -491,7 +490,6 @@ function createAlignmentRow(
                 <Icons.Eye
                     color={IconColor.INHERIT}
                     onClick={() =>
-                        isAlignmentSelected ||
                         isAlignmentForced ||
                         onToggleAlignmentVisibility({
                             alignmentId: alignment.header.id,
@@ -551,7 +549,6 @@ function createSwitchRow(
                 <Icons.Eye
                     color={IconColor.INHERIT}
                     onClick={() =>
-                        isSwitchSelected ||
                         isSwitchForced ||
                         (planSwitch.sourceId &&
                             onToggleSwitchVisibility({

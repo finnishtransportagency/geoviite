@@ -466,9 +466,36 @@ function toggleItemVisibilityInPlan(
             if (!arePlanPartsVisible(visiblePlan)) {
                 state.visiblePlans = state.visiblePlans.filter((p) => p.id !== planId);
             }
+            clearGeometryItemSelection(state, type, planId, itemId);
         }
     } else {
         visiblePlan[type] = [...visiblePlan[type], itemId] as never;
+    }
+}
+
+function clearGeometryItemSelection(
+    state: Selection,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    planId: string,
+    itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
+): void {
+    const selectedItems = state.selectedItems;
+    switch (type) {
+        case 'alignments':
+            selectedItems.geometryAlignmentIds = selectedItems.geometryAlignmentIds.filter(
+                (item) => !(item.planId === planId && item.geometryId === itemId),
+            );
+            break;
+        case 'switches':
+            selectedItems.geometrySwitchIds = selectedItems.geometrySwitchIds.filter(
+                (item) => !(item.planId === planId && item.geometryId === itemId),
+            );
+            break;
+        case 'kmPosts':
+            selectedItems.geometryKmPostIds = selectedItems.geometryKmPostIds.filter(
+                (item) => !(item.planId === planId && item.geometryId === itemId),
+            );
+            break;
     }
 }
 
