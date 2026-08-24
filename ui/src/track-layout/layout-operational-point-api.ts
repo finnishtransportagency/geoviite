@@ -63,10 +63,12 @@ export const getManyOperationalPoints = async (
     ids: OperationalPointId[],
     layoutContext: LayoutContext,
     changeTime: TimeStamp,
-): Promise<OperationalPoint[]> =>
-    getAllOperationalPoints(layoutContext, changeTime).then((points) =>
+): Promise<OperationalPoint[]> => {
+    if (ids.length === 0) return [];
+    return getAllOperationalPoints(layoutContext, changeTime).then((points) =>
         points.filter((op) => ids.includes(op.id)),
     );
+};
 
 export const getAllOperationalPoints = (
     layoutContext: LayoutContext,

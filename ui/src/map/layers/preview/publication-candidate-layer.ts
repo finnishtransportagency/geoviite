@@ -188,14 +188,11 @@ export function createPublicationCandidateLayer(
         targetLayoutContext,
         changeTimes.operationalPoints,
     );
-    const draftOperationalPointsPromise =
-        operationalPointCandidates.length > 0
-            ? getManyOperationalPoints(
-                  operationalPointCandidates.map((c) => c.id),
-                  layoutContext,
-                  changeTimes.operationalPoints,
-              )
-            : Promise.resolve([]);
+    const draftOperationalPointsPromise = getManyOperationalPoints(
+        operationalPointCandidates.map((c) => c.id),
+        layoutContext,
+        changeTimes.operationalPoints,
+    );
 
     const createFeatures = (data: {
         candidateLocationTracks: LocationTrackCandidateAndAlignment[];
