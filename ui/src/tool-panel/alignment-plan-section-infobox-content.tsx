@@ -5,25 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import {
-    GeometryPlanLayout,
-    LayoutTrackNumberId,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
-import { GeometryPlanId } from 'geometry/geometry-model';
-import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { Eye, VisibilityState } from 'geoviite-design-lib/eye/eye';
+import { Eye } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { getTrackLayoutPlans } from 'geometry/geometry-api';
-import {
-    aggregateVisibility,
-    isPlanFullyVisible,
-    wholePlanVisibility,
-} from 'selection/selection-store';
-import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 
 const ErrorFragment: React.FC<{ message?: string }> = ({ message = '' }) => (
     <span title={message} className={styles['alignment-plan-section-infobox__no-plan-icon']}>
@@ -130,14 +119,29 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
 };
 
 const PlanVisibilityToggle: React.FC<{
-    visibility: VisibilityState;
+    section: AlignmentPlanSection;
+    isVisible: boolean;
     disabled?: boolean;
-    onVisibilityToggle: () => void;
-}> = ({ visibility, disabled, onVisibilityToggle }) => (
-    <div className={styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']}>
-        <Eye visibility={visibility} disabled={disabled} onVisibilityToggle={onVisibilityToggle} />
-    </div>
-);
+    onToggleAlignmentVisibility: (
+        planId: GeometryPlanId,
+        alignmentId: GeometryAlignmentId,
+    ) => void;
+}> = ({ section, isVisible, disabled, onToggleAlignmentVisibility }) => {
+    const { planId, alignmentId } = section;
+
+    return (
+        <div
+            className={styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']}>
+            {planId && alignmentId && section.isLinked && (
+                <Eye
+                    visibility={isVisible ? 'visible' : 'hidden'}
+                    disabled={disabled}
+                    onVisibilityToggle={() => onToggleAlignmentVisibility(planId, alignmentId)}
+                />
+            )}
+        </div>
+    );
+};
 
 const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxContentProps> = ({
     sections,
@@ -147,68 +151,12 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
     const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
     const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
     const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
-    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const isLinkingOrSplitting = !!linkingState || !!splittingState;
 
-    const [planLayouts, setPlanLayouts] = React.useState<Map<GeometryPlanId, GeometryPlanLayout>>(
-        new Map(),
-    );
-
-    // A plan absent from visiblePlans is definitely fully hidden, so full layouts (needed to tell
-    // "every item visible" from "some items visible") are only fetched for plans that have at
-    // least one visible item. The fetch is cache-backed, so this is cheap if something else (e.g.
-    // the plan selection panel) already loaded the same plan.
-    React.useEffect(() => {
-        const visiblePlanIds = deduplicate(
-            sections
-                .map((section) => section.planId)
-                .filter(filterNotEmpty)
-                .filter((planId) => visiblePlans.some((plan) => plan.id === planId)),
-        );
-        const missingPlanIds = visiblePlanIds.filter((planId) => !planLayouts.has(planId));
-        if (missingPlanIds.length > 0) {
-            getTrackLayoutPlans(missingPlanIds, changeTimes.geometryPlan).then((results) => {
-                setPlanLayouts((previous) => {
-                    const next = new Map(previous);
-                    results.forEach((result) => {
-                        if (result.layout) next.set(result.layout.id, result.layout);
-                    });
-                    return next;
-                });
-            });
-        }
-    }, [sections, visiblePlans, changeTimes.geometryPlan, planLayouts]);
-
-    const planVisibility = (planId: GeometryPlanId | undefined): VisibilityState => {
-        const entry = planId && visiblePlans.find((plan) => plan.id === planId);
-        return entry
-            ? aggregateVisibility(true, isPlanFullyVisible(entry, planLayouts.get(planId)))
-            : 'hidden';
-    };
-
-    const setPlanVisible = (planId: GeometryPlanId) => {
-        if (planVisibility(planId) === 'visible') {
-            const entry = visiblePlans.find((plan) => plan.id === planId);
-            if (entry) delegates.setPlanVisibility({ plan: entry, visible: false });
-        } else {
-            const cachedLayout = planLayouts.get(planId);
-            if (cachedLayout) {
-                delegates.setPlanVisibility({
-                    plan: wholePlanVisibility(cachedLayout),
-                    visible: true,
-                });
-            } else {
-                getTrackLayoutPlans([planId], changeTimes.geometryPlan).then(([result]) => {
-                    if (result?.layout) {
-                        delegates.setPlanVisibility({
-                            plan: wholePlanVisibility(result.layout),
-                            visible: true,
-                        });
-                    }
-                });
-            }
-        }
-    };
+    const onToggleAlignmentVisibility = (
+        planId: GeometryPlanId,
+        alignmentId: GeometryAlignmentId,
+    ) => delegates.toggleAlignmentVisibility({ planId, alignmentId });
 
     const startSectionHighlight = (section: AlignmentPlanSection) => {
         section.start &&
@@ -260,16 +208,17 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
                                     'infobox__list-cell--strong',
                                     styles['alignment-plan-section-infobox__navigation'],
                                 )}>
-                                {section.planId && section.isLinked && (
-                                    <PlanVisibilityToggle
-                                        visibility={planVisibility(section.planId)}
-                                        disabled={isLinkingOrSplitting}
-                                        onVisibilityToggle={() => {
-                                            const planId = section.planId;
-                                            if (planId) setPlanVisible(planId);
-                                        }}
-                                    />
-                                )}
+                                <PlanVisibilityToggle
+                                    section={section}
+                                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                                    disabled={isLinkingOrSplitting}
+                                    isVisible={visiblePlans.some(
+                                        (plan) =>
+                                            plan.id === section.planId &&
+                                            !!section.alignmentId &&
+                                            plan.alignments.includes(section.alignmentId),
+                                    )}
+                                />
                                 <TrackMeterRange start={section.start} end={section.end} />
                             </div>
                         }
