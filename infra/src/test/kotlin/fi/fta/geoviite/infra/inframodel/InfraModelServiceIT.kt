@@ -102,7 +102,6 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 authorId = testDBService.insertAuthor().id,
                 trackNumber = mainDraftContext.createAndFetchLayoutTrackNumber().number,
                 createdDate = Instant.now().minusSeconds(Duration.ofDays(5L).toSeconds()),
-                source = PlanSource.GEOMETRIAPALVELU,
             )
         val extraInfo1 =
             ExtraInfoParameters(
@@ -124,7 +123,6 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
                 authorId = testDBService.insertAuthor().id,
                 trackNumber = mainDraftContext.createAndFetchLayoutTrackNumber().number,
                 createdDate = Instant.now(),
-                source = PlanSource.PAIKANNUSPALVELU,
             )
         val extraInfo2 =
             ExtraInfoParameters(
@@ -216,7 +214,7 @@ constructor(val infraModelService: InfraModelService, val geometryDao: GeometryD
         assertEquals(overrides.authorId, plan.author?.id as IntId)
         assertEquals(overrides.trackNumber, plan.trackNumber)
         assertEquals(overrides.createdDate?.toEpochMilli(), plan.planTime?.toEpochMilli())
-        assertEquals(overrides.source, plan.source)
+        assertEquals(PlanSource.GEOVIITE, plan.source)
 
         assertEquals(extraInfo.planPhase, plan.planPhase)
         assertEquals(extraInfo.decisionPhase, plan.decisionPhase)

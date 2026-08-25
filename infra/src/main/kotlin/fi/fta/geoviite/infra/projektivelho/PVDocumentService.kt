@@ -49,7 +49,7 @@ constructor(private val pvDao: PVDao, private val infraModelService: InfraModelS
         return file
             ?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
             ?.let { r -> r.copy(geometryPlan = r.geometryPlan?.copy(pvDocumentId = documentId)) }
-            ?: noFileValidationResponse(overrides)
+            ?: noFileValidationResponse()
     }
 
     fun getDocumentCounts(): PVDocumentCounts {

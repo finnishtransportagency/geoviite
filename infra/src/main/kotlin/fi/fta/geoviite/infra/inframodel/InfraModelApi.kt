@@ -49,10 +49,9 @@ data class OverrideParameters(
     val trackNumber: TrackNumber?,
     val createdDate: Instant?,
     val encoding: XmlCharset?,
-    val source: PlanSource?,
 )
 
-fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse =
+fun tryParsing(op: () -> ValidationResponse): ValidationResponse =
     try {
         op()
     } catch (e: Exception) {
@@ -70,6 +69,6 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
                 ),
             geometryPlan = null,
             planLayout = null,
-            source = source ?: PlanSource.GEOMETRIAPALVELU,
+            source = PlanSource.GEOVIITE,
         )
     }
