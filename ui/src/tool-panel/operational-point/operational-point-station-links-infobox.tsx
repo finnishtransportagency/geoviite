@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
-import { OperationalPoint } from 'track-layout/track-layout-model';
+import { OperationalPoint, StationLinkIssue, StationLink } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
@@ -26,13 +26,7 @@ type OperationalPointStationLinksInfoboxProps = {
 
 export const OperationalPointStationLinksInfobox: React.FC<
     OperationalPointStationLinksInfoboxProps
-> = ({
-    contentVisible,
-    onVisibilityChange,
-    layoutContext,
-    operationalPoint,
-    changeTimes,
-}) => {
+> = ({ contentVisible, onVisibilityChange, layoutContext, operationalPoint, changeTimes }) => {
     const { t } = useTranslation();
     const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
     const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
@@ -49,10 +43,44 @@ export const OperationalPointStationLinksInfobox: React.FC<
         [operationalPoint.id, layoutContext, changeTime],
     );
 
+    const stationLinkIssueMap = stationLinks?.issues
+        .filter(
+            (issue) =>
+                issue.operationalPointId === operationalPoint.id ||
+                issue.otherOperationalPointId === operationalPoint.id,
+        )
+        .reduce((acc, issue) => {
+            const key =
+                issue.operationalPointId === operationalPoint.id
+                    ? `${issue.operationalPointId}-${issue.otherOperationalPointId}`
+                    : `${issue.otherOperationalPointId}-${issue.operationalPointId}`;
+            const previous = acc.get(key);
+            acc.set(key, previous ? [...previous, issue] : [issue]);
+            return acc;
+        }, new Map<string, StationLinkIssue[]>());
+
+    const stationLinkMap = stationLinks?.links.reduce((acc, link) => {
+        const key =
+            link.startOperationalPointId === operationalPoint.id
+                ? `${link.startOperationalPointId}-${link.endOperationalPointId}`
+                : `${link.endOperationalPointId}-${link.startOperationalPointId}`;
+        acc.set(key, {
+            link: link,
+            issues: stationLinkIssueMap?.get(key) ?? [],
+        });
+        stationLinkIssueMap?.delete(key);
+        return acc;
+    }, new Map<string, StationLinkData>());
+
+    // Include any remaining issues that don't have a corresponding link
+    stationLinkIssueMap?.forEach((issues, key) => {
+        stationLinkMap?.set(key, { link: undefined, issues: issues });
+    });
+
     return (
         <Infobox
             title={t('tool-panel.operational-point.station-links.infobox-header', {
-                count: stationLinks?.length ?? 0,
+                count: stationLinks?.links.length ?? 0,
             })}
             contentVisible={contentVisible}
             onContentVisibilityChange={() => onVisibilityChange('stationLinks')}>
@@ -60,30 +88,37 @@ export const OperationalPointStationLinksInfobox: React.FC<
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
                     inProgress={stationLinksFetchStatus !== LoaderStatus.Ready}>
-                    <InfoboxContent>
-                        {stationLinks?.length === 0 ? (
+                    {stationLinkMap?.size === 0 ? (
+                        <InfoboxContent>
                             <p className="infobox__text">
                                 {t('tool-panel.operational-point.station-links.no-links')}
                             </p>
-                        ) : (
-                            <ul className={styles['operational-point-infobox__station-links-list']}>
-                                {(stationLinks ?? []).map((stationLink) => (
-                                    <li
-                                        key={`${stationLink.startOperationalPointId}-${stationLink.endOperationalPointId}-${stationLink.trackNumberId}`}>
+                        </InfoboxContent>
+                    ) : (
+                        <ul className={styles['operational-point-infobox__station-links-list']}>
+                            {Array.from(stationLinkMap?.entries() ?? []).map(
+                                ([stationLinkKey, { link, issues }]) => (
+                                    <li key={stationLinkKey}>
                                         <StationLinkView
-                                            stationLink={stationLink}
+                                            stationLink={link}
                                             ownOperationalPointId={operationalPoint.id}
                                             layoutContext={layoutContext}
                                             changeTimes={changeTimes}
                                             isLinkingOrSplitting={isLinkingOrSplitting}
+                                            issues={issues}
                                         />
                                     </li>
-                                ))}
-                            </ul>
-                        )}
-                    </InfoboxContent>
+                                ),
+                            )}
+                        </ul>
+                    )}
                 </ProgressIndicatorWrapper>
             }
         </Infobox>
     );
+};
+
+type StationLinkData = {
+    link: StationLink | undefined;
+    issues: StationLinkIssue[];
 };

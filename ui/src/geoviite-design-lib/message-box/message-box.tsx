@@ -6,6 +6,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 export enum MessageBoxType {
     GHOST = 'GHOST',
     INFO = 'INFO',
+    WARNING = 'WARNING',
     ERROR = 'ERROR',
 }
 
@@ -19,12 +20,14 @@ type MessageBoxProps = {
 const styleByType: Record<MessageBoxType, string | undefined> = {
     [MessageBoxType.GHOST]: undefined,
     [MessageBoxType.INFO]: styles['message-box--info'],
+    [MessageBoxType.WARNING]: styles['message-box--warning'],
     [MessageBoxType.ERROR]: styles['message-box--error'],
 };
 
 const iconByType: Record<MessageBoxType, React.ReactNode> = {
     [MessageBoxType.GHOST]: <Icons.Info color={IconColor.INHERIT} />,
     [MessageBoxType.INFO]: <Icons.Info color={IconColor.INHERIT} />,
+    [MessageBoxType.WARNING]: <Icons.StatusWarning color={IconColor.INHERIT} />,
     [MessageBoxType.ERROR]: <Icons.StatusError color={IconColor.INHERIT} />,
 };
 
@@ -46,7 +49,7 @@ export const MessageBox: React.FC<MessageBoxProps> = ({
     );
     return (
         <div className={classes}>
-            <div className="message-box__inner">
+            <div className={styles['message-box__inner']}>
                 <span className={iconClasses}>{iconByType[type]}</span>
                 <span>{children}</span>
             </div>

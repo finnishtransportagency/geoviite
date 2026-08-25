@@ -506,6 +506,31 @@ export type StationLink = {
     length: number;
 };
 
+export type StationLinkIssue = {
+    type: StationLinkIssueType;
+    severity: StationLinkIssueSeverity;
+    operationalPointId: OperationalPointId;
+    otherOperationalPointId?: OperationalPointId;
+    locationTrackId?: LocationTrackId;
+    trackNumberId?: LayoutTrackNumberId;
+    details: Map<string, string>;
+};
+
+export enum StationLinkIssueType {
+    UNREACHABLE_STATION_MIDPOINT = 'UNREACHABLE_STATION_MIDPOINT',
+    SUSPICIOUSLY_LONG_ROUTE = 'SUSPICIOUSLY_LONG_ROUTE',
+}
+
+export enum StationLinkIssueSeverity {
+    WARNING = 'WARNING',
+    ERROR = 'ERROR',
+}
+
+export type StationLinkResult = {
+    links: StationLink[];
+    issues: StationLinkIssue[];
+};
+
 export type PlanArea = {
     id: GeometryPlanId;
     name: string;
