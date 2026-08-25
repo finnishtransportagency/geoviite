@@ -4,15 +4,19 @@ import { AlignmentPlanSection, PlanSectionPoint } from 'track-layout/layout-loca
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    getForcedVisibleGeometry,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
-import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { Eye } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { mergeVisiblePlans, isGeometryForcedVisible } from 'selection/selection-store';
 
 const ErrorFragment: React.FC<{ message?: string }> = ({ message = '' }) => (
     <span title={message} className={styles['alignment-plan-section-infobox__no-plan-icon']}>
@@ -118,16 +122,20 @@ const TrackMeterRange: React.FC<TrackMeterRangeProps> = ({ start, end }) => {
     );
 };
 
-const PlanVisibilityToggle: React.FC<{
-    section: AlignmentPlanSection;
-    isVisible: boolean;
-    disabled?: boolean;
-    onToggleAlignmentVisibility: (
-        planId: GeometryPlanId,
-        alignmentId: GeometryAlignmentId,
-    ) => void;
-}> = ({ section, isVisible, disabled, onToggleAlignmentVisibility }) => {
+const AlignmentVisibilityToggle: React.FC<{ section: AlignmentPlanSection }> = ({ section }) => {
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
+    const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
     const { planId, alignmentId } = section;
+
+    const forcedVisiblePlan = getForcedVisibleGeometry(linkingState);
+    const isForced =
+        !!planId &&
+        !!alignmentId &&
+        isGeometryForcedVisible(forcedVisiblePlan, planId, 'alignments', alignmentId);
+    const isVisible = mergeVisiblePlans(visiblePlans, forcedVisiblePlan).some(
+        (plan) => plan.id === planId && !!alignmentId && plan.alignments.includes(alignmentId),
+    );
 
     return (
         <div
@@ -135,8 +143,9 @@ const PlanVisibilityToggle: React.FC<{
             {planId && alignmentId && section.isLinked && (
                 <Eye
                     visibility={isVisible ? 'visible' : 'hidden'}
-                    disabled={disabled}
-                    onVisibilityToggle={() => onToggleAlignmentVisibility(planId, alignmentId)}
+                    onVisibilityToggle={() =>
+                        isForced || delegates.toggleAlignmentVisibility({ planId, alignmentId })
+                    }
                 />
             )}
         </div>
@@ -148,15 +157,9 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
     onHighlightSection,
 }) => {
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
-    const visiblePlans = useTrackLayoutAppSelector((state) => state.selection.visiblePlans);
     const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
     const splittingState = useTrackLayoutAppSelector((state) => state.splittingState);
     const isLinkingOrSplitting = !!linkingState || !!splittingState;
-
-    const onToggleAlignmentVisibility = (
-        planId: GeometryPlanId,
-        alignmentId: GeometryAlignmentId,
-    ) => delegates.toggleAlignmentVisibility({ planId, alignmentId });
 
     const startSectionHighlight = (section: AlignmentPlanSection) => {
         section.start &&
@@ -208,17 +211,7 @@ const AlignmentPlanSectionInfoboxContentM: React.FC<AlignmentPlanSectionInfoboxC
                                     'infobox__list-cell--strong',
                                     styles['alignment-plan-section-infobox__navigation'],
                                 )}>
-                                <PlanVisibilityToggle
-                                    section={section}
-                                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                                    disabled={isLinkingOrSplitting}
-                                    isVisible={visiblePlans.some(
-                                        (plan) =>
-                                            plan.id === section.planId &&
-                                            !!section.alignmentId &&
-                                            plan.alignments.includes(section.alignmentId),
-                                    )}
-                                />
+                                <AlignmentVisibilityToggle section={section} />
                                 <TrackMeterRange start={section.start} end={section.end} />
                             </div>
                         }
