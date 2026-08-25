@@ -7,7 +7,7 @@ import { RatkoStatus } from 'ratko/ratko-api';
 
 import { TimeStamp } from 'common/common-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { VIEW_DESIGN } from 'user/user-model';
 import DesignPublicationCard from 'publication/card/design-publication-card';
 
 type FrontPageProps = {
@@ -34,7 +34,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
                 />
-                <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                <PrivilegeRequired privilege={VIEW_DESIGN}>
                     <DesignPublicationCard
                         publicationChangeTime={publicationChangeTime}
                         designChangeTime={designChangeTime}
