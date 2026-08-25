@@ -1,10 +1,25 @@
 import * as React from 'react';
 import styles from './eye.scss';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
 export type VisibilityState = 'hidden' | 'partial' | 'visible';
+
+const PartialEyeIcon: IconComponent = ({ size, extraClassName }) => (
+    <span className={createClassName(styles['eye-icon--partial'], extraClassName)}>
+        <Icons.Eye
+            size={size}
+            color={IconColor.INHERIT}
+            extraClassName={styles['eye-icon--partial-hidden-half']}
+        />
+        <Icons.Eye
+            size={size}
+            color={IconColor.INHERIT}
+            extraClassName={styles['eye-icon--partial-visible-half']}
+        />
+    </span>
+);
 
 type EyeProps = {
     visibility?: VisibilityState;
@@ -25,7 +40,6 @@ export const Eye: React.FC<EyeProps> = ({
     const iconClassName = createClassName(
         styles['eye-icon'],
         visibility === 'visible' && styles['eye--visible'],
-        visibility === 'partial' && styles['eye--partial'],
         disabled && styles['eye--disabled'],
     );
 
@@ -34,7 +48,7 @@ export const Eye: React.FC<EyeProps> = ({
             <Button
                 size={ButtonSize.SMALL}
                 onClick={onVisibilityToggle}
-                icon={Icons.Eye}
+                icon={visibility === 'partial' ? PartialEyeIcon : Icons.Eye}
                 iconProps={{
                     size: IconSize.MEDIUM,
                     color: IconColor.INHERIT,
