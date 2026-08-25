@@ -173,43 +173,39 @@ fun diffLocationTrack(
             PropKey("end-address"),
             null,
         ),
-        if (changedKmNumbers.isNotEmpty()) {
-            PublicationChange(
-                PropKey("geometry"),
-                ChangeValue(null, null),
-                getKmNumbersChangedRemarkOrNull(
-                    translation,
-                    changedKmNumbers,
-                    locationTrackChanges.geometryChangeSummaries,
-                ),
-            )
-        } else {
-            null
-        },
-        if (switchLinkChanges == null) {
-            null
-        } else {
+        changedKmNumbers
+            .takeIf { it.isNotEmpty() }
+            ?.let { changed ->
+                PublicationChange(
+                    PropKey("geometry"),
+                    ChangeValue(null, null),
+                    getKmNumbersChangedRemarkOrNull(
+                        translation,
+                        changed,
+                        locationTrackChanges.geometryChangeSummaries,
+                    ),
+                )
+            },
+        switchLinkChanges?.let { changes ->
             compareChange(
-                { switchLinkChanges[ChangeSide.OLD] != switchLinkChanges[ChangeSide.NEW] },
+                { changes[ChangeSide.OLD] != changes[ChangeSide.NEW] },
                 null,
                 null,
                 { it },
                 PropKey("linked-switches"),
-                getSwitchLinksChangedRemark(translation, switchLinkChanges, switchVersionLookup, switchOids::getValue),
+                getSwitchLinksChangedRemark(translation, changes, switchVersionLookup, switchOids::getValue),
             )
         },
-        if (operationalPointLinkChanges == null) {
-            null
-        } else {
+        operationalPointLinkChanges?.let { changes ->
             compareChange(
-                { operationalPointLinkChanges[ChangeSide.OLD] != operationalPointLinkChanges[ChangeSide.NEW] },
+                { changes[ChangeSide.OLD] != changes[ChangeSide.NEW] },
                 null,
                 null,
                 { it },
                 PropKey("linked-operational-points"),
                 getOperationalPointLinksChangedRemark(
                     translation,
-                    operationalPointLinkChanges,
+                    changes,
                     operationalPointVersionLookup,
                     operationalPointOids::getValue,
                 ),
