@@ -11,7 +11,6 @@ import {
 } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
 import {
-    clearPlanSelection,
     initialSelectionState,
     isEmptyItemCollections,
     itemCollectionsMatch,
@@ -45,7 +44,7 @@ import {
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first, lastIndex, takeLast } from 'utils/array-utils';
+import { deduplicate, first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
 import {
     exhaustiveMatchingGuard,
@@ -396,6 +395,47 @@ export function getForcedVisibleGeometry(
     }
 }
 
+function mergeVisiblePlans(
+    visiblePlans: VisiblePlanLayout[],
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
+): VisiblePlanLayout[] {
+    if (!forcedVisiblePlan) return visiblePlans;
+
+    const existingPlan = visiblePlans.find((p) => p.id === forcedVisiblePlan.id);
+    const mergedPlan: VisiblePlanLayout = {
+        id: forcedVisiblePlan.id,
+        alignments: deduplicate([
+            ...(existingPlan?.alignments ?? []),
+            ...forcedVisiblePlan.alignments,
+        ]),
+        switches: deduplicate([...(existingPlan?.switches ?? []), ...forcedVisiblePlan.switches]),
+        kmPosts: deduplicate([...(existingPlan?.kmPosts ?? []), ...forcedVisiblePlan.kmPosts]),
+    };
+
+    return [...visiblePlans.filter((p) => p.id !== forcedVisiblePlan.id), mergedPlan];
+}
+
+function subtractVisiblePlan(
+    plan: VisiblePlanLayout,
+    subtrahend: VisiblePlanLayout | undefined,
+): VisiblePlanLayout {
+    if (!subtrahend || subtrahend.id !== plan.id) return plan;
+
+    return {
+        id: plan.id,
+        alignments: plan.alignments.filter((id) => !subtrahend.alignments.includes(id)),
+        switches: plan.switches.filter((id) => !subtrahend.switches.includes(id)),
+        kmPosts: plan.kmPosts.filter((id) => !subtrahend.kmPosts.includes(id)),
+    };
+}
+
+export function getEffectiveVisiblePlans(
+    visiblePlans: VisiblePlanLayout[],
+    linkingState: LinkingState | undefined,
+): VisiblePlanLayout[] {
+    return mergeVisiblePlans(visiblePlans, getForcedVisibleGeometry(linkingState));
+}
+
 function filterSelectOptionsByItemTypes(
     options: OnSelectOptions,
     itemTypes: (keyof ItemCollections)[],
@@ -631,25 +671,13 @@ const trackLayoutSlice = createSlice({
                 enableLayerMenuItem(state.map, 'geometry-alignment');
                 enableLayerMenuItem(state.map, 'geometry-switch');
                 enableLayerMenuItem(state.map, 'geometry-km-post');
-            }
-            const forcedVisiblePlan = getForcedVisibleGeometry(state.linkingState);
-            if (!visible && forcedVisiblePlan?.id === plan.id) {
+                selectionReducers.setPlanVisibility(state.selection, action);
+            } else {
+                const forcedVisiblePlan = getForcedVisibleGeometry(state.linkingState);
                 selectionReducers.setPlanVisibility(state.selection, {
                     ...action,
-                    payload: { plan: forcedVisiblePlan, visible: true },
+                    payload: { plan: subtractVisiblePlan(plan, forcedVisiblePlan), visible },
                 });
-                clearPlanSelection(state.selection, {
-                    id: plan.id,
-                    alignments: plan.alignments.filter(
-                        (id) => !forcedVisiblePlan.alignments.includes(id),
-                    ),
-                    switches: plan.switches.filter(
-                        (id) => !forcedVisiblePlan.switches.includes(id),
-                    ),
-                    kmPosts: plan.kmPosts.filter((id) => !forcedVisiblePlan.kmPosts.includes(id)),
-                });
-            } else {
-                selectionReducers.setPlanVisibility(state.selection, action);
             }
 
             state.selectedToolPanelTab = updateSelectedToolPanelTab(

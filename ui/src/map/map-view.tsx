@@ -8,7 +8,6 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { mergeVisiblePlans } from 'selection/selection-store';
 import { defaults as defaultInteractions } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
@@ -123,7 +122,7 @@ import { createPropertyBoundaryLayer } from 'map/layers/property-boundary-layer'
 import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
 import {
-    getForcedVisibleGeometry,
+    getEffectiveVisiblePlans,
     RouteLocation,
     RouteLocations,
 } from 'track-layout/track-layout-slice';
@@ -325,10 +324,7 @@ const MapView: React.FC<MapViewProps> = ({
     const selectionWithForcedVisibility = React.useMemo(
         () => ({
             ...selection,
-            visiblePlans: mergeVisiblePlans(
-                selection.visiblePlans,
-                getForcedVisibleGeometry(linkingState),
-            ),
+            visiblePlans: getEffectiveVisiblePlans(selection.visiblePlans, linkingState),
         }),
         [selection, linkingState],
     );

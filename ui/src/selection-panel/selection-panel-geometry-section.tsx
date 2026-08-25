@@ -5,7 +5,6 @@ import { GeometryPlanPanel } from 'selection-panel/geometry-plan-panel/geometry-
 import {
     aggregateVisibility,
     isPlanFullyVisible,
-    mergeVisiblePlans,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
@@ -211,8 +210,6 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         planIdsInViewport.some((planId) => planId === p.id),
     );
 
-    const effectiveVisiblePlansInView = mergeVisiblePlans(visiblePlansInView, forcedVisiblePlan);
-
     const isPlanFullyVisibleInView = (planId: GeometryPlanId): boolean =>
         isPlanFullyVisible(
             visiblePlansInView.find((p) => p.id === planId),
@@ -231,7 +228,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     }
 
     const allPlansVisibility = aggregateVisibility(
-        effectiveVisiblePlansInView.length > 0,
+        visiblePlansInView.length > 0,
         planHeadersDisplayableInPanel.length > 0 &&
             planHeadersDisplayableInPanel.every((h) => isPlanFullyVisibleInView(h.id)),
     );
@@ -252,7 +249,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             (plan) => plan.project.id === projectId,
         );
         const anyVisible = projectPlans.some((plan) =>
-            effectiveVisiblePlansInView.some((visiblePlan) => visiblePlan.id === plan.id),
+            visiblePlansInView.some((visiblePlan) => visiblePlan.id === plan.id),
         );
         const allVisible =
             projectPlans.length > 0 &&

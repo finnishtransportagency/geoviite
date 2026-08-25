@@ -25,7 +25,6 @@ import {
     createEmptyItemCollections,
     isGeometryForcedVisible,
     isPlanFullyVisible,
-    mergeVisiblePlans,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
@@ -95,21 +94,11 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     const isSwitchesOpen = openPlanLayout ? openPlanLayout.isSwitchesOpen : false;
     const [openingAccordion, setOpeningAccordion] = React.useState(false);
 
-    const effectiveVisiblePlans = React.useMemo(
-        () => mergeVisiblePlans(visiblePlans, forcedVisiblePlan),
-        [visiblePlans, forcedVisiblePlan],
-    );
-
     const planEntry = visiblePlans.find((p) => p.id === planHeader.id);
-    const effectivePlanEntry = effectiveVisiblePlans.find((p) => p.id === planHeader.id);
 
     const planVisibilityState = React.useMemo(
-        () =>
-            aggregateVisibility(
-                !!effectivePlanEntry,
-                isPlanFullyVisible(effectivePlanEntry, planLayout),
-            ),
-        [effectivePlanEntry, planLayout],
+        () => aggregateVisibility(!!planEntry, isPlanFullyVisible(planEntry, planLayout)),
+        [planEntry, planLayout],
     );
 
     // Triggers the loading of a previously opened plan after a refresh. Otherwise, the plan's data would not be
@@ -295,7 +284,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                                         planLayout,
                                         planKmPost,
                                         selectedItems,
-                                        effectiveVisiblePlans,
+                                        visiblePlans,
                                         forcedVisiblePlan,
                                         linkStatus,
                                         onKmPostSelect,
@@ -325,7 +314,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                                         planLayout,
                                         alignment,
                                         selectedItems,
-                                        effectiveVisiblePlans,
+                                        visiblePlans,
                                         forcedVisiblePlan,
                                         linkStatus,
                                         onAlignmentSelect,
@@ -355,7 +344,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                                         planLayout,
                                         planSwitch,
                                         selectedItems,
-                                        effectiveVisiblePlans,
+                                        visiblePlans,
                                         forcedVisiblePlan,
                                         linkStatus,
                                         onSwitchSelect,

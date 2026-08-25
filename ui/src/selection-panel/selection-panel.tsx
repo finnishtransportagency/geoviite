@@ -52,7 +52,11 @@ import { LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 import { objectEntries } from 'utils/array-utils';
-import { GeometryPlanGrouping, getForcedVisibleGeometry } from 'track-layout/track-layout-slice';
+import {
+    GeometryPlanGrouping,
+    getEffectiveVisiblePlans,
+    getForcedVisibleGeometry,
+} from 'track-layout/track-layout-slice';
 import { PlanSource } from 'geometry/geometry-model';
 import { FixSwitchNamesDialog } from 'selection-panel/switch-panel/fix-switch-names-dialog';
 import { previewSwitchNameFixes, SwitchNameFixPreview } from 'track-layout/layout-switch-api';
@@ -134,6 +138,10 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const forcedVisibleGeometry = React.useMemo(
         () => getForcedVisibleGeometry(linkingState),
         [linkingState],
+    );
+    const effectiveVisiblePlans = React.useMemo(
+        () => getEffectiveVisiblePlans(visiblePlans, linkingState),
+        [visiblePlans, linkingState],
     );
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [fixNamesDialogOpen, setFixNamesDialogOpen] = React.useState(false);
@@ -312,7 +320,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     layoutContext={layoutContext}
                     changeTimes={changeTimes}
                     selectedItems={selectedItems}
-                    visiblePlans={visiblePlans}
+                    visiblePlans={effectiveVisiblePlans}
                     viewport={viewport}
                     onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                     onToggleKmPostVisibility={onToggleKmPostVisibility}

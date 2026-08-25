@@ -345,7 +345,8 @@ export const selectionReducers = {
         if (visible) {
             state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan.id), plan];
         } else {
-            removePlanVisibilityAndSelection(state, plan);
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
+            clearPlanSelection(state, plan);
         }
     },
     toggleAlignmentVisibility: (
@@ -411,7 +412,7 @@ export const selectionReducers = {
     },
 };
 
-export function clearPlanSelection(state: Selection, plan: VisiblePlanLayout): void {
+function clearPlanSelection(state: Selection, plan: VisiblePlanLayout): void {
     const selectedItems = state.selectedItems;
 
     selectedItems.geometryKmPostIds = [
@@ -429,11 +430,6 @@ export function clearPlanSelection(state: Selection, plan: VisiblePlanLayout): v
             (ga) => !plan?.alignments.includes(ga.geometryId),
         ),
     ];
-}
-
-function removePlanVisibilityAndSelection(state: Selection, plan: VisiblePlanLayout): void {
-    state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
-    clearPlanSelection(state, plan);
 }
 
 function toggleVisibility(
@@ -538,9 +534,6 @@ export function aggregateVisibility(anyVisible: boolean, allVisible: boolean): V
     return 'hidden';
 }
 
-// Determines whether every item of a plan is visible. Without the plan's layout loaded, we can't
-// know its full item set, so an existing (possibly partial) entry is optimistically treated as
-// fully visible; this only affects aggregate display and is reconciled once the layout loads.
 export function isPlanFullyVisible(
     visiblePlan: VisiblePlanLayout | undefined,
     planLayout: GeometryPlanLayout | undefined,
@@ -555,26 +548,6 @@ export function isPlanFullyVisible(
         ) &&
         planLayout.kmPosts.every((k) => !k.sourceId || visiblePlan.kmPosts.includes(k.sourceId))
     );
-}
-
-export function mergeVisiblePlans(
-    visiblePlans: VisiblePlanLayout[],
-    forcedVisiblePlan: VisiblePlanLayout | undefined,
-): VisiblePlanLayout[] {
-    if (!forcedVisiblePlan) return visiblePlans;
-
-    const existingPlan = visiblePlans.find((p) => p.id === forcedVisiblePlan.id);
-    const mergedPlan: VisiblePlanLayout = {
-        id: forcedVisiblePlan.id,
-        alignments: deduplicate([
-            ...(existingPlan?.alignments ?? []),
-            ...forcedVisiblePlan.alignments,
-        ]),
-        switches: deduplicate([...(existingPlan?.switches ?? []), ...forcedVisiblePlan.switches]),
-        kmPosts: deduplicate([...(existingPlan?.kmPosts ?? []), ...forcedVisiblePlan.kmPosts]),
-    };
-
-    return [...visiblePlans.filter((p) => p.id !== forcedVisiblePlan.id), mergedPlan];
 }
 
 export function isGeometryForcedVisible(

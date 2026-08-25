@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import {
+    getEffectiveVisiblePlans,
     getForcedVisibleGeometry,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
@@ -16,7 +17,7 @@ import { Eye } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { mergeVisiblePlans, isGeometryForcedVisible } from 'selection/selection-store';
+import { isGeometryForcedVisible } from 'selection/selection-store';
 
 const ErrorFragment: React.FC<{ message?: string }> = ({ message = '' }) => (
     <span title={message} className={styles['alignment-plan-section-infobox__no-plan-icon']}>
@@ -133,7 +134,7 @@ const AlignmentVisibilityToggle: React.FC<{ section: AlignmentPlanSection }> = (
         !!planId &&
         !!alignmentId &&
         isGeometryForcedVisible(forcedVisiblePlan, planId, 'alignments', alignmentId);
-    const isVisible = mergeVisiblePlans(visiblePlans, forcedVisiblePlan).some(
+    const isVisible = getEffectiveVisiblePlans(visiblePlans, linkingState).some(
         (plan) => plan.id === planId && !!alignmentId && plan.alignments.includes(alignmentId),
     );
 
