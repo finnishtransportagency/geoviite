@@ -83,7 +83,7 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
                     <ul className={styles['infra-model-upload-failed__errors']}>
                         {fileHandlingFailedErrors.map((error) => (
                             <li key={error.localizationKey}>
-                                {t(error.localizationKey, error.params)}
+                                {t(error.localizationKey, error.localizationParams)}
                             </li>
                         ))}
                     </ul>
