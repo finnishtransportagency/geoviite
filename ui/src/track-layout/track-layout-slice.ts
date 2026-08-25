@@ -678,6 +678,12 @@ const trackLayoutSlice = createSlice({
                     ...action,
                     payload: { plan: subtractVisiblePlan(plan, forcedVisiblePlan), visible },
                 });
+                if (forcedVisiblePlan?.id === plan.id) {
+                    selectionReducers.setPlanVisibility(state.selection, {
+                        ...action,
+                        payload: { plan: forcedVisiblePlan, visible: true },
+                    });
+                }
             }
 
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
