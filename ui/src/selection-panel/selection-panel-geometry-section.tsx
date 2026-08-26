@@ -297,7 +297,6 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 </PrivilegeRequired>
                 <GeometryPlanFilterMenuContainer />
                 <Eye
-                    disabled={planHeadersDisplayableInPanel.length === 0}
                     onVisibilityToggle={toggleAllPlanVisibilities}
                     visibility={allPlansVisibility}
                 />

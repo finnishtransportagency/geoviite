@@ -143,9 +143,9 @@ const AlignmentVisibilityToggle: React.FC<{ section: AlignmentPlanSection }> = (
             className={styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']}>
             {planId && alignmentId && section.isLinked && (
                 <Eye
-                    visibility={isVisible ? 'visible' : 'hidden'}
+                    visibility={isForced ? 'forced' : isVisible ? 'visible' : 'hidden'}
                     onVisibilityToggle={() =>
-                        isForced || delegates.toggleAlignmentVisibility({ planId, alignmentId })
+                        delegates.toggleAlignmentVisibility({ planId, alignmentId })
                     }
                 />
             )}

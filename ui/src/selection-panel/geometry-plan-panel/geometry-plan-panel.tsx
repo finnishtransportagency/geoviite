@@ -405,8 +405,7 @@ function createKmPostRow(
                 <KmPostBadge kmPost={planKmPost} status={kmPostStatus} />
             </span>
             <Eye
-                visibility={isKmPostVisible ? 'visible' : 'hidden'}
-                disabled={isKmPostForced}
+                visibility={isKmPostForced ? 'forced' : isKmPostVisible ? 'visible' : 'hidden'}
                 onVisibilityToggle={() =>
                     planKmPost.sourceId &&
                     onToggleKmPostVisibility({
@@ -459,8 +458,9 @@ function createAlignmentRow(
                 <LocationTrackBadge locationTrack={alignment.header} status={alignmentStatus} />
             </span>
             <Eye
-                visibility={isAlignmentVisible ? 'visible' : 'hidden'}
-                disabled={isAlignmentForced}
+                visibility={
+                    isAlignmentForced ? 'forced' : isAlignmentVisible ? 'visible' : 'hidden'
+                }
                 onVisibilityToggle={() =>
                     onToggleAlignmentVisibility({
                         alignmentId: alignment.header.id,
@@ -511,8 +511,7 @@ function createSwitchRow(
                 <SwitchBadge switchItem={planSwitch} status={switchStatus} />
             </span>
             <Eye
-                visibility={isSwitchVisible ? 'visible' : 'hidden'}
-                disabled={isSwitchForced}
+                visibility={isSwitchForced ? 'forced' : isSwitchVisible ? 'visible' : 'hidden'}
                 onVisibilityToggle={() =>
                     planSwitch.sourceId &&
                     onToggleSwitchVisibility({
