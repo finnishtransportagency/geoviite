@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './eye.scss';
-import { IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
@@ -34,8 +34,6 @@ export const Eye: React.FC<EyeProps> = ({
 }) => {
     const containerClassName = createClassName(styles['eye-container'], extraClassName);
 
-    const iconClassName = createClassName(styles['eye-icon']);
-
     const icon = pickIcon(visibility, disabled);
 
     return (
@@ -46,7 +44,7 @@ export const Eye: React.FC<EyeProps> = ({
                 icon={icon}
                 iconProps={{
                     size: IconSize.MEDIUM,
-                    extraClassName: iconClassName,
+                    color: IconColor.ORIGINAL,
                 }}
                 variant={ButtonVariant.GHOST}
                 disabled={disabled}
