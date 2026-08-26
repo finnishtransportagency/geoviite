@@ -7,6 +7,11 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type VisibilityState = 'hidden' | 'partial' | 'visible' | 'forced';
 
+export function resolveVisibility(forced: boolean, visible: boolean): VisibilityState {
+    if (forced) return 'forced';
+    return visible ? 'visible' : 'hidden';
+}
+
 type EyeProps = {
     visibility?: VisibilityState;
     fetchingContent?: boolean;

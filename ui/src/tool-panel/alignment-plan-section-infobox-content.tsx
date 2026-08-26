@@ -13,7 +13,7 @@ import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { Eye } from 'geoviite-design-lib/eye/eye';
+import { Eye, resolveVisibility } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
@@ -143,7 +143,7 @@ const AlignmentVisibilityToggle: React.FC<{ section: AlignmentPlanSection }> = (
             className={styles['alignment-plan-section-infobox__navigation-plan-visibility-toggle']}>
             {planId && alignmentId && section.isLinked && (
                 <Eye
-                    visibility={isForced ? 'forced' : isVisible ? 'visible' : 'hidden'}
+                    visibility={resolveVisibility(isForced, isVisible)}
                     onVisibilityToggle={() =>
                         delegates.toggleAlignmentVisibility({ planId, alignmentId })
                     }

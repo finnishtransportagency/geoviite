@@ -40,7 +40,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { GeometryPlanLayoutResult } from 'geometry/geometry-api';
 import { CustomGeometryValidationIssue } from 'infra-model/infra-model-slice';
 import { first } from 'utils/array-utils';
-import { Eye } from 'geoviite-design-lib/eye/eye';
+import { Eye, resolveVisibility } from 'geoviite-design-lib/eye/eye';
 
 type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;
@@ -405,7 +405,7 @@ function createKmPostRow(
                 <KmPostBadge kmPost={planKmPost} status={kmPostStatus} />
             </span>
             <Eye
-                visibility={isKmPostForced ? 'forced' : isKmPostVisible ? 'visible' : 'hidden'}
+                visibility={resolveVisibility(isKmPostForced, isKmPostVisible)}
                 onVisibilityToggle={() =>
                     planKmPost.sourceId &&
                     onToggleKmPostVisibility({
@@ -458,9 +458,7 @@ function createAlignmentRow(
                 <LocationTrackBadge locationTrack={alignment.header} status={alignmentStatus} />
             </span>
             <Eye
-                visibility={
-                    isAlignmentForced ? 'forced' : isAlignmentVisible ? 'visible' : 'hidden'
-                }
+                visibility={resolveVisibility(isAlignmentForced, isAlignmentVisible)}
                 onVisibilityToggle={() =>
                     onToggleAlignmentVisibility({
                         alignmentId: alignment.header.id,
@@ -511,7 +509,7 @@ function createSwitchRow(
                 <SwitchBadge switchItem={planSwitch} status={switchStatus} />
             </span>
             <Eye
-                visibility={isSwitchForced ? 'forced' : isSwitchVisible ? 'visible' : 'hidden'}
+                visibility={resolveVisibility(isSwitchForced, isSwitchVisible)}
                 onVisibilityToggle={() =>
                     planSwitch.sourceId &&
                     onToggleSwitchVisibility({
