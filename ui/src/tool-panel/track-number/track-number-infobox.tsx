@@ -26,7 +26,12 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { Button, ButtonIconPosition, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import {
+    Button,
+    ButtonIconPosition,
+    ButtonSize,
+    ButtonVariant,
+} from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
@@ -164,7 +169,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         if (layoutContext.publicationState !== 'DRAFT') {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (trackNumber.state === 'DELETED') {
-            return t('tool-panel.track-number.cannot-shorten-deleted-track-number');
+            return t('tool-panel.track-number.cannot-edit-deleted-track-number');
         } else if (!startAndEndPoints?.start?.point || !startAndEndPoints?.end?.point) {
             return t('tool-panel.location-track.no-geometry');
         } else {
@@ -290,7 +295,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                                                 layoutContext,
                                                                 MapAlignmentType.ReferenceLine,
                                                                 changeTimes.layoutTrackNumber,
-                                                            ).then(onStartReferenceLineGeometryChange);
+                                                            ).then(
+                                                                onStartReferenceLineGeometryChange,
+                                                            );
                                                         },
                                                         t(
                                                             'tool-panel.location-track.shorten-track-start-or-end',

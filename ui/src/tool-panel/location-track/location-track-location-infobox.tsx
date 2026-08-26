@@ -262,7 +262,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         } else if (splittingState || isPartOfUnfinishedSplit(extraInfo?.partOfSplit)) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         } else if (locationTrack.state === 'DELETED') {
-            return t('tool-panel.location-track.cannot-shorten-deleted-track');
+            return t('tool-panel.location-track.cannot-edit-deleted-track');
         } else if (!startAndEndPoints?.start?.point || !startAndEndPoints?.end?.point) {
             return t('tool-panel.location-track.no-geometry');
         } else {
