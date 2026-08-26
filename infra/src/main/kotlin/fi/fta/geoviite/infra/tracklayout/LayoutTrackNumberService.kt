@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo3Decimals
@@ -340,6 +341,17 @@ class LayoutTrackNumberService(
         draftAsset: LayoutTrackNumber,
         params: ReferenceLineGeometry,
     ): LayoutRowVersion<LayoutTrackNumber> = saveDraftInternal(branch, draftAsset, params)
+
+    @Transactional
+    fun extendReferenceLine(
+        branch: LayoutBranch,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        endpointType: EndpointType,
+        extendTo: Point,
+    ): LayoutRowVersion<LayoutTrackNumber> {
+        val (trackNumber, geometry) = getWithGeometryOrThrow(branch.draft, trackNumberId)
+        return saveDraft(branch, trackNumber, extendGeometry(geometry, endpointType, extendTo))
+    }
 
     @Transactional
     override fun saveDraftInternal(

@@ -132,7 +132,7 @@
                 "LinearUnit": "Pituuksien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
                 "InfraModelProfileElement": "Pystygeometrian (ProfAlign) elementin tyyppi tuntematon",
                 "CantRotationPoint": "Kallistuskulman kiertopisteen arvo {{value}} on virheellinen",
-                "RotationDirection":  "Kallistuskulman kiertosuunnan arvo {{value}} on virheellinen",
+                "RotationDirection": "Kallistuskulman kiertosuunnan arvo {{value}} on virheellinen",
                 "CantTransitionType": "Kallistuskulman siirtymän tyyppi {{value}} on virheellinen",
                 "SwitchHand": "Vaihteen kätisyyden arvo on virheellinen",
                 "Point": "X/Y -pistearvon formaatti on virheellinen",
@@ -645,7 +645,7 @@
             "description": "Ratanumeron kuvaus",
             "location-title": "Ratanumeron sijaintitiedot",
             "start-address": "Alkusijainti (km + m)",
-            "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
+            "cannot-edit-deleted-track-number": "Poistetun ratanumeron geometriaa ei voi muokata",
             "no-geometry": "Ratanumerolla ei ole geometriaa",
             "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
             "location-tracks-title": "Ratanumeron sijaintiraiteet ({{count}})",
@@ -789,9 +789,20 @@
             "end-points-updated": "Pituusmittauslinjan päätepisteet päivitetty",
             "reference-line-singular": "Pituusmittauslinja",
             "reference-line-plural": "Pituusmittauslinjat",
-            "no-geometry": "Pituusmittauslinjalla ei ole geometriaa"
+            "no-geometry": "Pituusmittauslinjalla ei ole geometriaa",
+            "geometry-extension": {
+                "menu-item": "Jatka pituusmittauslinjan geometriaa",
+                "title": "Pituusmittauslinjan jatkaminen",
+                "track-number": "Ratanumero",
+                "extension-end": "Jatkettava pää",
+                "draw-hint": "Klikkaa kartalta jatkeen päätepiste pituusmittauslinjan suunnassa",
+                "clear": "Tyhjennä",
+                "extension-saved": "Pituusmittauslinjaa {{trackNumber}} jatkettu"
+            }
         },
         "alignment": {
+            "start-point": "Alkupiste",
+            "end-point": "Loppupiste",
             "geometry": {
                 "title": "Raidegeometria: raide",
                 "name": "Nimi",
@@ -875,8 +886,6 @@
             "type": "Raidetyyppi",
             "identifier": "OID",
             "track-location-heading": "Raiteen sijaintitiedot",
-            "start-point": "Alkupiste",
-            "end-point": "Loppupiste",
             "start-coordinates": "Alkukoordinaatit",
             "end-coordinates": "Loppukoordinaatit",
             "show-on-map": "Kohdista kartalla",
@@ -1047,7 +1056,7 @@
                 }
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
-            "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
+            "cannot-edit-deleted-track": "Poistetun raiteen geometriaa ei voi muokata",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa",

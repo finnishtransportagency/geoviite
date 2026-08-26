@@ -81,3 +81,20 @@ sealed class ReferenceLineGeometry : IAlignment<ReferenceLineM> {
     override fun toLog(): String =
         logFormat("trackNumberId" to trackNumberId, "segments" to segments.size, "length" to round(length, 3))
 }
+
+fun extendGeometry(
+    geometry: ReferenceLineGeometry,
+    endpointType: EndpointType,
+    extendTo: IPoint,
+): ReferenceLineGeometry {
+    require(geometry.segments.isNotEmpty()) {
+        "Cannot extend an empty reference line geometry: trackNumberId=${geometry.trackNumberId}"
+    }
+    val newSegments =
+        when (endpointType) {
+            EndpointType.START ->
+                listOf(manualSegment(extendTo, requireNotNull(geometry.firstSegmentStart))) + geometry.segments
+            EndpointType.END -> geometry.segments + manualSegment(requireNotNull(geometry.lastSegmentEnd), extendTo)
+        }
+    return geometry.withSegments(newSegments)
+}

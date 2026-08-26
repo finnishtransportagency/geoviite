@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, MapAlignmentType } from 'track-layout/track-layout-model';
 import { createDelegates } from 'store/store-utils';
 import {
     trackLayoutActionCreators as TrackLayoutActions,
@@ -38,6 +38,13 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             onEndReferenceLineGeometryChange={() => {
                 delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
+            }}
+            onStartExtendReferenceLine={(id) => {
+                delegates.addForcedVisibleLayer(['alignment-extension-layer']);
+                delegates.startExtendingAlignment({
+                    type: MapAlignmentType.ReferenceLine,
+                    id,
+                });
             }}
             showArea={delegates.showArea}
             layoutContext={trackLayoutState.layoutContext}

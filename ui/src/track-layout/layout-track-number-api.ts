@@ -1,6 +1,7 @@
 import { asyncCache } from 'cache/cache';
 import {
     AlignmentStartAndEnd,
+    EndpointType,
     LayoutTrackNumber,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
@@ -30,7 +31,7 @@ import {
 import { ValidatedTrackNumber } from 'publication/publication-model';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { bboxString } from 'common/common-api';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
 
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
@@ -172,6 +173,22 @@ export async function getReferenceLineStartAndEnd(
     return getNullable<AlignmentStartAndEnd>(
         `${layoutUri('track-numbers', layoutContext, trackNumberId)}/start-and-end`,
     );
+}
+
+export async function extendReferenceLine(
+    branch: LayoutBranch,
+    trackNumberId: LayoutTrackNumberId,
+    endpointType: EndpointType,
+    extendTo: Point,
+): Promise<LayoutTrackNumberId> {
+    const result = await postNonNull<Point, LayoutTrackNumberId>(
+        `${layoutUriByBranch('track-numbers', branch)}/draft/${trackNumberId}/extend/${endpointType}`,
+        extendTo,
+    );
+
+    await updateTrackNumberChangeTime();
+
+    return result;
 }
 
 export async function getTrackNumbersNear(
