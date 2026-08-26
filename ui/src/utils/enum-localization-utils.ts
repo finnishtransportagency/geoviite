@@ -50,6 +50,7 @@ function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
 export const planSources: LocalizedEnum<PlanSource>[] = values('PlanSource', [
     'GEOMETRIAPALVELU',
     'PAIKANNUSPALVELU',
+    'GEOVIITE',
 ]);
 
 export const layoutStates: LocalizedEnum<LayoutState>[] = values('LayoutState', [
