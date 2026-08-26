@@ -28,6 +28,10 @@ import kmPostDisabledSvg from './glyphs/misc/kmpost-disabled.svg';
 import switchSvg from './glyphs/misc/switch.svg';
 import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
+import eyeVisibleSvg from './glyphs/eye/eye-visible.svg';
+import eyeHiddenSvg from './glyphs/eye/eye-hidden.svg';
+import eyePartiallyVisibleSvg from './glyphs/eye/eye-partially-visible.svg';
+import eyeForcedSvg from './glyphs/eye/eye-forced.svg';
 import tickSvg from './glyphs/navigation/tick.svg';
 import moreSvg from './glyphs/navigation/more.svg';
 import previousSvg from './glyphs/navigation/previous.svg';
@@ -104,6 +108,12 @@ const iconNameToSvgMap = {
     Eye: eyeSvg,
     Lock: lockSvg,
     Denied: deniedSvg,
+
+    // Multi-state eye-icon
+    EyeHidden: eyeHiddenSvg,
+    EyeVisible: eyeVisibleSvg,
+    EyePartiallyVisible: eyePartiallyVisibleSvg,
+    EyeForced: eyeForcedSvg,
 
     // Actions
     Copy: copySvg,
