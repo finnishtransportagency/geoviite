@@ -21,7 +21,10 @@ import styles from './geometry-plan-panel.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import {
+    aggregateVisibility,
     createEmptyItemCollections,
+    isGeometryForcedVisible,
+    isPlanFullyVisible,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
@@ -43,13 +46,14 @@ type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;
     onSelect: (options: OnSelectOptions) => void;
     changeTimes: ChangeTimes;
-    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
+    onSetPlanVisibility: (payload: { plan: VisiblePlanLayout; visible: boolean }) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     selectedItems: OptionalItemCollections;
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
+    forcedVisiblePlan?: VisiblePlanLayout;
     togglePlanOpen: (payload: TogglePlanWithSubItemsOpenPayload) => void;
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
@@ -59,26 +63,19 @@ type GeometryPlanProps = {
     planLayoutError?: CustomGeometryValidationIssue;
     linkStatus?: GeometryPlanLinkStatus;
     planBeingLoaded: boolean;
-    disabled: boolean;
-};
-
-type Visibilities = {
-    planHeader: boolean;
-    alignments: boolean;
-    switches: boolean;
-    kmPosts: boolean;
 };
 
 const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     planHeader,
     onSelect,
-    onTogglePlanVisibility,
+    onSetPlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
     onToggleKmPostVisibility,
     selectedItems,
     openPlans,
     visiblePlans,
+    forcedVisiblePlan,
     togglePlanOpen,
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
@@ -88,7 +85,6 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     linkStatus,
     fetchPlanLayouts,
     planBeingLoaded,
-    disabled,
 }: GeometryPlanProps) => {
     const { t } = useTranslation();
     const openPlanLayout = openPlans.find((p) => p.id === planHeader.id);
@@ -97,35 +93,13 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     const isAlignmentsOpen = openPlanLayout ? openPlanLayout.isAlignmentsOpen : false;
     const isSwitchesOpen = openPlanLayout ? openPlanLayout.isSwitchesOpen : false;
     const [openingAccordion, setOpeningAccordion] = React.useState(false);
-    const [visibilities, setVisibilities] = React.useState<Visibilities>({
-        planHeader: false,
-        alignments: false,
-        switches: false,
-        kmPosts: false,
-    });
 
-    React.useEffect(() => {
-        const planVisible = visiblePlans.some((v) => v.id === planHeader.id);
+    const planEntry = visiblePlans.find((p) => p.id === planHeader.id);
 
-        const allAlignmentsVisible = !!planLayout?.alignments.every((a) =>
-            visiblePlans.some((p) => p.alignments.includes(a.header.id)),
-        );
-
-        const allSwitchesVisible = !!planLayout?.switches.every((s) =>
-            visiblePlans.some((p) => p.switches.some((id) => id === s.sourceId)),
-        );
-
-        const allKmPostsVisible = !!planLayout?.kmPosts.every((k) =>
-            visiblePlans.some((p) => p.kmPosts.some((id) => id === k.sourceId)),
-        );
-
-        setVisibilities({
-            planHeader: planVisible,
-            alignments: allAlignmentsVisible,
-            switches: allSwitchesVisible,
-            kmPosts: allKmPostsVisible,
-        });
-    }, [planLayout, visiblePlans]);
+    const planVisibilityState = React.useMemo(
+        () => aggregateVisibility(!!planEntry, isPlanFullyVisible(planEntry, planLayout)),
+        [planEntry, planLayout],
+    );
 
     // Triggers the loading of a previously opened plan after a refresh. Otherwise, the plan's data would not be
     // displayed and the user would have to click twice to open the plan again.
@@ -170,11 +144,22 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     };
 
     const onPlanVisibilityToggle = () => {
+        const shouldShow = planVisibilityState !== 'visible';
+
+        if (!shouldShow) {
+            if (planEntry) {
+                onSetPlanVisibility({ plan: planEntry, visible: false });
+            }
+            return;
+        }
+
         if (planLayout) {
-            onTogglePlanVisibility(wholePlanVisibility(planLayout));
+            onSetPlanVisibility({ plan: wholePlanVisibility(planLayout), visible: true });
         } else {
             loadPlanLayout().then((p) => {
-                if (p?.layout) onTogglePlanVisibility(wholePlanVisibility(p.layout));
+                if (p?.layout) {
+                    onSetPlanVisibility({ plan: wholePlanVisibility(p.layout), visible: true });
+                }
             });
         }
     };
@@ -269,20 +254,18 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                 header={planHeader.name}
                 subheader={subHeader}
                 onToggle={onPlanToggle}
-                open={!disabled && (isPlanOpen || openingAccordion)}
+                open={isPlanOpen || openingAccordion}
                 onVisibilityToggle={onPlanVisibilityToggle}
-                visibility={visibilities.planHeader}
+                visibility={planVisibilityState}
                 onHeaderClick={onPlanHeaderSelection}
                 headerSelected={selectedItems.geometryPlans?.some((id) => id === planHeader.id)}
                 fetchingContent={openingAccordion || planBeingLoaded}
-                eyeHidden={disabled || !!planLayoutError}
+                eyeHidden={!!planLayoutError}
                 error={
                     planLayoutError
                         ? t(planLayoutError.localizationKey, planLayoutError.localizationParams)
                         : undefined
-                }
-                disabled={disabled}
-                className={disabled ? styles['geometry-plan-panel--disabled'] : ''}>
+                }>
                 {!planLayoutError && planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
                         <Accordion
@@ -302,6 +285,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                                         planKmPost,
                                         selectedItems,
                                         visiblePlans,
+                                        forcedVisiblePlan,
                                         linkStatus,
                                         onKmPostSelect,
                                         onToggleKmPostVisibility,
@@ -331,6 +315,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                                         alignment,
                                         selectedItems,
                                         visiblePlans,
+                                        forcedVisiblePlan,
                                         linkStatus,
                                         onAlignmentSelect,
                                         onToggleAlignmentVisibility,
@@ -360,6 +345,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
                                         planSwitch,
                                         selectedItems,
                                         visiblePlans,
+                                        forcedVisiblePlan,
                                         linkStatus,
                                         onSwitchSelect,
                                         onToggleSwitchVisibility,
@@ -386,6 +372,7 @@ function createKmPostRow(
     planKmPost: LayoutKmPost,
     selectedItems: OptionalItemCollections,
     visiblePlans: VisiblePlanLayout[],
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
     linkStatus: GeometryPlanLinkStatus | undefined,
     onKmPostSelect: (kmPostItem: LayoutKmPost, kmPostStatus: KmPostBadgeStatus) => void,
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void,
@@ -396,6 +383,9 @@ function createKmPostRow(
     const isKmPostVisible = visiblePlans.some((p) =>
         p.kmPosts.some((id) => id === planKmPost.sourceId),
     );
+    const isKmPostForced =
+        !!planKmPost.sourceId &&
+        isGeometryForcedVisible(forcedVisiblePlan, planLayout.id, 'kmPosts', planKmPost.sourceId);
 
     const kmPostStatus = linkStatus?.kmPosts?.some(
         (k) => k.id === planKmPost.sourceId && k.linkedKmPosts?.length > 0,
@@ -418,11 +408,12 @@ function createKmPostRow(
                 className={createClassName(
                     styles['geometry-plan-panel__kmpost-visibility'],
                     isKmPostVisible && styles['geometry-plan-panel__kmpost-visibility--visible'],
+                    isKmPostForced && styles['geometry-plan-panel__kmpost-visibility--forced'],
                 )}>
                 <Icons.Eye
                     color={IconColor.INHERIT}
                     onClick={() =>
-                        isKmPostSelected ||
+                        isKmPostForced ||
                         (planKmPost.sourceId &&
                             onToggleKmPostVisibility({
                                 kmPostId: planKmPost.sourceId,
@@ -440,6 +431,7 @@ function createAlignmentRow(
     alignment: PlanLayoutAlignment,
     selectedItems: OptionalItemCollections,
     visiblePlans: VisiblePlanLayout[],
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
     linkStatus: GeometryPlanLinkStatus | undefined,
     onAlignmentSelect: (alignment: AlignmentHeader, status: LocationTrackBadgeStatus) => void,
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void,
@@ -454,6 +446,12 @@ function createAlignmentRow(
         (a) => a.geometryId === alignment.header.id,
     );
     const isAlignmentVisible = visiblePlans.some((p) => p.alignments.includes(alignment.header.id));
+    const isAlignmentForced = isGeometryForcedVisible(
+        forcedVisiblePlan,
+        planLayout.id,
+        'alignments',
+        alignment.header.id,
+    );
 
     return (
         <li
@@ -472,11 +470,13 @@ function createAlignmentRow(
                     styles['geometry-plan-panel__alignment-visibility'],
                     isAlignmentVisible &&
                         styles['geometry-plan-panel__alignment-visibility--visible'],
+                    isAlignmentForced &&
+                        styles['geometry-plan-panel__alignment-visibility--forced'],
                 )}>
                 <Icons.Eye
                     color={IconColor.INHERIT}
                     onClick={() =>
-                        isAlignmentSelected ||
+                        isAlignmentForced ||
                         onToggleAlignmentVisibility({
                             alignmentId: alignment.header.id,
                             planId: planLayout.id,
@@ -493,6 +493,7 @@ function createSwitchRow(
     planSwitch: LayoutSwitch,
     selectedItems: OptionalItemCollections,
     visiblePlans: VisiblePlanLayout[],
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
     linkStatus: GeometryPlanLinkStatus | undefined,
     onSwitchSelect: (switchItem: LayoutSwitch, switchStatus: SwitchBadgeStatus) => void,
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void,
@@ -509,6 +510,9 @@ function createSwitchRow(
     const isSwitchVisible = visiblePlans.some((p) =>
         p.switches.some((id) => id === planSwitch.sourceId),
     );
+    const isSwitchForced =
+        !!planSwitch.sourceId &&
+        isGeometryForcedVisible(forcedVisiblePlan, planLayout.id, 'switches', planSwitch.sourceId);
 
     return (
         <li
@@ -526,11 +530,12 @@ function createSwitchRow(
                 className={createClassName(
                     styles['geometry-plan-panel__switch-visibility'],
                     isSwitchVisible && styles['geometry-plan-panel__switch-visibility--visible'],
+                    isSwitchForced && styles['geometry-plan-panel__switch-visibility--forced'],
                 )}>
                 <Icons.Eye
                     color={IconColor.INHERIT}
                     onClick={() =>
-                        isSwitchSelected ||
+                        isSwitchForced ||
                         (planSwitch.sourceId &&
                             onToggleSwitchVisibility({
                                 switchId: planSwitch.sourceId,

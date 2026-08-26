@@ -52,7 +52,11 @@ import { LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 import { objectEntries } from 'utils/array-utils';
-import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
+import {
+    GeometryPlanGrouping,
+    getEffectiveVisiblePlans,
+    getForcedVisibleGeometry,
+} from 'track-layout/track-layout-slice';
 import { PlanSource } from 'geometry/geometry-model';
 import { FixSwitchNamesDialog } from 'selection-panel/switch-panel/fix-switch-names-dialog';
 import { previewSwitchNameFixes, SwitchNameFixPreview } from 'track-layout/layout-switch-api';
@@ -75,7 +79,7 @@ type SelectionPanelProps = {
     viewport: MapViewport;
     onSelect: (options: OnSelectOptions) => void;
     selectableItemTypes: SelectableItemType[];
-    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
+    onSetPlanVisibility: (payload: { plan: VisiblePlanLayout; visible: boolean }) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
@@ -108,7 +112,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     switches,
     operationalPoints,
     viewport,
-    onTogglePlanVisibility,
+    onSetPlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
     onToggleKmPostVisibility,
@@ -131,6 +135,14 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const isLinkingOrSplitting = !!linkingState || !!splittingState;
+    const forcedVisibleGeometry = React.useMemo(
+        () => getForcedVisibleGeometry(linkingState),
+        [linkingState],
+    );
+    const effectiveVisiblePlans = React.useMemo(
+        () => getEffectiveVisiblePlans(visiblePlans, linkingState),
+        [visiblePlans, linkingState],
+    );
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [fixNamesDialogOpen, setFixNamesDialogOpen] = React.useState(false);
     const [fixNamesPreviews, setFixNamesPreviews] = React.useState<SwitchNameFixPreview[]>([]);
@@ -286,7 +298,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                     });
                                 }
                             }}
-                            visibility={diagramLayerMenuItem?.selected ?? false}
+                            visibility={diagramLayerMenuItem?.selected ? 'visible' : 'hidden'}
                         />
                     )}
                 </h3>
@@ -308,11 +320,11 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     layoutContext={layoutContext}
                     changeTimes={changeTimes}
                     selectedItems={selectedItems}
-                    visiblePlans={visiblePlans}
+                    visiblePlans={effectiveVisiblePlans}
                     viewport={viewport}
                     onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                     onToggleKmPostVisibility={onToggleKmPostVisibility}
-                    onTogglePlanVisibility={onTogglePlanVisibility}
+                    onSetPlanVisibility={onSetPlanVisibility}
                     onToggleSwitchVisibility={onToggleSwitchVisibility}
                     openPlans={openPlans}
                     togglePlanKmPostsOpen={togglePlanKmPostsOpen}
@@ -321,7 +333,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     selectedTrackNumberIds={selectedTrackNumberIds}
                     togglePlanOpen={togglePlanOpen}
                     onSelect={onSelect}
-                    disabled={isLinkingOrSplitting}
+                    forcedVisiblePlan={forcedVisibleGeometry}
                     grouping={grouping}
                     visibleSources={visibleSources}
                     planDownloadPopupOpen={planDownloadPopupOpen}

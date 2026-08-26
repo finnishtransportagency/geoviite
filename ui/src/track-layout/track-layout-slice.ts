@@ -44,7 +44,7 @@ import {
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first, lastIndex, takeLast } from 'utils/array-utils';
+import { deduplicate, first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
 import {
     exhaustiveMatchingGuard,
@@ -352,6 +352,90 @@ export function getSelectableItemTypes(
     }
 }
 
+export function getForcedVisibleGeometry(
+    linkingState?: LinkingState | undefined,
+): VisiblePlanLayout | undefined {
+    switch (linkingState?.type) {
+        case LinkingType.UnknownAlignment:
+        case LinkingType.LinkingGeometryWithAlignment:
+        case LinkingType.LinkingGeometryWithEmptyAlignment:
+            return {
+                id: linkingState.geometryPlanId,
+                alignments: [linkingState.geometryAlignmentId],
+                switches: [],
+                kmPosts: [],
+            };
+        case LinkingType.LinkingGeometrySwitch:
+            return {
+                id: linkingState.geometryPlanId,
+                alignments: [],
+                switches: [linkingState.geometrySwitchId],
+                kmPosts: [],
+            };
+        case LinkingType.LinkingKmPost:
+            return {
+                id: linkingState.geometryPlanId,
+                alignments: [],
+                switches: [],
+                kmPosts: [linkingState.geometryKmPostId],
+            };
+        case LinkingType.LinkingAlignment:
+        case LinkingType.PlacingLayoutSwitch:
+        case LinkingType.LinkingLayoutSwitch:
+        case LinkingType.PlacingOperationalPoint:
+        case LinkingType.PlacingOperationalPointArea:
+        case LinkingType.LinkingOperationalPointSwitches:
+        case LinkingType.LinkingOperationalPointTracks:
+        case LinkingType.TrackBoundaryMove:
+        case LinkingType.ExtendingAlignment:
+        case undefined:
+            return undefined;
+        default:
+            return exhaustiveMatchingGuard(linkingState);
+    }
+}
+
+function mergeVisiblePlans(
+    visiblePlans: VisiblePlanLayout[],
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
+): VisiblePlanLayout[] {
+    if (!forcedVisiblePlan) return visiblePlans;
+
+    const existingPlan = visiblePlans.find((p) => p.id === forcedVisiblePlan.id);
+    const mergedPlan: VisiblePlanLayout = {
+        id: forcedVisiblePlan.id,
+        alignments: deduplicate([
+            ...(existingPlan?.alignments ?? []),
+            ...forcedVisiblePlan.alignments,
+        ]),
+        switches: deduplicate([...(existingPlan?.switches ?? []), ...forcedVisiblePlan.switches]),
+        kmPosts: deduplicate([...(existingPlan?.kmPosts ?? []), ...forcedVisiblePlan.kmPosts]),
+    };
+
+    return [...visiblePlans.filter((p) => p.id !== forcedVisiblePlan.id), mergedPlan];
+}
+
+function subtractVisiblePlan(
+    plan: VisiblePlanLayout,
+    subtrahend: VisiblePlanLayout | undefined,
+): VisiblePlanLayout {
+    if (!subtrahend || subtrahend.id !== plan.id) return plan;
+
+    return {
+        id: plan.id,
+        alignments: plan.alignments.filter((id) => !subtrahend.alignments.includes(id)),
+        switches: plan.switches.filter((id) => !subtrahend.switches.includes(id)),
+        kmPosts: plan.kmPosts.filter((id) => !subtrahend.kmPosts.includes(id)),
+    };
+}
+
+export function getEffectiveVisiblePlans(
+    visiblePlans: VisiblePlanLayout[],
+    linkingState: LinkingState | undefined,
+): VisiblePlanLayout[] {
+    return mergeVisiblePlans(visiblePlans, getForcedVisibleGeometry(linkingState));
+}
+
 function filterSelectOptionsByItemTypes(
     options: OnSelectOptions,
     itemTypes: (keyof ItemCollections)[],
@@ -577,28 +661,36 @@ const trackLayoutSlice = createSlice({
                 payload: filterItemSelectOptionsByState(state, action.payload),
             });
         },
-        togglePlanVisibility: (
+        setPlanVisibility: (
             state: TrackLayoutState,
-            action: PayloadAction<VisiblePlanLayout>,
+            action: PayloadAction<{ plan: VisiblePlanLayout; visible: boolean }>,
         ): void => {
-            if (!state.linkingState) {
-                const isPlanVisible = state.selection.visiblePlans.some(
-                    (p) => p.id === action.payload?.id,
-                );
+            const { plan, visible } = action.payload;
 
-                if (!isPlanVisible) {
-                    enableLayerMenuItem(state.map, 'geometry-alignment');
-                    enableLayerMenuItem(state.map, 'geometry-switch');
-                    enableLayerMenuItem(state.map, 'geometry-km-post');
+            if (visible) {
+                enableLayerMenuItem(state.map, 'geometry-alignment');
+                enableLayerMenuItem(state.map, 'geometry-switch');
+                enableLayerMenuItem(state.map, 'geometry-km-post');
+                selectionReducers.setPlanVisibility(state.selection, action);
+            } else {
+                const forcedVisiblePlan = getForcedVisibleGeometry(state.linkingState);
+                selectionReducers.setPlanVisibility(state.selection, {
+                    ...action,
+                    payload: { plan: subtractVisiblePlan(plan, forcedVisiblePlan), visible },
+                });
+                if (forcedVisiblePlan?.id === plan.id) {
+                    selectionReducers.setPlanVisibility(state.selection, {
+                        ...action,
+                        payload: { plan: forcedVisiblePlan, visible: true },
+                    });
                 }
-
-                selectionReducers.togglePlanVisibility(state.selection, action);
-                state.selectedToolPanelTab = updateSelectedToolPanelTab(
-                    state.selection,
-                    state.linkingState,
-                    state.selectedToolPanelTab,
-                );
             }
+
+            state.selectedToolPanelTab = updateSelectedToolPanelTab(
+                state.selection,
+                state.linkingState,
+                state.selectedToolPanelTab,
+            );
         },
         toggleAlignmentVisibility: (
             state: TrackLayoutState,

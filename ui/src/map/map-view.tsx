@@ -121,7 +121,11 @@ import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
 import { createPropertyBoundaryLayer } from 'map/layers/property-boundary-layer';
 import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
-import { RouteLocation, RouteLocations } from 'track-layout/track-layout-slice';
+import {
+    getEffectiveVisiblePlans,
+    RouteLocation,
+    RouteLocations,
+} from 'track-layout/track-layout-slice';
 import { createRouteMarkerLayer } from 'map/layers/highlight/route-marker-layer';
 import {
     createLocationTrackBoundaryMoveLayer,
@@ -316,6 +320,14 @@ const MapView: React.FC<MapViewProps> = ({
     );
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(visibleLayerNames);
     const mapLayers = [...visibleLayerNames].sort().join();
+
+    const selectionWithForcedVisibility = React.useMemo(
+        () => ({
+            ...selection,
+            visiblePlans: getEffectiveVisiblePlans(selection.visiblePlans, linkingState),
+        }),
+        [selection, linkingState],
+    );
 
     useResizeObserver({
         ref: olMapContainer,
@@ -611,7 +623,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createGeometryAlignmentLayer(
                             mapTiles,
                             existingOlLayer as GeoviiteMapLayer<LineString>,
-                            selection,
+                            selectionWithForcedVisibility,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -623,7 +635,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             resolution,
                             existingOlLayer as GeoviiteMapLayer<OlPoint | Rectangle>,
-                            selection,
+                            selectionWithForcedVisibility,
                             layoutContext,
                             changeTimes,
                             manuallySetPlan,
@@ -633,7 +645,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createGeometrySwitchLayer(
                             mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
-                            selection,
+                            selectionWithForcedVisibility,
                             layoutContext,
                             changeTimes,
                             resolution,
@@ -829,8 +841,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'property-boundary-layer':
                         return createPropertyBoundaryLayer(
                             existingOlLayer as
-                                | VectorTileLayer<VectorTileSource<never>, never>
-                                | undefined,
+                                VectorTileLayer<VectorTileSource<never>, never> | undefined,
                             (loading) => onLayerLoading(layerName, loading),
                             visibleLayerNames.includes('orthographic-background-map-layer'),
                         );
@@ -860,6 +871,7 @@ const MapView: React.FC<MapViewProps> = ({
         map.viewport,
         mapLayers,
         selection,
+        selectionWithForcedVisibility,
         changeTimes,
         layoutContext,
         linkingState,

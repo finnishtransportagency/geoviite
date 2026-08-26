@@ -94,7 +94,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
     return (
         <SelectionPanel
             onSelect={delegates.onSelect}
-            onTogglePlanVisibility={delegates.togglePlanVisibility}
+            onSetPlanVisibility={delegates.setPlanVisibility}
             onToggleAlignmentVisibility={delegates.toggleAlignmentVisibility}
             onToggleSwitchVisibility={delegates.toggleSwitchVisibility}
             onToggleKmPostVisibility={delegates.toggleKmPostsVisibility}

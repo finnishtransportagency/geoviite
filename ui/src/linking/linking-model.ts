@@ -149,8 +149,7 @@ export type LayoutAlignmentTypeAndId =
     | { type: MapAlignmentType.ReferenceLine; id: LayoutTrackNumberId };
 
 export type AlignmentTypeAndId =
-    | LayoutAlignmentTypeAndId
-    | { type: MapAlignmentType; id: GeometryAlignmentId };
+    LayoutAlignmentTypeAndId | { type: MapAlignmentType; id: GeometryAlignmentId };
 
 export type LinkingGeometryWithAlignment = LinkingBaseType & {
     type: LinkingType.LinkingGeometryWithAlignment;
@@ -204,6 +203,7 @@ export type PlacingLayoutSwitch = LinkingBaseType & {
 
 export type LinkingKmPost = LinkingBaseType & {
     type: LinkingType.LinkingKmPost;
+    geometryPlanId: GeometryPlanId;
     geometryKmPostId: GeometryKmPostId;
 };
 

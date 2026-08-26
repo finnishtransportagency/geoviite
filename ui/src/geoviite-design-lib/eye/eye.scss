@@ -22,3 +22,23 @@
     cursor: default;
     fill: vayla-design.$color-white-darker;
 }
+
+.eye-icon--partial {
+    position: relative;
+    display: inline-flex;
+}
+
+.eye-icon--partial-hidden-half {
+    fill: vayla-design.$color-white-darker;
+}
+
+.eye-icon--partial-visible-half {
+    position: absolute;
+    inset: 0;
+    fill: vayla-design.$color-blue-default;
+    clip-path: inset(0 50% 0 0);
+}
+
+.eye-icon--partial.eye--disabled .eye-icon--partial-visible-half {
+    fill: vayla-design.$color-white-darker;
+}

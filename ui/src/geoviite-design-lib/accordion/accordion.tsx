@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './accordion.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
-import { Eye } from 'geoviite-design-lib/eye/eye';
+import { Eye, VisibilityState } from 'geoviite-design-lib/eye/eye';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 
 type AccordionProps = {
@@ -11,7 +11,7 @@ type AccordionProps = {
     subheader?: string;
     onToggle: React.MouseEventHandler;
     children: React.ReactNode;
-    visibility?: boolean;
+    visibility?: VisibilityState;
     onVisibilityToggle?: React.MouseEventHandler;
     onHeaderClick?: () => void;
     headerSelected?: boolean;
