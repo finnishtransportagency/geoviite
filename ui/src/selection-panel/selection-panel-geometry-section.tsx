@@ -173,14 +173,14 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         ],
     );
 
-    React.useEffect(() => {
-        const missingVisiblePlanIds = visiblePlans
-            .map((plan) => plan.id)
-            .filter((id) => !fetchedPlans.has(id) && !plansBeingFetched.has(id));
-        if (missingVisiblePlanIds.length > 0) {
-            void fetchPlanLayouts(missingVisiblePlanIds);
-        }
-    }, [visiblePlans, fetchedPlans, plansBeingFetched]);
+React.useEffect(() => {
+    const missingVisiblePlanIds = visiblePlans
+        .map((plan) => plan.id)
+        .filter((id) => !fetchedPlans.has(id) && !plansBeingFetched.has(id));
+    if (missingVisiblePlanIds.length > 0) {
+        void fetchPlanLayouts(missingVisiblePlanIds);
+    }
+}, [visiblePlans, fetchedPlans, plansBeingFetched, fetchPlanLayouts]);
 
     const fetchPlanLayouts = React.useCallback(
         (ids: GeometryPlanId[]): Promise<GeometryPlanLayoutResult[]> => {
