@@ -182,7 +182,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     };
 
     const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
-    const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
+    const diagramLayerMenuItem = mapLayoutMenu
+        .flatMap((item) => [item, ...(item.subMenu ?? [])])
+        .find((i) => i.name === 'track-number-diagram');
 
     const selectedTrackNumberIds: LayoutTrackNumberId[] = objectEntries(diagramLayerSettings)
         .filter(([_, setting]) => setting.selected)
