@@ -54,7 +54,7 @@ RUN set -eux \
     && ./configure \
         --without-raster \
         --enable-lto \
-    && make -j$(nproc) \
+    && make \
     && make install \
     \
     # add .postgis-rundeps
