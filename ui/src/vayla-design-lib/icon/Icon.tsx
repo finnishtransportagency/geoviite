@@ -22,6 +22,7 @@ import layersSvg from './glyphs/misc/layers.svg';
 import closeSvg from './glyphs/navigation/close.svg';
 import navigationDownSvg from './glyphs/navigation/down.svg';
 import statusErrorSvg from './glyphs/status/error.svg';
+import statusWarningSvg from './glyphs/status/warning.svg';
 import kmPostSvg from './glyphs/misc/kmpost.svg';
 import kmPostSelectedSvg from './glyphs/misc/kmpost-selected.svg';
 import kmPostDisabledSvg from './glyphs/misc/kmpost-disabled.svg';
@@ -99,6 +100,7 @@ const iconNameToSvgMap = {
 
     // Status
     Info: infoSvg,
+    StatusWarning: statusWarningSvg,
     StatusError: statusErrorSvg,
     Selected: selectedSvg,
     Eye: eyeSvg,

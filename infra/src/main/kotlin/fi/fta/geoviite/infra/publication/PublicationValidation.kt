@@ -61,6 +61,7 @@ const val VALIDATION_LOCATION_TRACK = "$VALIDATION.location-track"
 const val VALIDATION_GEOCODING = "$VALIDATION.geocoding"
 const val VALIDATION_SWITCH = "$VALIDATION.switch"
 const val VALIDATION_OPERATIONAL_POINT = "$VALIDATION.operational-point"
+const val VALIDATION_STATION_LINK = "$VALIDATION.station-link"
 
 private const val JOINT_LOCATION_DELTA = 0.5
 const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2

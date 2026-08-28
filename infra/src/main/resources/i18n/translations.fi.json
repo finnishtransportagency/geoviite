@@ -1181,7 +1181,10 @@
             },
             "station-links": {
                 "infobox-header": "Yhteydet muille toiminnallisille pisteille ({{count}})",
-                "no-links": "Ei yhteyksiä muille toiminnallisille pisteille"
+                "no-links": "Ei yhteyksiä muille toiminnallisille pisteille",
+                "issue-unreachable-station-midpoint": "Aseman {{name}} keskipiste ei ole saavutettavissa yhdysraiteen päästä.",
+                "issue-suspiciously-long-route": "Reitti yhdysraiteen päästä asemalle {{name}} on odottamattoman pitkä.",
+                "route-length-not-calculable": "Reitin pituus ei ole laskettavissa"
             }
         },
         "disabled": {
@@ -2066,6 +2069,10 @@
                 "track-split-in-progress": "Raiteen {{sourceName}} jakamista ei ole vielä viety Ratkoon, joten muita muutoksia ei voi vielä tehdä",
                 "track-links-missing-after-relinking": "Vaihteen {{switchName}} kaikki linjat eivät enää kulje vaihteen kautta uudelleenlinkityksen jälkeen",
                 "track-is-cancelled": "Jakamisessa mukanaa olevaa raidetta {{name}} ei voi perua julkaisusta"
+            },
+            "station-link": {
+                "unreachable-midpoint": "Aseman {{station}} keskipiste ei ole saavutettavissa yhdysraiteen {{track}} päästä",
+                "suspiciously-long-route": "Reitti yhdysraiteen {{track}} päästä aseman {{station}} keskipisteelle on epäilyttävän pitkä"
             }
         }
     },

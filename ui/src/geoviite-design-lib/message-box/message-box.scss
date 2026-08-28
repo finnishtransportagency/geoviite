@@ -9,6 +9,10 @@
         background-color: vayla-design.$color-lemon-light;
     }
 
+    &--warning {
+        background-color: vayla-design.$color-lemon-light;
+    }
+
     &--error {
         background-color: vayla-design.$color-red-lighter;
     }
@@ -17,7 +21,7 @@
 .message-box__inner {
     display: flex;
     align-items: center;
-    padding: 10px 16px 10px 26px;
+    padding: 8px 16px 8px 16px;
     transition: all 1s;
 }
 
@@ -30,8 +34,12 @@
 }
 
 .message-box__icon {
-    fill: vayla-design.$color-black-lighter;
+    fill: vayla-design.$color-black-default;
     margin-right: 12px;
+
+    &--warning {
+        fill: vayla-design.$color-black-default;
+    }
 
     &--error {
         fill: vayla-design.$color-red-dark;

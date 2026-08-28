@@ -37,6 +37,9 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.RinfId
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssue
+import fi.fta.geoviite.infra.tracklayout.StationLinkResult
+import fi.fta.geoviite.infra.tracklayout.StationLinkService
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import fi.fta.geoviite.infra.tracklayout.groupConnectionsByJointNumber
 import java.util.concurrent.ConcurrentHashMap
@@ -97,6 +100,7 @@ class ValidationContext(
     val splitService: SplitService,
     val trackBoundaryMoveService: TrackBoundaryMoveService,
     val publicationSet: ValidationVersions,
+    val stationLinkService: StationLinkService,
 ) {
     val target = publicationSet.target
 
@@ -128,6 +132,7 @@ class ValidationContext(
         NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdOverride)
     private val operationalPointRinfIdGeneratedCache =
         NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdGenerated)
+    private val operationalPointStationLinkIssues = NullableCache<IntId<OperationalPoint>, List<StationLinkIssue>>()
 
     private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(target.candidateBranch) }
     val allUnpublishedTrackBoundaryMoves: List<TrackBoundaryMove> by lazy {
@@ -248,6 +253,41 @@ class ValidationContext(
     fun getPotentiallyAffectedSwitches(trackId: IntId<LocationTrack>): List<LayoutSwitch> =
         getPotentiallyAffectedSwitchIds(trackId).mapNotNull(::getSwitch)
 
+    fun getPotentiallyAffectedOperationalPointIdsbyTrackId(
+        trackId: IntId<LocationTrack>
+    ): List<IntId<OperationalPoint>> {
+        val track =
+            if (locationTrackIsCancelled(trackId)) getCandidateLocationTrack(trackId) else getLocationTrack(trackId)
+        val draftLinks = track?.operationalPointIds ?: emptyList()
+        val officialLinks =
+            if (track == null || track.isDraft) {
+                locationTrackVersionCache
+                    .get(trackId) { id -> locationTrackDao.fetchVersion(target.baseContext, id) }
+                    ?.let(locationTrackDao::fetch)
+                    ?.operationalPointIds ?: emptyList()
+            } else {
+                emptyList()
+            }
+        return (officialLinks + draftLinks).distinct()
+    }
+
+    fun getPotentiallyAffectedOperationalPointIdsbySwitchId(
+        switchId: IntId<LayoutSwitch>
+    ): List<IntId<OperationalPoint>> {
+        val switch = if (switchIsCancelled(switchId)) getCandidateSwitch(switchId) else getSwitch(switchId)
+        val draftLink = switch?.operationalPointId
+        val officialLink =
+            if (switch == null || switch.isDraft) {
+                switchVersionCache
+                    .get(switchId) { id -> switchDao.fetchVersion(target.baseContext, id) }
+                    ?.let(switchDao::fetch)
+                    ?.operationalPointId
+            } else {
+                null
+            }
+        return listOfNotNull(officialLink, draftLink)
+    }
+
     fun getSwitchTrackLinks(geometry: LocationTrackGeometry): List<SwitchTrackLinking> =
         geometry.trackSwitchLinks
             .mapIndexed { index, link -> index to link }
@@ -353,6 +393,7 @@ class ValidationContext(
         preloadOperationalPointsByRinfIdOverride(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByRinfIdGenerated(publicationSet.getOperationalPointIds())
         preloadSwitchesByOperationalPoints(publicationSet.getOperationalPointIds())
+        preloadStationLinkIssuesByOperationalPoints(publicationSet.getOperationalPointIds())
     }
 
     fun preloadOperationalPointOverlaps(candidateIds: List<IntId<OperationalPoint>>) {
@@ -475,6 +516,19 @@ class ValidationContext(
             trackNumberIds.mapNotNull(::getTrackNumber).map(LayoutTrackNumber::number).distinct()
         )
 
+    fun preloadStationLinkIssuesByOperationalPoints(opIds: List<IntId<OperationalPoint>>) {
+        val issuesByOp =
+            stationLinkResult.issues
+                .flatMap { issue ->
+                    listOfNotNull(issue.operationalPointId, issue.otherOperationalPointId).map { opId -> opId to issue }
+                }
+                .groupBy({ it.first }, { it.second })
+
+        operationalPointStationLinkIssues.preload(opIds) { ids ->
+            ids.associateWith { id -> issuesByOp[id] ?: emptyList() }
+        }
+    }
+
     private fun fetchTrackNumbersByNumber(
         numbers: List<TrackNumber>
     ): Map<TrackNumber, List<IntId<LayoutTrackNumber>>> {
@@ -577,6 +631,13 @@ class ValidationContext(
     private val allCandidateKmPosts: Map<IntId<LayoutKmPost>, LayoutRowVersion<LayoutKmPost>> by lazy {
         kmPostDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
     }
+
+    private val stationLinkResult: StationLinkResult by lazy { stationLinkService.getStationLinks(this) }
+
+    fun getStationLinkIssuesByOperationalPoint(opId: IntId<OperationalPoint>): List<StationLinkIssue> =
+        operationalPointStationLinkIssues.get(opId) { id ->
+            stationLinkResult.issues.filter { it.operationalPointId == id || it.otherOperationalPointId == id }
+        } ?: emptyList()
 
     fun getCandidateOperationalPoint(id: IntId<OperationalPoint>) =
         allCandidateOperationalPoints[id]?.let(operationalPointDao::fetch)

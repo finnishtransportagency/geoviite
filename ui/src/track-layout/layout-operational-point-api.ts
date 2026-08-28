@@ -1,7 +1,7 @@
 import {
     OperationalPoint,
     OperationalPointId,
-    StationLink,
+    StationLinkResult,
 } from 'track-layout/track-layout-model';
 import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull } from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
@@ -21,7 +21,10 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change-time-api';
-import { InternalOperationalPointSaveRequest, InternalOperationalPointUpdateRequest } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
+import {
+    InternalOperationalPointSaveRequest,
+    InternalOperationalPointUpdateRequest,
+} from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/external-operational-point-edit-store';
 import { Point, Polygon } from 'model/geometry';
 import { ValidatedOperationalPoint } from 'publication/publication-model';
@@ -39,7 +42,7 @@ const operationalPointOidsCache = asyncCache<
     OperationalPointId,
     { [key in LayoutBranch]?: Oid } | undefined
 >();
-const stationLinksCache = asyncCache<string, StationLink[]>();
+const stationLinksCache = asyncCache<string, StationLinkResult>();
 
 const operationalPointUriByOrigin = (
     origin: OriginInUri,
@@ -96,10 +99,10 @@ export const getOperationalPointStationLinks = (
         getChangeTimes().layoutSwitch,
         getChangeTimes().operationalPoints,
     ),
-): Promise<StationLink[]> => {
+): Promise<StationLinkResult> => {
     const cacheKey = `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     return stationLinksCache.get(changeTime, cacheKey, () =>
-        getNonNull<StationLink[]>(
+        getNonNull<StationLinkResult>(
             `${layoutUri('operational-points', layoutContext)}/${id}/station-links`,
         ),
     );
@@ -215,11 +218,8 @@ export const getExternallyChangedOperationalPointIds = (
     layoutBranch: LayoutBranch,
     changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPointId[]> =>
-    externallyChangedOpsCache.get(
-        changeTime,
-        layoutBranch,
-        () =>
-            getNonNull<OperationalPointId[]>(
-                `${layoutUriByBranch('operational-points', layoutBranch)}/draft/externally-changed`,
-            ),
+    externallyChangedOpsCache.get(changeTime, layoutBranch, () =>
+        getNonNull<OperationalPointId[]>(
+            `${layoutUriByBranch('operational-points', layoutBranch)}/draft/externally-changed`,
+        ),
     );

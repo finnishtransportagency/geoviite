@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
@@ -18,12 +19,23 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.M_CALC
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssue
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssueSeverity
+import fi.fta.geoviite.infra.tracklayout.StationLinkIssueType
+import fi.fta.geoviite.infra.tracklayout.StationLinkService
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometryOfPoints
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,6 +58,7 @@ constructor(
     val geocodingService: GeocodingService,
     val splitService: SplitService,
     val trackBoundaryMoveService: TrackBoundaryMoveService,
+    val stationLinkService: StationLinkService,
 ) : DBTestBase() {
 
     @Test
@@ -167,6 +180,45 @@ constructor(
         assertEquals(kmPostDao.fetch(kmp2DraftVersion), validationContext(kmPosts = listOf(kmp2Id)).getKmPost(kmp2Id))
     }
 
+    @Test
+    fun `ValidationContext finds station link issues for operational points`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(60.0, 0.0))
+            )
+        val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(80.0, 0.0)))
+        // An unrelated operational point with no connecting track: should never have any issues
+        val op3 = mainOfficialContext.save(operationalPoint("OP3", location = Point(40.0, 0.0)))
+
+        val track =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1.id, op2.id)),
+                trackGeometry(
+                    edge(segments = listOf(segment(Point(15.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))
+                ),
+            )
+
+        testDBService.createPublication()
+
+        val expectedIssue =
+            StationLinkIssue(
+                type = StationLinkIssueType.UNREACHABLE_STATION_MIDPOINT,
+                severity = StationLinkIssueSeverity.ERROR,
+                operationalPointId = op2.id,
+                otherOperationalPointId = op1.id,
+                locationTrackId = track.id,
+                trackNumberId = tnVersion.id,
+            )
+
+        // Both OP1 and OP2 should see the issue, since it concerns the link between them
+        assertEquals(listOf(expectedIssue), validationContext().getStationLinkIssuesByOperationalPoint(op1.id))
+        assertEquals(listOf(expectedIssue), validationContext().getStationLinkIssuesByOperationalPoint(op2.id))
+
+        // An unrelated operational point should not have any issues
+        assertEquals(emptyList<StationLinkIssue>(), validationContext().getStationLinkIssuesByOperationalPoint(op3.id))
+    }
+
     private fun validationContext(
         branch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
@@ -189,6 +241,7 @@ constructor(
             splitService = splitService,
             trackBoundaryMoveService = trackBoundaryMoveService,
             operationalPointDao = operationalPointDao,
+            stationLinkService = stationLinkService,
             publicationSet =
                 ValidationVersions(
                     target = target,
