@@ -214,6 +214,11 @@ constructor(
     }
 
     private fun getAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): TrackMeter =
-        geocodingContext.getAddress(point, 3)?.first
-            ?: error("Could not geocode address: trackNumber=${geocodingContext.trackNumber} point=$point")
+        geocodingContext
+            .getAddress(
+                coordinate = point,
+                decimals = 3,
+                lenientExtrapolation = true,
+            )
+            ?.first ?: error("Could not geocode address: trackNumber=${geocodingContext.trackNumber} point=$point")
 }

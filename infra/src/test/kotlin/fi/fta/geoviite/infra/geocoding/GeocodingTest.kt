@@ -1305,6 +1305,141 @@ class GeocodingTest {
     }
 
     @Test
+    fun `getAddress() with lenientExtrapolation caps extrapolation past reference line end at 1m when the next km post is farther away`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val farKmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(200.0, 0.0), draft = false)
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("T001"),
+                    startAddress = TrackMeter(KmNumber(10), 0),
+                    referenceLineGeometry = geometry,
+                    kmPosts = listOf(farKmPost),
+                )
+                .geocodingContext
+
+        // With a next km post far beyond the 1m default cap, lenient extrapolation still only reaches the cap
+        val withinCap = Point(100.9, 0.0)
+        assertEquals(null, context.getAddress(withinCap, 3, lenientExtrapolation = false)?.first)
+        assertNotNull(context.getAddress(withinCap, 3, lenientExtrapolation = true)?.first)
+
+        val pastCap = Point(101.1, 0.0)
+        assertEquals(null, context.getAddress(pastCap, 3, lenientExtrapolation = false)?.first)
+        assertEquals(null, context.getAddress(pastCap, 3, lenientExtrapolation = true)?.first)
+    }
+
+    @Test
+    fun `getAddress() with lenientExtrapolation caps extrapolation past reference line end at less than 1m when the next km post is less than 1m away`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val nearKmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(100.5, 0.0), draft = false)
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("T001"),
+                    startAddress = TrackMeter(KmNumber(10), 0),
+                    referenceLineGeometry = geometry,
+                    kmPosts = listOf(nearKmPost),
+                )
+                .geocodingContext
+
+        // With a next km post closer than the 1m default cap, lenient extrapolation only reaches the next km post, not
+        // the cap
+        val withinKm = Point(100.3, 0.0)
+        assertEquals(null, context.getAddress(withinKm, 3, lenientExtrapolation = false)?.first)
+        assertNotNull(context.getAddress(withinKm, 3, lenientExtrapolation = true)?.first)
+
+        val pastKm = Point(101.0, 0.0)
+        assertEquals(null, context.getAddress(pastKm, 3, lenientExtrapolation = false)?.first)
+        assertEquals(null, context.getAddress(pastKm, 3, lenientExtrapolation = true)?.first)
+    }
+
+    @Test
+    fun `getAddress() with lenientExtrapolation goes past reference line end when there is no following km post`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("T001"),
+                    startAddress = TrackMeter(KmNumber(10), 0),
+                    referenceLineGeometry = geometry,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+
+        val withinCap = Point(100.9, 0.0)
+        assertEquals(null, context.getAddress(withinCap, 3, lenientExtrapolation = false)?.first)
+        assertNotNull(context.getAddress(withinCap, 3, lenientExtrapolation = true)?.first)
+
+        val pastCap = Point(101.1, 0.0)
+        assertEquals(null, context.getAddress(pastCap, 3, lenientExtrapolation = false)?.first)
+        assertEquals(null, context.getAddress(pastCap, 3, lenientExtrapolation = true)?.first)
+    }
+
+    @Test
+    fun `getAddress() with lenientExtrapolation allows extrapolation before reference line start up to the km's own start meters`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("T001"),
+                    startAddress = TrackMeter(KmNumber(10), 0.4, 3),
+                    referenceLineGeometry = geometry,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+
+        // 0.3m before the reference line start: within the 0.4m of the km's own start meters
+        val withinStartMeters = Point(-0.3, 0.0)
+        assertEquals(null, context.getAddress(withinStartMeters, 3, lenientExtrapolation = false)?.first)
+        assertNotNull(context.getAddress(withinStartMeters, 3, lenientExtrapolation = true)?.first)
+
+        // 0.5m before the reference line start: would go past the start of the km, so even lenient mode rejects it
+        val pastStartOfKm = Point(-0.5, 0.0)
+        assertEquals(null, context.getAddress(pastStartOfKm, 3, lenientExtrapolation = false)?.first)
+        assertEquals(null, context.getAddress(pastStartOfKm, 3, lenientExtrapolation = true)?.first)
+    }
+
+    @Test
+    fun `getAddress() with lenientExtrapolation has no effect before reference line start when it is exactly at a km boundary`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("T001"),
+                    startAddress = TrackMeter(KmNumber(10), 0),
+                    referenceLineGeometry = geometry,
+                    kmPosts = listOf(),
+                )
+                .geocodingContext
+
+        val justBeforeStart = Point(-0.5, 0.0)
+        assertEquals(null, context.getAddress(justBeforeStart, 3, lenientExtrapolation = false)?.first)
+        assertEquals(null, context.getAddress(justBeforeStart, 3, lenientExtrapolation = true)?.first)
+    }
+
+    @Test
+    fun `getAddress() with lenientExtrapolation must be at least as permissive as non-lenient at a co-located km boundary`() {
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        // A km post located exactly at the reference line's end makes distanceToKmBoundary collapse to 0.0.
+        val coLocatedEndKmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(100.0, 0.0), draft = false)
+        val context =
+            GeocodingContext.create(
+                    trackNumber = TrackNumber("T001"),
+                    // meters == 0 means the reference line start is exactly at a km boundary.
+                    startAddress = TrackMeter(KmNumber(10), 0),
+                    referenceLineGeometry = geometry,
+                    kmPosts = listOf(coLocatedEndKmPost),
+                )
+                .geocodingContext
+
+        val justBeforeStart = Point(-0.0006, 0.0)
+        val justPastEnd = Point(100.0006, 0.0)
+
+        // Non-lenient extrapolation already tolerates points this close via a fixed 0.001m slack
+        assertNotNull(context.getAddress(justBeforeStart, 3, lenientExtrapolation = false)?.first)
+        assertNotNull(context.getAddress(justPastEnd, 3, lenientExtrapolation = false)?.first)
+
+        // Lenient extrapolation must be at least as permissive as non-lenient, so these should also be non-null.
+        assertNotNull(context.getAddress(justBeforeStart, 3, lenientExtrapolation = true)?.first)
+        assertNotNull(context.getAddress(justPastEnd, 3, lenientExtrapolation = true)?.first)
+    }
+
+    @Test
     fun `getTrackLocations works on a reference line partially looping in on itself`() {
         // The reference line is a circle arc of radius 20 going from 0 to 6 radians (nearly a full circle), making it
         // 120 m long. We geocode the reference line's own geometry: a projection line (radial to the circle) hits the
