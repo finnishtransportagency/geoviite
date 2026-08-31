@@ -16,7 +16,7 @@ import {
     InfraModelParametersProp,
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
-import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import {
     compareNamed,
     CoordinateSystem,

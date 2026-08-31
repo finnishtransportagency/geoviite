@@ -38,7 +38,7 @@ export const initialInfraModelListState: InfraModelListState = {
     searchParams: {
         freeText: '',
         trackNumbers: [],
-        sources: ['GEOMETRIAPALVELU'],
+        sources: ['GEOMETRIAPALVELU', 'GEOVIITE'],
         sortBy: GeometrySortBy.NO_SORTING,
         sortOrder: undefined,
     },
