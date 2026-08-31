@@ -28,7 +28,7 @@ export type GeometryElementId = string;
 export type GeometrySwitchId = Brand<string, 'GeometrySwitchId'>;
 export type GeometryKmPostId = Brand<string, 'GeometryKmPostId'>;
 
-export type PlanSource = 'GEOMETRIAPALVELU' | 'PAIKANNUSPALVELU';
+export type PlanSource = 'GEOMETRIAPALVELU' | 'PAIKANNUSPALVELU' | 'GEOVIITE';
 export type PlanState = 'ABANDONED' | 'DESTROYED' | 'EXISTING' | 'PROPOSED';
 export type CantTransitionType = 'LINEAR' | 'BIQUADRATIC_PARABOLA';
 
