@@ -132,6 +132,7 @@ geoviite:
   ext-api:
     enabled: false
     url-path-prefixes: [ ]
+    designs-enabled: "${EXT_API_DESIGNS_ENABLED:false}"
 
 server:
   max-http-request-header-size: 100KB

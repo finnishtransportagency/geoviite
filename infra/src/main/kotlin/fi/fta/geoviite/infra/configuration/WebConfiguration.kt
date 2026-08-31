@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.configuration
 import com.fasterxml.jackson.annotation.JsonInclude
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
+import fi.fta.geoviite.api.tracklayout.v1.ExtDesignGateInterceptorV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtLayoutVersionV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtMaybeTrackKmOrTrackMeterV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtResolutionV1
@@ -60,6 +61,7 @@ import org.springframework.http.converter.ByteArrayHttpMessageConverter
 import org.springframework.http.converter.HttpMessageConverter
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import org.springframework.web.servlet.resource.PathResourceResolver
@@ -75,6 +77,7 @@ constructor(
     @Value("\${geoviite.static-url:}") val staticUrl: String,
     @Value("\${geoviite.static-resources:}") val staticResourcesPath: String,
     @Value("\${geoviite.ext-api.enabled:false}") val extApiEnabled: Boolean,
+    @Value("\${geoviite.ext-api.designs-enabled:false}") val extApiDesignsEnabled: Boolean,
 ) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -87,6 +90,12 @@ constructor(
                 .setCacheControl(CacheControl.noCache().mustRevalidate())
                 .resourceChain(true)
                 .addResolver(PathResourceResolver())
+        }
+    }
+
+    override fun addInterceptors(registry: InterceptorRegistry) {
+        if (!extApiDesignsEnabled) {
+            registry.addInterceptor(ExtDesignGateInterceptorV1()).addPathPatterns("/**/suunnitelmat/**")
         }
     }
 
