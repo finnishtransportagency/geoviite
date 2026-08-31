@@ -60,7 +60,7 @@ dependencies {
     constraints {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
         implementation("com.google.errorprone:error_prone_annotations:2.50.0")
-        implementation("com.google.guava:guava:33.6.0-jre")
+        implementation("com.google.guava:guava:33.7.1-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
         implementation("javax.measure:unit-api:2.2")
 
@@ -73,7 +73,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.53.0")
+    implementation("software.amazon.awssdk:cloudfront:2.54.6")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -132,8 +132,8 @@ dependencies {
     testImplementation("org.seleniumhq.selenium:selenium-java")
     testImplementation("org.wiremock:wiremock-jetty12:3.13.2")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.4")
-    testImplementation("io.projectreactor:reactor-test:3.8.6")
-    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.46")
+    testImplementation("io.projectreactor:reactor-test:3.8.7")
+    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.47")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
     // Explicit agent-jar for Mockito's inline mock maker, see the mockitoAgent configuration declaration above.
     mockitoAgent("org.mockito:mockito-core") { isTransitive = false }
