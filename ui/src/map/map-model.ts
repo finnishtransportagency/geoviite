@@ -159,6 +159,7 @@ export type Map = {
     layerMenu: MapLayerMenuGroups;
     layerSettings: MapLayerSettings;
     forcedVisibleLayers: MapLayerName[];
+    forcedHiddenLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
     clickLocation?: Point;

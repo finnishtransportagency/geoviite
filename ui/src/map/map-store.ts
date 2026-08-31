@@ -136,6 +136,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
 
 export const initialMapState: Map = {
     forcedVisibleLayers: [],
+    forcedHiddenLayers: [],
     layerMenu: {
         layout: [
             {
@@ -318,6 +319,7 @@ function updateMenuItem(items: MapLayerMenuItem[], change: MapLayerMenuChange): 
 export function selectVisibleLayers(
     layerMenu: MapLayerMenuGroups,
     forcedVisibleLayers: MapLayerName[],
+    forcedHiddenLayers: MapLayerName[],
 ): MapLayerName[] {
     const menuLayers = collectVisibleLayers([
         ...layerMenu.layout,
@@ -327,7 +329,7 @@ export function selectVisibleLayers(
     const allLayers = [...alwaysOnLayers, ...menuLayers, ...forcedVisibleLayers];
     const related = collectRelatedLayers(allLayers);
     const visible = deduplicate([...allLayers, ...related]);
-    const hidden = collectLayersHiddenByProxy(visible);
+    const hidden = deduplicate([...collectLayersHiddenByProxy(visible), ...forcedHiddenLayers]);
     return visible.filter((layer) => !hidden.includes(layer));
 }
 
