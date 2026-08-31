@@ -40,6 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 
 const val COORDINATE_DELTA = 0.001
@@ -51,6 +52,7 @@ private val MAIN_ADDRESSES = "0001+0050.000" to "0001+0150.000"
 private val DESIGN_ADDRESSES = "0001+0030.000" to "0001+0130.000"
 
 @ActiveProfiles("dev", "test", "ext-api")
+@TestPropertySource(properties = ["geoviite.ext-api.designs-enabled=true"])
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
 class ExtLocationTrackIT

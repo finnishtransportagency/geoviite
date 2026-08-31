@@ -36,9 +36,11 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 
 @ActiveProfiles("dev", "test", "ext-api")
+@TestPropertySource(properties = ["geoviite.ext-api.designs-enabled=true"])
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
 class ExtTrackNumberIT
