@@ -245,7 +245,7 @@ const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     };
 
     const subHeader =
-        planHeader.source === 'PAIKANNUSPALVELU'
+        planHeader.source === 'PAIKANNUSPALVELU' || planHeader.source === 'GEOVIITE'
             ? t(`enum.PlanSource.${planHeader.source}`)
             : undefined;
     return (

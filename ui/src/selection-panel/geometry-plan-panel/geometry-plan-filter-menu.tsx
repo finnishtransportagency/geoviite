@@ -31,14 +31,15 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
         setPopupVisible(false);
     }
 
-    function toggleVisibleSources() {
-        const newSources: PlanSource[] = visibleSources.includes('PAIKANNUSPALVELU')
-            ? ['GEOMETRIAPALVELU']
-            : ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'];
+    function toggleSource(source: PlanSource) {
+        const newSources = visibleSources.includes(source)
+            ? visibleSources.filter((s) => s !== source)
+            : [...visibleSources, source];
         onVisibleSourcesChanged(newSources);
     }
 
     const showPlansOfPaikannuspalvelu = visibleSources.includes('PAIKANNUSPALVELU');
+    const showPlansOfGeoviite = visibleSources.includes('GEOVIITE');
     const menuItems: MenuOption[] = [
         {
             ...menuOption(
@@ -59,11 +60,19 @@ export const GeometryPlanFilterMenu: React.FC<GeometryPlanFilterMenuProps> = ({
         menuDivider(),
         {
             ...menuOption(
-                toggleVisibleSources,
+                () => toggleSource('PAIKANNUSPALVELU'),
                 t('selection-panel.geometries.show-paikannuspalvelu-geometries'),
                 'geometry-filter.geometries.show-paikannuspalvelu-geometries',
             ),
             icon: showPlansOfPaikannuspalvelu ? Icons.Tick : undefined,
+        },
+        {
+            ...menuOption(
+                () => toggleSource('GEOVIITE'),
+                t('selection-panel.geometries.show-geoviite-geometries'),
+                'geometry-filter.geometries.show-geoviite-geometries',
+            ),
+            icon: showPlansOfGeoviite ? Icons.Tick : undefined,
         },
     ];
 

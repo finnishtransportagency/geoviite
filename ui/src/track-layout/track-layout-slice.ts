@@ -308,7 +308,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     },
     geometryPlanViewSettings: {
         grouping: GeometryPlanGrouping.ByProject,
-        visibleSources: ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+        visibleSources: ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU', 'GEOVIITE'],
     },
     planDownloadState: undefined,
     selectionHistory: [],
