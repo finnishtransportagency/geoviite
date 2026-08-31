@@ -227,16 +227,20 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         );
     }
 
-    const allPlansVisibility = aggregateVisibility(
-        visiblePlansInView.length > 0,
-        planHeadersDisplayableInPanel.length > 0 &&
-            planHeadersDisplayableInPanel.every((h) => isPlanFullyVisibleInView(h.id)),
-    );
+    const plansListShown = planHeadersDisplayableInPanel.length === planHeaderCount;
+
+    const allPlansVisibility = plansListShown
+        ? aggregateVisibility(
+              visiblePlansInView.length > 0,
+              planHeadersDisplayableInPanel.length > 0 &&
+                  planHeadersDisplayableInPanel.every((h) => isPlanFullyVisibleInView(h.id)),
+          )
+        : 'hidden';
 
     const toggleAllPlanVisibilities = () => {
         if (allPlansVisibility === 'visible') {
             visiblePlansInView.forEach((plan) => onSetPlanVisibility({ plan, visible: false }));
-        } else if (planHeadersDisplayableInPanel.length === planHeaderCount) {
+        } else if (plansListShown) {
             const notFullyVisiblePlanIds = planHeadersDisplayableInPanel
                 .filter((h) => !isPlanFullyVisibleInView(h.id))
                 .map((h) => h.id);
@@ -297,9 +301,9 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 </PrivilegeRequired>
                 <GeometryPlanFilterMenuContainer />
                 <Eye
-                    disabled={planHeadersDisplayableInPanel.length === 0}
                     onVisibilityToggle={toggleAllPlanVisibilities}
                     visibility={allPlansVisibility}
+                    disabled={!plansListShown || planHeadersDisplayableInPanel.length === 0}
                 />
             </h3>
             <div
@@ -307,7 +311,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     styles['selection-panel__content'],
                     styles['selection-panel__content--unpadded'],
                 )}>
-                {planHeadersDisplayableInPanel.length === planHeaderCount &&
+                {plansListShown &&
                     planHeadersDisplayableInPanel.map((h, index, allPlans) => {
                         const isSameAsPrevProject =
                             h.project.id === allPlans[index - 1]?.project?.id;

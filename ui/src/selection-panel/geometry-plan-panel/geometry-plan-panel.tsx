@@ -19,7 +19,6 @@ import {
 } from 'selection/selection-model';
 import styles from './geometry-plan-panel.scss';
 import { createClassName } from 'vayla-design-lib/utils';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import {
     aggregateVisibility,
     createEmptyItemCollections,
@@ -41,6 +40,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { GeometryPlanLayoutResult } from 'geometry/geometry-api';
 import { CustomGeometryValidationIssue } from 'infra-model/infra-model-slice';
 import { first } from 'utils/array-utils';
+import { Eye, resolveVisibility } from 'geoviite-design-lib/eye/eye';
 
 type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;
@@ -404,24 +404,16 @@ function createKmPostRow(
                 onClick={() => onKmPostSelect(planKmPost, kmPostStatus)}>
                 <KmPostBadge kmPost={planKmPost} status={kmPostStatus} />
             </span>
-            <span
-                className={createClassName(
-                    styles['geometry-plan-panel__kmpost-visibility'],
-                    isKmPostVisible && styles['geometry-plan-panel__kmpost-visibility--visible'],
-                    isKmPostForced && styles['geometry-plan-panel__kmpost-visibility--forced'],
-                )}>
-                <Icons.Eye
-                    color={IconColor.INHERIT}
-                    onClick={() =>
-                        isKmPostForced ||
-                        (planKmPost.sourceId &&
-                            onToggleKmPostVisibility({
-                                kmPostId: planKmPost.sourceId,
-                                planId: planLayout.id,
-                            }))
-                    }
-                />
-            </span>
+            <Eye
+                visibility={resolveVisibility(isKmPostForced, isKmPostVisible)}
+                onVisibilityToggle={() =>
+                    planKmPost.sourceId &&
+                    onToggleKmPostVisibility({
+                        kmPostId: planKmPost.sourceId,
+                        planId: planLayout.id,
+                    })
+                }
+            />
         </li>
     );
 }
@@ -465,25 +457,15 @@ function createAlignmentRow(
                 onClick={() => onAlignmentSelect(alignment.header, alignmentStatus)}>
                 <LocationTrackBadge locationTrack={alignment.header} status={alignmentStatus} />
             </span>
-            <span
-                className={createClassName(
-                    styles['geometry-plan-panel__alignment-visibility'],
-                    isAlignmentVisible &&
-                        styles['geometry-plan-panel__alignment-visibility--visible'],
-                    isAlignmentForced &&
-                        styles['geometry-plan-panel__alignment-visibility--forced'],
-                )}>
-                <Icons.Eye
-                    color={IconColor.INHERIT}
-                    onClick={() =>
-                        isAlignmentForced ||
-                        onToggleAlignmentVisibility({
-                            alignmentId: alignment.header.id,
-                            planId: planLayout.id,
-                        })
-                    }
-                />
-            </span>
+            <Eye
+                visibility={resolveVisibility(isAlignmentForced, isAlignmentVisible)}
+                onVisibilityToggle={() =>
+                    onToggleAlignmentVisibility({
+                        alignmentId: alignment.header.id,
+                        planId: planLayout.id,
+                    })
+                }
+            />
         </li>
     );
 }
@@ -526,24 +508,16 @@ function createSwitchRow(
                 onClick={() => onSwitchSelect(planSwitch, switchStatus)}>
                 <SwitchBadge switchItem={planSwitch} status={switchStatus} />
             </span>
-            <span
-                className={createClassName(
-                    styles['geometry-plan-panel__switch-visibility'],
-                    isSwitchVisible && styles['geometry-plan-panel__switch-visibility--visible'],
-                    isSwitchForced && styles['geometry-plan-panel__switch-visibility--forced'],
-                )}>
-                <Icons.Eye
-                    color={IconColor.INHERIT}
-                    onClick={() =>
-                        isSwitchForced ||
-                        (planSwitch.sourceId &&
-                            onToggleSwitchVisibility({
-                                switchId: planSwitch.sourceId,
-                                planId: planLayout.id,
-                            }))
-                    }
-                />
-            </span>
+            <Eye
+                visibility={resolveVisibility(isSwitchForced, isSwitchVisible)}
+                onVisibilityToggle={() =>
+                    planSwitch.sourceId &&
+                    onToggleSwitchVisibility({
+                        switchId: planSwitch.sourceId,
+                        planId: planLayout.id,
+                    })
+                }
+            />
         </li>
     );
 }
