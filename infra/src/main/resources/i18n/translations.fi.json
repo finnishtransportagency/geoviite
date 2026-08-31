@@ -2264,7 +2264,6 @@
             "group-by-project": "Ryhmittele projekteittain",
             "no-grouping": "Ei ryhmittelyä",
             "show-paikannuspalvelu-geometries": "Näytä paikannuspalvelun mallit",
-            "hide-paikannuspalvelu-geometries": "Piilota paikannuspalvelun mallit",
             "show-geoviite-geometries": "Näytä Geoviitteen mallit"
         },
         "location-tracks-title": "Sijaintiraiteet",
