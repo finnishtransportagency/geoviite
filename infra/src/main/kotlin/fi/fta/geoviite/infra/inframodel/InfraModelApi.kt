@@ -51,7 +51,7 @@ data class OverrideParameters(
     val encoding: XmlCharset?,
 )
 
-fun tryParsing(op: () -> ValidationResponse): ValidationResponse =
+fun tryParsing(source: PlanSource, op: () -> ValidationResponse): ValidationResponse =
     try {
         op()
     } catch (e: Exception) {
@@ -69,6 +69,6 @@ fun tryParsing(op: () -> ValidationResponse): ValidationResponse =
                 ),
             geometryPlan = null,
             planLayout = null,
-            source = PlanSource.GEOVIITE,
+            source = source,
         )
     }

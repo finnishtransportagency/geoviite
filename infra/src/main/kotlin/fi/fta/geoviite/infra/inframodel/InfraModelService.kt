@@ -47,12 +47,12 @@ val noFileValidationError =
 const val START_KM_PARAM_KEY = "startKm"
 const val END_KM_PARAM_KEY = "endKm"
 
-fun noFileValidationResponse() =
+fun noFileValidationResponse(source: PlanSource) =
     ValidationResponse(
         geometryValidationIssues = listOf(noFileValidationError),
         geometryPlan = null,
         planLayout = null,
-        source = PlanSource.GEOVIITE,
+        source = source,
     )
 
 @GeoviiteService
@@ -113,14 +113,14 @@ constructor(
         multipartFile: MultipartFile,
         overrideParameters: OverrideParameters?,
     ): ValidationResponse {
-        return tryParsing {
+        return tryParsing(PlanSource.GEOVIITE) {
             val imFile = toInfraModelFile(multipartFile, overrideParameters?.encoding?.charset)
             validateInternal(imFile, overrideParameters)
         }
     }
 
     fun validateInfraModelFile(file: InfraModelFile, overrideParameters: OverrideParameters?): ValidationResponse {
-        return tryParsing { validateInternal(file, overrideParameters) }
+        return tryParsing(PlanSource.GEOVIITE) { validateInternal(file, overrideParameters) }
     }
 
     fun getInfraModelBatchSummary(
