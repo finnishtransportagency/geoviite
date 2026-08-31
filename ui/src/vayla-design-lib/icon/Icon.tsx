@@ -27,7 +27,6 @@ import kmPostSelectedSvg from './glyphs/misc/kmpost-selected.svg';
 import kmPostDisabledSvg from './glyphs/misc/kmpost-disabled.svg';
 import switchSvg from './glyphs/misc/switch.svg';
 import chevronSvg from './glyphs/navigation/chevron.svg';
-import eyeSvg from './glyphs/status/eye.svg';
 import eyeVisibleSvg from './glyphs/eye/eye-visible.svg';
 import eyeHiddenSvg from './glyphs/eye/eye-hidden.svg';
 import eyePartiallyVisibleSvg from './glyphs/eye/eye-partially-visible.svg';
@@ -105,15 +104,8 @@ const iconNameToSvgMap = {
     Info: infoSvg,
     StatusError: statusErrorSvg,
     Selected: selectedSvg,
-    Eye: eyeSvg,
     Lock: lockSvg,
     Denied: deniedSvg,
-
-    // Multi-state eye-icon
-    EyeHidden: eyeHiddenSvg,
-    EyeVisible: eyeVisibleSvg,
-    EyePartiallyVisible: eyePartiallyVisibleSvg,
-    EyeForced: eyeForcedSvg,
 
     // Actions
     Copy: copySvg,
@@ -156,6 +148,12 @@ const iconNameToSvgMapStaticColor = {
     KmPost: kmPostSvg,
     KmPostSelected: kmPostSelectedSvg,
     KmPostDisabled: kmPostDisabledSvg,
+
+    // Multi-state eye-icon
+    EyeHidden: eyeHiddenSvg,
+    EyeVisible: eyeVisibleSvg,
+    EyePartiallyVisible: eyePartiallyVisibleSvg,
+    EyeForced: eyeForcedSvg,
 };
 
 export enum IconSize {
