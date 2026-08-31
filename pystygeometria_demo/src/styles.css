@@ -1,0 +1,219 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  font-size: 14px;
+  color: black;
+  background: white;
+}
+
+.app {
+  padding: 12px 16px;
+}
+
+.app h1 {
+  font-size: 18px;
+  margin: 0 0 12px 0;
+}
+
+.box {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.box__heading {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0 0 10px 0;
+}
+
+.api-settings {
+  display: flex;
+  gap: 16px;
+}
+
+.selection-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.track-number-select {
+  width: 480px;
+}
+
+.selection-mode-toggle {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.selection-mode-toggle label {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.route-select {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 480px;
+}
+
+.route-select__status {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.address-range-inputs {
+  display: flex;
+  gap: 12px;
+}
+
+.main-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.diagram-box {
+  flex-shrink: 0;
+}
+
+.selection-box {
+  flex: 1;
+  min-width: 500px;
+}
+
+.track-type-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.track-type-filter__label {
+  font-weight: bold;
+}
+
+.track-type-filter__option {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.location-track-list ul {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 0;
+  max-height: 520px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+
+.location-track-row {
+  padding: 2px 6px;
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.location-track-row--disabled {
+  color: #999;
+}
+
+.location-track-row__name {
+  font-weight: bold;
+}
+
+.location-track-row__addresses {
+  font-variant-numeric: tabular-nums;
+}
+
+.location-track-row__description {
+  color: #555;
+}
+
+.location-track-row--disabled .location-track-row__description {
+  color: #aaa;
+}
+
+.input-invalid {
+  outline: 2px solid black;
+  background: #eee;
+}
+
+.error-text {
+  color: black;
+  font-weight: bold;
+}
+
+.hint-text {
+  color: #666;
+}
+
+.diagram {
+  position: relative;
+  border: 1px solid black;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.diagram--panning {
+  cursor: grabbing;
+}
+
+.diagram svg {
+  display: block;
+  background: white;
+}
+
+.diagram svg text {
+  font-size: 12px;
+  fill: black;
+}
+
+.diagram-text-stroke-narrow,
+.diagram-text-stroke-wide {
+  stroke: white;
+  paint-order: stroke;
+}
+
+.diagram-text-stroke-narrow {
+  stroke-width: 4;
+}
+
+.diagram-text-stroke-wide {
+  stroke-width: 6;
+}
+
+/* Sized inline from the diagram dimensions where used. */
+.diagram-placeholder {
+  border: 1px solid black;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  box-sizing: border-box;
+}
+
+.diagram-status {
+  margin-top: 4px;
+}
+
+.height-tooltip {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #666;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  z-index: 10;
+}
