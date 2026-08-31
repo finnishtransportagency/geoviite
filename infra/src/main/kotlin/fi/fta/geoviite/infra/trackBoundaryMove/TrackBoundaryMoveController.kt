@@ -7,12 +7,14 @@ import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 
+@ConditionalOnProperty(name = ["geoviite.track-boundary-move.enabled"], havingValue = "true", matchIfMissing = false)
 @GeoviiteController("/track-layout")
 class TrackBoundaryMoveController(private val trackBoundaryMoveService: TrackBoundaryMoveService) {
     @PreAuthorize(AUTH_EDIT_LAYOUT)

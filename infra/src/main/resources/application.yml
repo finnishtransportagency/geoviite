@@ -129,6 +129,9 @@ geoviite:
         initial-delay: PT5M
         interval: PT15M
 
+  track-boundary-move:
+    enabled: "${TRACK_BOUNDARY_MOVE_ENABLED:false}"
+
   ext-api:
     enabled: false
     url-path-prefixes: [ ]
