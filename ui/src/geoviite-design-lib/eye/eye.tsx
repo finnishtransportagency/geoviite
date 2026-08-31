@@ -17,6 +17,7 @@ type EyeProps = {
     fetchingContent?: boolean;
     onVisibilityToggle: React.MouseEventHandler;
     extraClassName?: string;
+    disabled?: boolean;
 };
 
 function pickIcon(visibility: VisibilityState): IconComponent {
@@ -39,11 +40,12 @@ export const Eye: React.FC<EyeProps> = ({
     fetchingContent,
     onVisibilityToggle,
     extraClassName,
+    disabled = false,
 }) => {
     const containerClassName = createClassName(styles['eye-container'], extraClassName);
 
     const icon = pickIcon(visibility);
-    const disabled = visibility === 'forced';
+    const isDisabled = disabled || visibility === 'forced';
 
     return (
         <span className={containerClassName}>
@@ -56,7 +58,7 @@ export const Eye: React.FC<EyeProps> = ({
                     color: IconColor.ORIGINAL,
                 }}
                 variant={ButtonVariant.GHOST}
-                disabled={disabled}
+                disabled={isDisabled}
                 isProcessing={fetchingContent}
             />
         </span>
