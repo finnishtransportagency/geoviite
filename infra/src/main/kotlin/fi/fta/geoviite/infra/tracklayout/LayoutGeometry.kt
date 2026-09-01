@@ -50,7 +50,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
 
-const val POINT_SEEK_TOLERANCE = 1.0
+const val POINT_SEEK_TOLERANCE = 0.001
 
 enum class GeometrySource {
     IMPORTED,
