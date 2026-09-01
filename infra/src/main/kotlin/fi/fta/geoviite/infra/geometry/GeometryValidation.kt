@@ -51,19 +51,19 @@ val trackTypeCodes = listOf(FeatureTypeCode("281"), FeatureTypeCode("111"))
 data class GeometryValidationIssue(
     val localizationKey: LocalizationKey,
     val issueType: GeometryIssueType,
-    val params: Map<String, String> = emptyMap(),
+    val localizationParams: Map<String, String> = emptyMap(),
 ) {
     companion object {
         fun of(
             parentKey: String,
             errorKey: String,
             issueType: GeometryIssueType,
-            params: Map<String, String> = emptyMap(),
+            localizationParams: Map<String, String> = emptyMap(),
         ): GeometryValidationIssue =
             GeometryValidationIssue(
                 localizationKey = LocalizationKey.of("$VALIDATION.$parentKey.$errorKey"),
                 issueType = issueType,
-                params = params,
+                localizationParams = localizationParams,
             )
     }
 }
@@ -111,32 +111,34 @@ fun validateMetadata(plan: GeometryPlan, officialTrackNumbers: List<TrackNumber>
                 if (plan.units.coordinateSystemName == null) "coordinate-system-missing"
                 else "coordinate-system-unsupported"
             GeometryValidationIssue.of(
-                "metadata",
+                VALIDATION_METADATA,
                 key,
                 VALIDATION_ERROR,
                 buildMap { plan.units.coordinateSystemName?.toString()?.let { put("value", it) } },
             )
         },
         validate(plan.units.verticalCoordinateSystem != null || plan.alignments.all { a -> a.profile == null }) {
-            GeometryValidationIssue.of("metadata", "vertical-coordinate-system-missing", VALIDATION_ERROR)
+            GeometryValidationIssue.of(VALIDATION_METADATA, "vertical-coordinate-system-missing", VALIDATION_ERROR)
         },
         validate(plan.trackNumber != null) {
-            GeometryValidationIssue.of("metadata", "track-number-missing", OBSERVATION_MAJOR)
+            GeometryValidationIssue.of(VALIDATION_METADATA, "track-number-missing", OBSERVATION_MAJOR)
         },
         validate(plan.trackNumber == null || officialTrackNumbers.contains(plan.trackNumber)) {
             GeometryValidationIssue.of(
-                "metadata",
+                VALIDATION_METADATA,
                 "track-number-not-found",
                 OBSERVATION_MAJOR,
                 buildMap { plan.trackNumber?.toString()?.let { put("value", it) } },
             )
         },
         validate(plan.planTime != null) {
-            GeometryValidationIssue.of("metadata", "plan-time-missing", OBSERVATION_MINOR)
+            GeometryValidationIssue.of(VALIDATION_METADATA, "plan-time-missing", OBSERVATION_MINOR)
         },
-        validate(plan.author != null) { GeometryValidationIssue.of("metadata", "author-missing", OBSERVATION_MINOR) },
+        validate(plan.author != null) {
+            GeometryValidationIssue.of(VALIDATION_METADATA, "author-missing", OBSERVATION_MINOR)
+        },
         validate(plan.kmPosts.isNotEmpty()) {
-            GeometryValidationIssue.of("metadata", "km-posts-missing", OBSERVATION_MAJOR)
+            GeometryValidationIssue.of(VALIDATION_METADATA, "km-posts-missing", OBSERVATION_MAJOR)
         },
     )
 
@@ -154,7 +156,7 @@ fun validateAlignments(
             .toSet()
     val duplicateErrors = duplicateNames.map { name ->
         GeometryValidationIssue.of(
-            "alignment",
+            VALIDATION_ALIGNMENT,
             "duplicate-name",
             OBSERVATION_MAJOR,
             mapOf("alignmentName" to name.toString()),
@@ -183,7 +185,7 @@ fun validateSwitches(
             .toSet()
     val duplicateErrors = duplicateNames.map { name ->
         GeometryValidationIssue.of(
-            "switch",
+            VALIDATION_SWITCH,
             "duplicate-name",
             OBSERVATION_MAJOR,
             mapOf("switchName" to name.toString()),
@@ -217,7 +219,7 @@ private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<Geomet
         listOfNotNull(
             validate(duplicateKmPosts.isEmpty()) {
                 GeometryValidationIssue.of(
-                    "km-post",
+                    VALIDATION_KM_POST,
                     "duplicate-km-posts",
                     VALIDATION_ERROR,
                     buildMap { put("value", duplicateKmPosts.joinToString(", ") { kmPost -> kmPost.toString() }) },
@@ -225,7 +227,7 @@ private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<Geomet
             },
             validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
                 GeometryValidationIssue.of(
-                    "km-post",
+                    VALIDATION_KM_POST,
                     "sta-ahead-not-negative",
                     VALIDATION_ERROR,
                     buildMap { firstKmPost?.staAhead?.toString()?.let { put("value", it) } },
@@ -239,7 +241,7 @@ fun validateKmPost(post: GeometryKmPost) =
     listOfNotNull(
         validate(post.location != null) {
             GeometryValidationIssue.of(
-                "km-post",
+                VALIDATION_KM_POST,
                 "location-missing",
                 OBSERVATION_MAJOR,
                 mapOf("kmPostName" to post.description.toString(), "value" to post.description.toString()),
@@ -247,7 +249,7 @@ fun validateKmPost(post: GeometryKmPost) =
         },
         validate(post.kmNumber != null) {
             GeometryValidationIssue.of(
-                "km-post",
+                VALIDATION_KM_POST,
                 "km-number-incorrect",
                 OBSERVATION_MINOR,
                 mapOf("kmPostName" to post.description.toString()),
@@ -261,10 +263,10 @@ fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<Geome
     }
     return listOfNotNull(
         validate(referenceLineAlignments.isNotEmpty()) {
-            GeometryValidationIssue.of("alignment", "no-reference-lines", OBSERVATION_MAJOR)
+            GeometryValidationIssue.of(VALIDATION_ALIGNMENT, "no-reference-lines", OBSERVATION_MAJOR)
         },
         validate(referenceLineAlignments.size <= 1) {
-            GeometryValidationIssue.of("alignment", "multiple-reference-lines", VALIDATION_ERROR)
+            GeometryValidationIssue.of(VALIDATION_ALIGNMENT, "multiple-reference-lines", VALIDATION_ERROR)
         },
     )
 }
@@ -283,7 +285,7 @@ fun validateAlignmentProfile(alignment: GeometryAlignment): List<GeometryValidat
     }
         ?: listOf(
             GeometryValidationIssue.of(
-                "alignment",
+                VALIDATION_ALIGNMENT,
                 "no-profile",
                 OBSERVATION_MAJOR,
                 mapOf("alignmentName" to alignment.name.toString()),
@@ -297,7 +299,7 @@ fun validateAlignmentCant(alignment: GeometryAlignment): List<GeometryValidation
             listOfNotNull(
                 validate(cant.rotationPoint != null || alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE) {
                     GeometryValidationIssue.of(
-                        "alignment",
+                        VALIDATION_ALIGNMENT,
                         "cant-rotation-point-undefined",
                         VALIDATION_ERROR,
                         mapOf("alignmentName" to alignment.name.toString()),
@@ -305,7 +307,7 @@ fun validateAlignmentCant(alignment: GeometryAlignment): List<GeometryValidation
                 },
                 validate(cant.rotationPoint != CENTER) {
                     GeometryValidationIssue.of(
-                        "alignment",
+                        VALIDATION_ALIGNMENT,
                         "cant-rotation-point-center",
                         VALIDATION_ERROR,
                         mapOf("alignmentName" to alignment.name.toString()),
@@ -313,7 +315,7 @@ fun validateAlignmentCant(alignment: GeometryAlignment): List<GeometryValidation
                 },
                 validate(cant.gauge == FINNISH_RAIL_GAUGE) {
                     GeometryValidationIssue.of(
-                        "alignment",
+                        VALIDATION_ALIGNMENT,
                         "cant-gauge-invalid",
                         OBSERVATION_MAJOR,
                         buildMap {
@@ -334,7 +336,7 @@ fun validateAlignmentCant(alignment: GeometryAlignment): List<GeometryValidation
     }
         ?: listOf(
             GeometryValidationIssue.of(
-                "alignment",
+                VALIDATION_ALIGNMENT,
                 "no-cant",
                 OBSERVATION_MAJOR,
                 mapOf("alignmentName" to alignment.name.toString()),
@@ -348,14 +350,14 @@ fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureTy
     val typeCodeError =
         if (typeCode == null) {
             GeometryValidationIssue.of(
-                "alignment",
+                VALIDATION_ALIGNMENT,
                 "no-feature-type",
                 OBSERVATION_MAJOR,
                 mapOf("alignmentName" to alignment.name.toString()),
             )
         } else if (type == null) {
             GeometryValidationIssue.of(
-                "alignment",
+                VALIDATION_ALIGNMENT,
                 "unknown-feature-type",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -365,7 +367,7 @@ fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureTy
             )
         } else if (type.code !in trackTypeCodes) {
             GeometryValidationIssue.of(
-                "alignment",
+                VALIDATION_ALIGNMENT,
                 "wrong-feature-type",
                 OBSERVATION_MINOR,
                 buildMap {
@@ -381,7 +383,7 @@ fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureTy
             typeCodeError,
             validate(alignment.state != null) {
                 GeometryValidationIssue.of(
-                    "alignment",
+                    VALIDATION_ALIGNMENT,
                     "no-state",
                     OBSERVATION_MINOR,
                     mapOf("alignmentName" to alignment.name.toString()),
@@ -402,7 +404,7 @@ private fun validateElement(alignmentName: AlignmentName, element: GeometryEleme
         listOfNotNull(
             validate(element.length > BigDecimal.ZERO) {
                 GeometryValidationIssue.of(
-                    "element",
+                    VALIDATION_ELEMENT,
                     "field-invalid-length",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -416,7 +418,7 @@ private fun validateElement(alignmentName: AlignmentName, element: GeometryEleme
             validate(element.length <= BigDecimal.ZERO || lengthDelta < ACCURATE_LENGTH_DELTA) {
                 val isIncorrect = lengthDelta > LENGTH_DELTA
                 GeometryValidationIssue.of(
-                    "element",
+                    VALIDATION_ELEMENT,
                     if (isIncorrect) "field-incorrect-length" else "field-inaccurate-length",
                     if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                     buildMap {
@@ -435,7 +437,7 @@ private fun validateElement(alignmentName: AlignmentName, element: GeometryEleme
         listOfNotNull(
             validate(!element.start.isSame(element.end, ACCURATE_COORDINATE_DELTA)) {
                 GeometryValidationIssue.of(
-                    "element",
+                    VALIDATION_ELEMENT,
                     "start-end-same",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -448,7 +450,7 @@ private fun validateElement(alignmentName: AlignmentName, element: GeometryEleme
             validate(calculatedStart.isSame(element.start, ACCURATE_COORDINATE_DELTA)) {
                 val isIncorrect = !calculatedStart.isSame(element.start, COORDINATE_DELTA)
                 GeometryValidationIssue.of(
-                    "element",
+                    VALIDATION_ELEMENT,
                     if (isIncorrect) "incorrect-start-point" else "inaccurate-start-point",
                     if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                     buildMap {
@@ -462,7 +464,7 @@ private fun validateElement(alignmentName: AlignmentName, element: GeometryEleme
             validate(calculatedEnd.isSame(element.end, ACCURATE_COORDINATE_DELTA)) {
                 val isIncorrect = !calculatedEnd.isSame(element.end, COORDINATE_DELTA)
                 GeometryValidationIssue.of(
-                    "element",
+                    VALIDATION_ELEMENT,
                     if (isIncorrect) "incorrect-end-point" else "inaccurate-end-point",
                     if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                     buildMap {
@@ -496,7 +498,7 @@ private fun validateElementVsPrevious(
         validate(element.start.isSame(previous.end, ACCURATE_COORDINATE_DELTA)) {
             val isIncorrect = !element.start.isSame(previous.end, COORDINATE_DELTA)
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 if (isIncorrect) "coordinates-not-continuous" else "coordinates-inaccurate",
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
@@ -510,7 +512,7 @@ private fun validateElementVsPrevious(
         validate(directionDiff <= ACCURATE_ELEMENT_DIRECTION_DELTA) {
             val isIncorrect = directionDiff > ELEMENT_DIRECTION_DELTA
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 if (isIncorrect) "directions-not-continuous" else "directions-inaccurate",
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
@@ -526,7 +528,7 @@ private fun validateElementVsPrevious(
         },
         validate(element.staStart > previous.staStart) {
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 "station-not-increasing",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -551,7 +553,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         validate(startRadiusDiff <= ACCURATE_RADIUS_DELTA) {
             val isIncorrect = startRadiusDiff > RADIUS_DELTA
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 if (isIncorrect) "curve-radius-incorrect-start" else "curve-radius-inaccurate-start",
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
@@ -565,7 +567,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         validate(endRadiusDiff <= ACCURATE_RADIUS_DELTA) {
             val isIncorrect = endRadiusDiff > RADIUS_DELTA
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 if (isIncorrect) "curve-radius-incorrect-end" else "curve-radius-inaccurate-end",
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
@@ -579,7 +581,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         validate(chordDiff <= ACCURATE_LENGTH_DELTA) {
             val isIncorrect = chordDiff > LENGTH_DELTA
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 if (isIncorrect) "curve-chord-incorrect" else "curve-chord-inaccurate",
                 if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 buildMap {
@@ -591,7 +593,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         },
         validate(curve.radius.toDouble() >= MINIMUM_TURN_RADIUS) {
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 "curve-steep",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -611,7 +613,7 @@ private fun validateSpiral(alignmentName: AlignmentName, spiral: GeometrySpiral)
     return listOfNotNull(
         validate(startRadius == null || startRadius.toDouble() >= MINIMUM_TURN_RADIUS) {
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 "spiral-start-steep",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -624,7 +626,7 @@ private fun validateSpiral(alignmentName: AlignmentName, spiral: GeometrySpiral)
         },
         validate(endRadius == null || endRadius.toDouble() >= MINIMUM_TURN_RADIUS) {
             GeometryValidationIssue.of(
-                "element",
+                VALIDATION_ELEMENT,
                 "spiral-end-steep",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -653,7 +655,7 @@ private fun validateClothoid(alignmentName: AlignmentName, clothoid: GeometryClo
             validate(constantDiff <= ACCURATE_CONSTANT_A_DELTA) {
                 val isIncorrect = constantDiff > CONSTANT_A_DELTA
                 GeometryValidationIssue.of(
-                    "element",
+                    VALIDATION_ELEMENT,
                     if (isIncorrect) "clothoid-incorrect-constant" else "clothoid-inaccurate-constant",
                     if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                     buildMap {
@@ -676,7 +678,7 @@ private fun validateIntersection(
         listOfNotNull(
             validate(intersection.length != null) {
                 GeometryValidationIssue.of(
-                    "profile",
+                    VALIDATION_PROFILE,
                     "curve-length-missing",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -687,7 +689,7 @@ private fun validateIntersection(
             },
             validate(intersection.radius != null) {
                 GeometryValidationIssue.of(
-                    "profile",
+                    VALIDATION_PROFILE,
                     "curve-radius-missing",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -711,7 +713,7 @@ private fun validateIntersectionVsPrevious(
     return listOfNotNull(
         validate(deltaX > 0) {
             GeometryValidationIssue.of(
-                "profile",
+                VALIDATION_PROFILE,
                 "incorrect-station",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -723,7 +725,7 @@ private fun validateIntersectionVsPrevious(
         profileAngle?.let { angle ->
             validate(abs(angle) <= MAX_PROFILE_SLOPE_DEGREES) {
                 GeometryValidationIssue.of(
-                    "profile",
+                    VALIDATION_PROFILE,
                     "incorrect-slope",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -744,7 +746,7 @@ private fun validateProfileSegment(
     return listOfNotNull(
         validate(segment !is LinearProfileSegment || segment.valid) {
             GeometryValidationIssue.of(
-                "profile",
+                VALIDATION_PROFILE,
                 "calculation-failed",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -767,7 +769,7 @@ private fun validateProfileSegmentVsPrevious(
     return listOfNotNull(
         validate(abs(segment.start.x - previous.end.x) <= 0.0001) {
             GeometryValidationIssue.of(
-                "profile",
+                VALIDATION_PROFILE,
                 "segment-station-not-continuous",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -779,7 +781,7 @@ private fun validateProfileSegmentVsPrevious(
         },
         validate(abs(segment.start.y - previous.end.y) <= 0.0001) {
             GeometryValidationIssue.of(
-                "profile",
+                VALIDATION_PROFILE,
                 "segment-height-not-continuous",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -791,7 +793,7 @@ private fun validateProfileSegmentVsPrevious(
         },
         validate(!segmentValid || !previousValid || abs(segment.startAngle - previous.endAngle) <= 0.0001) {
             GeometryValidationIssue.of(
-                "profile",
+                VALIDATION_PROFILE,
                 "segment-angle-not-continuous",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -815,7 +817,7 @@ private fun validateCantPoint(
     return listOfNotNull(
         validate(cantPoint.appliedCant.toDouble() in 0.0..gauge.toDouble()) {
             GeometryValidationIssue.of(
-                "cant",
+                VALIDATION_CANT,
                 "value-incorrect",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -836,7 +838,7 @@ private fun validateCantPointVsPrevious(
     return listOfNotNull(
         validate(cantPoint.station > previous.station) {
             GeometryValidationIssue.of(
-                "cant",
+                VALIDATION_CANT,
                 "station-not-continuous",
                 OBSERVATION_MAJOR,
                 buildMap {
@@ -860,7 +862,7 @@ fun validateSwitch(
         listOfNotNull(
             validate(structure != null) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "type-unrecognized",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -871,7 +873,7 @@ fun validateSwitch(
             },
             validate(structure == null || jointNumbers.all(structureJointNumbers::contains)) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "incorrect-joints",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -883,7 +885,7 @@ fun validateSwitch(
             },
             validate(jointNumbers.size >= 2) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "insufficient-joints",
                     OBSERVATION_MINOR,
                     buildMap {
@@ -909,7 +911,7 @@ fun validateSwitchGeometry(switch: GeometrySwitch, switchStructure: SwitchStruct
         listOfNotNull(
             validate(joints.size <= 1) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "location-difference",
                     OBSERVATION_MAJOR,
                     mapOf("switchName" to switch.name.toString()),
@@ -927,7 +929,7 @@ fun validateSwitchGeometry(switch: GeometrySwitch, switchStructure: SwitchStruct
             validate(locationPairs.all { (loc, calc) -> loc.isSame(calc, ACCURATE_JOINT_LOCATION_DELTA) }) {
                 val isIncorrect = locationPairs.any { (loc, calc) -> !loc.isSame(calc, JOINT_LOCATION_DELTA) }
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     if (isIncorrect) "incorrect-joint-locations" else "inaccurate-joint-locations",
                     if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                     mapOf("switchName" to switch.name.toString()),
@@ -962,7 +964,7 @@ fun validateSwitchAlignments(
         listOfNotNull(
             validate(structureAlignment != null) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "no-structure-alignment",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -975,7 +977,7 @@ fun validateSwitchAlignments(
             },
             validate(incorrectJoints.isEmpty()) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "alignment-joint-mismatch",
                     OBSERVATION_MAJOR,
                     buildMap {
@@ -988,7 +990,7 @@ fun validateSwitchAlignments(
             },
             validate(inaccurateJoints.isEmpty()) {
                 GeometryValidationIssue.of(
-                    "switch",
+                    VALIDATION_SWITCH,
                     "alignment-joint-inaccurate",
                     OBSERVATION_MINOR,
                     buildMap {

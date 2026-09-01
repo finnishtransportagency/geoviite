@@ -1,44 +1,64 @@
 import * as React from 'react';
 import styles from './eye.scss';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+
+export type VisibilityState = 'hidden' | 'partial' | 'visible' | 'forced';
+
+export function resolveVisibility(forced: boolean, visible: boolean): VisibilityState {
+    if (forced) return 'forced';
+    return visible ? 'visible' : 'hidden';
+}
 
 type EyeProps = {
-    visibility?: boolean;
+    visibility?: VisibilityState;
     fetchingContent?: boolean;
     onVisibilityToggle: React.MouseEventHandler;
-    disabled?: boolean;
     extraClassName?: string;
+    disabled?: boolean;
 };
+
+function pickIcon(visibility: VisibilityState): IconComponent {
+    switch (visibility) {
+        case 'hidden':
+            return Icons.EyeHidden;
+        case 'partial':
+            return Icons.EyePartiallyVisible;
+        case 'forced':
+            return Icons.EyeForced;
+        case 'visible':
+            return Icons.EyeVisible;
+        default:
+            return exhaustiveMatchingGuard(visibility);
+    }
+}
+
 export const Eye: React.FC<EyeProps> = ({
-    visibility,
+    visibility = 'hidden',
     fetchingContent,
     onVisibilityToggle,
-    disabled = false,
     extraClassName,
+    disabled = false,
 }) => {
     const containerClassName = createClassName(styles['eye-container'], extraClassName);
 
-    const iconClassName = createClassName(
-        styles['eye-icon'],
-        visibility && styles['eye--visible'],
-        disabled && styles['eye--disabled'],
-    );
+    const icon = pickIcon(visibility);
+    const isDisabled = disabled || visibility === 'forced';
 
     return (
         <span className={containerClassName}>
             <Button
                 size={ButtonSize.SMALL}
                 onClick={onVisibilityToggle}
-                icon={Icons.Eye}
+                icon={icon}
                 iconProps={{
                     size: IconSize.MEDIUM,
-                    color: IconColor.INHERIT,
-                    extraClassName: iconClassName,
+                    color: IconColor.ORIGINAL,
                 }}
                 variant={ButtonVariant.GHOST}
-                disabled={disabled}
+                disabled={isDisabled}
                 isProcessing={fetchingContent}
             />
         </span>

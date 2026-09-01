@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.projektivelho
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.inframodel.*
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,7 +50,7 @@ constructor(private val pvDao: PVDao, private val infraModelService: InfraModelS
         return file
             ?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
             ?.let { r -> r.copy(geometryPlan = r.geometryPlan?.copy(pvDocumentId = documentId)) }
-            ?: noFileValidationResponse(overrides)
+            ?: noFileValidationResponse(PlanSource.GEOMETRIAPALVELU)
     }
 
     fun getDocumentCounts(): PVDocumentCounts {

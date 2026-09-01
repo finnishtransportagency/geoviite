@@ -144,6 +144,61 @@ constructor(
     }
 
     @Test
+    fun `extendReferenceLine extends the reference line end and creates manual geometry`() {
+        val initial =
+            trackNumber(number = testDBService.getUnusedTrackNumber(), draft = true, state = LayoutState.IN_USE)
+        val initialGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val id = trackNumberService.saveDraft(LayoutBranch.main, initial, initialGeometry).id
+
+        trackNumberService.extendReferenceLine(LayoutBranch.main, id, EndpointType.END, Point(12.5, 0.0))
+
+        val (_, geometry) = trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
+        assertEquals(2, geometry.segments.size)
+        assertEquals(Point(0.0, 0.0), geometry.segments.first().segmentStart.toPoint())
+        assertEquals(Point(12.5, 0.0), geometry.segments.last().segmentEnd.toPoint())
+
+        val newSegment = geometry.segments.last()
+        assertEquals(GeometrySource.MANUAL, newSegment.source)
+        // Points are 1m apart, with the remainder in the last point
+        assertEquals(
+            listOf(Point(10.0, 0.0), Point(11.0, 0.0), Point(12.0, 0.0), Point(12.5, 0.0)),
+            newSegment.segmentPoints.map { p -> p.toPoint() },
+        )
+    }
+
+    @Test
+    fun `extendReferenceLine extends the reference line start and creates manual geometry`() {
+        val initial =
+            trackNumber(number = testDBService.getUnusedTrackNumber(), draft = true, state = LayoutState.IN_USE)
+        val initialGeometry = referenceLineGeometry(segment(Point(10.0, 0.0), Point(20.0, 0.0)))
+        val id = trackNumberService.saveDraft(LayoutBranch.main, initial, initialGeometry).id
+
+        trackNumberService.extendReferenceLine(LayoutBranch.main, id, EndpointType.START, Point(7.5, 0.0))
+
+        val (_, geometry) = trackNumberService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
+        assertEquals(2, geometry.segments.size)
+        assertEquals(Point(7.5, 0.0), geometry.segments.first().segmentStart.toPoint())
+        assertEquals(Point(20.0, 0.0), geometry.segments.last().segmentEnd.toPoint())
+
+        val newSegment = geometry.segments.first()
+        assertEquals(GeometrySource.MANUAL, newSegment.source)
+        // The points go in the reference line direction: from the new start towards the original one
+        assertEquals(
+            listOf(Point(7.5, 0.0), Point(8.5, 0.0), Point(9.5, 0.0), Point(10.0, 0.0)),
+            newSegment.segmentPoints.map { p -> p.toPoint() },
+        )
+    }
+
+    @Test
+    fun `extendReferenceLine throws on an empty geometry`() {
+        val (trackNumber, _) = createTrackNumberWithGeometry()
+        val id = trackNumber.id as IntId
+        assertThrows<IllegalArgumentException> {
+            trackNumberService.extendReferenceLine(LayoutBranch.main, id, EndpointType.END, Point(10.0, 0.0))
+        }
+    }
+
+    @Test
     fun `deleted draft-only TrackNumber is not fetchable by ID`() {
         val (trackNumber, _) = createTrackNumberWithGeometry()
         val trackNumberId = trackNumber.id as IntId

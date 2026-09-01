@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
-import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DESIGN
 import fi.fta.geoviite.infra.common.IntId
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout/layout-design")
 class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
 
-    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @PreAuthorize(AUTH_VIEW_DESIGN)
     @GetMapping("/")
     fun getLayoutDesigns(
         @RequestParam("includeDeleted") includeDeleted: Boolean = false,
@@ -24,7 +24,7 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
         return layoutDesignService.list(includeCompleted = includeCompleted, includeDeleted = includeDeleted)
     }
 
-    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @PreAuthorize(AUTH_VIEW_DESIGN)
     @GetMapping("/{id}")
     fun getLayoutDesign(@PathVariable id: IntId<LayoutDesign>): LayoutDesign {
         return layoutDesignService.getOrThrow(id)

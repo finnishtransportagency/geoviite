@@ -4,7 +4,6 @@ import {
     GeometryAlignment,
     GeometryKmPost,
     GeometryPlan,
-    PlanSource,
     Project,
 } from 'geometry/geometry-model';
 import { getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
@@ -17,7 +16,7 @@ import {
     InfraModelParametersProp,
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
-import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import {
     compareNamed,
     CoordinateSystem,
@@ -102,8 +101,7 @@ export type EditablePlanField =
     | 'quality'
     | 'heightSystem'
     | 'author'
-    | 'createdTime'
-    | 'source';
+    | 'createdTime';
 
 function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
     const sorted = kmPosts
@@ -136,7 +134,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     );
 
     const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystem | undefined>();
-    const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
     const [crsList, setSridList] = React.useState<CoordinateSystem[] | undefined>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
@@ -159,19 +156,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 : Promise.resolve(undefined),
         [geometryPlan?.id],
     );
-
-    const planSourceOptions: DropdownOption<PlanSource>[] = [
-        dropdownOption(
-            'GEOMETRIAPALVELU',
-            t('enum.PlanSource.GEOMETRIAPALVELU'),
-            'GEOMETRIAPALVELU',
-        ),
-        dropdownOption(
-            'PAIKANNUSPALVELU',
-            t('enum.PlanSource.PAIKANNUSPALVELU'),
-            'PAIKANNUSPALVELU',
-        ),
-    ];
 
     function changeInExtraParametersField<
         TKey extends keyof ExtraInfraModelParameters,
@@ -578,6 +562,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             geometryPlan.units.verticalCoordinateSystem ||
                             ''
                         }
+                        planVerticalCoordinateSystem={
+                            geometryPlan.units.verticalCoordinateSystem || undefined
+                        }
                         changeInOverrideParametersField={changeInOverrideParametersField}
                         getVisibleErrorsByProp={
                             profileInformationAvailable(geometryPlan.alignments)
@@ -616,33 +603,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         extraInframodelParameters={extraInframodelParameters}
                         changeInExtraParametersField={changeInExtraParametersField}
                     />
-                    <FormgroupField
-                        label={`${t('im-form.plan-source')} *`}
-                        inEditMode={fieldInEdit === 'source'}
-                        onEdit={() => setFieldInEdit('source')}
-                        onClose={() => setFieldInEdit(undefined)}>
-                        {fieldInEdit !== 'source' ? (
-                            planSource ? (
-                                t(`enum.PlanSource.${planSource}`)
-                            ) : (
-                                t('im-form.information-missing')
-                            )
-                        ) : (
-                            <FieldLayout
-                                value={
-                                    <Dropdown
-                                        wide
-                                        placeholder={t('im-form.information-missing')}
-                                        value={planSource}
-                                        options={planSourceOptions}
-                                        onChange={(planSource) => {
-                                            setPlanSource(planSource);
-                                            changeInOverrideParametersField(planSource, 'source');
-                                        }}
-                                    />
-                                }
-                            />
-                        )}
+                    <FormgroupField label={t('im-form.plan-source')}>
+                        {t(`enum.PlanSource.${geometryPlan.source}`)}
                     </FormgroupField>
                     <InfraModelQualityField
                         fieldInEdit={fieldInEdit}

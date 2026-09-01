@@ -47,12 +47,12 @@ val noFileValidationError =
 const val START_KM_PARAM_KEY = "startKm"
 const val END_KM_PARAM_KEY = "endKm"
 
-fun noFileValidationResponse(overrideParameters: OverrideParameters?) =
+fun noFileValidationResponse(source: PlanSource) =
     ValidationResponse(
         geometryValidationIssues = listOf(noFileValidationError),
         geometryPlan = null,
         planLayout = null,
-        source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
+        source = source,
     )
 
 @GeoviiteService
@@ -100,7 +100,7 @@ constructor(
 
         val parsed =
             parseInfraModelFile(
-                overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
+                PlanSource.GEOVIITE,
                 file,
                 geographyService.getCoordinateSystemNameToSridMapping(),
                 switchStructuresByType,
@@ -113,14 +113,14 @@ constructor(
         multipartFile: MultipartFile,
         overrideParameters: OverrideParameters?,
     ): ValidationResponse {
-        return tryParsing(overrideParameters?.source) {
+        return tryParsing(PlanSource.GEOVIITE) {
             val imFile = toInfraModelFile(multipartFile, overrideParameters?.encoding?.charset)
             validateInternal(imFile, overrideParameters)
         }
     }
 
     fun validateInfraModelFile(file: InfraModelFile, overrideParameters: OverrideParameters?): ValidationResponse {
-        return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
+        return tryParsing(PlanSource.GEOVIITE) { validateInternal(file, overrideParameters) }
     }
 
     fun getInfraModelBatchSummary(
@@ -170,11 +170,6 @@ constructor(
     ): RowVersion<GeometryPlan> {
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
-
-        if (overriddenPlan.source != geometryPlan.source) {
-            checkForDuplicateFile(geometryService.getPlanFileHash(planId), overriddenPlan.source)
-        }
-
         return geometryDao.updatePlan(planId, overriddenPlan)
     }
 
@@ -235,7 +230,7 @@ constructor(
             name = extraInfoParameters?.name ?: plan.name,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
-            source = overrideParameters?.source ?: plan.source,
+            source = plan.source,
             quality = extraInfoParameters?.quality ?: plan.quality,
         )
     }

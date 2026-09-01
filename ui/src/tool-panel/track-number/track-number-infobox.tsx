@@ -8,6 +8,8 @@ import {
     MapAlignmentType,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
+import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +26,12 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import {
+    Button,
+    ButtonIconPosition,
+    ButtonSize,
+    ButtonVariant,
+} from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
@@ -42,6 +49,7 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { TrackNumberOid } from 'track-layout/oid';
 import { TrackNumberChangeInfoInfobox } from 'tool-panel/track-number/track-number-change-info-infobox';
 import { TrackNumberLocationTrackInfobox } from './track-number-location-track-infobox';
+import { TrackNumberGeometryExtensionInfoboxContainer } from 'tool-panel/track-number/track-number-geometry-extension-infobox';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -53,6 +61,7 @@ type TrackNumberInfoboxProps = {
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     onStartReferenceLineGeometryChange: (alignment: LinkInterval) => void;
     onEndReferenceLineGeometryChange: () => void;
+    onStartExtendReferenceLine: (id: LayoutTrackNumber['id']) => void;
     viewport: MapViewport;
     changeTimes: ChangeTimes;
     visibilities: TrackNumberInfoboxVisibilities;
@@ -90,6 +99,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onUnselect,
     onStartReferenceLineGeometryChange,
     onEndReferenceLineGeometryChange,
+    onStartExtendReferenceLine,
     viewport,
     changeTimes,
     visibilities,
@@ -109,6 +119,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
+    const [modifyMenuOpen, setModifyMenuOpen] = React.useState<boolean>(false);
+    const modifyButtonRef = React.useRef<HTMLDivElement>(null);
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
 
     React.useEffect(() => {
@@ -157,7 +169,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         if (layoutContext.publicationState !== 'DRAFT') {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (trackNumber.state === 'DELETED') {
-            return t('tool-panel.track-number.cannot-shorten-deleted-track-number');
+            return t('tool-panel.track-number.cannot-edit-deleted-track-number');
         } else if (!startAndEndPoints?.start?.point || !startAndEndPoints?.end?.point) {
             return t('tool-panel.location-track.no-geometry');
         } else {
@@ -218,6 +230,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
+            {linkingState?.type === LinkingType.ExtendingAlignment &&
+                linkingState.alignment.type === 'REFERENCE_LINE' && (
+                    <TrackNumberGeometryExtensionInfoboxContainer
+                        trackNumber={trackNumber}
+                        linkingState={linkingState}
+                        layoutContext={layoutContext}
+                    />
+                )}
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
                     contentVisible={visibilities.referenceLine}
@@ -247,21 +267,65 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         {linkingState === undefined && (
                             <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                 <InfoboxButtons>
-                                    <Button
-                                        variant={ButtonVariant.SECONDARY}
-                                        size={ButtonSize.SMALL}
-                                        title={getModifyStartOrEndDisabledReasonTranslated()}
-                                        disabled={!canModifyStartOrEnd}
-                                        onClick={() => {
-                                            getEndLinkPoints(
-                                                trackNumber.id,
-                                                layoutContext,
-                                                MapAlignmentType.ReferenceLine,
-                                                changeTimes.layoutTrackNumber,
-                                            ).then(onStartReferenceLineGeometryChange);
-                                        }}>
-                                        {t('tool-panel.location-track.modify-start-or-end')}
-                                    </Button>
+                                    <div ref={modifyButtonRef}>
+                                        <Button
+                                            variant={ButtonVariant.SECONDARY}
+                                            size={ButtonSize.SMALL}
+                                            disabled={!canModifyStartOrEnd}
+                                            title={
+                                                !canModifyStartOrEnd
+                                                    ? getModifyStartOrEndDisabledReasonTranslated()
+                                                    : undefined
+                                            }
+                                            icon={Icons.Down}
+                                            iconPosition={ButtonIconPosition.END}
+                                            onClick={() => setModifyMenuOpen((open) => !open)}>
+                                            {t('tool-panel.location-track.modify-start-or-end')}
+                                        </Button>
+                                        {modifyMenuOpen && (
+                                            <Menu
+                                                anchorElementRef={modifyButtonRef}
+                                                onClickOutside={() => setModifyMenuOpen(false)}
+                                                onClose={() => setModifyMenuOpen(false)}
+                                                items={[
+                                                    menuOption(
+                                                        () => {
+                                                            getEndLinkPoints(
+                                                                trackNumber.id,
+                                                                layoutContext,
+                                                                MapAlignmentType.ReferenceLine,
+                                                                changeTimes.layoutTrackNumber,
+                                                            ).then(
+                                                                onStartReferenceLineGeometryChange,
+                                                            );
+                                                        },
+                                                        t(
+                                                            'tool-panel.location-track.shorten-track-start-or-end',
+                                                        ),
+                                                        'shorten-reference-line-start-or-end',
+                                                        !canModifyStartOrEnd,
+                                                        'CLOSE_AFTER_SELECT',
+                                                        undefined,
+                                                        getModifyStartOrEndDisabledReasonTranslated(),
+                                                    ),
+                                                    menuOption(
+                                                        () =>
+                                                            onStartExtendReferenceLine(
+                                                                trackNumber.id,
+                                                            ),
+                                                        t(
+                                                            'tool-panel.reference-line.geometry-extension.menu-item',
+                                                        ),
+                                                        'extend-reference-line',
+                                                        !canModifyStartOrEnd,
+                                                        'CLOSE_AFTER_SELECT',
+                                                        undefined,
+                                                        getModifyStartOrEndDisabledReasonTranslated(),
+                                                    ),
+                                                ]}
+                                            />
+                                        )}
+                                    </div>
                                 </InfoboxButtons>
                             </PrivilegeRequired>
                         )}

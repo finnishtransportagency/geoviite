@@ -1,8 +1,10 @@
 import styles from 'selection-panel/selection-panel.scss';
-import { Eye } from 'geoviite-design-lib/eye/eye';
+import { Eye, VisibilityState } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { GeometryPlanPanel } from 'selection-panel/geometry-plan-panel/geometry-plan-panel';
 import {
+    aggregateVisibility,
+    isPlanFullyVisible,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
@@ -40,7 +42,7 @@ import {
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { filterNotEmpty, filterUnique, reuseListElements } from 'utils/array-utils';
+import { filterNotEmpty, reuseListElements } from 'utils/array-utils';
 import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -58,7 +60,7 @@ type GeometryPlansPanelProps = {
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     planDownloadPopupOpen: boolean;
-    onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
+    onSetPlanVisibility: (payload: { plan: VisiblePlanLayout; visible: boolean }) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
@@ -68,7 +70,7 @@ type GeometryPlansPanelProps = {
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanDownloadPopupOpen: (payload: boolean) => void;
     onSelect: (options: OnSelectOptions) => void;
-    disabled?: boolean;
+    forcedVisiblePlan?: VisiblePlanLayout;
     grouping: GeometryPlanGrouping;
     visibleSources: PlanSource[];
 };
@@ -89,7 +91,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     openPlans,
     visiblePlans,
     planDownloadPopupOpen,
-    onTogglePlanVisibility,
+    onSetPlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
     onToggleKmPostVisibility,
@@ -101,7 +103,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     onSelect,
     grouping,
     visibleSources,
-    disabled = false,
+    forcedVisiblePlan,
 }) => {
     const { t } = useTranslation();
     const [planHeadersDisplayableInPanel, setPlanHeadersDisplayableInPanel] = React.useState<
@@ -195,32 +197,69 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         [changeTimes.geometryPlan, layoutContext],
     );
 
+    React.useEffect(() => {
+        const missingVisiblePlanIds = visiblePlans
+            .map((plan) => plan.id)
+            .filter((id) => !fetchedPlans.has(id) && !plansBeingFetched.has(id));
+        if (missingVisiblePlanIds.length > 0) {
+            void fetchPlanLayouts(missingVisiblePlanIds);
+        }
+    }, [visiblePlans, fetchedPlans, plansBeingFetched, fetchPlanLayouts]);
+
     const visiblePlansInView = visiblePlans.filter((p) =>
         planIdsInViewport.some((planId) => planId === p.id),
     );
+
+    const isPlanFullyVisibleInView = (planId: GeometryPlanId): boolean =>
+        isPlanFullyVisible(
+            visiblePlansInView.find((p) => p.id === planId),
+            fetchedPlans.get(planId)?.planLayout,
+        );
 
     function fetchPlansAndSetVisible(planIds: GeometryPlanId[]) {
         fetchPlanLayouts(planIds).then((plans) =>
             plans
                 .map((p) => p.layout)
                 .filter(filterNotEmpty)
-                .forEach((plan) => onTogglePlanVisibility(wholePlanVisibility(plan))),
+                .forEach((plan) =>
+                    onSetPlanVisibility({ plan: wholePlanVisibility(plan), visible: true }),
+                ),
         );
     }
 
+    const plansListShown = planHeadersDisplayableInPanel.length === planHeaderCount;
+
+    const allPlansVisibility = plansListShown
+        ? aggregateVisibility(
+              visiblePlansInView.length > 0,
+              planHeadersDisplayableInPanel.length > 0 &&
+                  planHeadersDisplayableInPanel.every((h) => isPlanFullyVisibleInView(h.id)),
+          )
+        : 'hidden';
+
     const toggleAllPlanVisibilities = () => {
-        if (visiblePlansInView.length > 0) {
-            visiblePlansInView.forEach(onTogglePlanVisibility);
-        } else if (planHeadersDisplayableInPanel.length === planHeaderCount) {
-            const allDisplayablePlanIds = planHeadersDisplayableInPanel.map((h) => h.id);
-            fetchPlansAndSetVisible(allDisplayablePlanIds);
+        if (allPlansVisibility === 'visible') {
+            visiblePlansInView.forEach((plan) => onSetPlanVisibility({ plan, visible: false }));
+        } else if (plansListShown) {
+            const notFullyVisiblePlanIds = planHeadersDisplayableInPanel
+                .filter((h) => !isPlanFullyVisibleInView(h.id))
+                .map((h) => h.id);
+            fetchPlansAndSetVisible(notFullyVisiblePlanIds);
         }
     };
 
-    const visibleProjectIds = planHeadersDisplayableInPanel
-        .filter((plan) => visiblePlans.some((visiblePlan) => visiblePlan.id === plan.id))
-        .map((plan) => plan.project.id)
-        .filter(filterUnique);
+    function projectVisibility(projectId: ProjectId): VisibilityState {
+        const projectPlans = planHeadersDisplayableInPanel.filter(
+            (plan) => plan.project.id === projectId,
+        );
+        const anyVisible = projectPlans.some((plan) =>
+            visiblePlansInView.some((visiblePlan) => visiblePlan.id === plan.id),
+        );
+        const allVisible =
+            projectPlans.length > 0 &&
+            projectPlans.every((plan) => isPlanFullyVisibleInView(plan.id));
+        return aggregateVisibility(anyVisible, allVisible);
+    }
 
     function setProjectVisibility(projectId: ProjectId, newVisibility: boolean) {
         const projectPlans = planHeadersDisplayableInPanel.filter(
@@ -230,10 +269,12 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             const visibleProjectPlans = visiblePlansInView.filter((visiblePlan) =>
                 projectPlans.some((projectPlan) => projectPlan.id === visiblePlan.id),
             );
-            visibleProjectPlans.forEach(onTogglePlanVisibility);
+            visibleProjectPlans.forEach((plan) => onSetPlanVisibility({ plan, visible: false }));
         } else {
-            const projectPlanIds = projectPlans.map((plan) => plan.id);
-            fetchPlansAndSetVisible(projectPlanIds);
+            const notFullyVisiblePlanIds = projectPlans
+                .filter((plan) => !isPlanFullyVisibleInView(plan.id))
+                .map((plan) => plan.id);
+            fetchPlansAndSetVisible(notFullyVisiblePlanIds);
         }
     }
 
@@ -260,9 +301,9 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 </PrivilegeRequired>
                 <GeometryPlanFilterMenuContainer />
                 <Eye
-                    disabled={disabled || planHeadersDisplayableInPanel.length === 0}
                     onVisibilityToggle={toggleAllPlanVisibilities}
-                    visibility={visiblePlansInView.length > 0}
+                    visibility={allPlansVisibility}
+                    disabled={!plansListShown || planHeadersDisplayableInPanel.length === 0}
                 />
             </h3>
             <div
@@ -270,13 +311,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     styles['selection-panel__content'],
                     styles['selection-panel__content--unpadded'],
                 )}>
-                {planHeadersDisplayableInPanel.length === planHeaderCount &&
+                {plansListShown &&
                     planHeadersDisplayableInPanel.map((h, index, allPlans) => {
                         const isSameAsPrevProject =
                             h.project.id === allPlans[index - 1]?.project?.id;
                         const showProjectRow =
                             grouping === GeometryPlanGrouping.ByProject && !isSameAsPrevProject;
-                        const projectIsVisible = visibleProjectIds.includes(h.project.id);
+                        const projectVisibilityState = projectVisibility(h.project.id);
                         return (
                             <React.Fragment key={h.id}>
                                 {showProjectRow && (
@@ -288,11 +329,10 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                             onVisibilityToggle={() =>
                                                 setProjectVisibility(
                                                     h.project.id,
-                                                    !projectIsVisible,
+                                                    projectVisibilityState !== 'visible',
                                                 )
                                             }
-                                            visibility={projectIsVisible}
-                                            disabled={disabled}
+                                            visibility={projectVisibilityState}
                                         />
                                     </div>
                                 )}
@@ -301,12 +341,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                     planHeader={h}
                                     onSelect={onSelect}
                                     changeTimes={changeTimes}
-                                    onTogglePlanVisibility={onTogglePlanVisibility}
+                                    onSetPlanVisibility={onSetPlanVisibility}
                                     onToggleAlignmentVisibility={onToggleAlignmentVisibility}
                                     onToggleSwitchVisibility={onToggleSwitchVisibility}
                                     onToggleKmPostVisibility={onToggleKmPostVisibility}
                                     selectedItems={selectedItems}
                                     visiblePlans={visiblePlans}
+                                    forcedVisiblePlan={forcedVisiblePlan}
                                     togglePlanOpen={togglePlanOpen}
                                     openPlans={openPlans}
                                     togglePlanKmPostsOpen={togglePlanKmPostsOpen}
@@ -317,7 +358,6 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                     linkStatus={fetchedPlans.get(h.id)?.linkStatus}
                                     planBeingLoaded={plansBeingFetched.has(h.id)}
                                     fetchPlanLayouts={fetchPlanLayouts}
-                                    disabled={disabled}
                                 />
                             </React.Fragment>
                         );

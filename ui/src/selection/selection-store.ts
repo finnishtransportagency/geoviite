@@ -23,6 +23,7 @@ import {
 } from 'geometry/geometry-model';
 import { PublicationId } from 'publication/publication-model';
 import { objectEquals } from 'utils/object-utils';
+import { VisibilityState } from 'geoviite-design-lib/eye/eye';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -336,35 +337,16 @@ export const selectionReducers = {
     clearPublicationSelection: (state: Selection) => {
         state.publicationId = undefined;
     },
-    togglePlanVisibility: (
+    setPlanVisibility: (
         state: Selection,
-        { payload: plan }: PayloadAction<VisiblePlanLayout>,
+        { payload }: PayloadAction<{ plan: VisiblePlanLayout; visible: boolean }>,
     ): void => {
-        const isPlanVisible = state.visiblePlans.some((p) => p.id === plan?.id);
-
-        if (isPlanVisible) {
-            const selectedItems = state.selectedItems;
-
-            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
-
-            selectedItems.geometryKmPostIds = [
-                ...selectedItems.geometryKmPostIds.filter(
-                    ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
-                ),
-            ];
-            selectedItems.geometrySwitchIds = [
-                ...selectedItems.geometrySwitchIds.filter(
-                    ({ geometryId }) => !plan?.switches.includes(geometryId),
-                ),
-            ];
-            selectedItems.geometryAlignmentIds = [
-                ...selectedItems.geometryAlignmentIds.filter(
-                    (ga) => !plan?.alignments.includes(ga.geometryId),
-                ),
-            ];
+        const { plan, visible } = payload;
+        if (visible) {
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan.id), plan];
         } else {
-            const newVisiblePlan = plan ? [plan] : [];
-            state.visiblePlans = [...state.visiblePlans, ...newVisiblePlan];
+            state.visiblePlans = [...state.visiblePlans.filter((p) => p.id !== plan?.id)];
+            clearPlanSelection(state, plan);
         }
     },
     toggleAlignmentVisibility: (
@@ -430,6 +412,26 @@ export const selectionReducers = {
     },
 };
 
+function clearPlanSelection(state: Selection, plan: VisiblePlanLayout): void {
+    const selectedItems = state.selectedItems;
+
+    selectedItems.geometryKmPostIds = [
+        ...selectedItems.geometryKmPostIds.filter(
+            ({ geometryId }) => !plan?.kmPosts.includes(geometryId),
+        ),
+    ];
+    selectedItems.geometrySwitchIds = [
+        ...selectedItems.geometrySwitchIds.filter(
+            ({ geometryId }) => !plan?.switches.includes(geometryId),
+        ),
+    ];
+    selectedItems.geometryAlignmentIds = [
+        ...selectedItems.geometryAlignmentIds.filter(
+            (ga) => !plan?.alignments.includes(ga.geometryId),
+        ),
+    ];
+}
+
 function toggleVisibility(
     state: Selection,
     type: 'alignments' | 'switches' | 'kmPosts',
@@ -460,9 +462,36 @@ function toggleItemVisibilityInPlan(
             if (!arePlanPartsVisible(visiblePlan)) {
                 state.visiblePlans = state.visiblePlans.filter((p) => p.id !== planId);
             }
+            clearGeometryItemSelection(state, type, planId, itemId);
         }
     } else {
         visiblePlan[type] = [...visiblePlan[type], itemId] as never;
+    }
+}
+
+function clearGeometryItemSelection(
+    state: Selection,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    planId: string,
+    itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
+): void {
+    const selectedItems = state.selectedItems;
+    switch (type) {
+        case 'alignments':
+            selectedItems.geometryAlignmentIds = selectedItems.geometryAlignmentIds.filter(
+                (item) => !(item.planId === planId && item.geometryId === itemId),
+            );
+            break;
+        case 'switches':
+            selectedItems.geometrySwitchIds = selectedItems.geometrySwitchIds.filter(
+                (item) => !(item.planId === planId && item.geometryId === itemId),
+            );
+            break;
+        case 'kmPosts':
+            selectedItems.geometryKmPostIds = selectedItems.geometryKmPostIds.filter(
+                (item) => !(item.planId === planId && item.geometryId === itemId),
+            );
+            break;
     }
 }
 
@@ -497,4 +526,37 @@ export function wholePlanVisibility(plan: GeometryPlanLayout): VisiblePlanLayout
         kmPosts: plan.kmPosts.map((s) => s.sourceId).filter(filterNotEmpty),
         alignments: plan.alignments.map((a) => a.header.id),
     };
+}
+
+export function aggregateVisibility(anyVisible: boolean, allVisible: boolean): VisibilityState {
+    if (allVisible) return 'visible';
+    if (anyVisible) return 'partial';
+    return 'hidden';
+}
+
+export function isPlanFullyVisible(
+    visiblePlan: VisiblePlanLayout | undefined,
+    planLayout: GeometryPlanLayout | undefined,
+): boolean {
+    if (!visiblePlan) return false;
+    if (!planLayout) return true;
+
+    return (
+        planLayout.alignments.every((a) => visiblePlan.alignments.includes(a.header.id)) &&
+        planLayout.switches.every(
+            (s) => !s.sourceId || visiblePlan.switches.includes(s.sourceId),
+        ) &&
+        planLayout.kmPosts.every((k) => !k.sourceId || visiblePlan.kmPosts.includes(k.sourceId))
+    );
+}
+
+export function isGeometryForcedVisible(
+    forcedVisiblePlan: VisiblePlanLayout | undefined,
+    planId: GeometryPlanId,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
+): boolean {
+    return (
+        forcedVisiblePlan?.id === planId && (forcedVisiblePlan[type] as string[]).includes(itemId)
+    );
 }

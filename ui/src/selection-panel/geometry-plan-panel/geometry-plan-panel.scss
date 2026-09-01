@@ -46,27 +46,8 @@ $accordion-right-padding: 20px;
         margin-bottom: 4px;
     }
 
-    &__alignment-visibility,
-    &__switch-visibility,
-    &__kmpost-visibility {
-        cursor: pointer;
-        margin-left: auto;
-        transition: fill 150ms;
-        fill: vayla-design.$color-white-darker;
-        height: 20px;
-
-        &--visible {
-            fill: vayla-design.$color-blue-default;
-        }
-    }
-
     &__list-item-main-content {
         flex: 1;
         cursor: pointer;
-    }
-
-    &--disabled {
-        pointer-events: none;
-        color: vayla-design.$color-black-lighter;
     }
 }

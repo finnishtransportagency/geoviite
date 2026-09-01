@@ -28,8 +28,12 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     @Test
     fun `getStationLinks returns correct links when connected through switches`() {
         val moment0 = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links ->
+            assertTrue(links.isEmpty())
+        }
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
+            assertTrue(links.isEmpty())
+        }
 
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumber(
@@ -94,7 +98,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         // Time after data init
         val moment1 = testDBService.getDbTime()
 
-        val links = stationLinkService.getStationLinks(mainOfficialContext.context)
+        val links = stationLinkService.getStationLinks(mainOfficialContext.context).links
         links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
@@ -120,17 +124,23 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify that the context-based fetch returns the exact same results as moment-based fetch
-        assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1))
+        assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1).links)
 
         // Verify that the 0-moment links is still empty
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links ->
+            assertTrue(links.isEmpty())
+        }
     }
 
     @Test
     fun `getStationLinks returns correct links for tracks directly connected to operational points`() {
         val moment0 = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links ->
+            assertTrue(links.isEmpty())
+        }
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
+            assertTrue(links.isEmpty())
+        }
 
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumber(
@@ -166,7 +176,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         // Time after data init
         val moment1 = testDBService.getDbTime()
 
-        val links = stationLinkService.getStationLinks(mainOfficialContext.context)
+        val links = stationLinkService.getStationLinks(mainOfficialContext.context).links
         links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
@@ -191,10 +201,12 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify that the context-based fetch returns the exact same results as moment-based fetch
-        assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1))
+        assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1).links)
 
         // Verify that the 0-moment links is still empty
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).links.also { links ->
+            assertTrue(links.isEmpty())
+        }
     }
 
     @Test
@@ -272,7 +284,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         // Create a publication to generate a reference-point for routing cache
         testDBService.createPublication()
 
-        stationLinkService.getStationLinks(MainLayoutContext.official).also { links ->
+        stationLinkService.getStationLinks(MainLayoutContext.official).links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
                 listOf(
@@ -310,7 +322,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
 
         testDBService.createPublication()
 
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
             // Only the OP1-OP2 link should exist; OLP should be excluded entirely
             assertEquals(
                 listOf(op1 to op2),
@@ -319,7 +331,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify moment-based fetch also excludes OLP
-        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).links.also { links ->
             // Only the OP1-OP2 link should exist; OLP should be excluded entirely
             assertEquals(
                 listOf(op1 to op2),
@@ -403,30 +415,30 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         val expectedLength = calculateDistance(LAYOUT_SRID, Point(10.0, 5.0), Point(190.0, 5.0))
 
         // Without filter: should find the link
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
 
         // With filter by OP1: should still find the same link
-        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op1.id).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op1.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
 
         // With filter by OP2: should still find the same link
-        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op2.id).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op2.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
 
         // Verify moment-based fetch with filters works too
         val moment = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op1.id).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op1.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
-        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op2.id).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op2.id).links.also { links ->
             assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
             assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
         }
@@ -454,7 +466,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         testDBService.createPublication()
 
         // Should not throw and should produce a link between the two existing OPs only
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+        stationLinkService.getStationLinks(mainOfficialContext.context).links.also { links ->
             assertEquals(
                 listOf(op1 to op2),
                 links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
@@ -462,11 +474,126 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify moment-based fetch also handles the broken reference gracefully
-        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).also { links ->
+        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).links.also { links ->
             assertEquals(
                 listOf(op1 to op2),
                 links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
             )
         }
+    }
+
+    @Test
+    fun `getStationLinks reports an unreachable-midpoint issue when a station's location cannot be geocoded onto the connecting track`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(60.0, 0.0))
+            )
+        val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(80.0, 0.0)))
+
+        // Track is associated with both operational points, but only physically covers OP1's area;
+        // OP2 is included so a connection pair is formed, even though its address can't be resolved.
+        val track =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1.id, op2.id)),
+                trackGeometry(
+                    edge(segments = listOf(segment(Point(15.0, 2.0), Point(55.0, 2.0), calc = M_CALC.LAYOUT)))
+                ),
+            )
+
+        testDBService.createPublication()
+
+        val result = stationLinkService.getStationLinks(mainOfficialContext.context)
+
+        // No link can be produced, since OP2's midpoint cannot be reached
+        assertTrue(result.links.isEmpty())
+        assertEquals(
+            listOf(
+                StationLinkIssue(
+                    type = StationLinkIssueType.UNREACHABLE_STATION_MIDPOINT,
+                    severity = StationLinkIssueSeverity.ERROR,
+                    operationalPointId = op2.id,
+                    otherOperationalPointId = op1.id,
+                    locationTrackId = track.id,
+                    trackNumberId = tnVersion.id,
+                )
+            ),
+            result.issues,
+        )
+
+        // Verify moment-based fetch produces the same issue
+        assertEquals(
+            result.issues,
+            stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).issues,
+        )
+    }
+
+    @Test
+    fun `getStationLinks reports a suspiciously-long-route issue when the routed path is much longer than the straight-line distance`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumber(
+                geometry = referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
+            )
+        val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 5.0)))
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(150.0, 5.0)))
+
+        val structure = switchStructureYV60_300_1_9()
+        val switch1Id = mainOfficialContext.save(switch(structure.id, operationalPointId = op1.id)).id
+
+        val switch1Joint1Location = Point(30.0, 5.0)
+        val switch1Joint2Location = switch1Joint1Location + structure.getJointLocation(JointNumber(2))
+
+        // Winding track from OP1's own location to switch1: the straight-line distance is short (10),
+        // but the actual routed path is much longer (70), triggering the suspiciously-long-route issue.
+        mainOfficialContext.save(
+            locationTrack(tnVersion.id),
+            trackGeometry(
+                edge(
+                    endOuterSwitch = switchLinkYV(switch1Id, 1),
+                    segments =
+                        listOf(
+                            segment(Point(20.0, 5.0), Point(20.0, 25.0), calc = M_CALC.LAYOUT),
+                            segment(Point(20.0, 25.0), Point(40.0, 25.0), calc = M_CALC.LAYOUT),
+                            segment(Point(40.0, 25.0), Point(40.0, 5.0), calc = M_CALC.LAYOUT),
+                            segment(Point(40.0, 5.0), switch1Joint1Location, calc = M_CALC.LAYOUT),
+                        ),
+                )
+            ),
+        )
+
+        // Connecting track from switch1 straight to OP2 (directly reachable, so its own leg stays short)
+        mainOfficialContext.save(
+            locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op2.id)),
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch1Id, 1),
+                    endInnerSwitch = switchLinkYV(switch1Id, 2),
+                    segments = listOf(segment(switch1Joint1Location, switch1Joint2Location, calc = M_CALC.LAYOUT)),
+                ),
+                edge(
+                    startOuterSwitch = switchLinkYV(switch1Id, 2),
+                    segments = listOf(segment(switch1Joint2Location, Point(150.0, 5.0), calc = M_CALC.LAYOUT)),
+                ),
+            ),
+        )
+
+        testDBService.createPublication()
+
+        val result = stationLinkService.getStationLinks(mainOfficialContext.context)
+
+        val longRouteIssue =
+            result.issues.singleOrNull {
+                it.type == StationLinkIssueType.SUSPICIOUSLY_LONG_ROUTE && it.operationalPointId == op1.id
+            }
+        assertTrue(longRouteIssue != null, "Expected a suspiciously-long-route issue for OP1, got: ${result.issues}")
+        assertEquals(StationLinkIssueSeverity.WARNING, longRouteIssue!!.severity)
+        assertEquals(op2.id, longRouteIssue.otherOperationalPointId)
+
+        val routeDistance = longRouteIssue.details.getValue("stationRouteDistance").toDouble()
+        val straightLineDistance = longRouteIssue.details.getValue("stationStraightLineDistance").toDouble()
+        assertTrue(
+            routeDistance > 2 * straightLineDistance,
+            "Expected route distance ($routeDistance) to be more than twice the straight-line distance ($straightLineDistance)",
+        )
     }
 }

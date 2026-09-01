@@ -6,19 +6,5 @@
 }
 
 .eye-container button:disabled {
-    cursor: not-allowed;
-}
-
-.eye-icon {
-    transition: fill 150ms;
-    fill: vayla-design.$color-white-darker;
-}
-
-.eye--visible {
-    fill: vayla-design.$color-blue-default;
-}
-
-.eye--disabled {
     cursor: default;
-    fill: vayla-design.$color-white-darker;
 }

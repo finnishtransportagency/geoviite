@@ -30,7 +30,8 @@ with temp(code) as (
       ('api-frame-converter'),
       ('api-geometry'),
       ('api-swagger'),
-      ('view-debug-layers')
+      ('view-debug-layers'),
+      ('view-design')
 )
 select *
   from temp;
@@ -52,6 +53,7 @@ with temp(role_code, privilege_code) as (
       ('operator', 'api-frame-converter'),
       ('operator', 'api-geometry'),
       ('operator', 'api-swagger'),
+      ('operator', 'view-design'),
 
       ('team', 'view-basic'),
       ('team', 'view-layout'),
@@ -66,6 +68,7 @@ with temp(role_code, privilege_code) as (
       ('team', 'api-geometry'),
       ('team', 'api-swagger'),
       ('team', 'view-debug-layers'),
+      ('team', 'view-design'),
 
       ('browser', 'view-basic'),
       ('browser', 'view-layout'),
@@ -86,6 +89,7 @@ with temp(role_code, privilege_code) as (
       ('authority', 'api-frame-converter'),
       ('authority', 'api-geometry'),
       ('authority', 'api-swagger'),
+      ('authority', 'view-design'),
 
       ('consultant', 'view-basic'),
       ('consultant', 'view-publication'),
@@ -94,6 +98,7 @@ with temp(role_code, privilege_code) as (
       ('consultant', 'api-frame-converter'),
       ('consultant', 'api-geometry'),
       ('consultant', 'api-swagger'),
+      ('consultant', 'view-design'),
 
       ('api-public', 'api-frame-converter'),
       ('api-public', 'api-swagger'),

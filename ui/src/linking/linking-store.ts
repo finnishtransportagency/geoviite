@@ -370,7 +370,9 @@ export const linkingReducers = {
     },
     startKmPostLinking: (
         state: TrackLayoutState,
-        { payload: geometryKmPostId }: PayloadAction<GeometryKmPostId>,
+        {
+            payload: { geometryKmPostId, geometryPlanId },
+        }: PayloadAction<{ geometryKmPostId: GeometryKmPostId; geometryPlanId: GeometryPlanId }>,
     ) => {
         const newLayoutContext = draftLayoutContext(state.layoutContext);
         state.layoutContext = newLayoutContext;
@@ -379,6 +381,7 @@ export const linkingReducers = {
         state.linkingState = {
             type: LinkingType.LinkingKmPost,
             geometryKmPostId: geometryKmPostId,
+            geometryPlanId: geometryPlanId,
             state: 'setup',
             issues: [],
         };
