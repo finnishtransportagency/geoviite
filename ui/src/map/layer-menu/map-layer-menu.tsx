@@ -14,6 +14,7 @@ import {
     isLayerInProxyLayerCollection,
     layersToHideByProxy,
     layersToShowByProxy,
+    menuContainsMapLayer,
 } from 'map/map-store';
 import { VIEW_DEBUG_LAYERS, VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
@@ -26,6 +27,8 @@ type MapLayerMenuProps = {
     onClose?: () => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
+    forcedVisibleLayers?: MapLayerName[];
+    forcedHiddenLayers?: MapLayerName[];
 };
 
 type MapLayerProps = {
@@ -42,6 +45,8 @@ type MapLayerGroupProps = {
     menuItemVisibilities: MapLayerMenuItem[];
     mapLayerVisibilities: MapLayerName[];
     onMenuChange: (change: MapLayerMenuChange) => void;
+    forcedVisibleLayers?: MapLayerName[];
+    forcedHiddenLayers?: MapLayerName[];
 };
 
 const MapLayer: React.FC<MapLayerProps> = ({
@@ -77,61 +82,86 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
     menuItemVisibilities,
     mapLayerVisibilities,
     onMenuChange,
+    forcedVisibleLayers = [],
+    forcedHiddenLayers = [],
 }) => {
     const { t } = useTranslation();
     return (
         <React.Fragment>
             <div className={styles['map-layer-menu__title']}>{title}</div>
-            {menuItemVisibilities.flatMap((setting) => {
+            {menuItemVisibilities.flatMap((layerMenuItem) => {
+                const isForcedVisible = menuContainsMapLayer(layerMenuItem, forcedVisibleLayers);
+                const isForcedHidden = menuContainsMapLayer(layerMenuItem, forcedHiddenLayers);
+                const isMapLayerVisibilityForced = isForcedVisible || isForcedHidden;
                 const enabledByProxy = isLayerInProxyLayerCollection(
-                    setting.name,
+                    layerMenuItem.name,
                     mapLayerVisibilities,
                     layersToShowByProxy,
                 );
                 const disabledByProxy = isLayerInProxyLayerCollection(
-                    setting.name,
+                    layerMenuItem.name,
                     mapLayerVisibilities,
                     layersToHideByProxy,
                 );
                 return [
                     <MapLayer
-                        key={setting.name}
-                        qaId={`layer-menu-item-${setting.name}`}
-                        label={t(`map-layer-menu.${setting.name}`)}
-                        visible={(enabledByProxy || setting.selected) && !disabledByProxy}
-                        disabled={enabledByProxy || disabledByProxy}
+                        key={layerMenuItem.name}
+                        qaId={`layer-menu-item-${layerMenuItem.name}`}
+                        label={t(`map-layer-menu.${layerMenuItem.name}`)}
+                        visible={
+                            (enabledByProxy || layerMenuItem.selected || isForcedVisible) &&
+                            !disabledByProxy &&
+                            !isForcedHidden
+                        }
+                        disabled={isMapLayerVisibilityForced || enabledByProxy || disabledByProxy}
                         onChange={() =>
                             onMenuChange({
-                                name: setting.name,
-                                selected: !setting.selected,
+                                name: layerMenuItem.name,
+                                selected: !layerMenuItem.selected,
                             })
                         }
                     />,
-                    setting.subMenu?.map((subSetting) => {
+                    layerMenuItem.subMenu?.map((subMenuItem) => {
+                        const isForcedVisible = menuContainsMapLayer(
+                            subMenuItem,
+                            forcedVisibleLayers,
+                        );
+                        const isForcedHidden = menuContainsMapLayer(
+                            subMenuItem,
+                            forcedHiddenLayers,
+                        );
+                        const isMapLayerVisibilityForced = isForcedVisible || isForcedHidden;
                         const enabledByProxy = isLayerInProxyLayerCollection(
-                            subSetting.name,
+                            subMenuItem.name,
                             mapLayerVisibilities,
                             layersToShowByProxy,
                         );
                         const disabledByProxy = isLayerInProxyLayerCollection(
-                            setting.name,
+                            layerMenuItem.name,
                             mapLayerVisibilities,
                             layersToHideByProxy,
                         );
                         return (
                             <MapLayer
-                                key={subSetting.name}
-                                qaId={`layer-menu-item-${subSetting.name}`}
-                                label={t(`map-layer-menu.${subSetting.name}`)}
+                                key={subMenuItem.name}
+                                qaId={`layer-menu-item-${subMenuItem.name}`}
+                                label={t(`map-layer-menu.${subMenuItem.name}`)}
                                 visible={
-                                    (enabledByProxy || subSetting.selected) && !disabledByProxy
+                                    (enabledByProxy || subMenuItem.selected || isForcedVisible) &&
+                                    !disabledByProxy &&
+                                    !isForcedHidden
                                 }
-                                disabled={enabledByProxy || disabledByProxy || !setting.selected}
+                                disabled={
+                                    isMapLayerVisibilityForced ||
+                                    enabledByProxy ||
+                                    disabledByProxy ||
+                                    !layerMenuItem.selected
+                                }
                                 indented={true}
                                 onChange={() =>
                                     onMenuChange({
-                                        name: subSetting.name,
-                                        selected: !subSetting.selected,
+                                        name: subMenuItem.name,
+                                        selected: !subMenuItem.selected,
                                     })
                                 }
                             />
@@ -154,6 +184,8 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
     mapLayerMenuGroups,
     onMenuChange,
     visibleLayers,
+    forcedVisibleLayers = [],
+    forcedHiddenLayers = [],
 }: MapLayerMenuProps) => {
     const { t } = useTranslation();
     const [showMapLayerMenu, setShowMapLayerMenu] = React.useState(false);
@@ -187,6 +219,8 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
                         menuItemVisibilities={mapLayerMenuGroups.layout}
                         onMenuChange={onMenuChange}
                         mapLayerVisibilities={visibleLayers}
+                        forcedVisibleLayers={forcedVisibleLayers}
+                        forcedHiddenLayers={forcedHiddenLayers}
                     />
                     <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                         <MapLayerGroup
@@ -194,6 +228,8 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
                             menuItemVisibilities={mapLayerMenuGroups.geometry}
                             onMenuChange={onMenuChange}
                             mapLayerVisibilities={visibleLayers}
+                            forcedVisibleLayers={forcedVisibleLayers}
+                            forcedHiddenLayers={forcedHiddenLayers}
                         />
                     </PrivilegeRequired>
                     {showDebugLayers && (
@@ -202,6 +238,8 @@ const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
                             menuItemVisibilities={mapLayerMenuGroups.debug}
                             onMenuChange={onMenuChange}
                             mapLayerVisibilities={visibleLayers}
+                            forcedVisibleLayers={forcedVisibleLayers}
+                            forcedHiddenLayers={forcedHiddenLayers}
                         />
                     )}
                 </CloseableModal>

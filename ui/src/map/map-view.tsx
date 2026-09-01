@@ -998,6 +998,8 @@ const MapView: React.FC<MapViewProps> = ({
                     onMenuChange={onMapLayerChange}
                     mapLayerMenuGroups={map.layerMenu}
                     visibleLayers={visibleLayerNames}
+                    forcedVisibleLayers={map.forcedVisibleLayers}
+                    forcedHiddenLayers={map.forcedHiddenLayers}
                 />
             </div>
             <LocationHolderView
