@@ -51,9 +51,9 @@ class CookieSigner {
         val customPolicyCookies = cloudFrontUtilities.getCookiesForCustomPolicy(customSignerRequest)
 
         val cookieAttributes = "SameSite=Lax; Path=/; Secure; HttpOnly; Expires=${df.format(Date.from(expiresOn))}"
-        val keyPairIdCookie = "CloudFront-Key-Pair-Id=${customPolicyCookies.keyPairIdHeaderValue()};$cookieAttributes"
-        val policyCookie = "CloudFront-Policy=${customPolicyCookies.policyHeaderValue()};$cookieAttributes"
-        val signatureCookie = "CloudFront-Signature=${customPolicyCookies.signatureHeaderValue()};$cookieAttributes"
+        val keyPairIdCookie = "${customPolicyCookies.keyPairIdHeaderValue()};$cookieAttributes"
+        val policyCookie = "${customPolicyCookies.policyHeaderValue()};$cookieAttributes"
+        val signatureCookie = "${customPolicyCookies.signatureHeaderValue()};$cookieAttributes"
 
         return CloudFrontCookies(
             policy = policyCookie,
