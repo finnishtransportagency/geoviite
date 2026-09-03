@@ -15,7 +15,7 @@ val geotoolsVersion = "34.4"
 val kotlinVersion = "2.4.10"
 
 plugins {
-    id("org.springframework.boot") version "4.1.0"
+    id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
@@ -48,7 +48,7 @@ ext["selenium.version"] = "4.41.0"
 dependencies {
     // Geoviite mainly uses Spring 4 default of Jackson 3 (version managed by spring), but some
     // dependencies also use the older Jackson 2. Versions 2 & 3 can co-exist safely.
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.1"))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.2"))
 
     // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
     // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
