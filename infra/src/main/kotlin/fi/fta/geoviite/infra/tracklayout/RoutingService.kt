@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -34,9 +35,9 @@ class RoutingService(
         ) : GraphCacheKey()
 
         data class Validation(
-            val context: ValidationContext,
-            val tracks: Set<Pair<LocationTrack, DbLocationTrackGeometry>>,
-            val switches: Set<LayoutSwitch>,
+            val contextKey: LayoutContextTransition,
+            val tracks: Set<LayoutRowVersion<LocationTrack>>,
+            val switches: Set<LayoutRowVersion<LayoutSwitch>>,
         ) : GraphCacheKey()
     }
 
@@ -72,13 +73,13 @@ class RoutingService(
 
     fun getGraph(
         context: ValidationContext,
-        tracksWithGeometry: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
-        switches: List<LayoutSwitch>,
+        tracks: List<LayoutRowVersion<LocationTrack>>,
+        switches: List<LayoutRowVersion<LayoutSwitch>>,
     ): RoutingGraph =
         getGraph(
             GraphCacheKey.Validation(
-                context = context,
-                tracks = tracksWithGeometry.toSet(),
+                contextKey = context.target,
+                tracks = tracks.toSet(),
                 switches = switches.toSet(),
             )
         )
@@ -110,8 +111,8 @@ class RoutingService(
 
             is GraphCacheKey.Validation -> {
                 buildGraph(
-                    key.tracks.map { (_, g) -> g },
-                    key.switches.toList(),
+                    trackService.getManyWithGeometries(key.tracks.toList()).map { (_, g) -> g },
+                    switchDao.fetchMany(key.switches.toList()),
                     switchLibraryService.getSwitchStructuresById(),
                 )
             }
@@ -179,7 +180,8 @@ class RoutingService(
             }
 
             is GraphCacheKey.Validation -> {
-                key.tracks
+                trackService
+                    .getManyWithGeometries(key.tracks.toList())
                     .asSequence()
                     .filter { (_, geometry) -> geometry.boundingBox?.intersects(bbox) == true }
                     .mapNotNull { (track, geometry) -> createHit(track, geometry, location, thresholdMeters) }

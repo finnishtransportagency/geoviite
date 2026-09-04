@@ -161,7 +161,12 @@ class StationLinkService(
             RouteCalculator(
                 operationalPoints,
                 connectingTracks,
-                routingGraph = routingService.getGraph(context, tracksWithGeometry, switches),
+                routingGraph =
+                    routingService.getGraph(
+                        context,
+                        tracksWithGeometry.map { (_, g) -> g.trackRowVersion },
+                        switches.mapNotNull { it.version },
+                    ),
                 getGeocodingContext = context::getGeocodingContext,
             )
         return linkData to routeCalculator
