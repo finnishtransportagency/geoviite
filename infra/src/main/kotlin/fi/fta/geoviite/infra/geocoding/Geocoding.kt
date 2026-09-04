@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
+import fi.fta.geoviite.infra.math.closestPointProportionOnLine
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.interpolateAngleRads
 import fi.fta.geoviite.infra.math.interpolateToAlignmentPoint
@@ -55,6 +56,7 @@ import java.math.RoundingMode.CEILING
 import java.math.RoundingMode.FLOOR
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
+import kotlin.math.min
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -267,6 +269,11 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
  * but because there are earlier rounding steps as well, we give an extra half-mm of slack.
  */
 private const val PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE = 0.001
+/**
+ * In some cases it is necessary to allow more lenient extrapolation of reference lines for address calculation at the
+ * ends of the reference line.
+ */
+private const val PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE_LENIENT = 1.0
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
@@ -347,35 +354,76 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     val endAddress: TrackMeter = kms.last().endAddress
 
     val extrapolatedBeforeStartProjectionLine by lazy {
-        if (getProjectionLines(Resolution.ONE_METER).isEmpty()) null
-        else {
-            val start = getProjectionLines(Resolution.ONE_METER).first()
-            val startDir = referenceLineGeometry.segments.firstOrNull()?.startDirection ?: return@lazy null
-            ProjectionLine<M>(
-                start.address,
-                start.projection.move(
-                    pointInDirection(distance = -PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE, direction = startDir)
-                ),
-                LineM(-PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE),
-                start.referenceDirection,
-            )
-        }
+        val start = getProjectionLines(Resolution.ONE_METER).firstOrNull() ?: return@lazy null
+        val startDir = referenceLineGeometry.segments.firstOrNull()?.startDirection ?: return@lazy null
+        ProjectionLine<M>(
+            start.address,
+            start.projection.move(
+                pointInDirection(distance = -PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE, direction = startDir)
+            ),
+            LineM(-PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE),
+            start.referenceDirection,
+        )
+    }
+
+    val extrapolatedBeforeStartLenientProjectionLine by lazy {
+        val start = getProjectionLines(Resolution.ONE_METER).firstOrNull() ?: return@lazy null
+        val startDir = referenceLineGeometry.segments.firstOrNull()?.startDirection ?: return@lazy null
+        val extrapolationDistance =
+            min(PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE_LENIENT, start.address.meters.toDouble())
+                .coerceAtLeast(PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE)
+
+        ProjectionLine<M>(
+            start.address,
+            start.projection.move(pointInDirection(distance = -extrapolationDistance, direction = startDir)),
+            LineM(-extrapolationDistance),
+            start.referenceDirection,
+        )
     }
 
     val extrapolatedAfterEndProjectionLine by lazy {
-        if (getProjectionLines(Resolution.ONE_METER).isEmpty()) null
-        else {
-            val end = getProjectionLines(Resolution.ONE_METER).last()
-            val endDir = referenceLineGeometry.segments.lastOrNull()?.endDirection ?: return@lazy null
-            ProjectionLine(
-                end.address,
-                end.projection.move(
-                    pointInDirection(distance = PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE, direction = endDir)
-                ),
-                referenceLineGeometry.length + PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE,
-                end.referenceDirection,
-            )
-        }
+        val end = getProjectionLines(Resolution.ONE_METER).lastOrNull() ?: return@lazy null
+        val endDir = referenceLineGeometry.segments.lastOrNull()?.endDirection ?: return@lazy null
+        ProjectionLine(
+            end.address,
+            end.projection.move(
+                pointInDirection(distance = PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE, direction = endDir)
+            ),
+            referenceLineGeometry.length + PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE,
+            end.referenceDirection,
+        )
+    }
+
+    val extrapolatedAfterEndLenientProjectionLine by lazy {
+        val end = getProjectionLines(Resolution.ONE_METER).lastOrNull() ?: return@lazy null
+        val endDir = referenceLineGeometry.segments.lastOrNull()?.endDirection ?: return@lazy null
+        // kmPosts will still contain duplicates at this point but this is an issue the user must fix,
+        // so we just assume everything is fine
+        val extrapolationDistance =
+            (kmPosts
+                    .asSequence()
+                    .filter { it.kmNumber > end.address.kmNumber }
+                    .minByOrNull(LayoutKmPost::kmNumber)
+                    ?.layoutLocation
+                    ?.let { nextLocation ->
+                        val distanceToKmBoundary =
+                            closestPointProportionOnLine(
+                                    end.projection.start,
+                                    pointInDirection(end.projection.start, 1.0, endDir),
+                                    nextLocation,
+                                )
+                                .coerceAtLeast(0.0)
+
+                        min(PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE_LENIENT, distanceToKmBoundary)
+                    } ?: 1.0)
+                .coerceAtLeast(PROJECTION_LINE_PAST_END_EXTRAPOLATION_DISTANCE)
+
+        ProjectionLine(
+            end.address,
+            end.projection.move(pointInDirection(distance = extrapolationDistance, direction = endDir)),
+            referenceLineGeometry.length + extrapolationDistance,
+            end.referenceDirection,
+        )
     }
 
     val referenceLineAddresses by lazy { getAddressPoints(referenceLineGeometry) }
@@ -418,9 +466,11 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                 }
     }
 
-    private fun getMeterProjectionLineAtExtrapolatedIndex(): (index: Int) -> ProjectionLine<M>? {
-        val extrapolatedStart = extrapolatedBeforeStartProjectionLine
-        val extrapolatedEnd = extrapolatedAfterEndProjectionLine
+    private fun getMeterProjectionLineAtExtrapolatedIndex(lenient: Boolean): (index: Int) -> ProjectionLine<M>? {
+        val extrapolatedStart =
+            if (lenient) extrapolatedBeforeStartLenientProjectionLine else extrapolatedBeforeStartProjectionLine
+        val extrapolatedEnd =
+            if (lenient) extrapolatedAfterEndLenientProjectionLine else extrapolatedAfterEndProjectionLine
         val projectionLines = getProjectionLines(Resolution.ONE_METER)
         return { index ->
             when (index) {
@@ -553,16 +603,23 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     fun getM(coordinate: IPoint) = referenceLineGeometry.getClosestPointM(coordinate)
 
-    fun getAddressAndM(coordinate: IPoint, addressDecimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): AddressAndM? =
+    fun getAddressAndM(
+        coordinate: IPoint,
+        addressDecimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
+        lenientExtrapolation: Boolean = false,
+    ): AddressAndM? =
         referenceLineGeometry.getClosestPointM(coordinate)?.let { (mValue, type) ->
-            getAddress(coordinate, mValue, addressDecimals)?.let { address -> AddressAndM(address, mValue, type) }
+            getAddress(coordinate, mValue, addressDecimals, lenientExtrapolation)?.let { address ->
+                AddressAndM(address, mValue, type)
+            }
         }
 
     fun getAddress(
         coordinate: IPoint,
         decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
+        lenientExtrapolation: Boolean = false,
     ): Pair<TrackMeter, IntersectType>? =
-        getAddressAndM(coordinate, decimals)?.let { (address, _, type) -> address to type }
+        getAddressAndM(coordinate, decimals, lenientExtrapolation)?.let { (address, _, type) -> address to type }
 
     fun getAddress(targetDistance: LineM<M>, decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): TrackMeter? =
         referenceLineGeometry.getPointAtM(targetDistance)?.let { point -> getAddress(point, decimals) }?.first
@@ -571,6 +628,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         queryCoordinate: IPoint,
         closestReferenceLineM: LineM<M>,
         decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
+        lenientExtrapolation: Boolean = false,
     ): TrackMeter? {
         val km = findKm(closestReferenceLineM)
         val meters =
@@ -579,7 +637,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         else {
             val addressInInterval =
                 getAddressInInterval(
-                    getMeterProjectionLineAtExtrapolatedIndex(),
+                    getMeterProjectionLineAtExtrapolatedIndex(lenientExtrapolation),
                     queryCoordinate,
                     getSurroundingProjectionLines(TrackMeter(km.kmNumber, meters)),
                 )
