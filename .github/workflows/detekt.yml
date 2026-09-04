@@ -6,6 +6,7 @@ on:
       - 'main'
     paths:
       - 'infra/**'
+      - '.github/workflows/detekt.yml'
 
 jobs:
   without-type-resolution:
