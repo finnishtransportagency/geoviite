@@ -40,7 +40,6 @@ geoviite:
 
   ext-api:
     enabled: true
-    designs-enabled: "${EXT_API_DESIGNS_ENABLED:false}"
     max-batch-requests: 1000
     url-path-prefixes:
       - /geoviite
