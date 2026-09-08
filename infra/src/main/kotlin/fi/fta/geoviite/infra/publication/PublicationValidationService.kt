@@ -546,6 +546,7 @@ constructor(
                 .getLocationTrack(id)
                 ?.operationalPointIds
                 ?.flatMap { validationContext.getStationLinkIssuesByOperationalPoint(it) }
+                ?.distinct()
                 ?.map { it.toValidationIssue(validationContext) } ?: emptyList()
 
         return if (trackAndGeometry == null) {
