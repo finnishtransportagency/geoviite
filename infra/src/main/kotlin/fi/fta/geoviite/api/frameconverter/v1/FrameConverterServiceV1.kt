@@ -148,7 +148,11 @@ constructor(
     ): List<CoordinateToTrackAddressResponseV1> {
         val (trackNumberDetails, geocodedAddress) =
             trackNumberInfo.getValue(closestTrack.track.trackNumberId).let { details ->
-                details to details.geocodingContext?.getAddressAndM(closestTrack.closestPoint)
+                details to
+                    details.geocodingContext?.getAddressAndM(
+                        closestTrack.closestPoint,
+                        lenientExtrapolation = true,
+                    )
             }
 
         return if (geocodedAddress == null) {
@@ -277,7 +281,11 @@ constructor(
             }
         }
         val trackAddresses =
-            geocodingContext.getTrackLocations(geometry, requests.map { request -> request.trackAddress })
+            geocodingContext.getTrackLocations(
+                geometry,
+                requests.map { request -> request.trackAddress },
+                lenientExtrapolation = true,
+            )
         return requestIndicesOnTrack
             .zip(trackAddresses) { requestIndex, addressPoint ->
                 if (addressPoint != null) {

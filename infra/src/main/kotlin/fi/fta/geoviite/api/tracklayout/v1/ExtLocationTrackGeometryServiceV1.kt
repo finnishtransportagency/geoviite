@@ -191,6 +191,6 @@ constructor(
             val context =
                 geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                     ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-            context.getAddressPoints(geometry, resolution, addressFilter).addresses
+            context.getAddressPoints(geometry, resolution, addressFilter, lenientExtrapolation = true).addresses
         }
 }

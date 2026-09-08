@@ -18,7 +18,7 @@ internal fun toExtAddressPoint(
     targetCoordinateSystem: Srid,
 ): ExtAddressPointV1 {
     val address =
-        geocodingContext?.getAddress(point)?.let { (address, intersect) ->
+        geocodingContext?.getAddress(point, lenientExtrapolation = true)?.let { (address, intersect) ->
             if (intersect == IntersectType.WITHIN) address else null
         }
     return toExtAddressPoint(point, address, targetCoordinateSystem)

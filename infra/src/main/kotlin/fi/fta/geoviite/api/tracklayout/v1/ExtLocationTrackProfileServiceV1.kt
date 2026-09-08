@@ -382,7 +382,10 @@ private fun getTrackAddresses(
 }
 
 private fun toAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): TrackMeter? =
-    geocodingContext.getAddress(point)?.takeIf { (_, intersect) -> intersect == IntersectType.WITHIN }?.first
+    geocodingContext
+        .getAddress(point, lenientExtrapolation = true)
+        ?.takeIf { (_, intersect) -> intersect == IntersectType.WITHIN }
+        ?.first
 
 private fun toIntersectionPoint(
     listing: VerticalGeometryListing,

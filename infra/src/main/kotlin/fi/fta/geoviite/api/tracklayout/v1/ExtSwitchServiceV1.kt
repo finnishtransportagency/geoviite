@@ -257,7 +257,11 @@ constructor(
                         joints =
                             trackJoints.jointLocations.map { (link, location) ->
                                 val addressPoint =
-                                    requireNotNull(trackJoints.geocodingContext.toAddressPoint(location)?.first) {
+                                    requireNotNull(
+                                        trackJoints.geocodingContext
+                                            .toAddressPoint(location, lenientExtrapolation = true)
+                                            ?.first
+                                    ) {
                                         "Address calculation failed: trackNumber=${trackJoints.geocodingContext.trackNumber} location=$location switchOid=${data.oid}"
                                     }
                                 ExtSwitchTrackJointV1(
