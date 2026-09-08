@@ -621,8 +621,15 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     ): Pair<TrackMeter, IntersectType>? =
         getAddressAndM(coordinate, decimals, lenientExtrapolation)?.let { (address, _, type) -> address to type }
 
-    fun getAddress(targetDistance: LineM<M>, decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): TrackMeter? =
-        referenceLineGeometry.getPointAtM(targetDistance)?.let { point -> getAddress(point, decimals) }?.first
+    fun getAddress(
+        targetDistance: LineM<M>,
+        decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
+        lenientExtrapolation: Boolean = false,
+    ): TrackMeter? =
+        referenceLineGeometry
+            .getPointAtM(targetDistance)
+            ?.let { point -> getAddress(point, decimals, lenientExtrapolation) }
+            ?.first
 
     private fun getAddress(
         queryCoordinate: IPoint,
@@ -657,28 +664,40 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     fun getReferenceLineAddressesWithResolution(
         resolution: Resolution,
         addressFilter: AddressFilter? = null,
+        lenientExtrapolation: Boolean = false,
     ): AddressPointsResult<M> {
-        return getAddressPoints(referenceLineGeometry, resolution, addressFilter)
+        return getAddressPoints(referenceLineGeometry, resolution, addressFilter, lenientExtrapolation)
     }
 
     fun <TargetM : AnyM<TargetM>> toAddressPoint(
         point: AlignmentPoint<TargetM>,
         decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
-    ) = getAddress(point, decimals)?.let { (address, intersectType) -> AddressPoint(point, address) to intersectType }
+        lenientExtrapolation: Boolean = false,
+    ) =
+        getAddress(point, decimals, lenientExtrapolation)?.let { (address, intersectType) ->
+            AddressPoint(point, address) to intersectType
+        }
 
     private fun <TargetM : AlignmentM<TargetM>> getStartAndEnd(
         alignment: IAlignment<TargetM>,
         addressFilter: AddressFilter? = null,
+        lenientExtrapolation: Boolean = false,
     ): Pair<Pair<AddressPoint<TargetM>, IntersectType>, Pair<AddressPoint<TargetM>, IntersectType>>? {
         val trackStartAndEnd =
-            alignment.start?.let(::toAddressPoint)?.let { start ->
-                alignment.end?.let(::toAddressPoint)?.let { end -> start to end }
-            }
+            alignment.start
+                ?.let { toAddressPoint(it, lenientExtrapolation = lenientExtrapolation) }
+                ?.let { start ->
+                    alignment.end
+                        ?.let { toAddressPoint(it, lenientExtrapolation = lenientExtrapolation) }
+                        ?.let { end -> start to end }
+                }
         return if (addressFilter == null) {
             trackStartAndEnd
         } else {
             fun asTrackAddressPoint(address: TrackMeter): Pair<AddressPoint<TargetM>, IntersectType>? =
-                getTrackLocation(alignment, address.round(METERS_DEFAULT_DECIMAL_DIGITS))?.let { it to WITHIN }
+                getTrackLocation(alignment, address.round(METERS_DEFAULT_DECIMAL_DIGITS), lenientExtrapolation)?.let {
+                    it to WITHIN
+                }
             trackStartAndEnd?.let { (trackStart, trackEnd) ->
                 val filteredStart =
                     trackStart.takeIf { (p, _) -> addressFilter.acceptInclusive(p.address) }
@@ -719,12 +738,13 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         alignment: IAlignment<TargetM>,
         resolution: Resolution = Resolution.ONE_METER,
         addressFilter: AddressFilter? = null,
+        lenientExtrapolation: Boolean = false,
     ): AddressPointsResult<TargetM> {
-        val startAndEnd =
-            getStartAndEnd(alignment, addressFilter) ?: return AddressPointsResult.InvalidEndpoint<TargetM>()
-        val (startPoint, endPoint) = startAndEnd
+        val (startPoint, endPoint) =
+            getStartAndEnd(alignment, addressFilter, lenientExtrapolation)
+                ?: return AddressPointsResult.InvalidEndpoint()
         if (startPoint.first.address > endPoint.first.address) {
-            return AddressPointsResult.EndBeforeStart<TargetM>()
+            return AddressPointsResult.EndBeforeStart()
         }
         val pointRange = Range(startPoint.first.address, endPoint.first.address)
         val midPoints = getMidPoints(alignment, pointRange, resolution)
@@ -743,18 +763,20 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     fun <TargetM : AlignmentM<TargetM>> getTrackLocation(
         alignment: IAlignment<TargetM>,
         address: TrackMeter,
+        lenientExtrapolation: Boolean = false,
     ): AddressPoint<TargetM>? {
-        return getTrackLocations(alignment, listOf(address))[0]
+        return getTrackLocations(alignment, listOf(address), lenientExtrapolation)[0]
     }
 
     fun <TargetM : AlignmentM<TargetM>> getTrackLocations(
         alignment: IAlignment<TargetM>,
         addresses: List<TrackMeter>,
+        lenientExtrapolation: Boolean = false,
     ): List<AddressPoint<TargetM>?> {
         val alignmentStart = alignment.start
         val alignmentEnd = alignment.end
-        val startAddress = alignmentStart?.let(::getAddress)?.first
-        val endAddress = alignmentEnd?.let(::getAddress)?.first
+        val startAddress = alignmentStart?.let { getAddress(it, lenientExtrapolation = lenientExtrapolation) }?.first
+        val endAddress = alignmentEnd?.let { getAddress(it, lenientExtrapolation = lenientExtrapolation) }?.first
         return if (startAddress == null || endAddress == null) addresses.map { null }
         else getTrackLocations(alignment, addresses, alignmentStart, startAddress, alignmentEnd, endAddress)
     }
@@ -820,10 +842,11 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             .take(projectionLinesWithinAlignment.size)
 
     fun <TargetM : AlignmentM<TargetM>> getStartAndEnd(
-        alignment: IAlignment<TargetM>
+        alignment: IAlignment<TargetM>,
+        lenientExtrapolation: Boolean = false,
     ): Pair<AddressPoint<TargetM>?, AddressPoint<TargetM>?> {
-        val start = alignment.start?.let(::toAddressPoint)?.first
-        val end = alignment.end?.let(::toAddressPoint)?.first
+        val start = alignment.start?.let { toAddressPoint(it, lenientExtrapolation = lenientExtrapolation) }?.first
+        val end = alignment.end?.let { toAddressPoint(it, lenientExtrapolation = lenientExtrapolation) }?.first
         return start to end
     }
 
@@ -839,9 +862,12 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             p.address.compareTo(e)
         }
 
-    fun getSwitchPoints(geometry: LocationTrackGeometry): List<AddressPoint<LocationTrackM>> =
+    fun getSwitchPoints(
+        geometry: LocationTrackGeometry,
+        lenientExtrapolation: Boolean = false,
+    ): List<AddressPoint<LocationTrackM>> =
         geometry.trackSwitchLinks
-            .mapNotNull { link -> toAddressPoint(link.location, 3)?.first }
+            .mapNotNull { link -> toAddressPoint(link.location, 3, lenientExtrapolation)?.first }
             .distinctBy { addressPoint -> addressPoint.address }
 
     private fun findKm(targetDistance: LineM<M>): GeocodingKm<M> {

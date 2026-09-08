@@ -96,8 +96,8 @@ constructor(
                 val startPoint = geometry.getPointAtM(startM) ?: throwRoutePointAtMNotFound(startM, section.trackId)
                 val endPoint = geometry.getPointAtM(endM) ?: throwRoutePointAtMNotFound(endM, section.trackId)
 
-                val startAddress = geocodingContext?.getAddress(startPoint)?.first
-                val endAddress = geocodingContext?.getAddress(endPoint)?.first
+                val startAddress = geocodingContext?.getAddress(startPoint, lenientExtrapolation = true)?.first
+                val endAddress = geocodingContext?.getAddress(endPoint, lenientExtrapolation = true)?.first
 
                 ExtRouteSectionV1(
                     locationTrackOid = ExtOidV1(trackOid),

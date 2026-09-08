@@ -161,7 +161,7 @@ constructor(
     ): AlignmentAddresses<ReferenceLineM>? =
         geocodingService
             .getGeocodingContextAtMoment(branch, trackNumberId, moment)
-            ?.getReferenceLineAddressesWithResolution(resolution, addressFilter)
+            ?.getReferenceLineAddressesWithResolution(resolution, addressFilter, lenientExtrapolation = true)
             ?.addresses
 
     private fun getAlignmentAndAddressPoints(
@@ -177,7 +177,12 @@ constructor(
             ?.let { id ->
                 geocodingService.getGeocodingContextAtMoment(branch, id, moment)?.let { ctx ->
                     ctx.referenceLineGeometry to
-                        ctx.getReferenceLineAddressesWithResolution(resolution, addressFilter).addresses
+                        ctx.getReferenceLineAddressesWithResolution(
+                                resolution,
+                                addressFilter,
+                                lenientExtrapolation = true,
+                            )
+                            .addresses
                 }
             } ?: (null to null)
 }
