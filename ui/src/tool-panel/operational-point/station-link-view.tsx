@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    LayoutLocationTrack,
     OperationalPointId,
     StationLink,
     StationLinkIssue,
@@ -44,15 +45,14 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
     isLinkingOrSplitting,
 }) => {
     const { t } = useTranslation();
-    const locationTrackIds = stationLink
-        ? [...new Set(stationLink.locationTrackIds)]
-        : [
-              ...new Set(
-                  issues
-                      .filter((issue) => issue.locationTrackId !== undefined)
-                      .map((issue) => issue.locationTrackId!),
-              ),
-          ];
+    const locationTrackIds = [
+        ...new Set([
+            ...(stationLink?.locationTrackIds ?? []),
+            ...issues.flatMap((issue) =>
+                issue.locationTrackId === undefined ? [] : [issue.locationTrackId],
+            ),
+        ]),
+    ];
 
     const locationTracks = useLocationTracks(
         locationTrackIds,
@@ -85,17 +85,26 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
     const trackNumberId = stationLink?.trackNumberId ?? issues[0]?.trackNumberId;
     const trackLength = stationLink?.length;
 
-    const getErrorText = (issue: StationLinkIssue) => {
+    const getErrorText = (issue: StationLinkIssue, track: LayoutLocationTrack | undefined) => {
+        const trackName =
+            track?.name ?? t('tool-panel.operational-point.station-links.unknown-location-track');
+
         switch (issue.type) {
             case StationLinkIssueType.UNREACHABLE_STATION_MIDPOINT:
                 return t(
                     'tool-panel.operational-point.station-links.issue-unreachable-station-midpoint',
-                    { name: issue.operationalPointId === firstOp ? first?.name : second?.name },
+                    {
+                        name: issue.operationalPointId === firstOp ? first?.name : second?.name,
+                        track: trackName,
+                    },
                 );
             case StationLinkIssueType.SUSPICIOUSLY_LONG_ROUTE:
                 return t(
                     'tool-panel.operational-point.station-links.issue-suspiciously-long-route',
-                    { name: issue.operationalPointId === firstOp ? first?.name : second?.name },
+                    {
+                        name: issue.operationalPointId === firstOp ? first?.name : second?.name,
+                        track: trackName,
+                    },
                 );
         }
     };
@@ -185,7 +194,10 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
                     <InfoboxContentSpread
                         key={`${issue.operationalPointId}-${issue.otherOperationalPointId}-${issue.type}`}>
                         <MessageBox type={messageBoxType(issue.type)}>
-                            {getErrorText(issue)}
+                            {getErrorText(
+                                issue,
+                                locationTracks.find((track) => track.id === issue.locationTrackId),
+                            )}
                         </MessageBox>
                     </InfoboxContentSpread>
                 ))}

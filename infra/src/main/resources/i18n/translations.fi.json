@@ -1182,8 +1182,9 @@
             "station-links": {
                 "infobox-header": "Yhteydet muille toiminnallisille pisteille ({{count}})",
                 "no-links": "Ei yhteyksiä muille toiminnallisille pisteille",
-                "issue-unreachable-station-midpoint": "Aseman {{name}} keskipiste ei ole saavutettavissa yhdysraiteen päästä.",
-                "issue-suspiciously-long-route": "Reitti yhdysraiteen päästä asemalle {{name}} on odottamattoman pitkä.",
+                "issue-unreachable-station-midpoint": "Aseman {{name}} keskipiste ei ole saavutettavissa yhdysraiteen {{track}} päästä.",
+                "issue-suspiciously-long-route": "Reitti yhdysraiteen {{track}} päästä asemalle {{name}} on odottamattoman pitkä.",
+                "unknown-location-track": "Ei tiedossa",
                 "route-length-not-calculable": "Reitin pituus ei ole laskettavissa"
             }
         },

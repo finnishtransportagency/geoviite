@@ -2972,6 +2972,13 @@ constructor(
             validation.validatedAsPublicationUnit.locationTracks.find { it.id == track }!!.issues,
             expectedIssue,
         )
+        assertEquals(
+            1,
+            validation.validatedAsPublicationUnit.locationTracks
+                .find { it.id == track }!!
+                .issues
+                .count { it == expectedIssue },
+        )
     }
 
     @Test
