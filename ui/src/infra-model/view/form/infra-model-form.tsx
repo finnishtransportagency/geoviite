@@ -4,6 +4,7 @@ import {
     GeometryAlignment,
     GeometryKmPost,
     GeometryPlan,
+    GeometryUnits,
     Project,
 } from 'geometry/geometry-model';
 import { getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
@@ -135,6 +136,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystem | undefined>();
     const [crsList, setSridList] = React.useState<CoordinateSystem[] | undefined>();
+    const [unitsAtStartOfEdit] = React.useState<GeometryUnits>(geometryPlan.units);
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
@@ -231,17 +233,24 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         if (srid) {
             getCoordinateSystem(srid).then((cs) => {
                 setCoordinateSystem(cs);
-                if (overrideInfraModelParameters.coordinateSystemSrid) {
+                if (fieldInEdit === 'coordinateSystem') {
                     setFieldInEdit(undefined);
                 }
             });
         } else {
             setCoordinateSystem(undefined);
+            if (fieldInEdit === 'coordinateSystem') {
+                setFieldInEdit(undefined);
+            }
         }
     }, [
         overrideInfraModelParameters.coordinateSystemSrid,
         geometryPlan.units.coordinateSystemSrid,
     ]);
+
+    const coordinateSystemAtStartOfEdit = crsList?.find(
+        (crs) => crs.srid === unitsAtStartOfEdit.coordinateSystemSrid,
+    );
 
     function getVisibleErrorsByProp(prop: InfraModelParametersProp) {
         return committedFields.includes(prop)
@@ -258,7 +267,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     function getErrorsByProp(prop: InfraModelParametersProp) {
         return validationIssues
-            .filter((error) => error.field === prop && error.type === FieldValidationIssueType.ERROR)
+            .filter(
+                (error) => error.field === prop && error.type === FieldValidationIssueType.ERROR,
+            )
             .map((error) => t(`im-form.${error.reason}`));
     }
 
@@ -531,7 +542,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         wide
                                         placeholder={t('im-form.coordinate-system-dropdown')}
-                                        value={overrideInfraModelParameters.coordinateSystemSrid}
+                                        value={
+                                            overrideInfraModelParameters.coordinateSystemSrid ??
+                                            geometryPlan.units.coordinateSystemSrid
+                                        }
                                         options={(crsList ?? [])
                                             .map((crs) =>
                                                 dropdownOption(
@@ -541,7 +555,19 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                 ),
                                             )
                                             .sort(compareNamed)}
-                                        canUnselect
+                                        canUnselect={
+                                            overrideInfraModelParameters.coordinateSystemSrid !==
+                                            undefined
+                                        }
+                                        unselectText={
+                                            coordinateSystemAtStartOfEdit
+                                                ? t('im-form.restore-plan-coordinate-system', {
+                                                      value: formatWithSrid(
+                                                          coordinateSystemAtStartOfEdit,
+                                                      ),
+                                                  })
+                                                : undefined
+                                        }
                                         onChange={(srid) =>
                                             changeInOverrideParametersField(
                                                 srid,
@@ -562,8 +588,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             geometryPlan.units.verticalCoordinateSystem ||
                             ''
                         }
+                        isOverridden={
+                            overrideInfraModelParameters.verticalCoordinateSystem !== undefined
+                        }
                         planVerticalCoordinateSystem={
-                            geometryPlan.units.verticalCoordinateSystem || undefined
+                            unitsAtStartOfEdit.verticalCoordinateSystem || undefined
                         }
                         changeInOverrideParametersField={changeInOverrideParametersField}
                         getVisibleErrorsByProp={
@@ -629,7 +658,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         qaId="plan-time-im-field"
                         inEditMode={fieldInEdit === 'createdTime'}
                         onEdit={() => {
-                            if (!geometryPlan.planTime && !overrideInfraModelParameters.createdDate) {
+                            if (
+                                !geometryPlan.planTime &&
+                                !overrideInfraModelParameters.createdDate
+                            ) {
                                 changeInOverrideParametersField(new Date(), 'createdDate');
                             }
                             setFieldInEdit('createdTime');
