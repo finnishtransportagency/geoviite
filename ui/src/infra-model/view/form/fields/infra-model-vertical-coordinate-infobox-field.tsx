@@ -15,6 +15,7 @@ export type InfraModelVerticalCoordinateInfoboxFieldProps = {
     fieldInEdit: EditablePlanField;
     setFieldInEdit: (editablePlanField: EditablePlanField | undefined) => void;
     value: VerticalCoordinateSystem;
+    isOverridden: boolean;
     planVerticalCoordinateSystem?: VerticalCoordinateSystem;
     changeInOverrideParametersField: <
         TKey extends keyof OverrideInfraModelParameters,
@@ -32,6 +33,7 @@ export const InfraModelVerticalCoordinateInfoboxField: React.FC<
     fieldInEdit,
     setFieldInEdit,
     value,
+    isOverridden,
     planVerticalCoordinateSystem,
     changeInOverrideParametersField,
     getVisibleErrorsByProp,
@@ -63,9 +65,9 @@ export const InfraModelVerticalCoordinateInfoboxField: React.FC<
                         <Dropdown
                             wide
                             placeholder={t('im-form.vertical-coordinate-system-field')}
-                            value={value}
+                            value={value || undefined}
                             options={verticalCoordinateSystems}
-                            canUnselect
+                            canUnselect={isOverridden}
                             unselectText={unselectText}
                             onChange={(verticalCoordinateSystem) =>
                                 changeInOverrideParametersField(
