@@ -233,15 +233,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         if (srid) {
             getCoordinateSystem(srid).then((cs) => {
                 setCoordinateSystem(cs);
-                if (fieldInEdit === 'coordinateSystem') {
-                    setFieldInEdit(undefined);
-                }
+                setFieldInEdit((current) => (current === 'coordinateSystem' ? undefined : current));
             });
         } else {
             setCoordinateSystem(undefined);
-            if (fieldInEdit === 'coordinateSystem') {
-                setFieldInEdit(undefined);
-            }
+            setFieldInEdit((current) => (current === 'coordinateSystem' ? undefined : current));
         }
     }, [
         overrideInfraModelParameters.coordinateSystemSrid,
