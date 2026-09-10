@@ -47,7 +47,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const [loadedPublicationId, setLoadedPublicationId] = React.useState<PublicationId>();
     React.useEffect(() => {
         if (status === LoaderStatus.Ready) setLoadedPublicationId(publication.id);
-    }, [status]);
+    }, [publication.id, status]);
 
     React.useEffect(() => {
         setSelectedPublicationId(publication.id);
