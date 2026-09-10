@@ -1,10 +1,6 @@
 import * as React from 'react';
 import PublicationTable from 'publication/table/publication-table';
-import {
-    PublicationDetails,
-    PublicationId,
-    PublicationTableItem,
-} from 'publication/publication-model';
+import { PublicationDetails, PublicationId } from 'publication/publication-model';
 import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +18,7 @@ import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { publicationLogUrlForItem } from 'publication/log/publication-log-params';
 import { TableSorting } from 'utils/table-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -38,20 +35,23 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const navigate = useNavigate();
 
     const unpublishedToRatko = !publication.ratkoPushStatus;
-    const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
     const [sortInfo, setSortInfo] =
         React.useState<TableSorting<SortablePublicationTableProps>>(SortedByNameAsc);
 
-    React.useEffect(() => {
-        setIsLoading(true);
-        setSelectedPublicationId(publication.id);
+    const [publicationItemsOrUndefined, status] = useLoaderWithStatus(
+        () => getPublicationAsTableItems(publication.id),
+        [publication.id, changeTime],
+    );
+    const publicationItems = publicationItemsOrUndefined ?? [];
 
-        getPublicationAsTableItems(publication.id).then((p) => {
-            p && setPublicationItems(p);
-            setIsLoading(false);
-        });
-    }, [publication.id, changeTime]);
+    const [loadedPublicationId, setLoadedPublicationId] = React.useState<PublicationId>();
+    React.useEffect(() => {
+        if (status === LoaderStatus.Ready) setLoadedPublicationId(publication.id);
+    }, [status]);
+
+    React.useEffect(() => {
+        setSelectedPublicationId(publication.id);
+    }, [publication.id]);
 
     const displaySingleItemHistory = (item: SearchItemValue<SearchItemType> | undefined) => {
         navigate(item ? publicationLogUrlForItem(item) : '/publications');
@@ -73,7 +73,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
             </div>
             <div className={styles['publication-details__content']}>
                 <div className={styles['publication-details__count-header']}>
-                    {isLoading ? (
+                    {status !== LoaderStatus.Ready ? (
                         <React.Fragment>
                             {t('publication-table.count-header-loading')}&nbsp;
                             <Spinner />
@@ -88,7 +88,9 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                     )}
                 </div>
                 <PublicationTable
-                    isLoading={isLoading}
+                    // Table isLoading disables all interaction: do that only when switching
+                    // publications, not on periodic reloads as only the status can really change
+                    isLoading={publication.id !== loadedPublicationId}
                     items={publicationItems}
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}
