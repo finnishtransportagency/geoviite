@@ -234,6 +234,28 @@ constructor(
     }
 
     @Test
+    fun `Location track geometry api returns an address slightly beyond the reference line end`() {
+        val start = HelsinkiTestData.HKI_BASE_POINT
+        val referenceLineEnd = start + Point(0.0, 999.5)
+        val locationTrackEnd = start + Point(0.0, 1000.0)
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, referenceLineEnd)),
+            )
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(start, locationTrackEnd)),
+            )
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val interval = requireNotNull(api.locationTrackGeometry.get(oid).osoitevali)
+        assertEquals("0000+0999.500", interval.loppuosoite)
+        assertEquals("0000+0999.500", interval.pisteet.last().rataosoite)
+    }
+
+    @Test
     fun `Location track geometry api returns single point when address filter range contains only one point`() {
         // Track: 0000+0050.000 to 0000+0150.000
         val trackStartM = 50.0

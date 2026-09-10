@@ -83,6 +83,34 @@ constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DB
     }
 
     @Test
+    fun `Element listing returns addresses slightly beyond the reference line end`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 500.0)
+        val plan = insertPlan(listOf(line(start, end)))
+        val elements = plan.alignments[0].elements
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, Point(0.0, 499.5))),
+            )
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val response = api.locationTrackElementListing.get(oid)
+
+        response.osoitevalit.single().also { interval ->
+            assertEquals("0000+0000.000", interval.alku)
+            assertEquals("0000+0499.500", interval.loppu)
+
+            interval.geometriaelementit.single().also { element ->
+                assertEquals("0000+0000.000", element.sijainti_alku.rataosoite)
+                assertEquals("0000+0499.500", element.sijainti_loppu.rataosoite)
+            }
+        }
+    }
+
+    @Test
     fun `Returns 204 when track does not exist at requested version`() {
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(

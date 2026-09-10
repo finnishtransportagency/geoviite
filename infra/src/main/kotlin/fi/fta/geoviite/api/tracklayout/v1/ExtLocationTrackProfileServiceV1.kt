@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.geometry.LinearSection
 import fi.fta.geoviite.infra.geometry.VerticalGeometryListing
 import fi.fta.geoviite.infra.geometry.toVerticalGeometryListing
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
@@ -114,9 +113,7 @@ constructor(
                 val geocodingContext =
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                         ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-                val listings =
-                    getVerticalGeometryListings(track, geometry, geocodingContext)
-                        .mapNotNull(::validateAndTransformToLayout)
+                val listings = getVerticalGeometryListings(track, geometry, geocodingContext)
                 val (startAddress, endAddress) = getTrackAddresses(geometry, geocodingContext)
 
                 ExtLocationTrackProfileResponseV1(
@@ -147,12 +144,8 @@ constructor(
             locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
-        val oldListings =
-            oldTrack
-                ?.let { getVerticalGeometryListings(it, branch, startMoment) }
-                ?.mapNotNull(::validateAndTransformToLayout) ?: emptyList()
-        val newListings =
-            getVerticalGeometryListings(newTrack, branch, endMoment).mapNotNull(::validateAndTransformToLayout)
+        val oldListings = oldTrack?.let { getVerticalGeometryListings(it, branch, startMoment) } ?: emptyList()
+        val newListings = getVerticalGeometryListings(newTrack, branch, endMoment)
         return createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
             .takeIf { it.isNotEmpty() }
             ?.let { trackIntervals ->
@@ -186,14 +179,15 @@ constructor(
         geocodingContext: GeocodingContext<ReferenceLineM>,
     ): List<VerticalGeometryListing> =
         toVerticalGeometryListing(
-            track,
-            geometry,
-            null,
-            null,
-            geocodingContext,
-            coordinateTransformationService::getLayoutTransformation,
-            LazyMap(::getHeaderAndAlignment)::get,
-        )
+                track,
+                geometry,
+                null,
+                null,
+                geocodingContext,
+                coordinateTransformationService::getLayoutTransformation,
+                LazyMap(::getHeaderAndAlignment)::get,
+            )
+            .mapNotNull { listing -> validateAndTransformToLayout(listing, geocodingContext) }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)
@@ -266,25 +260,39 @@ constructor(
             .let { n60Points -> boundingBoxAroundPointsOrNull(n60Points) }
             ?.let { bbox -> heightTriangleDao.fetchTriangles(bbox.polygonFromCorners) } ?: emptyList()
 
-    private fun validateAndTransformToLayout(listing: VerticalGeometryListing): VerticalGeometryListing? =
-        listing.takeIf(::isValid)?.coordinateSystemSrid?.let { srid ->
-            when (srid) {
-                LAYOUT_SRID -> listing
-                else -> {
-                    val transform = coordinateTransformationService.getLayoutTransformation(srid)
-                    fun transformPoint(p: RoundedPoint?): RoundedPoint? = p?.let {
-                        transform.transform(it).round(COORDINATE_DECIMALS)
+    private fun validateAndTransformToLayout(
+        listing: VerticalGeometryListing,
+        geocodingContext: GeocodingContext<ReferenceLineM>,
+    ): VerticalGeometryListing? =
+        listing.coordinateSystemSrid
+            ?.let { srid ->
+                when (srid) {
+                    LAYOUT_SRID -> listing
+                    else -> {
+                        val transform = coordinateTransformationService.getLayoutTransformation(srid)
+                        fun transformPoint(p: RoundedPoint?): RoundedPoint? = p?.let { point ->
+                            transform.transform(point).round(COORDINATE_DECIMALS)
+                        }
+                        listing.copy(
+                            coordinateSystemSrid = LAYOUT_SRID,
+                            coordinateSystemName = null,
+                            start = listing.start.copy(location = transformPoint(listing.start.location)),
+                            point = listing.point.copy(location = transformPoint(listing.point.location)),
+                            end = listing.end.copy(location = transformPoint(listing.end.location)),
+                        )
                     }
-                    return listing.copy(
-                        coordinateSystemSrid = LAYOUT_SRID,
-                        coordinateSystemName = null,
-                        start = listing.start.copy(location = transformPoint(listing.start.location)),
-                        point = listing.point.copy(location = transformPoint(listing.point.location)),
-                        end = listing.end.copy(location = transformPoint(listing.end.location)),
-                    )
                 }
             }
-        }
+            ?.let { layoutListing ->
+                layoutListing.copy(
+                    start =
+                        layoutListing.start.copy(address = layoutListing.start.location.toAddress(geocodingContext)),
+                    point =
+                        layoutListing.point.copy(address = layoutListing.point.location.toAddress(geocodingContext)),
+                    end = layoutListing.end.copy(address = layoutListing.end.location.toAddress(geocodingContext)),
+                )
+            }
+            ?.takeIf(::isValid)
 }
 
 private fun isValid(listing: VerticalGeometryListing): Boolean =

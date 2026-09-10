@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -132,9 +133,32 @@ constructor(
         val geocodingContext =
             geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                 ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-        return geometryService.getElementListing(track, geometry, geocodingContext.trackNumber, geocodingContext) {
-            switchId ->
-            switchNameAtMoment(branch, switchId, moment)
+        return geometryService
+            .getElementListing(track, geometry, geocodingContext.trackNumber, geocodingContext) { switchId ->
+                switchNameAtMoment(branch, switchId, moment)
+            }
+            .map { listing -> listing.withLenientAddresses(geocodingContext) }
+    }
+
+    private fun ElementListing.withLenientAddresses(
+        geocodingContext: fi.fta.geoviite.infra.geocoding.GeocodingContext<ReferenceLineM>
+    ): ElementListing {
+        val (start, end) = getGeocodingCoordinates()
+        return this.copy(
+            start = this.start.copy(address = start?.toAddress(geocodingContext)),
+            end = this.end.copy(address = end?.toAddress(geocodingContext)),
+        )
+    }
+
+    private fun ElementListing.getGeocodingCoordinates(): Pair<IPoint?, IPoint?> {
+        val planSrid = this.coordinateSystemSrid
+        return when {
+            this.planId == null || planSrid == LAYOUT_SRID -> this.start.coordinate to this.end.coordinate
+            planSrid == null -> null to null
+            else -> {
+                val transform = coordinateTransformationService.getLayoutTransformation(planSrid)
+                transform.transform(this.start.coordinate) to transform.transform(this.end.coordinate)
+            }
         }
     }
 
