@@ -5,8 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geocoding.AddressFilter
+import fi.fta.geoviite.infra.geocoding.AddressPointCacheKey
+import fi.fta.geoviite.infra.geocoding.AddressPointsCache
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
@@ -29,10 +30,10 @@ constructor(
     private val publicationService: PublicationService,
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
-    private val geocodingDao: GeocodingDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val layoutDesignService: LayoutDesignService,
+    private val addressPointsCache: AddressPointsCache,
 ) {
     fun getExtLocationTrackGeometry(
         designOid: ExtOidV1<LayoutDesign>?,
@@ -178,16 +179,22 @@ constructor(
             null
         } else if (addressFilter.start == null && addressFilter.end == null) {
             // Prefer using cached (full) address list when address filter is unassigned
-            val geocodingContextCacheKey =
-                geocodingDao.getLayoutGeocodingContextCacheKey(branch, track.trackNumberId, moment)
+            val contextKey =
+                geocodingService.getGeocodingContextCacheKey(branch, track.trackNumberId, moment)
                     ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
 
-            geocodingService
-                .getAddressPoints(geocodingContextCacheKey, track.getVersionOrThrow(), resolution)
+            addressPointsCache
+                .getAddressPoints(
+                    AddressPointCacheKey(
+                        locationTrackVersion = track.getVersionOrThrow(),
+                        geocodingContextCacheKey = contextKey,
+                        resolution = resolution,
+                        lenientExtrapolation = true,
+                    )
+                )
                 ?.addresses
         } else {
-            // When filter is assigned, compute the desired interval on the fly
-            val geometry = alignmentDao.fetch(requireNotNull(track.version))
+            val geometry = alignmentDao.fetch(track.getVersionOrThrow())
             val context =
                 geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                     ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)

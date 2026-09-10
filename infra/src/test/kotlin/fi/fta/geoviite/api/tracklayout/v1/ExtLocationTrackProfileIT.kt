@@ -404,6 +404,47 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
     }
 
     @Test
+    fun `Profile returns addresses slightly beyond the reference line end`() {
+        val plan =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        end = Point(0.0, 1000.0),
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(999.75, 100.0),
+                                    BigDecimal("0.1"),
+                                    BigDecimal.ONE,
+                                ),
+                                VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
+                            ),
+                    )
+                )
+            )
+        val elements = plan.alignments[0].elements
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 999.5))),
+            )
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val addressRange = api.locationTrackProfile.get(oid).osoitevali
+        val pvi = addressRange.taitepisteet.single()
+
+        val referenceLineEndAddress = expectedAddress(999.5)
+        assertEquals(referenceLineEndAddress, addressRange.loppu)
+        assertEquals(referenceLineEndAddress, pvi.taite.sijainti?.rataosoite)
+        assertEquals(referenceLineEndAddress, pvi.pyoristyksen_alku.sijainti?.rataosoite)
+        assertEquals(referenceLineEndAddress, pvi.pyoristyksen_loppu.sijainti?.rataosoite)
+    }
+
+    @Test
     fun `Gap in plan linkage still returns all PVI points in single address range`() {
         // Plan 1: alignment 0-600m, curve at station 300
         val plan1 =
