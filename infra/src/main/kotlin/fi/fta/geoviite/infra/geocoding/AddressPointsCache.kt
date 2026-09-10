@@ -21,6 +21,7 @@ data class AddressPointCacheKey(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
     val geocodingContextCacheKey: LayoutGeocodingContextCacheKey,
     val resolution: Resolution,
+    val lenientExtrapolation: Boolean = false,
 )
 
 data class AddressPointCalculationData(
@@ -52,11 +53,12 @@ class AddressPointsCache(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         resolution: Resolution,
+        lenientExtrapolation: Boolean = false,
     ): AddressPointCacheKey? {
         return locationTrackDao.fetchVersion(layoutContext, locationTrackId)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
             geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)?.let { contextCacheKey ->
-                AddressPointCacheKey(trackVersion, contextCacheKey, resolution)
+                AddressPointCacheKey(trackVersion, contextCacheKey, resolution, lenientExtrapolation)
             }
         }
     }
@@ -70,7 +72,11 @@ class AddressPointsCache(
             .get(cacheKey) {
                 Optional.ofNullable(
                     getAddressPointCalculationData(cacheKey)?.let { input ->
-                        input.geocodingContext.getAddressPoints(input.geometry, input.key.resolution)
+                        input.geocodingContext.getAddressPoints(
+                            alignment = input.geometry,
+                            resolution = input.key.resolution,
+                            lenientExtrapolation = input.key.lenientExtrapolation,
+                        )
                     }
                 )
             }
