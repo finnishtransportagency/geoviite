@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -83,7 +82,7 @@ constructor(
                 val track = trackById[section.trackId] ?: throwRouteTrackNotFound(section.trackId)
                 val geometry = trackGeometryById[section.trackId] ?: throwRouteTrackGeometryNotFound(section.trackId)
                 val trackOid = trackOidRefs.get(section.trackId)
-                val trackNumberId = track.trackNumberId as IntId<LayoutTrackNumber>
+                val trackNumberId = track.trackNumberId
                 val trackNumberOid = trackNumberOidRefs.get(trackNumberId)
                 val geocodingContext = getGeocodingContext(trackNumberId)
 
@@ -96,8 +95,8 @@ constructor(
                 val startPoint = geometry.getPointAtM(startM) ?: throwRoutePointAtMNotFound(startM, section.trackId)
                 val endPoint = geometry.getPointAtM(endM) ?: throwRoutePointAtMNotFound(endM, section.trackId)
 
-                val startAddress = geocodingContext?.getAddress(startPoint, lenientExtrapolation = true)?.first
-                val endAddress = geocodingContext?.getAddress(endPoint, lenientExtrapolation = true)?.first
+                val startAddress = geocodingContext?.let { startPoint.toAddress(it) }
+                val endAddress = geocodingContext?.let { endPoint.toAddress(it) }
 
                 ExtRouteSectionV1(
                     locationTrackOid = ExtOidV1(trackOid),
