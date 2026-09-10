@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.tracklayout.AnyM
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LineM
@@ -16,13 +15,7 @@ internal fun toExtAddressPoint(
     point: IPoint,
     geocodingContext: GeocodingContext<ReferenceLineM>?,
     targetCoordinateSystem: Srid,
-): ExtAddressPointV1 {
-    val address =
-        geocodingContext?.getAddress(point, lenientExtrapolation = true)?.let { (address, intersect) ->
-            if (intersect == IntersectType.WITHIN) address else null
-        }
-    return toExtAddressPoint(point, address, targetCoordinateSystem)
-}
+): ExtAddressPointV1 = toExtAddressPoint(point, geocodingContext?.let { point.toAddress(it) }, targetCoordinateSystem)
 
 fun toExtAddressPoint(addressPoint: AddressPoint<*>, targetCoordinateSystem: Srid): ExtAddressPointV1 =
     toExtAddressPoint(addressPoint.point, addressPoint.address, targetCoordinateSystem)

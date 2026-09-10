@@ -6,8 +6,12 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.Resolution
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
+import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
@@ -78,3 +82,6 @@ inline fun <reified T : LayoutAsset<T>> oidReference(
 fun coordinateSystem(extCoordinateSystem: ExtSridV1?): Srid = extCoordinateSystem?.value ?: LAYOUT_SRID
 
 fun resolution(extResolution: ExtResolutionV1?): Resolution = extResolution?.toResolution() ?: Resolution.ONE_METER
+
+inline fun <reified T : GeocodingAlignmentM<T>> IPoint?.toAddress(geocodingContext: GeocodingContext<T>): TrackMeter? =
+    this?.let { point -> geocodingContext.getAddress(point, lenientExtrapolation = true)?.first }

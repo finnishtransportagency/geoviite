@@ -231,7 +231,9 @@ constructor(
                         start = newListings.first().point.address?.formatFixedDecimals(3) ?: throwNonGeocodablePvi(),
                         end = newListings.last().point.address?.formatFixedDecimals(3) ?: throwNonGeocodablePvi(),
                         intersectionPoints =
-                            newListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
+                            newListings.map { listing ->
+                                toIntersectionPoint(listing, coordinateSystem, heightTriangles)
+                            },
                     )
                 )
             }
@@ -376,16 +378,10 @@ private fun getTrackAddresses(
     geometry: LocationTrackGeometry,
     geocodingContext: GeocodingContext<ReferenceLineM>,
 ): Pair<TrackMeter, TrackMeter> {
-    val startAddress = geometry.start?.let { toAddress(it, geocodingContext) } ?: throwNonGeocodablePvi()
-    val endAddress = geometry.end?.let { toAddress(it, geocodingContext) } ?: throwNonGeocodablePvi()
+    val startAddress = geometry.start?.toAddress(geocodingContext) ?: throwNonGeocodablePvi()
+    val endAddress = geometry.end?.toAddress(geocodingContext) ?: throwNonGeocodablePvi()
     return startAddress to endAddress
 }
-
-private fun toAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): TrackMeter? =
-    geocodingContext
-        .getAddress(point, lenientExtrapolation = true)
-        ?.takeIf { (_, intersect) -> intersect == IntersectType.WITHIN }
-        ?.first
 
 private fun toIntersectionPoint(
     listing: VerticalGeometryListing,
