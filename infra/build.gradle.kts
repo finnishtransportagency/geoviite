@@ -52,7 +52,7 @@ dependencies {
 
     // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
     // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
-    testImplementation(platform("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.12"))
+    testImplementation(platform("org.eclipse.jetty.ee10:jetty-ee10-bom:12.1.13"))
 
     // Override versions for transitive deps with known vulnerabilities
     // Note: Idea dependency analyzer doesn't understand these, so it might show conflict warning for versions, but
@@ -60,7 +60,7 @@ dependencies {
     constraints {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
         implementation("com.google.errorprone:error_prone_annotations:2.50.0")
-        implementation("com.google.guava:guava:33.6.0-jre")
+        implementation("com.google.guava:guava:33.7.1-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
         implementation("javax.measure:unit-api:2.2")
 
@@ -73,8 +73,8 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.53.0")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.85")
+    implementation("software.amazon.awssdk:cloudfront:2.54.16")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -132,8 +132,8 @@ dependencies {
     testImplementation("org.seleniumhq.selenium:selenium-java")
     testImplementation("org.wiremock:wiremock-jetty12:3.13.2")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.4")
-    testImplementation("io.projectreactor:reactor-test:3.8.6")
-    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.46")
+    testImplementation("io.projectreactor:reactor-test:3.8.7")
+    testImplementation("io.swagger.parser.v3:swagger-parser:2.1.48")
     testImplementation("javax.xml.bind:jaxb-api:2.3.1")
     // Explicit agent-jar for Mockito's inline mock maker, see the mockitoAgent configuration declaration above.
     mockitoAgent("org.mockito:mockito-core") { isTransitive = false }
