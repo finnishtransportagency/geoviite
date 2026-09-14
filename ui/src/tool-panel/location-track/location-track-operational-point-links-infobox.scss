@@ -1,3 +1,5 @@
+@use 'vayla-design-lib' as vayla-design;
+
 .location-track-operational-point-links-infobox-list {
     display: grid;
     margin-bottom: 12px;
@@ -9,6 +11,11 @@
         display: flex;
         justify-content: center;
         flex-direction: column;
+    }
+
+    &__issue {
+        display: inline-flex;
+        fill: vayla-design.$color-lemon-dark;
     }
 
     > div {
