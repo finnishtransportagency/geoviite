@@ -367,7 +367,12 @@ export type LocationTrackInfoboxOperationalPoint = {
     operationalPointId: OperationalPointId;
     location?: Point;
     displayAddress?: TrackMeter;
+    issue?: LocationTrackOperationalPointIssue;
 };
+
+export type LocationTrackOperationalPointIssue =
+    | 'DOES_NOT_OVERLAP_OP_AREA'
+    | 'DOES_NOT_REACH_OP_LOCATION';
 
 export type LocationTrackSwitchJoint = {
     switchId: LayoutSwitchId;
