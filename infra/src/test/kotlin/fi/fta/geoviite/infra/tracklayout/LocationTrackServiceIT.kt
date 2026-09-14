@@ -1219,6 +1219,106 @@ constructor(
     }
 
     @Test
+    fun `getInfoboxExtras marks operational point issue as DOES_NOT_OVERLAP_OP_AREA when track never enters its polygon`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(300.0, 0.0))))
+                .id
+
+        val opId =
+            mainOfficialContext
+                .save(
+                    operationalPoint(
+                        name = "OP",
+                        location = Point(10.0, 10.0),
+                        polygon =
+                            Polygon(
+                                Point(0.0, 0.0),
+                                Point(20.0, 0.0),
+                                Point(20.0, 20.0),
+                                Point(0.0, 20.0),
+                                Point(0.0, 0.0),
+                            ),
+                        draft = false,
+                    )
+                )
+                .id
+
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId, draft = false, operationalPointIds = setOf(opId)),
+                trackGeometryOfSegments(segment(Point(200.0, 200.0), Point(300.0, 200.0))),
+            )
+
+        val extras = locationTrackService.getInfoboxExtras(MainLayoutContext.official, track.id as IntId)
+        assertNotNull(extras)
+        val opExtra = extras!!.operationalPoints.find { it.operationalPointId == opId }
+        assertNotNull(opExtra)
+        assertEquals(LocationTrackOperationalPointIssue.DOES_NOT_OVERLAP_OP_AREA, opExtra!!.issue)
+    }
+
+    @Test
+    fun `getInfoboxExtras marks operational point issue as DOES_NOT_REACH_OP_LOCATION when track does not reach the location`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .id
+
+        val opId =
+            mainOfficialContext
+                .save(
+                    operationalPoint(
+                        name = "OP",
+                        location = Point(50.0, 50.0),
+                        polygon =
+                            Polygon(
+                                Point(0.0, 0.0),
+                                Point(100.0, 0.0),
+                                Point(100.0, 100.0),
+                                Point(0.0, 100.0),
+                                Point(0.0, 0.0),
+                            ),
+                        draft = false,
+                    )
+                )
+                .id
+
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId, draft = false, operationalPointIds = setOf(opId)),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+
+        val extras = locationTrackService.getInfoboxExtras(MainLayoutContext.official, track.id as IntId)
+        assertNotNull(extras)
+        val opExtra = extras!!.operationalPoints.find { it.operationalPointId == opId }
+        assertNotNull(opExtra)
+        assertEquals(LocationTrackOperationalPointIssue.DOES_NOT_REACH_OP_LOCATION, opExtra!!.issue)
+    }
+
+    @Test
+    fun `getInfoboxExtras has no operational point issue when track overlaps polygon and reaches the location`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .id
+
+        val opId = mainOfficialContext.save(operationalPoint(name = "OP", location = Point(50.0, 0.0), draft = false)).id
+
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId, draft = false, operationalPointIds = setOf(opId)),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+
+        val extras = locationTrackService.getInfoboxExtras(MainLayoutContext.official, track.id as IntId)
+        assertNotNull(extras)
+        val opExtra = extras!!.operationalPoints.find { it.operationalPointId == opId }
+        assertNotNull(opExtra)
+        assertNull(opExtra!!.issue)
+    }
+
+    @Test
     fun `getInfoboxExtras returns correct partOfSplit value`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))

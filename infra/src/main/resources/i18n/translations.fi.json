@@ -956,7 +956,11 @@
                 "show-more": "Näytä kaikki",
                 "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
-                "detach": "Pura linkitys"
+                "detach": "Pura linkitys",
+                "issue": {
+                    "DOES_NOT_OVERLAP_OP_AREA": "Raide ei ulotu toiminnallisen pisteen alueelle",
+                    "DOES_NOT_REACH_OP_LOCATION": "Raide ei ulotu toiminnallisen pisteen viralliseen sijaintiin"
+                }
             },
             "detach-operational-point-links-dialog": {
                 "title": "Toiminnallisen pisteen linkityksen purkaminen raiteelta",
