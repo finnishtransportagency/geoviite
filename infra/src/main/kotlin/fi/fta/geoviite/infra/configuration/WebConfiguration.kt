@@ -48,6 +48,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.HttpsUri
 import fi.fta.geoviite.infra.util.UnsafeString
+import java.nio.charset.Charset
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -58,6 +59,7 @@ import org.springframework.format.FormatterRegistry
 import org.springframework.http.CacheControl
 import org.springframework.http.converter.ByteArrayHttpMessageConverter
 import org.springframework.http.converter.HttpMessageConverter
+import org.springframework.http.converter.StringHttpMessageConverter
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
@@ -184,6 +186,7 @@ constructor(
 
         converters.add(ByteArrayHttpMessageConverter())
         converters.add(JacksonJsonHttpMessageConverter(mapper))
+        converters.add(StringHttpMessageConverter(Charset.forName("UTF-8")))
     }
 }
 

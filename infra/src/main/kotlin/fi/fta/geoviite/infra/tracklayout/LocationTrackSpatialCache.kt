@@ -129,6 +129,15 @@ data class ContextCache(
             .keys
             .map { trackVersion -> getTrack(trackVersion) to getGeometry(trackVersion) }
 
+    fun getTracksWithSegmentsInBoundingBox(
+        boundingBox: BoundingBox
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> =
+        network
+            .search(Geometries.rectangle(boundingBox.x.min, boundingBox.y.min, boundingBox.x.max, boundingBox.y.max))
+            .map { hit -> hit.value().locationTrackVersion }
+            .distinct()
+            .map { trackVersion -> getTrack(trackVersion) to getGeometry(trackVersion) }
+
     private fun createHit(
         segment: SpatialCacheSegment,
         location: IPoint,

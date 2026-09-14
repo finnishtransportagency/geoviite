@@ -815,6 +815,13 @@ class LocationTrackService(
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
     @Transactional(readOnly = true)
+    fun getExternalIds(
+        branch: LayoutBranch,
+        ids: Collection<IntId<LocationTrack>>,
+    ): Map<IntId<LocationTrack>, Oid<LocationTrack>> =
+        locationTrackDao.fetchExternalIds(branch, ids).mapValues { (_, externalId) -> externalId.oid }
+
+    @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
