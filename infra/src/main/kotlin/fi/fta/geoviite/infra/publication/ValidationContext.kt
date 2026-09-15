@@ -396,12 +396,13 @@ class ValidationContext(
         preloadStationLinkIssuesByOperationalPoints(publicationSet.getOperationalPointIds())
     }
 
-    fun preloadOperationalPointOverlaps(candidateIds: List<IntId<OperationalPoint>>) {
-        operationalPointPolygonOverlaps.preload(candidateIds) { cands ->
+    fun preloadOperationalPointOverlaps(checkIds: List<IntId<OperationalPoint>>) {
+        operationalPointPolygonOverlaps.preload(checkIds) { idsToCheck ->
             operationalPointDao.findOverlappingPolygonsInPublicationCandidates(
                 target.baseContext,
                 target.candidateContext,
-                cands,
+                publicationSet.getOperationalPointIds(),
+                idsToCheck,
             )
         }
     }
