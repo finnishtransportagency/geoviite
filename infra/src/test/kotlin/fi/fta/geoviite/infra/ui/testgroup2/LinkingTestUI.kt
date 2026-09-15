@@ -653,7 +653,7 @@ constructor(
             .save()
         waitAndClearToast("deleted-successfully")
 
-        assertTrue(trackLayoutPage.selectionPanel.locationTracksList.items.none { it.name == "lt-track to delete" })
+        trackLayoutPage.selectionPanel.locationTracksList.waitUntilItemIsRemoved { it.name == "lt-track to delete" }
 
         val locationTrackJ = originalLocationTrack.second.segments.first().segmentStart
         val pointNearLocationTrackJStart = locationTrackJ.plus(Point(x = 2.0, y = 2.0))
