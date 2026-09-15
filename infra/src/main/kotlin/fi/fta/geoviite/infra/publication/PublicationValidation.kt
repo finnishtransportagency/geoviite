@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.KmValidationIssue
 import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
+import fi.fta.geoviite.infra.geography.intersects
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -61,6 +62,7 @@ const val VALIDATION_LOCATION_TRACK = "$VALIDATION.location-track"
 const val VALIDATION_GEOCODING = "$VALIDATION.geocoding"
 const val VALIDATION_SWITCH = "$VALIDATION.switch"
 const val VALIDATION_OPERATIONAL_POINT = "$VALIDATION.operational-point"
+const val VALIDATION_OPERATIONAL_POINT_LINK = "$VALIDATION.operational-point-link"
 const val VALIDATION_STATION_LINK = "$VALIDATION.station-link"
 
 private const val JOINT_LOCATION_DELTA = 0.5
@@ -257,6 +259,42 @@ fun validateOperationalPointPolygonOverlap(
     ) { contextDuplicates ->
         listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
     }
+
+fun validateLocationTrackOperationalPointArea(
+    locationTrack: LocationTrack,
+    geometry: LocationTrackGeometry,
+    operationalPoint: OperationalPoint,
+): List<LayoutValidationIssue> =
+    listOfNotNull(
+        validateWithParams(
+            operationalPoint.polygon?.let { polygon ->
+                geometry.segments.any { segment -> intersects(polygon, segment.segmentPoints) }
+            } == true,
+            WARNING,
+        ) {
+            "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area" to
+                localizationParams(
+                    "locationTrack" to locationTrack.name,
+                    "operationalPoint" to operationalPoint.name,
+                )
+        }
+    )
+
+fun validateSwitchOperationalPointArea(
+    switch: LayoutSwitch,
+    operationalPoint: OperationalPoint,
+): List<LayoutValidationIssue> =
+    listOfNotNull(
+        validateWithParams(
+            operationalPoint.polygon?.let { polygon ->
+                switch.joints.any { joint -> intersects(polygon, joint.location) }
+            } == true,
+            WARNING,
+        ) {
+            "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area" to
+                localizationParams("switch" to switch.name, "operationalPoint" to operationalPoint.name)
+        }
+    )
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,

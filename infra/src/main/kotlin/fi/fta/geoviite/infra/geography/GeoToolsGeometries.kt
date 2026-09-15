@@ -97,6 +97,11 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
 fun contains(polygon: Polygon, point: IPoint, srid: Srid): Boolean =
     toJtsGeoPolygon(polygon.points, srid).contains(toJtsGeoPoint(point, srid))
 
+fun intersects(polygon: Polygon, point: IPoint): Boolean = toJtsPolygon(polygon.points).intersects(toJtsPoint(point))
+
+fun intersects(polygon: Polygon, linePoints: List<IPoint>): Boolean =
+    linePoints.size >= 2 && toJtsPolygon(polygon.points).intersects(toJtsLineString(linePoints))
+
 private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = ConcurrentHashMap()
 
 private fun crs(srid: Srid): CoordinateReferenceSystem =
@@ -126,6 +131,8 @@ internal fun toJtsGeoPoint(coordinate: JtsCoordinate): JtsPoint {
         "Failed to create JTS coordinate: coordinate=$coordinate"
     }
 }
+
+private fun toJtsPoint(point: IPoint): JtsPoint = toJtsGeoPoint(JtsCoordinate(point.x, point.y))
 
 private val jtsBuilder = GeometryBuilder()
 
