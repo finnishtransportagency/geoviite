@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.math
 
 import fi.fta.geoviite.infra.geography.create2DPolygonString
+import fi.fta.geoviite.infra.geography.toJtsLineString
+import fi.fta.geoviite.infra.geography.toJtsPoint
+import fi.fta.geoviite.infra.geography.toJtsPolygon
 
 const val MIN_POLYGON_POINTS = 4
 
@@ -27,6 +30,17 @@ data class Polygon(val points: List<Point>) {
                 // Cannot actually happen, since polygon has at least 4 points
                 "Failed to create bounding box for polygon: $this"
             }
+
+    private val jtsPolygon by lazy { toJtsPolygon(points) }
+
+    fun intersects(point: IPoint): Boolean = jtsPolygon.intersects(toJtsPoint(point))
+
+    fun intersects(points: List<IPoint>): Boolean =
+        when (points.size) {
+            0 -> false
+            1 -> intersects(points.first())
+            else -> jtsPolygon.intersects(toJtsLineString(points))
+        }
 
     fun moveBy(vector: Point) = Polygon(points.map { it + vector })
 }

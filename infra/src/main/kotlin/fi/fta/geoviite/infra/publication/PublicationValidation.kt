@@ -61,6 +61,7 @@ const val VALIDATION_LOCATION_TRACK = "$VALIDATION.location-track"
 const val VALIDATION_GEOCODING = "$VALIDATION.geocoding"
 const val VALIDATION_SWITCH = "$VALIDATION.switch"
 const val VALIDATION_OPERATIONAL_POINT = "$VALIDATION.operational-point"
+const val VALIDATION_OPERATIONAL_POINT_LINK = "$VALIDATION.operational-point-link"
 const val VALIDATION_STATION_LINK = "$VALIDATION.station-link"
 
 private const val JOINT_LOCATION_DELTA = 0.5
@@ -257,6 +258,42 @@ fun validateOperationalPointPolygonOverlap(
     ) { contextDuplicates ->
         listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
     }
+
+fun validateLocationTrackOperationalPointArea(
+    locationTrack: LocationTrack,
+    geometry: LocationTrackGeometry,
+    operationalPoint: OperationalPoint,
+): List<LayoutValidationIssue> =
+    listOfNotNull(
+        validateWithParams(
+            operationalPoint.polygon?.let { polygon ->
+                geometry.segments.any { segment -> polygon.intersects(segment.segmentPoints) }
+            } == true,
+            WARNING,
+        ) {
+            "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area" to
+                localizationParams(
+                    "locationTrack" to locationTrack.name,
+                    "operationalPoint" to operationalPoint.name,
+                )
+        }
+    )
+
+fun validateSwitchOperationalPointArea(
+    switch: LayoutSwitch,
+    operationalPoint: OperationalPoint,
+): List<LayoutValidationIssue> =
+    listOfNotNull(
+        validateWithParams(
+            operationalPoint.polygon?.let { polygon ->
+                switch.joints.any { joint -> polygon.intersects(joint.location) }
+            } == true,
+            WARNING,
+        ) {
+            "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area" to
+                localizationParams("switch" to switch.name, "operationalPoint" to operationalPoint.name)
+        }
+    )
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,

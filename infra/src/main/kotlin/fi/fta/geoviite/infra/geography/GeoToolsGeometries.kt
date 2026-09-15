@@ -127,6 +127,8 @@ internal fun toJtsGeoPoint(coordinate: JtsCoordinate): JtsPoint {
     }
 }
 
+internal fun toJtsPoint(point: IPoint): JtsPoint = toJtsGeoPoint(JtsCoordinate(point.x, point.y))
+
 private val jtsBuilder = GeometryBuilder()
 
 internal fun toJtsBox(x: Range<Double>, y: Range<Double>): JtsPolygon = jtsBuilder.box(x.min, y.min, x.max, y.max)
