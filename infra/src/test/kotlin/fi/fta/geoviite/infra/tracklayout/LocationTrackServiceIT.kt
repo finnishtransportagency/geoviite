@@ -1303,7 +1303,8 @@ constructor(
                 .createLayoutTrackNumber(geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
 
-        val opId = mainOfficialContext.save(operationalPoint(name = "OP", location = Point(50.0, 0.0), draft = false)).id
+        val opId =
+            mainOfficialContext.save(operationalPoint(name = "OP", location = Point(50.0, 0.0), draft = false)).id
 
         val (track, _) =
             mainOfficialContext.save(

@@ -604,9 +604,9 @@ class LocationTrackService(
         val polygon = operationalPoint.polygon
         val overlapsArea =
             polygon == null ||
-                geometry
-                    .filterSegmentsByBbox(polygon.boundingBox)
-                    .any { (segment, _) -> polygon.intersects(segment.segmentPoints) }
+                geometry.filterSegmentsByBbox(polygon.boundingBox).any { (segment, _) ->
+                    polygon.intersects(segment.segmentPoints)
+                }
         return if (!overlapsArea) {
             LocationTrackOperationalPointIssue.DOES_NOT_OVERLAP_OP_AREA
         } else if (
