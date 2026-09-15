@@ -2025,6 +2025,10 @@
                 "location-outside-polygon": "Pistemäinen sijainti on toiminnallisen pisteen alueen ulkopuolella",
                 "polygon-is-not-simple": "Alueen muoto ei ole yksinkertainen polygoni"
             },
+            "operational-point-link": {
+                "location-track-outside-area": "Raide {{locationTrack}} ei sijaitse toiminnallisen pisteen {{operationalPoint}} alueella",
+                "switch-outside-area": "Vaihde {{switch}} ei sijaitse toiminnallisen pisteen {{operationalPoint}} alueella"
+            },
             "geocoding": {
                 "sharp-angle": "Raiteen {{locationTrack}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "stretched-meters": "Raiteen {{locationTrack}} metrivälit ovat liian pitkiä, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
