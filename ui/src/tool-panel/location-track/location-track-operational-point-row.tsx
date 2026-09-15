@@ -1,6 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutLocationTrack, OperationalPoint } from 'track-layout/track-layout-model';
+import {
+    LayoutLocationTrack,
+    LocationTrackOperationalPointIssue,
+    OperationalPoint,
+} from 'track-layout/track-layout-model';
 import { LayoutContext, TrackMeter } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import styles from './location-track-operational-point-links-infobox.scss';
@@ -13,10 +17,12 @@ import { OnSelectOptions } from 'selection/selection-model';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { LocationTrackDetachOperationalPointDialog } from './dialog/location-track-detach-operational-point-dialog';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 type LocationTrackOperationalPointRowProps = {
     operationalPoint: OperationalPoint;
     address: TrackMeter | undefined;
+    issue: LocationTrackOperationalPointIssue | undefined;
     layoutContext: LayoutContext;
     locationTrack: LayoutLocationTrack;
     onSelect: (items: OnSelectOptions) => void;
@@ -26,6 +32,7 @@ type LocationTrackOperationalPointRowProps = {
 export const LocationTrackOperationalPointRow: React.FC<LocationTrackOperationalPointRowProps> = ({
     operationalPoint,
     address,
+    issue,
     layoutContext,
     locationTrack,
     onSelect,
@@ -69,6 +76,17 @@ export const LocationTrackOperationalPointRow: React.FC<LocationTrackOperational
             <div className={remarkClassNames}>
                 {operationalPoint.state === 'DELETED' &&
                     t('tool-panel.location-track.operational-point-links.not-existing')}
+                {issue && (
+                    <span
+                        className={
+                            styles['location-track-operational-point-links-infobox-list__issue']
+                        }
+                        title={t(
+                            `tool-panel.location-track.operational-point-links.issue.${issue}`,
+                        )}>
+                        <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
+                    </span>
+                )}
             </div>
             <div>
                 {layoutContext.publicationState === 'DRAFT' && (
@@ -95,3 +113,4 @@ export const LocationTrackOperationalPointRow: React.FC<LocationTrackOperational
         </>
     );
 };
+

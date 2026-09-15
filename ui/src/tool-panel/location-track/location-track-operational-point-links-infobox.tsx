@@ -91,22 +91,23 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                                 className={
                                     styles['location-track-operational-point-links-infobox-list']
                                 }>
-                                {operationalPointsToShow.map((operationalPoint) => (
-                                    <LocationTrackOperationalPointRow
-                                        key={operationalPoint.id}
-                                        operationalPoint={operationalPoint}
-                                        address={
-                                            operationalPointExtras?.find(
-                                                (op) =>
-                                                    op.operationalPointId === operationalPoint.id,
-                                            )?.displayAddress
-                                        }
-                                        layoutContext={layoutContext}
-                                        locationTrack={locationTrack}
-                                        onSelect={onSelect}
-                                        isLinkingOrSplitting={isLinkingOrSplitting}
-                                    />
-                                ))}
+                                {operationalPointsToShow.map((op) => {
+                                    const extra = operationalPointExtras.find(
+                                        (extra) => extra.operationalPointId === op.id,
+                                    );
+                                    return (
+                                        <LocationTrackOperationalPointRow
+                                            key={op.id}
+                                            operationalPoint={op}
+                                            address={extra?.displayAddress}
+                                            issue={extra?.issue}
+                                            layoutContext={layoutContext}
+                                            locationTrack={locationTrack}
+                                            onSelect={onSelect}
+                                            isLinkingOrSplitting={isLinkingOrSplitting}
+                                        />
+                                    );
+                                })}
                             </div>
                             {operationalPoints.length > maxOperationalPointsToDisplay && (
                                 <ShowMoreButton
