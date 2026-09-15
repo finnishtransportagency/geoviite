@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.StationLinkIssue
@@ -130,6 +131,7 @@ constructor(
         validationContext.preloadSwitchTrackLinks(linkedSwitchIds)
         val linkedOperationalPointIds =
             trackIds.flatMap(validationContext::getPotentiallyAffectedOperationalPointIdsbyTrackId).distinct()
+        validationContext.preloadOperationalPointVersions(linkedOperationalPointIds)
         validationContext.preloadStationLinkIssuesByOperationalPoints(linkedOperationalPointIds)
 
         return trackIds.map { id -> ValidatedAsset(id, validateLocationTrack(id, validationContext)) }
@@ -161,6 +163,7 @@ constructor(
         validationContext.preloadSwitchesByName(switchIds)
         val linkedOperationalPointIds =
             switchIds.flatMap(validationContext::getPotentiallyAffectedOperationalPointIdsbySwitchId).distinct()
+        validationContext.preloadOperationalPointVersions(linkedOperationalPointIds)
         validationContext.preloadStationLinkIssuesByOperationalPoints(linkedOperationalPointIds)
 
         return switchIds.map { id -> ValidatedAsset(id, validateSwitch(id, validationContext)) }
@@ -500,6 +503,17 @@ constructor(
                     }
                 } ?: emptyList()
 
+            val operationalPointAreaIssues =
+                if (switch.exists) {
+                    switch.operationalPointId
+                        ?.let(validationContext::getOperationalPoint)
+                        ?.takeIf(OperationalPoint::exists)
+                        ?.let { operationalPoint -> validateSwitchOperationalPointArea(switch, operationalPoint) }
+                        ?: emptyList()
+                } else {
+                    emptyList()
+                }
+
             return nameIssues +
                 incomingReferencesIssues +
                 outgoingReferencesIssues +
@@ -507,7 +521,8 @@ constructor(
                 duplicationIssues +
                 oidDuplicationIssues +
                 jointConnectionsDifferIssues +
-                stationLinkIssues
+                stationLinkIssues +
+                operationalPointAreaIssues
         }
     }
 
@@ -565,6 +580,9 @@ constructor(
                     track.duplicateOf?.let(validationContext::getLocationTrackLiveness),
                     track,
                 )
+
+            val operationalPointAreaIssues =
+                validateLocationTrackOperationalPointAreas(track, geometry, validationContext)
 
             val switchTrackLinkings: List<SwitchTrackLinking> = validationContext.getSwitchTrackLinks(geometry)
             val switchTrackIssues = validateTrackSwitchLinkingGeometry(track, switchTrackLinkings)
@@ -639,9 +657,26 @@ constructor(
                 incomingReferenceIssues +
                 outgoingReferenceIssues +
                 switchConnectivityIssues +
-                stationLinkIssues)
+                stationLinkIssues +
+                operationalPointAreaIssues)
         }
     }
+
+    private fun validateLocationTrackOperationalPointAreas(
+        track: LocationTrack,
+        geometry: LocationTrackGeometry,
+        validationContext: ValidationContext,
+    ): List<LayoutValidationIssue> =
+        if (track.exists) {
+            track.operationalPointIds
+                .mapNotNull(validationContext::getOperationalPoint)
+                .filter(OperationalPoint::exists)
+                .flatMap { operationalPoint ->
+                    validateLocationTrackOperationalPointArea(track, geometry, operationalPoint)
+                }
+        } else {
+            emptyList()
+        }
 
     private fun validateOperationalPoint(
         id: IntId<OperationalPoint>,
@@ -744,6 +779,20 @@ constructor(
                     validationContext.target.validationTargetType,
                 )
 
+        val linkedTrackPolygonIntersectIssues =
+            validationContext
+                .getLocationTracksByOperationalPoint(id)
+                .filter(LocationTrack::exists)
+                .mapNotNull { track -> validationContext.getLocationTrackWithGeometry(track.id as IntId) }
+                .flatMap { (track, geometry) ->
+                    validateLocationTrackOperationalPointArea(track, geometry, operationalPoint)
+                }
+
+        val linkedSwitchPolygonIntersectIssues =
+            validationContext.getSwitchesByOperationalPoint(id).filter(LayoutSwitch::exists).flatMap { switch ->
+                validateSwitchOperationalPointArea(switch, operationalPoint)
+            }
+
         val stationLinkIssues =
             validationContext.getStationLinkIssuesByOperationalPoint(operationalPoint.id as IntId).map { issue ->
                 issue.toValidationIssue(validationContext)
@@ -758,6 +807,8 @@ constructor(
             polygonOverlapIssues +
             locationIssues +
             geometryQualityIssues +
+            linkedTrackPolygonIntersectIssues +
+            linkedSwitchPolygonIntersectIssues +
             stationLinkIssues
     }
 
