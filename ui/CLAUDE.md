@@ -6,6 +6,9 @@ E2E page models live in `infra/src/test/kotlin/fi/fta/geoviite/infra/ui/pagemode
 
 ## Architecture
 
+Translation strings (Finnish UI text): `infra/src/main/resources/i18n/translations.fi.json`.
+All UI-visible text goes here — do not hardcode Finnish strings in component code.
+
 - Per-domain packages under `ui/src/` (e.g., `track-layout/`, `geometry/`, `linking/`, `publication/`).
 - Each domain has: `*-model.ts` (types), `*-store.ts` (Redux slice), `*-api.ts` (API calls). API calls always go through `*-api.ts`; never fetch directly from components.
 - Four persisted Redux slices (`trackLayout`, `infraModel`, `dataProducts`, `common`). Feature-local state (edit dialogs, linking workflow) lives in per-feature stores, not Redux.
