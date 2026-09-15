@@ -1426,6 +1426,95 @@ class PublicationValidationTest {
     }
 
     @Test
+    fun `location track operational point area validation uses geometry intersection`() {
+        val operationalPoint = operationalPoint(name = "OP")
+        val locationTrack = locationTrack(IntId(1), name = "track")
+        val expectedWarning =
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area",
+                mapOf("locationTrack" to "track", "operationalPoint" to "OP"),
+            )
+
+        assertEquals(
+            emptyList(),
+            validateLocationTrackOperationalPointArea(
+                locationTrack,
+                trackGeometryOfSegments(segment(Point(-5.0, 10.0), Point(5.0, 10.0))),
+                operationalPoint,
+            ),
+        )
+        assertEquals(
+            emptyList(),
+            validateLocationTrackOperationalPointArea(
+                locationTrack,
+                trackGeometryOfSegments(segment(Point(-5.0, 0.0), Point(5.0, 0.0))),
+                operationalPoint,
+            ),
+        )
+        assertEquals(
+            listOf(expectedWarning),
+            validateLocationTrackOperationalPointArea(
+                locationTrack,
+                trackGeometryOfSegments(segment(Point(25.0, 10.0), Point(30.0, 10.0))),
+                operationalPoint,
+            ),
+        )
+        assertEquals(
+            listOf(expectedWarning),
+            validateLocationTrackOperationalPointArea(locationTrack, TmpLocationTrackGeometry.empty, operationalPoint),
+        )
+        assertEquals(
+            listOf(expectedWarning),
+            validateLocationTrackOperationalPointArea(
+                locationTrack,
+                trackGeometryOfSegments(segment(Point(5.0, 5.0), Point(10.0, 10.0))),
+                operationalPoint.copy(polygon = null),
+            ),
+        )
+    }
+
+    @Test
+    fun `switch operational point area validation uses joint intersection`() {
+        val operationalPoint = operationalPoint(name = "OP")
+        val expectedWarning =
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area",
+                mapOf("switch" to "switch", "operationalPoint" to "OP"),
+            )
+        fun switchAt(vararg locations: Point) =
+            switch(
+                name = "switch",
+                joints =
+                    locations.mapIndexed { index, location ->
+                        LayoutSwitchJoint(JointNumber(index + 1), SwitchJointRole.MAIN, location, null)
+                    },
+            )
+
+        assertEquals(
+            emptyList(),
+            validateSwitchOperationalPointArea(switchAt(Point(10.0, 10.0)), operationalPoint),
+        )
+        assertEquals(
+            emptyList(),
+            validateSwitchOperationalPointArea(switchAt(Point(20.0, 10.0)), operationalPoint),
+        )
+        assertEquals(
+            listOf(expectedWarning),
+            validateSwitchOperationalPointArea(switchAt(Point(25.0, 10.0)), operationalPoint),
+        )
+        assertEquals(listOf(expectedWarning), validateSwitchOperationalPointArea(switchAt(), operationalPoint))
+        assertEquals(
+            listOf(expectedWarning),
+            validateSwitchOperationalPointArea(
+                switchAt(Point(10.0, 10.0)),
+                operationalPoint.copy(polygon = null),
+            ),
+        )
+    }
+
+    @Test
     fun `RINF id validation returns no errors for valid overrides`() {
         val euOp = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
         val seOp = operationalPoint(rinfIdOverride = "SEAbc", rinfIdGenerated = "FI1234")
