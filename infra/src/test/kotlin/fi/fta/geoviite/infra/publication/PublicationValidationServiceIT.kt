@@ -2413,6 +2413,124 @@ constructor(
     }
 
     @Test
+    fun `operational point validation uses all draft polygons when validating points separately`() {
+        val officialPolygon =
+            Polygon(
+                listOf(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0),
+                    Point(10.0, 10.0),
+                    Point(0.0, 10.0),
+                    Point(0.0, 0.0),
+                )
+            )
+        val widenedDraftPolygon =
+            Polygon(
+                listOf(
+                    Point(0.0, 0.0),
+                    Point(20.0, 0.0),
+                    Point(20.0, 10.0),
+                    Point(0.0, 10.0),
+                    Point(0.0, 0.0),
+                )
+            )
+        val draftOnlyPolygon =
+            Polygon(
+                listOf(
+                    Point(12.0, 0.0),
+                    Point(18.0, 0.0),
+                    Point(18.0, 10.0),
+                    Point(12.0, 10.0),
+                    Point(12.0, 0.0),
+                )
+            )
+        val overlappingPolygon =
+            Polygon(
+                listOf(
+                    Point(5.0, 0.0),
+                    Point(15.0, 0.0),
+                    Point(15.0, 10.0),
+                    Point(5.0, 10.0),
+                    Point(5.0, 0.0),
+                )
+            )
+
+        val officialMalmi =
+            mainOfficialContext
+                .save(
+                    operationalPoint(
+                        name = "Malmi",
+                        uicCode = "1",
+                        location = Point(5.0, 5.0),
+                        polygon = officialPolygon,
+                    )
+                )
+                .id
+        val draftMalmi =
+            mainDraftContext
+                .save(asMainDraft(mainOfficialContext.fetch(officialMalmi)!!).copy(polygon = widenedDraftPolygon))
+                .id
+        val draftOnly =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "Kaikki OK",
+                        uicCode = "2",
+                        location = Point(15.0, 5.0),
+                        polygon = draftOnlyPolygon,
+                    )
+                )
+                .id
+        val overlapping =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "Validaatiovirhe",
+                        uicCode = "3",
+                        location = Point(10.0, 5.0),
+                        polygon = overlappingPolygon,
+                    )
+                )
+                .id
+
+        val validations =
+            listOf(draftMalmi, draftOnly, overlapping).map { id ->
+                publicationValidationService.validateOperationalPoints(LayoutBranch.main, DRAFT, listOf(id)).single()
+            }
+
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.operational-point.overlapping-polygon-draft",
+                    mapOf("duplicateNames" to "Kaikki OK, Validaatiovirhe"),
+                )
+            ),
+            validations[0].errors,
+        )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.operational-point.overlapping-polygon-draft",
+                    mapOf("duplicateNames" to "Malmi, Validaatiovirhe"),
+                )
+            ),
+            validations[1].errors,
+        )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.operational-point.overlapping-polygon-draft",
+                    mapOf("duplicateNames" to "Malmi, Kaikki OK"),
+                )
+            ),
+            validations[2].errors,
+        )
+    }
+
+    @Test
     fun `operational point uic code must exist and be unique`() {
         val (external123, external456) =
             ratkoTestService
