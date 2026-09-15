@@ -386,6 +386,12 @@ class ValidationContext(
         preloadSwitchVersions(allSwitchIds)
         preloadSwitchesByName(publicationSet.switches.map { v -> v.id })
         preloadSwitchTrackLinks(allSwitchIds)
+
+        val linkedOperationalPointIds =
+            (locationTrackIds.flatMap(::getPotentiallyAffectedOperationalPointIdsbyTrackId) +
+                    publicationSet.getSwitchIds().flatMap(::getPotentiallyAffectedOperationalPointIdsbySwitchId))
+                .distinct()
+        preloadOperationalPointVersions(linkedOperationalPointIds)
         preloadOperationalPointOverlaps(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByName(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByAbbreviation(publicationSet.getOperationalPointIds())
@@ -417,6 +423,9 @@ class ValidationContext(
 
     fun preloadSwitchVersions(ids: List<IntId<LayoutSwitch>>) =
         preloadBaseVersions(target.baseContext, ids, switchDao, switchVersionCache)
+
+    fun preloadOperationalPointVersions(ids: List<IntId<OperationalPoint>>) =
+        preloadBaseVersions(target.baseContext, ids, operationalPointDao, operationalPointVersionCache)
 
     fun preloadKmPostsByTrackNumbers(tnIds: List<IntId<LayoutTrackNumber>>) =
         trackNumberKmPosts.preload(tnIds, ::fetchKmPostIdsByTrackNumbers)
