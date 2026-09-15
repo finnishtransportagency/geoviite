@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.validateAdministrativeChangeContent
@@ -3024,6 +3025,188 @@ constructor(
                         it.localizationKey.toString() ==
                             "validation.layout.operational-point.reference-from-switch.deleted"
                 }
+        )
+    }
+
+    @Test
+    fun `operational point area issues are surfaced for both sides of linked assets`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val operationalPointId =
+            mainDraftContext.save(operationalPoint(name = "OP", ratoType = OperationalPointRatoType.OLP)).id
+        val locationTrackIds =
+            listOf("outside-track-1", "outside-track-2").associateWith { name ->
+                mainDraftContext
+                    .save(
+                        locationTrack(
+                            trackNumber,
+                            name = name,
+                            operationalPointIds = setOf(operationalPointId),
+                        ),
+                        trackGeometryOfSegments(segment(Point(30.0, 30.0), Point(40.0, 40.0))),
+                    )
+                    .id
+            }
+        val switchIds =
+            listOf("outside-switch-1", "outside-switch-2").associateWith { name ->
+                mainDraftContext
+                    .save(
+                        switch(
+                            name = name,
+                            operationalPointId = operationalPointId,
+                            joints =
+                                listOf(
+                                    LayoutSwitchJoint(
+                                        JointNumber(1),
+                                        SwitchJointRole.MAIN,
+                                        Point(30.0, 30.0),
+                                        null,
+                                    )
+                                ),
+                        )
+                    )
+                    .id
+            }
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(
+                    locationTracks = locationTrackIds.values.toList(),
+                    switches = switchIds.values.toList(),
+                    operationalPoints = listOf(operationalPointId),
+                ),
+            )
+        val operationalPointIssues =
+            validation.validatedAsPublicationUnit.operationalPoints.single { it.id == operationalPointId }.issues
+        locationTrackIds.forEach { (name, id) ->
+            val warning =
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area",
+                    mapOf("locationTrack" to name, "operationalPoint" to "OP"),
+                )
+            assertContains(validation.validatedAsPublicationUnit.locationTracks.single { it.id == id }.issues, warning)
+            assertContains(operationalPointIssues, warning)
+        }
+        switchIds.forEach { (name, id) ->
+            val warning =
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area",
+                    mapOf("switch" to name, "operationalPoint" to "OP"),
+                )
+            assertContains(validation.validatedAsPublicationUnit.switches.single { it.id == id }.issues, warning)
+            assertContains(operationalPointIssues, warning)
+        }
+    }
+
+    @Test
+    fun `operational point validation checks unchanged official linked assets against a draft polygon`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val largePolygon =
+            Polygon(Point(0.0, 0.0), Point(50.0, 0.0), Point(50.0, 50.0), Point(0.0, 50.0), Point(0.0, 0.0))
+        val smallPolygon = operationalPoint().polygon
+        val operationalPointId =
+            mainOfficialContext.save(operationalPoint(name = "OP", polygon = largePolygon, draft = false)).id
+        mainOfficialContext.save(
+            locationTrack(
+                trackNumber,
+                name = "official-track",
+                operationalPointIds = setOf(operationalPointId),
+            ),
+            trackGeometryOfSegments(segment(Point(30.0, 30.0), Point(40.0, 40.0))),
+        )
+        mainOfficialContext.save(
+            switch(
+                name = "official-switch",
+                operationalPointId = operationalPointId,
+                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(30.0, 30.0), null)),
+            )
+        )
+        mainDraftContext.save(mainOfficialContext.fetch(operationalPointId)!!.copy(polygon = smallPolygon))
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(operationalPoints = listOf(operationalPointId)),
+            )
+        val issues = validation.validatedAsPublicationUnit.operationalPoints.single().issues
+
+        assertContains(
+            issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area",
+                mapOf("locationTrack" to "official-track", "operationalPoint" to "OP"),
+            ),
+        )
+        assertContains(
+            issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area",
+                mapOf("switch" to "official-switch", "operationalPoint" to "OP"),
+            ),
+        )
+    }
+
+    @Test
+    fun `linked asset validation checks drafts against an unchanged official operational point`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val operationalPointId = mainOfficialContext.save(operationalPoint(name = "OP", draft = false)).id
+        val locationTrackId =
+            mainOfficialContext
+                .save(
+                    locationTrack(
+                        trackNumber,
+                        name = "draft-track",
+                        operationalPointIds = setOf(operationalPointId),
+                    ),
+                    trackGeometryOfSegments(segment(Point(5.0, 5.0), Point(10.0, 10.0))),
+                )
+                .id
+        val switchId =
+            mainOfficialContext
+                .save(
+                    switch(
+                        name = "draft-switch",
+                        operationalPointId = operationalPointId,
+                        joints =
+                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null)),
+                    )
+                )
+                .id
+        mainDraftContext.save(
+            mainOfficialContext.fetch(locationTrackId)!!,
+            trackGeometryOfSegments(segment(Point(30.0, 30.0), Point(40.0, 40.0))),
+        )
+        mainDraftContext.save(
+            mainOfficialContext
+                .fetch(switchId)!!
+                .copy(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(30.0, 30.0), null)))
+        )
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(locationTracks = listOf(locationTrackId), switches = listOf(switchId)),
+            )
+
+        assertContains(
+            validation.validatedAsPublicationUnit.locationTracks.single().issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area",
+                mapOf("locationTrack" to "draft-track", "operationalPoint" to "OP"),
+            ),
+        )
+        assertContains(
+            validation.validatedAsPublicationUnit.switches.single().issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area",
+                mapOf("switch" to "draft-switch", "operationalPoint" to "OP"),
+            ),
         )
     }
 
