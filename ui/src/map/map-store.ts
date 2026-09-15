@@ -27,6 +27,11 @@ export function getEmptyShownItems(): ShownItems {
     };
 }
 
+export const menuContainsMapLayer = (menuItem: MapLayerMenuItem, forcedLayers: MapLayerName[]) => {
+    const layersFromMenuItem = layerMenuItemMapLayers[menuItem.name];
+    return layersFromMenuItem.some((layerFromMenu) => forcedLayers.includes(layerFromMenu));
+};
+
 export const isLayerInProxyLayerCollection = (
     menuItemName: MapLayerMenuItemName,
     visibleLayers: MapLayerName[],
