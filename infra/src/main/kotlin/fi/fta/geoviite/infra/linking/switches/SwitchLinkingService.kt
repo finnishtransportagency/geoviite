@@ -647,10 +647,9 @@ fun linkJointsToEdge(
     return edges
 }
 
-// TODO: Mieti toleranssit
 const val SWITCH_JOINT_NODE_SNAPPING_TOLERANCE = ALIGNMENT_LINKING_SNAP
 
-// TODO: Mostly 1.0 is good, ROI V0600 wants more but then also complains in validation if it does get it
+// Mostly 1.0 is good, ROI V0600 wants more but then also complains in validation if it does get it
 const val SWITCH_JOINT_NODE_ADJUSTMENT_TOLERANCE = 2.0
 
 private fun linkJointToEdge(
