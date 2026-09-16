@@ -576,13 +576,10 @@ constructor(
                 changes.getValue(kmPost.id),
                 latestPub.publicationTime,
                 latestPub.publicationTime.minusMillis(1),
-                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 { _, _ -> null },
                 { geographyService.getCoordinateSystem(it).name.toString() },
             )
         assertEquals(2, diff.size)
-        // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching
-        // works
         assertEquals("km-post", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
     }
@@ -614,7 +611,6 @@ constructor(
             changes.getValue(id),
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
-            trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
             { _, _ -> null },
             { geographyService.getCoordinateSystem(it).name.toString() },
         )
@@ -650,7 +646,6 @@ constructor(
                 changes.getValue(kmPost.id),
                 latestPub.publicationTime,
                 latestPub.publicationTime.minusMillis(1),
-                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 { _, _ -> null },
                 { geographyService.getCoordinateSystem(it).name.toString() },
             )
