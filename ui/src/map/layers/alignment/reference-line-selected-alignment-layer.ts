@@ -29,7 +29,7 @@ export function createSelectedReferenceLineAlignmentLayer(
     existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
-    splittingIsActive: boolean, // TODO: This will be removed when layer visibility logic is revised
+    splittingIsActive: boolean,
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
