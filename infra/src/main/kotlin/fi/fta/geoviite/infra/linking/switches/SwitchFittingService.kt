@@ -90,8 +90,7 @@ constructor(
                         switchStructure,
                         getTransformationForGeometryPlan(planHeader),
                     ),
-                    planHeader.measurementMethod?.let(::mapMeasurementMethodToLocationAccuracy)
-                        ?: LocationAccuracy.DIGITIZED_AERIAL_IMAGE,
+                    mapMeasurementMethodToLocationAccuracy(planHeader.measurementMethod),
                 )
             )
         } catch (e: GeometrySwitchFittingException) {

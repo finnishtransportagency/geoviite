@@ -709,7 +709,7 @@ sealed class NodeConnection {
         if (containsSwitch(switchId)) {
             val remainingSwitch = switches.singleOrNull { it.id != switchId }
             remainingSwitch?.let { switch ->
-                val newConnection = if (switch == node?.portA) portConnection else portConnection.opposite
+                val newConnection = if (switch == node.portA) portConnection else portConnection.opposite
                 TmpNodeConnection(newConnection, TmpSwitchNode(switch, null))
             } ?: PlaceHolderNodeConnection
         } else {

@@ -867,7 +867,7 @@ fun validateSwitch(
                     OBSERVATION_MAJOR,
                     buildMap {
                         put("switchName", switch.name.toString())
-                        switch.typeName?.let { put("switchType", it.toString()) }
+                        put("switchType", switch.typeName.toString())
                     },
                 )
             },
@@ -969,7 +969,7 @@ fun validateSwitchAlignments(
                     OBSERVATION_MAJOR,
                     buildMap {
                         put("switchName", switch.name.toString())
-                        switch.typeName?.let { put("switchType", it.toString()) }
+                        put("switchType", switch.typeName.toString())
                         put("jointNumbers", alignmentSwitch.jointNumbers.map { it.intValue }.joinToString(", "))
                         put("alignmentName", alignmentSwitch.alignment.name.toString())
                     },
@@ -982,7 +982,7 @@ fun validateSwitchAlignments(
                     OBSERVATION_MAJOR,
                     buildMap {
                         put("switchName", switch.name.toString())
-                        switch.typeName?.let { put("switchType", it.toString()) }
+                        put("switchType", switch.typeName.toString())
                         put("jointNumbers", incorrectJoints.map { it.intValue }.joinToString(", "))
                         put("alignmentName", alignmentSwitch.alignment.name.toString())
                     },
@@ -995,7 +995,7 @@ fun validateSwitchAlignments(
                     OBSERVATION_MINOR,
                     buildMap {
                         put("switchName", switch.name.toString())
-                        switch.typeName?.let { put("switchType", it.toString()) }
+                        put("switchType", switch.typeName.toString())
                         put("jointNumbers", inaccurateJoints.map { it.intValue }.joinToString(", "))
                         put("alignmentName", alignmentSwitch.alignment.name.toString())
                     },
