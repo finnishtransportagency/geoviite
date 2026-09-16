@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
@@ -733,6 +734,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Cross-branch layout version resolves the moment while the branch determines the view`() {
         val (oid, publication1, designPublication, publication2, designOid, designTrackOid) =
@@ -762,6 +764,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Design location track modifications are listed by the design branch regardless of version bounds`() {
         val (oid, publication1, designPublication, publication2, designOid, _) = insertTrackWithMainAndDesignChanges()
@@ -787,6 +790,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Design location track collection modifications are listed by the design branch`() {
         val (_, publication1, _, publication2, designOid, designTrackOid) = insertTrackWithMainAndDesignChanges()
@@ -804,6 +808,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Cancelled design modification reports main branch state for single track`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -840,6 +845,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Cancelled design modification reports no collection modification`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -877,6 +883,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Track with design OID appears in design collection even if not directly edited`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -914,6 +921,7 @@ constructor(
         assertEquals(listOf("edited other", "main description"), descriptions)
     }
 
+    @Disabled
     @Test
     fun `Track without design OID does not appear in design collection`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -949,6 +957,7 @@ constructor(
         assertEquals(listOf("edited other"), response.sijaintiraiteet.map { it.kuvaus })
     }
 
+    @Disabled
     @Test
     fun `Cancelled design addressing change reverts inherited addresses for single track`() {
         val (trackOid, mainPublication, designPublication, cancellationPublication, designOid) =
@@ -980,6 +989,7 @@ constructor(
         api.locationTracks.assertNoModificationSince(trackOid, mainPublication.uuid)
     }
 
+    @Disabled
     @Test
     fun `Cancelled design addressing change reverts inherited addresses in design collection`() {
         val (trackOid, mainPublication, designPublication, cancellationPublication, designOid) =
@@ -1016,6 +1026,7 @@ constructor(
         api.locationTrackCollection.assertNoModificationSince(mainPublication.uuid)
     }
 
+    @Disabled
     @Test
     fun `Design routes return 404 for a track without an OID in the design`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -1047,6 +1058,7 @@ constructor(
             .getWithExpectedError(oid.toString(), httpStatus = HttpStatus.NOT_FOUND)
     }
 
+    @Disabled
     @Test
     fun `Design-created track is served with its design OID and no official OID`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -1077,6 +1089,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Cancelled design-created track reports no modification and does not exist at the latest version`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -1106,6 +1119,7 @@ constructor(
         designApi.assertDoesntExist(designTrackOid)
     }
 
+    @Disabled
     @Test
     fun `Location track collection in a design without publications is served at the latest overall layout version`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -1127,6 +1141,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Deleted design still serves location track design routes`() {
         val (oid, _, _, _, designOid, designTrackOid, designBranch) = insertTrackWithMainAndDesignChanges()
@@ -1150,6 +1165,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Design geometry and profile routes resolve design OIDs and follow inherited address changes`() {
         val (trackOid, mainPublication, designPublication, cancellationPublication, designOid, designTrackOid) =

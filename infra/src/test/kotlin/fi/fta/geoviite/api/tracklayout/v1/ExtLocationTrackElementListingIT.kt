@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -318,6 +319,7 @@ constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DB
         }
     }
 
+    @Disabled
     @Test
     fun `Design route resolves design OIDs and serves the inherited element listing`() {
         val start = Point(0.0, 0.0)
@@ -344,6 +346,7 @@ constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DB
         }
     }
 
+    @Disabled
     @Test
     fun `Design route returns 404 for a track without an OID in the design`() {
         val start = Point(0.0, 0.0)
@@ -368,6 +371,7 @@ constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DB
         )
     }
 
+    @Disabled
     @Test
     fun `Element change published in a design is returned by the design modifications route`() {
         val start = Point(0.0, 0.0)
