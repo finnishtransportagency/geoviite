@@ -91,13 +91,13 @@ data class Split(
         tlt.locationTrackId == trackId
     }
 
-    override fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
+    override fun containsLocationTrack(id: IntId<LocationTrack>): Boolean = locationTracks.contains(id)
 
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? = targetLocationTracks.find { track ->
         track.locationTrackId == trackId
     }
 
-    override fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
+    override fun containsSwitch(id: IntId<LayoutSwitch>): Boolean = relinkedSwitches.contains(id)
 }
 
 enum class SplitTargetOperation {
