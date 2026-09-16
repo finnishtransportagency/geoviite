@@ -373,14 +373,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         logger.integrationCall("newSwitch", "switch" to switch)
         val pushTarget = RatkoPushTargetSwitch(switch)
         return postWithJsonResponseBody(ASSET_PATH, switch.withoutGeometries(), PROPERTIES, CREATE, pushTarget)
-            ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
+            ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.stringValue() }
             ?.let(::RatkoOid)
     }
 
     fun newMetadataAsset(asset: RatkoMetadataAsset): RatkoOid<RatkoMetadataAsset>? {
         logger.integrationCall("newMetadataAsset", "asset" to asset)
         return postWithJsonResponseBody(ASSET_PATH, asset.withoutGeometries(), PROPERTIES, CREATE, null)
-            ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
+            ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.stringValue() }
             ?.let(::RatkoOid)
     }
 
@@ -450,7 +450,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 val validJoints =
                     nodeCollection.get("nodes")?.filter { node ->
                         val point = node.get("point") as ObjectNode?
-                        (point?.get("state") as ObjectNode?)?.get("name")?.textValue() == RatkoPointStates.VALID.state
+                        (point?.get("state") as ObjectNode?)?.get("name")?.stringValue() == RatkoPointStates.VALID.state
                     } ?: emptyList()
 
                 if (validJoints.isNotEmpty()) {
@@ -645,8 +645,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     private fun replaceKmM(nodeCollection: JsonNode?) {
         nodeCollection?.get("nodes")?.forEach { node ->
             (node.get("point") as ObjectNode?)?.let { point ->
-                val km = point.get("km")?.textValue()
-                val m = point.get("m")?.textValue()
+                val km = point.get("km")?.stringValue()
+                val m = point.get("m")?.stringValue()
 
                 if (km != null && m != null) {
                     point.put("kmM", RatkoTrackMeter(TrackMeter(km, m)).toString())

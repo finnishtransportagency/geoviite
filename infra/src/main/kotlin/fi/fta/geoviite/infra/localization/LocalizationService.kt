@@ -29,7 +29,7 @@ data class Translation(val lang: LocalizationLanguage, val localization: String)
         nodeTextCache.computeIfAbsent(key) { k ->
             var node = jsonRoot
             k.split(".").let { keyPart -> keyPart.forEach { part -> node = node.path(part) } }
-            if (node.isMissingNode) key.toString() else node.asText()
+            if (node.isMissingNode) key.toString() else node.asString()
         }
 
     fun filename(key: String, params: LocalizationParams, branch: String = "filename"): FileName {
