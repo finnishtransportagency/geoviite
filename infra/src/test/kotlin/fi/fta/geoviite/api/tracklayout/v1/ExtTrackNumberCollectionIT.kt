@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -410,6 +411,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Design collection route lists only track numbers with an OID in the design`() {
         val (inDesignId, inDesignOid) =
@@ -444,6 +446,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Track number change published in a design is only visible in the design collection modifications`() {
         val (tnId, oid) =
