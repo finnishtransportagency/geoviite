@@ -19,11 +19,6 @@ $appbar-height: 48px;
         height: $appbar-height - 6;
     }
 
-    &__vayla-logo {
-        height: $appbar-height - 20;
-        margin-right: 12px;
-    }
-
     &__title {
         @include vayla-design.typography-heading;
 
