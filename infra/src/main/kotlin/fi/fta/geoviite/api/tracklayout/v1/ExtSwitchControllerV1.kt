@@ -36,7 +36,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/vaihteet", "/suunnitelmat/{${DESIGN_OID}}/vaihteet")
+    @GetMapping("/vaihteet")
     @Tag(name = EXT_SWITCH_TAG_V1)
     @Operation(summary = "Vaihdekokoelman haku")
     @ApiResponses(
@@ -74,7 +74,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
     ): ExtSwitchCollectionResponseV1 =
         extSwitchService.getExtSwitchCollection(designOid, layoutVersion, extCoordinateSystem, switchNameFilter)
 
-    @GetMapping("/vaihteet/muutokset", "/suunnitelmat/{${DESIGN_OID}}/vaihteet/muutokset")
+    @GetMapping("/vaihteet/muutokset")
     @Tag(name = EXT_SWITCH_TAG_V1)
     @Operation(summary = "Vaihdekokoelman muutosten haku")
     @ApiResponses(
@@ -131,7 +131,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             )
             .let(::toResponse)
 
-    @GetMapping("/vaihteet/{$SWITCH_OID_PARAM}", "/suunnitelmat/{${DESIGN_OID}}/vaihteet/{$SWITCH_OID_PARAM}")
+    @GetMapping("/vaihteet/{$SWITCH_OID_PARAM}")
     @Tag(name = EXT_SWITCH_TAG_V1)
     @Operation(summary = "Yksittäisen vaihteen haku OID-tunnuksella")
     @ApiResponses(
@@ -175,10 +175,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
     ): ResponseEntity<ExtSwitchResponseV1> =
         extSwitchService.getExtSwitch(oid, layoutVersion, designOid, extCoordinateSystem).let(::toResponse)
 
-    @GetMapping(
-        "/vaihteet/{$SWITCH_OID_PARAM}/muutokset",
-        "/suunnitelmat/{${DESIGN_OID}}/vaihteet/{$SWITCH_OID_PARAM}/muutokset",
-    )
+    @GetMapping("/vaihteet/{$SWITCH_OID_PARAM}/muutokset")
     @Tag(name = EXT_SWITCH_TAG_V1)
     @Operation(
         summary = "Yksittäisen vaihteen muutosten haku OID-tunnuksella",

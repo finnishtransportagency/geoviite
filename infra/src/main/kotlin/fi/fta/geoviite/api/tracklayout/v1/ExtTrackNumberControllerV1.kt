@@ -39,7 +39,7 @@ constructor(
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/ratanumerot", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot")
+    @GetMapping("/ratanumerot")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman haku")
     @ApiResponses(
@@ -77,7 +77,7 @@ constructor(
     ): ExtTrackNumberCollectionResponseV1 =
         extTrackNumberService.getExtTrackNumberCollection(designOid, layoutVersion, coordinateSystem, trackNumberFilter)
 
-    @GetMapping("/ratanumerot/muutokset", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/muutokset")
+    @GetMapping("/ratanumerot/muutokset")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman muutosten haku")
     @ApiResponses(
@@ -135,7 +135,7 @@ constructor(
             )
             .let(::toResponse)
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}")
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron haku OID-tunnuksella")
     @ApiResponses(
@@ -179,10 +179,7 @@ constructor(
     ): ResponseEntity<ExtTrackNumberResponseV1> =
         extTrackNumberService.getExtTrackNumber(oid, layoutVersion, designOid, coordinateSystem).let(::toResponse)
 
-    @GetMapping(
-        "/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset",
-        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset",
-    )
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(
         summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
@@ -245,10 +242,7 @@ constructor(
             .getExtTrackNumberModifications(oid, layoutVersionFrom, layoutVersionTo, designOid, coordinateSystem)
             .let(::toResponse)
 
-    @GetMapping(
-        "/ratanumerot/{${TRACK_NUMBER_OID}}/geometria",
-        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}/geometria",
-    )
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron geometrian haku OID-tunnuksella")
     @ApiResponses(
@@ -311,10 +305,7 @@ constructor(
             )
             .let(::toResponse)
 
-    @GetMapping(
-        "/ratanumerot/{$TRACK_NUMBER_OID}/geometria/muutokset",
-        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{$TRACK_NUMBER_OID}/geometria/muutokset",
-    )
+    @GetMapping("/ratanumerot/{$TRACK_NUMBER_OID}/geometria/muutokset")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron geometrian muutosten haku OID-tunnuksella")
     @ApiResponses(
