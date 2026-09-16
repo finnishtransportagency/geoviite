@@ -88,8 +88,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 "layout_context_id" to sourceLocationTrackVersion.context.toSqlString(),
                 "source_location_track_version" to sourceLocationTrackVersion.version,
             )
-        val splitId =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<Split>("id") }
+        val splitId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<Split>("id") }
 
         logger.daoAccess(AccessType.INSERT, Split::class, splitId)
 

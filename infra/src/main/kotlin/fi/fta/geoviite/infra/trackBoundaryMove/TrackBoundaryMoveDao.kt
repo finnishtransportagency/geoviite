@@ -79,8 +79,7 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
                 "lengthened_location_track_version" to lengthenedLocationTrack.version,
                 "lengthened_location_track_layout_context_id" to lengthenedLocationTrack.context.toSqlString(),
             )
-        val id =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<TrackBoundaryMove>("id") }
+        val id = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<TrackBoundaryMove>("id") }
         saveRelinkedSwitches(id, relinkedSwitches)
         logger.daoAccess(AccessType.INSERT, TrackBoundaryMove::class, id)
         return id

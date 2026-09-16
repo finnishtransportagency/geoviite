@@ -592,8 +592,7 @@ constructor(
                 "type_name" to switch.typeName,
                 "state" to switch.state?.name,
             )
-        val id =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<GeometrySwitch>("id") }
+        val id = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<GeometrySwitch>("id") }
         insertSwitchJoints(id, switch.joints)
         return id
     }
