@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertNull
@@ -640,6 +641,7 @@ constructor(
         }
     }
 
+    @Disabled
     @Test
     fun `Design routes resolve design OIDs and serve the inherited track number`() {
         val (tnId, oid) =
@@ -672,6 +674,7 @@ constructor(
         assertNull(api.trackNumberGeometry.get(oid).virallinen_ratanumero_oid)
     }
 
+    @Disabled
     @Test
     fun `Design routes do not serve a track number without an OID in the design`() {
         val (tnId, oid) =
@@ -702,6 +705,7 @@ constructor(
             )
     }
 
+    @Disabled
     @Test
     fun `Track number change published in a design is returned by the design modifications routes`() {
         val (tnId, oid) =

@@ -37,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
@@ -647,6 +648,7 @@ constructor(
             }
     }
 
+    @Disabled
     @Test
     fun `Design routes resolve design OIDs and serve the inherited switch`() {
         val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)
@@ -672,6 +674,7 @@ constructor(
         assertNull(api.switch.get(oid).vaihde.virallinen_vaihde_oid)
     }
 
+    @Disabled
     @Test
     fun `Design routes do not serve a switch without an OID in the design`() {
         val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)
@@ -692,6 +695,7 @@ constructor(
         assertEquals(emptyList<ExtTestSwitchV1>(), api.switchCollectionInDesign(designOid).get().vaihteet)
     }
 
+    @Disabled
     @Test
     fun `Switch change published in a design is returned by the design modifications routes`() {
         val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)

@@ -34,7 +34,7 @@ class ExtTrackNumberKmControllerV1
 constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/ratanumerot/ratakilometrit", "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/ratakilometrit")
+    @GetMapping("/ratanumerot/ratakilometrit")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman ratakilometrien haku")
     @ApiResponses(
@@ -69,10 +69,7 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
     ): ExtTrackKmsCollectionResponseV1 =
         extTrackNumberKmsService.getExtTrackNumberKmsCollection(designOid, layoutVersion, extCoordinateSystem)
 
-    @GetMapping(
-        "/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit",
-        "/suunnitelmat/{${DESIGN_OID}}/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit",
-    )
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron ratakilometrien haku OID-tunnuksella")
     @ApiResponses(
