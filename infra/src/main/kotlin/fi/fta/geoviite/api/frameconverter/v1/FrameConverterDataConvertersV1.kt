@@ -8,7 +8,7 @@ import tools.jackson.databind.ValueDeserializer
 class FrameConverterLocationTrackTypeDeserializerV1 : ValueDeserializer<FrameConverterLocationTrackTypeV1>() {
     @Throws(IOException::class)
     override fun deserialize(parser: JsonParser, ctxt: DeserializationContext): FrameConverterLocationTrackTypeV1 {
-        val value = parser.text
+        val value = parser.string
         return FrameConverterLocationTrackTypeV1.fromValue(value)
     }
 }

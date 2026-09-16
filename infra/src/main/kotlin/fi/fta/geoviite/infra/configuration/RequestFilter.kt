@@ -33,7 +33,7 @@ import fi.fta.geoviite.infra.logging.apiResponse
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import java.net.URL
+import java.net.URI
 import java.security.KeyFactory
 import java.security.interfaces.ECPublicKey
 import java.security.interfaces.RSAPublicKey
@@ -98,7 +98,7 @@ constructor(
 
     private val jwkProvider: UrlJwkProvider by lazy {
         check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }
-        UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
+        UrlJwkProvider(URI("$jwksUrl/.well-known/jwks.json").toURL())
     }
 
     private val redirectRootToAppRoot: Boolean by lazy { "backend" in env.activeProfiles.toSet() }

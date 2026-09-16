@@ -123,7 +123,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
                 nodes.propertyNames().asSequence().toList().map { code ->
                     PVApiDictionaryEntry(
                         code = PVDictionaryCode(code),
-                        name = UnsafeString(nodes.get(code).get("otsikko").textValue()),
+                        name = UnsafeString(nodes.get(code).get("otsikko").stringValue()),
                     )
                 }
             }
