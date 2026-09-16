@@ -1,4 +1,6 @@
 out/
+CLAUDE.local.md
+.claude/settings.local.json
 .idea/
 *.scss.d.ts
 **/.DS_store
