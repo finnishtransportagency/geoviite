@@ -360,7 +360,7 @@ class LayoutKmPostDao(
         val response: LayoutRowVersion<LayoutKmPost> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ ->
                 LayoutRowVersion(id, item.layoutContext, rs.getInt("version"))
-            } ?: throw IllegalStateException("Failed to save new km-post")
+            }
         logger.daoAccess(AccessType.INSERT, LayoutKmPost::class, response)
         clearVersionCache()
         return response

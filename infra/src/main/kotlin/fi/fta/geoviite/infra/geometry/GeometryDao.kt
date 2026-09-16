@@ -207,19 +207,18 @@ constructor(
                 "mapSrid" to LAYOUT_SRID.code,
                 "source" to plan.source.name,
                 "projektivelho_document_id" to plan.pvDocumentId?.intValue,
-                "plan_phase" to plan.planPhase?.name,
-                "plan_decision" to plan.decisionPhase?.name,
-                "measurement_method" to plan.measurementMethod?.name,
-                "elevation_measurement_method" to plan.elevationMeasurementMethod?.name,
+                "plan_phase" to plan.planPhase.name,
+                "plan_decision" to plan.decisionPhase.name,
+                "measurement_method" to plan.measurementMethod.name,
+                "elevation_measurement_method" to plan.elevationMeasurementMethod.name,
                 "message" to plan.message,
                 "hidden" to plan.isHidden,
                 "name" to plan.name,
-                "quality" to plan.quality?.name,
+                "quality" to plan.quality.name,
             )
 
         val planId: RowVersion<GeometryPlan> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get generated ID for new plan")
         insertPlanFile(planId.id, file)
         val switchDatabaseIds = insertSwitches(planId.id, plan.switches)
         insertAlignments(planId.id, plan.alignments, switchDatabaseIds)
@@ -241,7 +240,7 @@ constructor(
         val (fileId, hash) =
             jdbcTemplate.queryForObject(sql, params) { rs, _ ->
                 rs.getIntId<InfraModelFile>("id") to rs.getString("hash")
-            } ?: throw IllegalStateException("Failed to insert plan file into DB")
+            }
         require(hash == file.hash) {
             "Backend hash calculation should match the automatic DB-generated: file=${file.name} db=$hash backend=${file.hash}"
         }
@@ -414,15 +413,15 @@ constructor(
                 "coordinate_system_name" to geometryPlan.units.coordinateSystemName,
                 "vertical_coordinate_system" to geometryPlan.units.verticalCoordinateSystem?.name,
                 "projektivelho_document_id" to geometryPlan.pvDocumentId?.intValue,
-                "plan_phase" to geometryPlan.planPhase?.name,
-                "plan_decision" to geometryPlan.decisionPhase?.name,
-                "measurement_method" to geometryPlan.measurementMethod?.name,
-                "elevation_measurement_method" to geometryPlan.elevationMeasurementMethod?.name,
+                "plan_phase" to geometryPlan.planPhase.name,
+                "plan_decision" to geometryPlan.decisionPhase.name,
+                "measurement_method" to geometryPlan.measurementMethod.name,
+                "elevation_measurement_method" to geometryPlan.elevationMeasurementMethod.name,
                 "message" to geometryPlan.message,
                 "source" to geometryPlan.source.name,
                 "hidden" to geometryPlan.isHidden,
                 "name" to geometryPlan.name,
-                "quality" to geometryPlan.quality?.name,
+                "quality" to geometryPlan.quality.name,
             )
 
         return getOne(
@@ -449,7 +448,6 @@ constructor(
         val params = mapOf("name" to project.name, "description" to project.description)
         val projectVersion: RowVersion<Project> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get generated ID for new project")
         logger.daoAccess(INSERT, Project::class, projectVersion)
         return projectVersion
     }
@@ -472,7 +470,6 @@ constructor(
         val params = mapOf("company_name" to author.companyName)
         val authorVersion: RowVersion<Author> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get generated ID for new author")
         logger.daoAccess(INSERT, Author::class, authorVersion)
         return authorVersion
     }
@@ -498,7 +495,6 @@ constructor(
             )
         val appId: RowVersion<Application> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get generated ID for new application")
         logger.daoAccess(INSERT, Application::class, appId)
         return appId
     }
@@ -598,7 +594,6 @@ constructor(
             )
         val id =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<GeometrySwitch>("id") }
-                ?: throw IllegalStateException("Failed to get generated ID for new switch")
         insertSwitchJoints(id, switch.joints)
         return id
     }
@@ -751,7 +746,7 @@ constructor(
             )
         return jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             RowVersion(rs.getIntId("id"), 1) // rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
+        }
     }
 
     fun preloadHeaderCache(): Int {

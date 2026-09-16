@@ -90,7 +90,6 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             )
         val splitId =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<Split>("id") }
-                ?: error("Failed to save split for location track: version=$sourceLocationTrackVersion")
 
         logger.daoAccess(AccessType.INSERT, Split::class, splitId)
 
@@ -385,6 +384,6 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
 
         val params = mapOf("design_id" to branch.designId?.intValue, "location_track_id" to locationTrackId.intValue)
 
-        return jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getBoolean("result") } ?: false
+        return jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getBoolean("result") }
     }
 }

@@ -251,7 +251,7 @@ class LayoutSwitchDao(
                 ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            } ?: throw IllegalStateException("Failed to save switch")
+            }
         if (item.joints.isNotEmpty()) upsertJoints(response, item.joints)
         logger.daoAccess(INSERT, LayoutSwitch::class, response)
         clearVersionCache()

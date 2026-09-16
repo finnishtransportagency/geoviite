@@ -248,7 +248,7 @@ class OperationalPointDao(
                 ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            } ?: throw IllegalStateException("Failed to save operational point")
+            }
         logger.daoAccess(INSERT, OperationalPoint::class, response)
         clearVersionCache()
         return response
@@ -359,7 +359,7 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(sql, commonParams + originParams) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            } ?: throw IllegalStateException("Failed to save operational point")
+            }
         logger.daoAccess(INSERT, OperationalPoint::class, response)
         clearVersionCache()
         return response

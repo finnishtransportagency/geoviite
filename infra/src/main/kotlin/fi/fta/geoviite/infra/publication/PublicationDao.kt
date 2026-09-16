@@ -504,7 +504,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                 ),
             ) { rs, _ ->
                 rs.getIntId("id")
-            } ?: error("Failed to generate ID for new publication row")
+            }
 
         logger.daoAccess(INSERT, Publication::class, publicationId)
         return publicationId

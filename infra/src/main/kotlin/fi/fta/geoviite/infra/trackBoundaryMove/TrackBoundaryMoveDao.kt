@@ -81,9 +81,6 @@ class TrackBoundaryMoveDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Dao
             )
         val id =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<TrackBoundaryMove>("id") }
-                ?: error(
-                    "Failed to save track boundary move: shortened=$shortenedLocationTrack lengthened=$lengthenedLocationTrack"
-                )
         saveRelinkedSwitches(id, relinkedSwitches)
         logger.daoAccess(AccessType.INSERT, TrackBoundaryMove::class, id)
         return id

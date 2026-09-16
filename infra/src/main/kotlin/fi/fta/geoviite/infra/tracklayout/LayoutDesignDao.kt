@@ -142,7 +142,6 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
                 .trimIndent()
         val response =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
-                ?: error("Failed to generate ID for new row version of updated layout design")
         logger.daoAccess(AccessType.UPDATE, LayoutDesign::class, response)
         return response.id
     }
@@ -167,7 +166,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
                 ),
             ) { rs, _ ->
                 rs.getRowVersion<LayoutDesign>("id", "version")
-            } ?: error("Failed to generate ID for new layout design")
+            }
         logger.daoAccess(AccessType.INSERT, LayoutDesign::class, response)
         return response.id
     }
