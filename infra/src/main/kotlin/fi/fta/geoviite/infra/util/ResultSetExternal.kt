@@ -265,14 +265,10 @@ fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
 inline fun <reified T> ResultSet.getList(name: String): List<T> = verifyNotNull(name, ::getListOrNull)
 
 inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? =
-    getArray(name)?.array?.let { arr ->
-        if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType) else null
-    }
+    getArray(name)?.array?.let { arr -> if (arr is Array<*>) arr.mapNotNull(::verifyType) else null }
 
 inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? =
-    getArray(name)?.array?.let { arr ->
-        if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) } else null
-    }
+    getArray(name)?.array?.let { arr -> if (arr is Array<*>) arr.map { it?.let(::verifyType) } else null }
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
