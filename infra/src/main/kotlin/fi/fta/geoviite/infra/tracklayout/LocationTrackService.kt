@@ -59,6 +59,7 @@ import org.springframework.transaction.support.TransactionTemplate
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 const val TOPOLOGY_CALC_DISTANCE = 1.0
+const val OPERATIONAL_POINT_LOCATION_TOLERANCE_METERS = 2.0
 
 @GeoviiteService
 class LocationTrackService(
@@ -563,6 +564,7 @@ class LocationTrackService(
                                         ?.let { loc -> geocodingContext?.getAddress(loc) }
                                         ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
                                         ?.first,
+                                issue = validateTrackOpGeometry(geometry, op),
                             )
                         }
                         .sortedBy { op -> op.displayAddress }
@@ -592,6 +594,27 @@ class LocationTrackService(
             (point == null || address == null) -> null
             (switchId != null) -> SwitchSplitPoint(point, address, switchId, JointNumber(0))
             else -> EndpointSplitPoint(point, address, endPointType)
+        }
+    }
+
+    private fun validateTrackOpGeometry(
+        geometry: LocationTrackGeometry,
+        operationalPoint: OperationalPoint,
+    ): LocationTrackOperationalPointIssue? {
+        val polygon = operationalPoint.polygon
+        val overlapsArea = polygon == null || geometry.intersects(polygon)
+        return if (!overlapsArea) {
+            LocationTrackOperationalPointIssue.DOES_NOT_OVERLAP_OP_AREA
+        } else if (
+            operationalPoint.location != null &&
+                !geometry.isWithinDistanceOfPoint(
+                    operationalPoint.location,
+                    OPERATIONAL_POINT_LOCATION_TOLERANCE_METERS,
+                )
+        ) {
+            LocationTrackOperationalPointIssue.DOES_NOT_REACH_OP_LOCATION
+        } else {
+            null
         }
     }
 

@@ -319,7 +319,13 @@ data class LocationTrackInfoboxOperationalPoint(
     val operationalPointId: IntId<OperationalPoint>,
     val location: Point?,
     val displayAddress: TrackMeter?,
+    val issue: LocationTrackOperationalPointIssue?,
 )
+
+enum class LocationTrackOperationalPointIssue {
+    DOES_NOT_OVERLAP_OP_AREA,
+    DOES_NOT_REACH_OP_LOCATION,
+}
 
 data class LocationTrackSwitchJoint(
     val switchId: IntId<LayoutSwitch>,

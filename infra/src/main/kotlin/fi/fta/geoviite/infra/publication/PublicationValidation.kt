@@ -266,9 +266,7 @@ fun validateLocationTrackOperationalPointArea(
 ): List<LayoutValidationIssue> =
     listOfNotNull(
         validateWithParams(
-            operationalPoint.polygon?.let { polygon ->
-                geometry.segments.any { segment -> polygon.intersects(segment.segmentPoints) }
-            } == true,
+            operationalPoint.polygon?.let(geometry::intersects) == true,
             WARNING,
         ) {
             "$VALIDATION_OPERATIONAL_POINT_LINK.location-track-outside-area" to
@@ -285,9 +283,7 @@ fun validateSwitchOperationalPointArea(
 ): List<LayoutValidationIssue> =
     listOfNotNull(
         validateWithParams(
-            operationalPoint.polygon?.let { polygon ->
-                switch.joints.any { joint -> polygon.intersects(joint.location) }
-            } == true,
+            operationalPoint.polygon?.let(switch::hasJointIntersecting) == true,
             WARNING,
         ) {
             "$VALIDATION_OPERATIONAL_POINT_LINK.switch-outside-area" to

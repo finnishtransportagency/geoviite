@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.switchLibrary.ISwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -60,6 +61,8 @@ data class LayoutSwitch(
     }
 
     fun getJoint(number: JointNumber): LayoutSwitchJoint? = joints.find { j -> j.number == number }
+
+    fun hasJointIntersecting(area: Polygon): Boolean = joints.any { joint -> area.intersects(joint.location) }
 
     @get:JsonIgnore
     val presentationJoint

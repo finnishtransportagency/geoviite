@@ -3,16 +3,37 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class LocationTrackGeometryTest {
+
+    @Test
+    fun `Location track geometry intersection checks the whole area`() {
+        val area =
+            Polygon(
+                Point(0.0, 0.0),
+                Point(10.0, 0.0),
+                Point(10.0, 10.0),
+                Point(0.0, 10.0),
+                Point(0.0, 0.0),
+            )
+
+        assertTrue(trackGeometryOfSegments(segment(Point(-5.0, 5.0), Point(15.0, 5.0))).intersects(area))
+        assertTrue(trackGeometryOfSegments(segment(Point(5.0, 5.0), Point(15.0, 15.0))).intersects(area))
+        assertTrue(trackGeometryOfSegments(segment(Point(10.0, 10.0), Point(15.0, 15.0))).intersects(area))
+        assertFalse(trackGeometryOfSegments(segment(Point(11.0, 5.0), Point(15.0, 5.0))).intersects(area))
+        assertFalse(TmpLocationTrackGeometry.empty.intersects(area))
+    }
 
     @Test
     fun `Start & End node content key works`() {
