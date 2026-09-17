@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.boundingBoxCombining
@@ -72,6 +73,9 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
     @get:JsonIgnore
     val isNotEmpty: Boolean
         get() = edges.isNotEmpty()
+
+    fun intersects(area: Polygon): Boolean =
+        filterSegmentsByBbox(area.boundingBox).any { (segment, _) -> area.intersects(segment.segmentPoints) }
 
     @get:JsonIgnore
     open val edgesWithM: List<Pair<LayoutEdge, Range<LineM<LocationTrackM>>>>
