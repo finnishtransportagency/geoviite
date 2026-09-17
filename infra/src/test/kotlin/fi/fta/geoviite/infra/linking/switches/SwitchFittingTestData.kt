@@ -154,8 +154,7 @@ fun cutFromStart(
                 null
             else {
                 // is partly included
-                // TODO GVT-3172 This is an actual M-type confusion
-                val newSegments = slice(edge.segmentsWithM, Range(cutPosition.toEdgeM(LineM(0.0)), edge.length))
+                val newSegments = slice(edge.segmentsWithM, Range(cutPosition.toEdgeM(range.min), edge.length))
                 edge.withSegments(newSegments)
             }
         }
@@ -187,7 +186,7 @@ fun cutFromEnd(
                 null
             else {
                 // is partly included
-                val newSegments = splitSegments(edge.segmentsWithM, cutPosition.castToDifferentM()).first
+                val newSegments = splitSegments(edge.segmentsWithM, cutPosition.toEdgeM(range.min)).first
                 edge.withSegments(newSegments)
             }
         }

@@ -49,7 +49,7 @@ export function createLocationTrackSelectedAlignmentLayer(
     existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
-    splittingIsActive: boolean, // TODO: This will be removed when layer visibility logic is revised
+    splittingIsActive: boolean,
     changeTimes: ChangeTimes,
     olView: OlView,
     onLoadingData: (loading: boolean) => void,

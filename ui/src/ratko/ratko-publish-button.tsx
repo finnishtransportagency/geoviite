@@ -23,7 +23,6 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled,
     const publishToRatko = () => {
         setShowingConfirmation(false);
         setIsPublishing(true);
-        // TODO Catch cases where RatkoAPI is not online
         pushToRatko(branchType)
             .then(() => updateAllChangeTimes())
             .catch(() => setIsPublishing(false));

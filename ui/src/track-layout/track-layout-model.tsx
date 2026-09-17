@@ -768,16 +768,6 @@ function getShortName(layoutSwitch: SwitchNameParts | undefined): string {
     );
 }
 
-// TODO: GVT-3169 Use localization for this? If here, then also in the backend?
-//  Note, that this also affects split name formatting which happens in store, so translations are not easily available.
-// function toProperForm(
-//     specifier: LocationTrackSpecifier | undefined,
-//     t: (key: string, params?: Record<string, unknown>) => string,
-// ): string {
-//     return specifier
-//         ? t(`location-track-dialog.name-specifiers.${specifier}`)
-//         : withPlaceholder(undefined);
-// }
 export function toProperForm(specifier: LocationTrackNameSpecifier | undefined): string {
     switch (specifier) {
         case undefined:

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
-//import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
@@ -82,14 +81,6 @@ export const AppBar: React.FC = () => {
                     <DataProductsMenu />
                 </li>
             </ul>
-            {
-                // TODO Re-add logo when it has been specified where it should go
-                /*<img
-                className={styles['app-bar__vayla-logo']}
-                src={vaylaLogo}
-                alt="Väylävirasto logo"
-            />*/
-            }
             <ul className={styles['app-bar__links']}>
                 <li>
                     <AppBarMoreMenu />

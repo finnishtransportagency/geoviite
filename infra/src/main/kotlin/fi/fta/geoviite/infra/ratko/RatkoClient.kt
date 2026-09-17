@@ -617,10 +617,6 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         return getSpec(url = "$BULK_TRANSFER_PATH/$bulkTransferId/state") // Should be changed when the URL is known
             .bodyToMono<String>()
-            .onErrorResume(WebClientResponseException::class.java) {
-                // TODO Figure out bulk transfer error handling
-                Mono.error(it)
-            }
             .block(defaultBlockTimeout)
             .let { response ->
                 val bulkTransferState = response?.let {

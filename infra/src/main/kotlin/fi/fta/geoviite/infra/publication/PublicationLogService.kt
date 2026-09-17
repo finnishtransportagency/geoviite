@@ -594,18 +594,10 @@ constructor(
         changes: KmPostChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
-        trackNumberCache: List<TrackNumberAndChangeTime>,
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
         crsNameGetter: (srid: Srid) -> String,
     ) =
         listOfNotNull(
-            compareChangeValues(
-                changes.trackNumberId,
-                { tnIdFromChange ->
-                    trackNumberCache.findLast { tn -> tn.id == tnIdFromChange && tn.changeTime <= newTimestamp }?.number
-                },
-                PropKey("track-number"),
-            ),
             compareChangeValues(changes.kmNumber, { it }, PropKey("km-post")),
             compareChangeValues(changes.state, { it }, PropKey("state"), null, "LayoutState"),
             compareChangeValues(
@@ -1106,7 +1098,6 @@ constructor(
                             },
                             publication.publicationTime,
                             previousComparisonTime,
-                            trackNumberNamesCache,
                             geocodingContextGetter,
                             crsNameGetter = { srid -> geographyService.getCoordinateSystem(srid).name.toString() },
                         ),

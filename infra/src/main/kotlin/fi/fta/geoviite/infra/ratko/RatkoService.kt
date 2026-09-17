@@ -104,6 +104,12 @@ constructor(
     }
 
     fun pushDesignChangesToRatko() {
+        // The plan is to implement this on the PULL-API side only, so the implementation for
+        // pushing design publications is partial. For one, it doesn't handle different banches in
+        // push states, and likely has other omissions too. The code is left here for reference
+        // until the PULL-side is actually in use and this can then be thrown out along with the
+        // entire PUSH-integration
+        TODO("Pushing designs is not fully implemented")
         layoutDesignDao
             .list()
             .filter { design -> layoutDesignDao.designHasPublications(design.id as IntId) }
@@ -198,7 +204,6 @@ constructor(
     }
 
     fun retryLatestFailedPush(): Unit =
-        // TODO Make sure this works in a world where there are multiple branches
         ratkoPushDao.fetchPreviousPush().let { previousPush ->
             check(previousPush.status == RatkoPushStatus.FAILED) {
                 "Previous push is not in failed state, but in ${previousPush.status}"
