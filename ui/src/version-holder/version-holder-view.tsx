@@ -28,7 +28,7 @@ export const VersionHolderView: React.FC<VersionHolderViewProps> = ({ version })
 
     return (
         <div className={styles['version-holder-view']} onClick={clearStorage}>
-            {version.substring(0, 8)}
+            {version}
         </div>
     );
 };
