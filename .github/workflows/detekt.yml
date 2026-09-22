@@ -3,7 +3,8 @@ name: "Detekt"
 on:
   pull_request:
     branches:
-      - 'main'
+      - main
+      - release/**
     paths:
       - 'infra/**'
       - '.github/workflows/detekt.yml'
@@ -30,12 +31,12 @@ jobs:
         run: |
           cp infra/detekt.yml /tmp/detekt-config.yml
 
-      - name: Checkout main branch
+      - name: Checkout base branch
         uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.base.ref }}
 
-      - name: Run detekt to create a baseline from the main branch
+      - name: Run detekt to create a baseline from the base branch
         run: |
           java -jar /tmp/detekt.jar \
           --config /tmp/detekt-config.yml \
