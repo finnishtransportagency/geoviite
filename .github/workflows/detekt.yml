@@ -3,7 +3,8 @@ name: "Detekt"
 on:
   pull_request:
     branches:
-      - 'main'
+      - main
+      - release/**
     paths:
       - 'infra/**'
       - '.github/workflows/detekt.yml'

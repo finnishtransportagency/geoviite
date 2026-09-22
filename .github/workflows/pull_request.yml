@@ -4,7 +4,9 @@ run-name: ${{ github.actor }} wants to merge ${{ github.ref_name }}
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - release/**
     paths:
       - 'infra/**'
       - '.github/workflows/pull_request.yml'
