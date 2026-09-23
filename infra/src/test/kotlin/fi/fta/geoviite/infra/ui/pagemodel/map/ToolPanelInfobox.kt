@@ -333,6 +333,21 @@ class E2ESwitchCoordinatesInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
         }
 
     fun jointAlignment(line: String) = jointAlignments.first { it.switchLine == line }
+
+    fun startPlacing(): E2ELayoutSwitchLinkingInfoBox {
+        logger.info("Start placing switch")
+
+        clickButton(byQaId("start-switch-placing"))
+        return E2ELayoutSwitchLinkingInfoBox()
+    }
+}
+
+class E2ELayoutSwitchLinkingInfoBox(infoboxBy: By = byQaId("layout-switch-linking-infobox")) : E2EInfoBox(infoboxBy) {
+    fun waitUntilSuggestionIsReady(): E2ELayoutSwitchLinkingInfoBox = apply {
+        logger.info("Wait for switch placement suggestion to load")
+
+        waitUntilChildExists(By.cssSelector("dt.switch-joint-infobox__joint-alignments-title"))
+    }
 }
 
 class E2EGeometryAlignmentGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {

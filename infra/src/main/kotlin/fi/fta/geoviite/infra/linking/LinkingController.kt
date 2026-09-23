@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.linking.switches.GeometrySwitchSuggestionResult
 import fi.fta.geoviite.infra.linking.switches.SamplingGridPoints
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchesAtGridPoints
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchesRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingParameters
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.switches.SwitchPlacingRequest
@@ -165,17 +166,19 @@ constructor(
         toResponse(switchLinkingService.getSuggestedSwitch(branch, location, layoutSwitchId))
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["points", "switchId"])
+    @PostMapping("/{$LAYOUT_BRANCH}/switches/suggested")
     fun getSuggestedSwitchesForLayoutSwitchPlacing(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestParam("points") points: List<Point>,
-        @RequestParam("switchId") switchId: IntId<LayoutSwitch>,
+        @RequestBody request: SuggestedSwitchesRequest,
     ): SuggestedSwitchesAtGridPoints {
         val suggestedSwitches =
             switchLinkingService
-                .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(SamplingGridPoints(points), switchId)))
+                .getSuggestedSwitches(
+                    branch,
+                    listOf(SwitchPlacingRequest(SamplingGridPoints(request.points), request.switchId)),
+                )
                 .first()
-        return matchSamplingGridToQueryPoints(suggestedSwitches, points)
+        return matchSamplingGridToQueryPoints(suggestedSwitches, request.points)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
