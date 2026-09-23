@@ -306,7 +306,7 @@ function validateParams(
                 FieldValidationIssueType.WARNING,
             ),
         );
-    extraParams.decisionPhase === undefined &&
+    (extraParams.decisionPhase === undefined || extraParams.decisionPhase === 'UNKNOWN') &&
         issues.push(
             createValidationIssue(
                 'decisionPhase',
