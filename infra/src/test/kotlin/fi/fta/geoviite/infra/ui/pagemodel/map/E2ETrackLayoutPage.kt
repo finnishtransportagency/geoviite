@@ -117,14 +117,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
     fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
         finishLoading()
-        val pxlCoordinates =
-            requireNotNull(javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")) {
-                    "Could not get pixel coordinates: ($xPoint,$yPoint)"
-                }
-                .toString()
-                .replace("[^0-9.,]".toRegex(), "")
-                .split(",")
-                .map { doubleStr -> doubleStr.toDouble().roundToInt() }
+        val pxlCoordinates = mapCoordinatesToPixels(xPoint, yPoint)
 
         logger.info("Map coordinates ($xPoint,$yPoint) are at $pxlCoordinates")
         clickAtCoordinates(pixelX = pxlCoordinates[0], pixelY = pxlCoordinates[1], doubleClick)
@@ -136,6 +129,26 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         val canvas = childElement(By.cssSelector("div.map"))
         clickElementAtPoint(canvas, pixelX, pixelY, doubleClick)
     }
+
+    fun movePointerToCoordinates(point: IPoint): E2ETrackLayoutPage = apply {
+        finishLoading()
+        val (pixelX, pixelY) = mapCoordinatesToPixels(point.x, point.y)
+        val canvas = childElement(By.cssSelector("div.map"))
+        val offsetX = pixelX - canvas.rect.width / 2
+        val offsetY = pixelY - canvas.rect.height / 2
+
+        logger.info("Move pointer to map coordinates (${point.x},${point.y}) at pixels ($pixelX,$pixelY)")
+        Actions(browser()).moveToElement(canvas, offsetX, offsetY).build().perform()
+    }
+
+    private fun mapCoordinatesToPixels(xPoint: Double, yPoint: Double): List<Int> =
+        requireNotNull(javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")) {
+                "Could not get pixel coordinates: ($xPoint,$yPoint)"
+            }
+            .toString()
+            .replace("[^0-9.,]".toRegex(), "")
+            .split(",")
+            .map { doubleStr -> doubleStr.toDouble().roundToInt() }
 
     fun switchToDraftMode(): E2ETrackLayoutPage = apply {
         logger.info("Switch to draft")

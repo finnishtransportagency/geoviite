@@ -389,6 +389,11 @@ export type SuggestedSwitchesAtGridPoints = {
     gridSwitchIndices: (number | null)[];
 };
 
+export type SuggestedSwitchesRequest = {
+    points: Point[];
+    switchId: LayoutSwitchId;
+};
+
 export type SwitchLinkingParameters = {
     suggestedSwitch: SuggestedSwitch;
     geometrySwitchId?: GeometrySwitchId;

@@ -20,6 +20,7 @@ import {
     LinkingGeometryWithEmptyAlignmentParameters,
     SuggestedSwitch,
     SuggestedSwitchesAtGridPoints,
+    SuggestedSwitchesRequest,
     SwitchLinkingParameters,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
@@ -54,11 +55,7 @@ const relinkingSwitchValidationCache = asyncCache<
 
 type LinkingDataType = 'reference-lines' | 'location-tracks' | 'switches' | 'km-posts';
 type LinkingType =
-    | 'geometry'
-    | 'empty-geometry'
-    | 'suggested'
-    | 'validate-relinking'
-    | 'relink-switches';
+    'geometry' | 'empty-geometry' | 'suggested' | 'validate-relinking' | 'relink-switches';
 
 function planLinkingUri(layoutContext: LayoutContext, id?: string): string {
     const base = `${LINKING_URI}/${contextInUri(layoutContext)}/plans`;
@@ -236,11 +233,11 @@ export async function getSuggestedSwitchesForLayoutSwitchPlacing(
     switchId: LayoutSwitchId,
 ): Promise<(SuggestedSwitch | undefined)[]> {
     const uri = linkingUri(layoutBranch, 'switches', 'suggested');
-    const params = queryParams({
-        points: points.map(pointString),
-        switchId,
-    });
-    const response = await getNonNull<SuggestedSwitchesAtGridPoints>(`${uri}${params}`);
+    const request: SuggestedSwitchesRequest = { points, switchId };
+    const response = await postNonNull<SuggestedSwitchesRequest, SuggestedSwitchesAtGridPoints>(
+        uri,
+        request,
+    );
     if (response.gridSwitchIndices.length !== points.length) {
         throw new Error(
             `switch placing suggestion query for ${points.length} points got ` +
