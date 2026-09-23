@@ -422,6 +422,10 @@ constructor(
         assertEquals(throughTrack, switchLinesAndTracks[0].switchTrack)
         assertEquals("1-3", switchLinesAndTracks[1].switchLine)
         assertEquals(branchingTrack, switchLinesAndTracks[1].switchTrack)
+
+        val placingInfoBox = layoutSwitchLocationInfoBox.startPlacing()
+        trackLayoutPage.movePointerToCoordinates(geoSwitchLocation)
+        placingInfoBox.waitUntilSuggestionIsReady()
     }
 
     @Test

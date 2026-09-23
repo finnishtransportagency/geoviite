@@ -92,6 +92,8 @@ data class FittedSwitch(val switchStructure: SwitchStructure, val joints: List<F
 
 data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
 
+data class SuggestedSwitchesRequest(val points: List<Point>, val switchId: IntId<LayoutSwitch>)
+
 data class SuggestedSwitch(
     val joints: List<LayoutSwitchJoint>,
     val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
