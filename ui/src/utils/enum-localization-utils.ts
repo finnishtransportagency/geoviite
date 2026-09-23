@@ -121,13 +121,23 @@ export const planPhases: LocalizedEnum<PlanPhase>[] = values('PlanPhase', [
     'UNKNOWN',
 ]);
 
-export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = values('PlanDecisionPhase', [
-    'APPROVED_PLAN',
-    'UNDER_CONSTRUCTION',
-    'IN_USE',
-    'OUTDATED',
-    'UNKNOWN',
-]);
+export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = [
+    ...values<PlanDecisionPhase>('PlanDecisionPhase', [
+        'APPROVED_PLAN',
+        'UNDER_CONSTRUCTION',
+        'IN_USE',
+        'OUTDATED',
+    ]),
+    // UNKNOWN cannot be selected but must remain visible for plans that had null before V157
+    {
+        value: 'UNKNOWN' as PlanDecisionPhase,
+        get name() {
+            return i18n.t('enum.PlanDecisionPhase.UNKNOWN');
+        },
+        qaId: 'PlanDecisionPhase-UNKNOWN',
+        disabled: true,
+    },
+];
 
 export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = [
     ...values<MeasurementMethod>('MeasurementMethod', [
