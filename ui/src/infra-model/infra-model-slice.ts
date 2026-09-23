@@ -314,7 +314,7 @@ function validateParams(
                 FieldValidationIssueType.ERROR,
             ),
         );
-    extraParams.quality === undefined &&
+    (extraParams.quality === undefined || extraParams.quality === 'UNKNOWN') &&
         issues.push(
             createValidationIssue(
                 'quality',
