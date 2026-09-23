@@ -35,6 +35,7 @@ export interface LocalizedEnum<T> {
     get name(): string;
 
     qaId: string;
+    disabled?: boolean;
 }
 
 function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
@@ -128,16 +129,26 @@ export const planDecisionPhases: LocalizedEnum<PlanDecisionPhase>[] = values('Pl
     'UNKNOWN',
 ]);
 
-export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = values('MeasurementMethod', [
-    'OFFICIALLY_MEASURED_GEODETICALLY',
-    'TRACK_INSPECTION',
-    'DIGITIZED_AERIAL_IMAGE',
-    'POINT_CLOUD_SIGNALED',
-    'POINT_CLOUD_UNSIGNALED',
-    'GNSS_IMU',
-    'RTK_GNSS',
-    'UNKNOWN',
-]);
+export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = [
+    ...values<MeasurementMethod>('MeasurementMethod', [
+        'OFFICIALLY_MEASURED_GEODETICALLY',
+        'TRACK_INSPECTION',
+        'DIGITIZED_AERIAL_IMAGE',
+        'POINT_CLOUD_SIGNALED',
+        'POINT_CLOUD_UNSIGNALED',
+        'GNSS_IMU',
+        'RTK_GNSS',
+    ]),
+    // UNKNOWN cannot be selected but must remain visible for plans that had null before V157
+    {
+        value: 'UNKNOWN' as MeasurementMethod,
+        get name() {
+            return i18n.t('enum.MeasurementMethod.UNKNOWN');
+        },
+        qaId: 'MeasurementMethod-UNKNOWN',
+        disabled: true,
+    },
+];
 
 export const planQualities: LocalizedEnum<PlanQuality>[] = values('PlanQuality', [
     'PLAN',

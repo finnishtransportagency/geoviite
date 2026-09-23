@@ -290,7 +290,7 @@ function validateParams(
         issues.push(
             createValidationIssue('planPhase', 'critical', FieldValidationIssueType.WARNING),
         );
-    extraParams.measurementMethod === undefined &&
+    (extraParams.measurementMethod === undefined || extraParams.measurementMethod === 'UNKNOWN') &&
         issues.push(
             createValidationIssue(
                 'measurementMethod',
