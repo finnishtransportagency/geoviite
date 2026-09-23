@@ -432,6 +432,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
+                                qa-id="start-switch-placing"
                                 title={linkingDisabledReason()}
                                 disabled={!canLink}
                                 onClick={tryToStartSwitchPlacing}>
