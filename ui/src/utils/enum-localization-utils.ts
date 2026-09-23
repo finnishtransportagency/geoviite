@@ -160,11 +160,18 @@ export const measurementMethods: LocalizedEnum<MeasurementMethod>[] = [
     },
 ];
 
-export const planQualities: LocalizedEnum<PlanQuality>[] = values('PlanQuality', [
-    'PLAN',
-    'UNRELIABLE_PLAN',
-    'UNKNOWN',
-]);
+export const planQualities: LocalizedEnum<PlanQuality>[] = [
+    ...values<PlanQuality>('PlanQuality', ['PLAN', 'UNRELIABLE_PLAN']),
+    // UNKNOWN cannot be selected but must remain visible for plans that had null before V157
+    {
+        value: 'UNKNOWN' as PlanQuality,
+        get name() {
+            return i18n.t('enum.PlanQuality.UNKNOWN');
+        },
+        qaId: 'PlanQuality-UNKNOWN',
+        disabled: true,
+    },
+];
 
 export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMethod>[] = values(
     'ElevationMeasurementMethod',
