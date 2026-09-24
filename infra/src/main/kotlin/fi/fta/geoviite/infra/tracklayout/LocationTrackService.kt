@@ -647,6 +647,18 @@ class LocationTrackService(
         track: LocationTrack,
         geometry: LocationTrackGeometry,
     ): List<LocationTrackDuplicate> {
+        val duplicateTracksAndGeometries =
+            getLocationTrackDuplicateCandidates(layoutContext, track).filter { (duplicateTrack, _) ->
+                duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf
+            }
+        return getLocationTrackDuplicatesBySplitPoints(track, geometry, duplicateTracksAndGeometries)
+    }
+
+    private fun getLocationTrackDuplicateCandidates(
+        layoutContext: LayoutContext,
+        track: LocationTrack,
+        additionalVersions: List<LayoutRowVersion<LocationTrack>> = emptyList(),
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         val markedDuplicateVersions = dao.fetchDuplicateVersions(layoutContext, track.id as IntId)
         val tracksLinkedThroughSwitch =
             if (track.state != LocationTrackState.DELETED) {
@@ -658,12 +670,33 @@ class LocationTrackService(
             } else {
                 emptyList()
             }
+        return (markedDuplicateVersions + additionalVersions + tracksLinkedThroughSwitch)
+            .distinctBy { version -> version.id }
+            .map(::getWithGeometryInternal)
+    }
+
+    @Transactional(readOnly = true)
+    fun getLocationTrackDuplicatesForSplitting(
+        layoutContext: LayoutContext,
+        track: LocationTrack,
+        geometry: LocationTrackGeometry,
+    ): List<LocationTrackDuplicate> {
+        val trackId = track.id as IntId<LocationTrack>
+        val parentId = track.duplicateOf
+        val parentVersion = parentId?.let { id -> dao.fetchVersion(layoutContext, id) }
 
         val duplicateTracksAndGeometries =
-            (markedDuplicateVersions + tracksLinkedThroughSwitch)
-                .distinct()
-                .filter { dup -> dup.id != track.id && dup.id != track.duplicateOf }
-                .map(::getWithGeometryInternal)
+            getLocationTrackDuplicateCandidates(layoutContext, track, listOfNotNull(parentVersion))
+                .filter { (duplicateTrack, _) -> duplicateTrack.id != trackId }
+                .filter { (duplicateTrack, _) -> duplicateTrack.state != LocationTrackState.DELETED }
+                .map { (duplicateTrack, duplicateGeometry) ->
+                    if (parentId == duplicateTrack.id) {
+                        duplicateTrack.copy(duplicateOf = trackId) to duplicateGeometry
+                    } else {
+                        duplicateTrack to duplicateGeometry
+                    }
+                }
+
         return getLocationTrackDuplicatesBySplitPoints(track, geometry, duplicateTracksAndGeometries)
     }
 
@@ -787,7 +820,7 @@ class LocationTrackService(
                     }
 
             val duplicateTracks =
-                getLocationTrackDuplicates(layoutContext, locationTrack, geometry).map { duplicate ->
+                getLocationTrackDuplicatesForSplitting(layoutContext, locationTrack, geometry).map { duplicate ->
                     SplitDuplicateTrack(
                         duplicate.id,
                         duplicate.nameStructure,

@@ -85,7 +85,7 @@
             "delete-requires-empty-track": "Lyhentyvän raiteen voi poistaa vain, kun vaihtumiskohdan siirto tyhjentää sen geometrian"
         },
         "split": {
-            "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
+            "source-track-state-unsupported-for-splitting": "Jakamista ei voitu suorittaa, koska jaettavan raiteen tila ei ole tuettu",
             "source-track-update-is-not-allowed": "Raide {{name}} on jaettu, eikä sen muokkaaminen ole enää mahdollista",
             "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
             "switch-segment-mapping-failed": "Raidetta ei voitu jakaa vaihteen {{switchName}} kohdalta, koska sen uudelleenlinkitys epäonnistui",
@@ -1061,7 +1061,7 @@
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
             "cannot-edit-deleted-track": "Poistetun raiteen geometriaa ei voi muokata",
-            "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
+            "unsupported-state-for-splitting": "Poistettua raidetta ei voi jakaa",
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa",
             "publication-log-unavailable": "Raidetta ei ole julkaistu nykytilaan",
