@@ -31,6 +31,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumber,
     LocationTrackId,
+    isLocationTrackSplittable,
     MapAlignmentType,
     SplitPoint,
     SwitchSplitPoint,
@@ -221,7 +222,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.splitting.validation.track-part-of-boundary-move');
         }
 
-        if (locationTrack.state !== 'IN_USE') {
+        if (!isLocationTrackSplittable(locationTrack.state)) {
             return t('tool-panel.location-track.unsupported-state-for-splitting');
         }
 
@@ -447,7 +448,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         !startAndEndPoints?.end?.point;
 
     const splittingDisabled =
-        locationTrack.state !== 'IN_USE' ||
+        !isLocationTrackSplittable(locationTrack.state) ||
         !isDraft ||
         locationTrack.isDraft ||
         duplicatesOnOtherTrackNumbers ||

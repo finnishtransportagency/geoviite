@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_T
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.assertMatches
@@ -27,6 +28,24 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class SplitTest {
+
+    @Test
+    fun `location track split targets inherit every supported source state`() {
+        listOf(
+                LocationTrackState.IN_USE,
+                LocationTrackState.BUILT,
+                LocationTrackState.NOT_IN_USE,
+            )
+            .forEach { sourceState ->
+                val track = locationTrack(trackNumberId = IntId(123), draft = false).copy(state = sourceState)
+                val geometry = trackGeometry(edge(listOf(linearSegment(0..1))))
+                val targets = listOf(targetParams(null, null, "split"))
+
+                val result = splitLocationTrack(track, geometry, targets).single()
+
+                assertEquals(sourceState, result.locationTrack.state)
+            }
+    }
 
     @Test
     fun `minimal location track split works`() {
@@ -68,7 +87,8 @@ class SplitTest {
                 ),
                 edge(listOf(linearSegment(20..30)), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
-        val dupTrack = locationTrack(trackNumberId = IntId(456), draft = false)
+        val dupTrack =
+            locationTrack(trackNumberId = IntId(456), draft = false).copy(state = LocationTrackState.NOT_IN_USE)
         val dupGeometry =
             trackGeometry(
                 edge(
@@ -97,6 +117,7 @@ class SplitTest {
         val transferResult = resultTracks[1].locationTrack
         assertEquals(targets[1].request.descriptionBase, transferResult.descriptionStructure.base)
         assertEquals(targets[1].request.descriptionSuffix, transferResult.descriptionStructure.suffix)
+        assertEquals(dupTrack.state, transferResult.state)
     }
 
     @Test
@@ -112,7 +133,8 @@ class SplitTest {
                     endInnerSwitch = switchLinkYV(switchId, 2),
                 ),
             )
-        val dupTrack = locationTrack(trackNumberId = IntId(123), draft = false)
+        val dupTrack =
+            locationTrack(trackNumberId = IntId(123), draft = false).copy(state = LocationTrackState.NOT_IN_USE)
         // over-large duplicate, but the geometry should be overridden anyhow, so just make it different
         val dupGeometry = trackGeometryOfSegments(linearSegment(-1..5))
         val targets =
@@ -122,7 +144,8 @@ class SplitTest {
             )
         val resultTracks = splitLocationTrack(track, geometry, targets)
         assertEquals(targets.size, resultTracks.size)
-        resultTracks.forEachIndexed { index, result -> assertSplitResultFields(track, targets[index].request, result) }
+        assertEquals(dupTrack.state, resultTracks[0].locationTrack.state)
+        assertSplitResultFields(track, targets[1].request, resultTracks[1])
         assertEquals(dupTrack.id, resultTracks[0].locationTrack.id)
         assertEdgesMatch(geometry.edges.subList(0, 1), resultTracks[0].geometry)
         assertEdgesMatch(geometry.edges.subList(1, 2), resultTracks[1].geometry)
