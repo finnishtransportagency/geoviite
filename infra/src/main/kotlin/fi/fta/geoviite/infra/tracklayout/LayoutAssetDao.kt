@@ -100,6 +100,10 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchAllOfficialVersionsAtMoment(branch: LayoutBranch, moment: Instant): List<LayoutRowVersion<T>>
 
+    fun fetchAllDesignVersionsAtMoment(designId: IntId<LayoutDesign>, moment: Instant): List<LayoutRowVersion<T>>
+
+    fun fetchDesignVersionAtMoment(designId: IntId<LayoutDesign>, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
+
     fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
         ids: List<IntId<T>>,
@@ -115,6 +119,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     @Transactional(readOnly = true)
     fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): T? =
         fetchOfficialVersionAtMoment(branch, id, moment)?.let(::fetch)
+
+    @Transactional(readOnly = true)
+    fun getDesignAtMoment(designId: IntId<LayoutDesign>, id: IntId<T>, moment: Instant): T? =
+        fetchDesignVersionAtMoment(designId, id, moment)?.let(::fetch)
+
+    @Transactional(readOnly = true)
+    fun listDesignAtMoment(designId: IntId<LayoutDesign>, moment: Instant): List<T> =
+        fetchMany(fetchAllDesignVersionsAtMoment(designId, moment))
 
     @Transactional(readOnly = true)
     fun getManyOfficialAtMoment(branch: LayoutBranch, ids: List<IntId<T>>, moment: Instant): List<T> =
@@ -392,6 +404,30 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         """
             .trimIndent()
 
+    private val allDesignVersionsAtMomentSql =
+        """
+          select distinct on (id) id, design_id, false as draft, version
+          from ${table.versionTable}
+          where not draft
+            and design_id = :design_id
+            and change_time <= :moment
+          order by id, change_time desc, version desc
+        """
+            .trimIndent()
+
+    private val designVersionAtMomentSql =
+        """
+          select id, design_id, false as draft, version
+          from ${table.versionTable}
+          where not draft
+            and design_id = :design_id
+            and id = :id
+            and change_time <= :moment
+          order by change_time desc, version desc
+          limit 1
+        """
+            .trimIndent()
+
     override fun createId(): IntId<T> {
         val sql = "insert into ${table.idTable} default values returning id"
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getIntId("id") }
@@ -523,6 +559,29 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         ) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")
         }
+
+    override fun fetchAllDesignVersionsAtMoment(
+        designId: IntId<LayoutDesign>,
+        moment: Instant,
+    ): List<LayoutRowVersion<T>> =
+        jdbcTemplate.query(
+            allDesignVersionsAtMomentSql,
+            mapOf("design_id" to designId.intValue, "moment" to Timestamp.from(moment)),
+        ) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
+
+    override fun fetchDesignVersionAtMoment(
+        designId: IntId<LayoutDesign>,
+        id: IntId<T>,
+        moment: Instant,
+    ): LayoutRowVersion<T>? =
+        jdbcTemplate.query(
+            designVersionAtMomentSql,
+            mapOf("design_id" to designId.intValue, "id" to id.intValue, "moment" to Timestamp.from(moment)),
+        ) { rs, _ ->
+            rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
+        }.firstOrNull()
 
     override fun fetchOfficialVersionsInHistory(
         points: List<LayoutAssetIdInHistory<T>>
