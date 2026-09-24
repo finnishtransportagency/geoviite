@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
@@ -15,10 +16,19 @@ import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -40,6 +50,9 @@ constructor(
     private val layoutDesignService: LayoutDesignService,
     private val layoutDesignDao: LayoutDesignDao,
     private val publicationDao: PublicationDao,
+    private val trackNumberService: LayoutTrackNumberService,
+    private val locationTrackService: LocationTrackService,
+    private val switchService: LayoutSwitchService,
 ) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
@@ -192,6 +205,290 @@ constructor(
         api.designs.getModifiedSince(designOid, mainPublication.uuid).let { result ->
             assertMatches(deletedDesign, result.suunnitelma)
         }
+    }
+
+    @Test
+    fun `Design item state is suunnittelussa for OPEN track number in design`() {
+        initUser()
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        testDBService.generateOid(tnId, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        api.trackNumbersInDesign(designOid).getAtVersion(tnOid, designPublication.uuid).ratanumero.also { tn ->
+            assertEquals(FI_DESIGN_ITEM_IN_PROGRESS, tn.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumberCollectionInDesign(designOid).getAtVersion(designPublication.uuid).ratanumerot.also { tns ->
+            assertEquals(FI_DESIGN_ITEM_IN_PROGRESS, tns.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is peruttu for cancelled track number in design`() {
+        initUser()
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        testDBService.generateOid(tnId, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        trackNumberService.cancel(designBranch, tnId)
+        val cancellationPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        api.trackNumbersInDesign(designOid).getAtVersion(tnOid, cancellationPublication.uuid).ratanumero.also { tn ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, tn.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumberCollectionInDesign(designOid).getAtVersion(cancellationPublication.uuid).ratanumerot.also { tns
+            ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, tns.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is valmis for completed track number after publish to main`() {
+        initUser()
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        testDBService.generateOid(tnId, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        trackNumberService.mergeToMainBranch(designBranch, tnId)
+        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        api.trackNumbersInDesign(designOid).getAtVersion(tnOid, mainPublication.uuid).ratanumero.also { tn ->
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, tn.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumberCollectionInDesign(designOid).getAtVersion(mainPublication.uuid).ratanumerot.also { tns ->
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, tns.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is absent from main context track number responses`() {
+        initUser()
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val publication = testDBService.publish(trackNumbers = listOf(tnId))
+
+        api.trackNumbers.getAtVersion(tnOid, publication.uuid).ratanumero.also { tn ->
+            assertEquals(null, tn.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumberCollection.getAtVersion(publication.uuid).ratanumerot.also { tns ->
+            assertEquals(null, tns.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is suunnittelussa for OPEN switch in design`() {
+        val (_, designOid, _, switchOid, designPublication) = setupSwitchInDesign()
+
+        api.switchInDesign(designOid).getAtVersion(switchOid, designPublication.uuid).vaihde.also { sw ->
+            assertEquals(FI_DESIGN_ITEM_IN_PROGRESS, sw.kohteen_tila_suunnitelmassa)
+        }
+        api.switchCollectionInDesign(designOid).getAtVersion(designPublication.uuid).vaihteet.also { switches ->
+            assertEquals(FI_DESIGN_ITEM_IN_PROGRESS, switches.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is peruttu for cancelled switch in design`() {
+        val (designBranch, designOid, switchId, switchOid, _) = setupSwitchInDesign()
+
+        switchService.cancel(designBranch, switchId)
+        val cancellationPublication = testDBService.publish(designBranch, switches = listOf(switchId))
+
+        api.switchInDesign(designOid).getAtVersion(switchOid, cancellationPublication.uuid).vaihde.also { sw ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, sw.kohteen_tila_suunnitelmassa)
+        }
+        api.switchCollectionInDesign(designOid).getAtVersion(cancellationPublication.uuid).vaihteet.also { switches ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, switches.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is valmis for completed switch after publish to main`() {
+        val (designBranch, designOid, switchId, switchOid, _) = setupSwitchInDesign()
+
+        switchService.mergeToMainBranch(designBranch, switchId)
+        val mainPublication = testDBService.publish(switches = listOf(switchId))
+
+        api.switchInDesign(designOid).getAtVersion(switchOid, mainPublication.uuid).vaihde.also { sw ->
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, sw.kohteen_tila_suunnitelmassa)
+        }
+        api.switchCollectionInDesign(designOid).getAtVersion(mainPublication.uuid).vaihteet.also { switches ->
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, switches.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is absent from main context switch responses`() {
+        initUser()
+        val (switchId, switchOid) = mainDraftContext.saveWithOid(switch())
+        val publication = testDBService.publish(switches = listOf(switchId))
+
+        api.switch.getAtVersion(switchOid, publication.uuid).vaihde.also { sw ->
+            assertEquals(null, sw.kohteen_tila_suunnitelmassa)
+        }
+        api.switchCollection.getAtVersion(publication.uuid).vaihteet.also { switches ->
+            assertEquals(null, switches.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is suunnittelussa for OPEN location track in design`() {
+        val (_, designOid, _, ltOid, designPublication) = setupLocationTrackInDesign()
+
+        api.locationTracksInDesign(designOid).getAtVersion(ltOid, designPublication.uuid).sijaintiraide.also { lt ->
+            assertEquals(FI_DESIGN_ITEM_IN_PROGRESS, lt.kohteen_tila_suunnitelmassa)
+        }
+        api.locationTrackCollectionInDesign(designOid).getAtVersion(designPublication.uuid).sijaintiraiteet.also { lts
+            ->
+            assertEquals(FI_DESIGN_ITEM_IN_PROGRESS, lts.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is peruttu for cancelled location track in design`() {
+        val (designBranch, designOid, ltId, ltOid, _) = setupLocationTrackInDesign()
+
+        locationTrackService.cancel(designBranch, ltId)
+        val cancellationPublication = testDBService.publish(designBranch, locationTracks = listOf(ltId))
+
+        api.locationTracksInDesign(designOid).getAtVersion(ltOid, cancellationPublication.uuid).sijaintiraide.also { lt
+            ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, lt.kohteen_tila_suunnitelmassa)
+        }
+        api.locationTrackCollectionInDesign(designOid)
+            .getAtVersion(cancellationPublication.uuid)
+            .sijaintiraiteet
+            .also { lts -> assertEquals(FI_DESIGN_ITEM_CANCELLED, lts.single().kohteen_tila_suunnitelmassa) }
+    }
+
+    @Test
+    fun `Design item state is valmis for completed location track after publish to main`() {
+        val (designBranch, designOid, ltId, ltOid, _) = setupLocationTrackInDesign()
+
+        locationTrackService.mergeToMainBranch(designBranch, ltId)
+        val mainPublication = testDBService.publish(locationTracks = listOf(ltId))
+
+        api.locationTracksInDesign(designOid).getAtVersion(ltOid, mainPublication.uuid).sijaintiraide.also { lt ->
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, lt.kohteen_tila_suunnitelmassa)
+        }
+        api.locationTrackCollectionInDesign(designOid).getAtVersion(mainPublication.uuid).sijaintiraiteet.also { lts ->
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, lts.single().kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is absent from main context location track responses`() {
+        initUser()
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val (ltId, ltOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(tnId),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val publication = testDBService.publish(trackNumbers = listOf(tnId), locationTracks = listOf(ltId))
+
+        api.locationTrackCollection.getAtVersion(publication.uuid).sijaintiraiteet.also { lts ->
+            assertEquals(null, lts.single().kohteen_tila_suunnitelmassa)
+        }
+        api.locationTracks.getAtVersion(ltOid, publication.uuid).sijaintiraide.also { lt ->
+            assertEquals(null, lt.kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    private data class SwitchSetup(
+        val designBranch: DesignBranch,
+        val designOid: Oid<LayoutDesign>,
+        val switchId: IntId<LayoutSwitch>,
+        val switchOid: Oid<LayoutSwitch>,
+        val designPublication: Publication,
+    )
+
+    private fun setupSwitchInDesign(): SwitchSetup {
+        initUser()
+        val (switchId, switchOid) = mainDraftContext.saveWithOid(switch())
+        testDBService.publish(switches = listOf(switchId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        testDBService.generateOid(switchId, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(switchId) { sw -> sw.copy(trapPoint = true) }
+        val designPublication = testDBService.publish(designBranch, switches = listOf(switchId))
+
+        return SwitchSetup(designBranch, designOid, switchId, switchOid, designPublication)
+    }
+
+    private data class LocationTrackSetup(
+        val designBranch: DesignBranch,
+        val designOid: Oid<LayoutDesign>,
+        val ltId: IntId<LocationTrack>,
+        val ltOid: Oid<LocationTrack>,
+        val designPublication: Publication,
+    )
+
+    private fun setupLocationTrackInDesign(): LocationTrackSetup {
+        initUser()
+        val (tnId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        val (ltId, ltOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(tnId),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        testDBService.publish(trackNumbers = listOf(tnId), locationTracks = listOf(ltId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        testDBService.generateOid(ltId, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(ltId) { lt -> lt.copy(type = LocationTrackType.CHORD) }
+        val designPublication = testDBService.publish(designBranch, locationTracks = listOf(ltId))
+
+        return LocationTrackSetup(designBranch, designOid, ltId, ltOid, designPublication)
     }
 
     private data class DesignSetup(

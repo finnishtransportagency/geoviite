@@ -133,7 +133,6 @@ class LayoutTrackNumberDao(
                     unnest(:layout_context_ids) layout_context_id,
                     unnest(:versions) version
                 ) args on args.id = tn.id and args.layout_context_id = tn.layout_context_id and args.version = tn.version
-              where tn.deleted = false
             """
                 .trimIndent()
         val params =

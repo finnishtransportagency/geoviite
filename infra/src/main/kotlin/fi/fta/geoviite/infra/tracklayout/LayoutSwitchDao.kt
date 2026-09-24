@@ -349,7 +349,6 @@ class LayoutSwitchDao(
                     and jv.switch_layout_context_id = sv.layout_context_id
                     and jv.switch_version = sv.version
               ) jv on (true)
-            where sv.deleted = false
             """
                 .trimIndent()
         val params =

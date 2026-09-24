@@ -164,7 +164,6 @@ class LocationTrackDao(
                     unnest(:layout_context_ids) layout_context_id,
                     unnest(:versions) version
                 ) args on args.id = ltv.id and args.layout_context_id = ltv.layout_context_id and args.version = ltv.version
-              where ltv.deleted = false
             """
                 .trimIndent()
 
