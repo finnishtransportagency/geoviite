@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.DesignContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -182,8 +184,12 @@ constructor(
         trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtLocationTrackCollectionResponseV1 {
         val moment = publication.publicationTime
-        val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
-        val branchTrackIds = designBranchTrackIds(branch, tracksAndGeoms)
+        val tracksAndGeoms =
+            when (branch) {
+                is DesignBranch -> locationTrackService.listDesignWithGeometryAtMoment(branch, moment)
+                else -> locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
+            }
+        val branchTrackIds = if (branch is DesignBranch) null else designBranchTrackIds(branch, tracksAndGeoms)
         val filteredTracksAndGeoms = tracksAndGeoms.filter(filterTracks(nameFilter, branchTrackIds))
         return ExtLocationTrackCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
@@ -253,6 +259,7 @@ constructor(
             endLocation = data.geometry.end?.let(toEndPoint),
             trackNumberName = data.trackNumber.number,
             trackNumberOid = ExtOidV1(data.trackNumberOid),
+            designItemState = data.designItemState,
         )
     }
 
@@ -264,6 +271,7 @@ constructor(
         val trackNumberOid: Oid<LayoutTrackNumber>,
         val trackNumber: LayoutTrackNumber,
         val geocodingContext: GeocodingContext<ReferenceLineM>?,
+        val designItemState: ExtDesignItemStateV1? = null,
     )
 
     private fun getLocationTrackData(
@@ -318,6 +326,8 @@ constructor(
                 trackNumber =
                     trackNumbers[track.trackNumberId] ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
                 geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) },
+                designItemState =
+                    (track.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
             )
         }
     }
