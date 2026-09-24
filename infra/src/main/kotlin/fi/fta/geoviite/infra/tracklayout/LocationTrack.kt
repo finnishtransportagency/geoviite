@@ -102,7 +102,21 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
     NOT_IN_USE(LayoutStateCategory.EXISTING),
     DELETED(LayoutStateCategory.NOT_EXISTING);
 
-    fun isLinkable() = this == IN_USE || this == BUILT || this == NOT_IN_USE
+    fun isSplittable() =
+        when (this) {
+            BUILT,
+            IN_USE,
+            NOT_IN_USE -> true
+            DELETED -> false
+        }
+
+    fun isLinkable() =
+        when (this) {
+            BUILT,
+            IN_USE,
+            NOT_IN_USE -> true
+            DELETED -> false
+        }
 
     fun isRemoved() = this == DELETED
 }

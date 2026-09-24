@@ -34,6 +34,19 @@ export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING';
 
+export const isLocationTrackSplittable = (state: LocationTrackState): boolean => {
+    switch (state) {
+        case 'BUILT':
+        case 'IN_USE':
+        case 'NOT_IN_USE':
+            return true;
+        case 'DELETED':
+            return false;
+        default:
+            return exhaustiveMatchingGuard(state);
+    }
+};
+
 export const operationalPointRinfTypes = [
     'STATION',
     'SMALL_STATION',
