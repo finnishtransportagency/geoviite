@@ -128,7 +128,12 @@ constructor(
         coordinateSystem: Srid,
     ): ExtTrackNumberResponseV1? {
         val moment = publication.publicationTime
-        return trackNumberService.getOfficialWithGeometryAtMoment(branch, id, moment)?.let { (trackNumber, geometry) ->
+        val trackNumberAndGeom =
+            when (branch) {
+                is DesignBranch -> trackNumberService.getDesignWithGeometryAtMoment(branch, id, moment)
+                else -> trackNumberService.getOfficialWithGeometryAtMoment(branch, id, moment)
+            }
+        return trackNumberAndGeom?.let { (trackNumber, geometry) ->
             val data = getTrackNumberData(branch, moment, oids, trackNumber, geometry)
             ExtTrackNumberResponseV1(
                 layoutVersion = ExtLayoutVersionV1(publication),
@@ -276,7 +281,15 @@ constructor(
     ): TrackNumberData {
         val id = trackNumber.id as IntId
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, id, moment)
-        return TrackNumberData(oids.oid, oids.officialOid, trackNumber, referenceLineGeometry, geocodingContext)
+        return TrackNumberData(
+            oids.oid,
+            oids.officialOid,
+            trackNumber,
+            referenceLineGeometry,
+            geocodingContext,
+            designItemState =
+                (trackNumber.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
+        )
     }
 
     private fun getTrackNumberData(

@@ -140,7 +140,12 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1? {
         val moment = publication.publicationTime
-        return locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)?.let { (track, geometry) ->
+        val trackAndGeom =
+            when (branch) {
+                is DesignBranch -> locationTrackService.getDesignWithGeometryAtMoment(branch, id, moment)
+                else -> locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)
+            }
+        return trackAndGeom?.let { (track, geometry) ->
             val (oid, officialOid) = oids
             val data = getLocationTrackData(branch, moment, oid, officialOid, track, geometry)
             ExtLocationTrackResponseV1(
@@ -295,6 +300,8 @@ constructor(
                 produceIf(track.exists) {
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                 },
+            designItemState =
+                (track.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
         )
 
     private fun getLocationTrackData(

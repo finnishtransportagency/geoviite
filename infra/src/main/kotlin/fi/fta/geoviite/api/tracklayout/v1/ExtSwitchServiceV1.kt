@@ -136,11 +136,16 @@ constructor(
         coordinateSystem: Srid,
     ): ExtSwitchResponseV1? {
         val moment = publication.publicationTime
-        return switchDao.getOfficialAtMoment(branch, id, moment)?.let { switch ->
+        val switch =
+            when (branch) {
+                is DesignBranch -> switchDao.getDesignAtMoment(branch.designId, id, moment)
+                else -> switchDao.getOfficialAtMoment(branch, id, moment)
+            }
+        return switch?.let {
             ExtSwitchResponseV1(
                 layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
-                switch = createExtSwitch(getSwitchData(oids, switch, branch, moment), coordinateSystem),
+                switch = createExtSwitch(getSwitchData(oids, it, branch, moment), coordinateSystem),
             )
         }
     }
@@ -314,6 +319,8 @@ constructor(
             structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
             owner = switchLibraryService.getSwitchOwner(switch.ownerId),
             trackLinks = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList(),
+            designItemState =
+                (switch.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
         )
     }
 
