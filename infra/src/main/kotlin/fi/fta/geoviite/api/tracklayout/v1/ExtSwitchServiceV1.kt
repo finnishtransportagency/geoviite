@@ -211,7 +211,7 @@ constructor(
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(switchDao::fetchMany)
             ?.let { all -> nameFilter?.let { all.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: all }
-            ?.let { all -> filterToDesignBranchSwitches(branch, all) }
+            ?.let { all -> if (branch is DesignBranch) all else filterToDesignBranchSwitches(branch, all) }
             ?.takeIf { it.isNotEmpty() }
             ?.let { modifiedSwitches ->
                 ExtModifiedSwitchCollectionResponseV1(

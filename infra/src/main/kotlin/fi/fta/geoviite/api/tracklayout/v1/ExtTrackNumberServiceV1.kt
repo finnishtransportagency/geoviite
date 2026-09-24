@@ -208,7 +208,7 @@ constructor(
             ?.let { all ->
                 tnFilter?.let { all.filter { (tn, _) -> tn.number.contains(it, ignoreCase = true) } } ?: all
             }
-            ?.let { all -> filterToDesignBranchTrackNumbers(branch, all) }
+            ?.let { all -> if (branch is DesignBranch) all else filterToDesignBranchTrackNumbers(branch, all) }
             ?.takeIf { it.isNotEmpty() }
             ?.let { trackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(

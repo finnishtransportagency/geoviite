@@ -167,7 +167,12 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
-            ?.let { changeTime -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
+            ?.let { changeTime ->
+                when (branch) {
+                    is DesignBranch -> locationTrackDao.fetchDesignVersionAtMoment(branch.designId, id, changeTime)
+                    else -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)
+                }
+            }
             ?.let(locationTrackService::getWithGeometry)
             ?.let { (track, geometry) ->
                 val (oid, officialOid) = oids
@@ -215,11 +220,16 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchLatestPublishedLocationTrackChangeTimesBetween(startMoment, endMoment, branch)
-            .mapNotNull { (id, changeTime) -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
+            .mapNotNull { (id, changeTime) ->
+                when (branch) {
+                    is DesignBranch -> locationTrackDao.fetchDesignVersionAtMoment(branch.designId, id, changeTime)
+                    else -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)
+                }
+            }
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(locationTrackService::getManyWithGeometries)
             ?.let { tracksAndGeoms ->
-                val branchTrackIds = designBranchTrackIds(branch, tracksAndGeoms)
+                val branchTrackIds = if (branch is DesignBranch) null else designBranchTrackIds(branch, tracksAndGeoms)
                 tracksAndGeoms.filter(filterTracks(nameFilter, branchTrackIds))
             }
             ?.let { tracksAndGeoms ->
