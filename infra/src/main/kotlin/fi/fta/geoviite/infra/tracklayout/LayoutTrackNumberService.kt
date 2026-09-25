@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -187,6 +188,21 @@ class LayoutTrackNumberService(
             if (includeDeleted) list else list.filter { (track, _) -> track.exists }
         }
     }
+
+    @Transactional(readOnly = true)
+    fun listDesignWithGeometryAtMoment(
+        designBranch: DesignBranch,
+        moment: Instant,
+    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> =
+        dao.fetchAllDesignVersionsAtMoment(designBranch.designId, moment).let(::getManyWithGeometries)
+
+    @Transactional(readOnly = true)
+    fun getDesignWithGeometryAtMoment(
+        designBranch: DesignBranch,
+        id: IntId<LayoutTrackNumber>,
+        moment: Instant,
+    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry>? =
+        dao.fetchDesignVersionAtMoment(designBranch.designId, id, moment)?.let(::getWithGeometryInternal)
 
     private fun getWithGeometryInternal(
         version: LayoutRowVersion<LayoutTrackNumber>

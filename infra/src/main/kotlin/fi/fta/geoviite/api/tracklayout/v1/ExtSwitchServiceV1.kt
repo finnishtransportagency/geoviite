@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -15,6 +16,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DesignContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -134,11 +136,16 @@ constructor(
         coordinateSystem: Srid,
     ): ExtSwitchResponseV1? {
         val moment = publication.publicationTime
-        return switchDao.getOfficialAtMoment(branch, id, moment)?.let { switch ->
+        val switch =
+            if (branch is DesignBranch)
+                switchDao.getDesignAtMoment(branch.designId, id, moment)
+                    ?: switchDao.getOfficialAtMoment(branch, id, moment)
+            else switchDao.getOfficialAtMoment(branch, id, moment)
+        return switch?.let {
             ExtSwitchResponseV1(
                 layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
-                switch = createExtSwitch(getSwitchData(oids, switch, branch, moment), coordinateSystem),
+                switch = createExtSwitch(getSwitchData(oids, it, branch, moment), coordinateSystem),
             )
         }
     }
@@ -173,10 +180,21 @@ constructor(
     ): ExtSwitchCollectionResponseV1 {
         val moment = publication.publicationTime
         val switches =
-            switchDao.listOfficialAtMoment(branch, moment).filter {
-                it.exists && (nameFilter == null || it.name.contains(nameFilter, ignoreCase = true))
+            if (branch is DesignBranch) {
+                val designSwitches = switchDao.listDesignAtMoment(branch.designId, moment)
+                val designIds = designSwitches.map { it.id as IntId<LayoutSwitch> }.toSet()
+                val inherited =
+                    switchDao.listOfficialAtMoment(branch, moment).filter {
+                        it.exists && it.id as IntId<LayoutSwitch> !in designIds
+                    }
+                designSwitches + inherited
+            } else {
+                switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
             }
-        val filteredSwitches = filterToDesignBranchSwitches(branch, switches)
+        val nameFiltered =
+            if (nameFilter != null) switches.filter { it.name.contains(nameFilter, ignoreCase = true) } else switches
+        val filteredSwitches =
+            if (branch == LayoutBranch.main) nameFiltered else filterToDesignBranchSwitches(branch, nameFiltered)
         return ExtSwitchCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
@@ -197,7 +215,7 @@ constructor(
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(switchDao::fetchMany)
             ?.let { all -> nameFilter?.let { all.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: all }
-            ?.let { all -> filterToDesignBranchSwitches(branch, all) }
+            ?.let { all -> if (branch is DesignBranch) all else filterToDesignBranchSwitches(branch, all) }
             ?.takeIf { it.isNotEmpty() }
             ?.let { modifiedSwitches ->
                 ExtModifiedSwitchCollectionResponseV1(
@@ -271,6 +289,7 @@ constructor(
                             },
                     )
                 },
+            designItemState = data.designItemState,
         )
     }
 
@@ -287,6 +306,7 @@ constructor(
         val structure: SwitchStructure,
         val owner: SwitchOwner,
         val trackLinks: List<SwitchTrackJoints>,
+        val designItemState: ExtDesignItemStateV1? = null,
     )
 
     private fun getSwitchData(
@@ -303,6 +323,8 @@ constructor(
             structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
             owner = switchLibraryService.getSwitchOwner(switch.ownerId),
             trackLinks = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList(),
+            designItemState =
+                (switch.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
         )
     }
 
@@ -321,6 +343,8 @@ constructor(
                 structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
                 owner = switchLibraryService.getSwitchOwner(switch.ownerId),
                 trackLinks = trackLinks[id] ?: emptyList(),
+                designItemState =
+                    (switch.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
             )
         }
     }

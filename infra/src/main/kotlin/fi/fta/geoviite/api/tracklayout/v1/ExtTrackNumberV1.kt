@@ -23,6 +23,9 @@ data class ExtTrackNumberV1(
     @JsonProperty(STATE) val trackNumberState: ExtTrackNumberStateV1,
     @JsonProperty(START_LOCATION) val startLocation: ExtAddressPointV1?,
     @JsonProperty(END_LOCATION) val endLocation: ExtAddressPointV1?,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(DESIGN_ITEM_STATE)
+    val designItemState: ExtDesignItemStateV1? = null,
 )
 
 @Schema(title = "Vastaus: Ratanumero")
