@@ -428,7 +428,7 @@ class LayoutAlignmentDao(
                           on lt_e.location_track_id = lt.id
                             and lt_e.location_track_layout_context_id = lt.layout_context_id
                             and lt_e.location_track_version = lt.version
-              where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version and deleted = false))
+              where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version))
                 and (:active = false or exists(
                   select 1
                     from layout.location_track t

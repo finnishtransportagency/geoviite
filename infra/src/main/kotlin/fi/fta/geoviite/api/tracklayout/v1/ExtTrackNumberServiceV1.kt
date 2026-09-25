@@ -129,10 +129,10 @@ constructor(
     ): ExtTrackNumberResponseV1? {
         val moment = publication.publicationTime
         val trackNumberAndGeom =
-            when (branch) {
-                is DesignBranch -> trackNumberService.getDesignWithGeometryAtMoment(branch, id, moment)
-                else -> trackNumberService.getOfficialWithGeometryAtMoment(branch, id, moment)
-            }
+            if (branch is DesignBranch)
+                trackNumberService.getDesignWithGeometryAtMoment(branch, id, moment)
+                    ?: trackNumberService.getOfficialWithGeometryAtMoment(branch, id, moment)
+            else trackNumberService.getOfficialWithGeometryAtMoment(branch, id, moment)
         return trackNumberAndGeom?.let { (trackNumber, geometry) ->
             val data = getTrackNumberData(branch, moment, oids, trackNumber, geometry)
             ExtTrackNumberResponseV1(
@@ -174,18 +174,25 @@ constructor(
     ): ExtTrackNumberCollectionResponseV1 {
         val moment = publication.publicationTime
         val trackNumbers =
-            when (branch) {
-                is DesignBranch ->
-                    trackNumberService.listDesignWithGeometryAtMoment(branch, moment).let { all ->
-                        tnFilter?.let { f -> all.filter { (tn, _) -> tn.number.contains(f, ignoreCase = true) } } ?: all
-                    }
-                else ->
+            if (branch is DesignBranch) {
+                val designTNs = trackNumberService.listDesignWithGeometryAtMoment(branch, moment)
+                val designIds = designTNs.map { (tn, _) -> tn.id as IntId<LayoutTrackNumber> }.toSet()
+                val inherited =
                     trackNumberService.listOfficialWithGeometryAtMoment(branch, moment).filter { (tn, _) ->
-                        tn.exists && (tnFilter == null || tn.number.contains(tnFilter, ignoreCase = true))
+                        tn.exists && tn.id as IntId<LayoutTrackNumber> !in designIds
                     }
+                designTNs + inherited
+            } else {
+                trackNumberService.listOfficialWithGeometryAtMoment(branch, moment).filter { (tn, _) -> tn.exists }
             }
         val filteredTrackNumbers =
-            if (branch is DesignBranch) trackNumbers else filterToDesignBranchTrackNumbers(branch, trackNumbers)
+            if (branch == LayoutBranch.main)
+                trackNumbers.filter { (tn, _) -> tnFilter == null || tn.number.contains(tnFilter, ignoreCase = true) }
+            else
+                filterToDesignBranchTrackNumbers(
+                    branch,
+                    trackNumbers.filter { (tn, _) -> tnFilter == null || tn.number.contains(tnFilter, ignoreCase = true) },
+                )
         return ExtTrackNumberCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication.uuid),
             coordinateSystem = ExtSridV1(coordinateSystem),

@@ -137,10 +137,10 @@ constructor(
     ): ExtSwitchResponseV1? {
         val moment = publication.publicationTime
         val switch =
-            when (branch) {
-                is DesignBranch -> switchDao.getDesignAtMoment(branch.designId, id, moment)
-                else -> switchDao.getOfficialAtMoment(branch, id, moment)
-            }
+            if (branch is DesignBranch)
+                switchDao.getDesignAtMoment(branch.designId, id, moment)
+                    ?: switchDao.getOfficialAtMoment(branch, id, moment)
+            else switchDao.getOfficialAtMoment(branch, id, moment)
         return switch?.let {
             ExtSwitchResponseV1(
                 layoutVersion = ExtLayoutVersionV1(publication),
@@ -180,17 +180,21 @@ constructor(
     ): ExtSwitchCollectionResponseV1 {
         val moment = publication.publicationTime
         val switches =
-            when (branch) {
-                is DesignBranch ->
-                    switchDao.listDesignAtMoment(branch.designId, moment).let { all ->
-                        nameFilter?.let { f -> all.filter { s -> s.name.contains(f, ignoreCase = true) } } ?: all
-                    }
-                else ->
+            if (branch is DesignBranch) {
+                val designSwitches = switchDao.listDesignAtMoment(branch.designId, moment)
+                val designIds = designSwitches.map { it.id as IntId<LayoutSwitch> }.toSet()
+                val inherited =
                     switchDao.listOfficialAtMoment(branch, moment).filter {
-                        it.exists && (nameFilter == null || it.name.contains(nameFilter, ignoreCase = true))
+                        it.exists && it.id as IntId<LayoutSwitch> !in designIds
                     }
+                designSwitches + inherited
+            } else {
+                switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
             }
-        val filteredSwitches = if (branch is DesignBranch) switches else filterToDesignBranchSwitches(branch, switches)
+        val nameFiltered =
+            if (nameFilter != null) switches.filter { it.name.contains(nameFilter, ignoreCase = true) } else switches
+        val filteredSwitches =
+            if (branch == LayoutBranch.main) nameFiltered else filterToDesignBranchSwitches(branch, nameFiltered)
         return ExtSwitchCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),

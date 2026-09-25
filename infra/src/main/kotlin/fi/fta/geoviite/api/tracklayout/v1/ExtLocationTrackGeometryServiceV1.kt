@@ -106,10 +106,8 @@ constructor(
         val changeTime =
             publicationDao.fetchLatestLocationTrackGeometryPublicationTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
-        val newTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
-        val oldTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        val newTrack = locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
+        val oldTrack = locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldPoints =
