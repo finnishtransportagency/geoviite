@@ -574,10 +574,10 @@ class SplitService(
             }
 
         val sourceTrack = locationTrackDao.getOrThrow(branch.draft, request.sourceTrackId)
-        if (sourceTrack.state != LocationTrackState.IN_USE) {
+        if (!sourceTrack.state.isSplittable()) {
             throw SplitFailureException(
-                message = "Source track state is not IN_USE: id=${sourceTrack.id}",
-                localizedMessageKey = "source-track-state-not-in-use",
+                message = "Source track state is not supported for splitting: id=${sourceTrack.id}",
+                localizedMessageKey = "source-track-state-unsupported-for-splitting",
             )
         }
 
@@ -898,7 +898,6 @@ private fun updateSplitTargetForOverwriteDuplicate(
             // After split, the track is no longer duplicate
             duplicateOf = null,
             topologicalConnectivity = topologicalConnectivityType,
-            state = sourceTrack.state,
             trackNumberId = sourceTrack.trackNumberId,
             sourceId = sourceTrack.sourceId,
             // owner remains that of the duplicate
