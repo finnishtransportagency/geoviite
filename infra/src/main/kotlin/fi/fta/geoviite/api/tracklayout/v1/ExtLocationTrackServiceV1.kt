@@ -180,9 +180,7 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
-            ?.let { changeTime ->
-                locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)
-            }
+            ?.let { changeTime -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
             ?.let(locationTrackService::getWithGeometry)
             ?.let { (track, geometry) ->
                 val (oid, officialOid) = oids
@@ -213,10 +211,9 @@ constructor(
                 designTracks.partition { (t, _) ->
                     (t.contextData as? DesignContextData)?.designAssetState == DesignAssetState.CANCELLED
                 }
-            val cancelledReplaced =
-                cancelledDesignTracks.mapNotNull { (t, _) ->
-                    locationTrackService.getOfficialWithGeometryAtMoment(branch, t.id as IntId<LocationTrack>, moment)
-                }
+            val cancelledReplaced = cancelledDesignTracks.mapNotNull { (t, _) ->
+                locationTrackService.getOfficialWithGeometryAtMoment(branch, t.id as IntId<LocationTrack>, moment)
+            }
             designItemStateOverrides =
                 cancelledDesignTracks
                     .map { (t, _) -> t.id as IntId<LocationTrack> }

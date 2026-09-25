@@ -191,7 +191,9 @@ constructor(
             else
                 filterToDesignBranchTrackNumbers(
                     branch,
-                    trackNumbers.filter { (tn, _) -> tnFilter == null || tn.number.contains(tnFilter, ignoreCase = true) },
+                    trackNumbers.filter { (tn, _) ->
+                        tnFilter == null || tn.number.contains(tnFilter, ignoreCase = true)
+                    },
                 )
         return ExtTrackNumberCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication.uuid),

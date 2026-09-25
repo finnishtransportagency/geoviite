@@ -576,12 +576,14 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         id: IntId<T>,
         moment: Instant,
     ): LayoutRowVersion<T>? =
-        jdbcTemplate.query(
-            designVersionAtMomentSql,
-            mapOf("design_id" to designId.intValue, "id" to id.intValue, "moment" to Timestamp.from(moment)),
-        ) { rs, _ ->
-            rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
-        }.firstOrNull()
+        jdbcTemplate
+            .query(
+                designVersionAtMomentSql,
+                mapOf("design_id" to designId.intValue, "id" to id.intValue, "moment" to Timestamp.from(moment)),
+            ) { rs, _ ->
+                rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
+            }
+            .firstOrNull()
 
     override fun fetchOfficialVersionsInHistory(
         points: List<LayoutAssetIdInHistory<T>>
