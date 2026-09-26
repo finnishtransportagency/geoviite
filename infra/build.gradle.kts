@@ -15,7 +15,7 @@ val geotoolsVersion = "34.4"
 val kotlinVersion = "2.4.10"
 
 plugins {
-    id("org.springframework.boot") version "4.1.0"
+    id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
@@ -84,7 +84,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("tools.jackson.module:jackson-module-kotlin")
