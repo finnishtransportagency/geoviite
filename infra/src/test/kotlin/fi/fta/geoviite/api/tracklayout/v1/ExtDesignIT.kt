@@ -264,6 +264,40 @@ constructor(
     }
 
     @Test
+    fun `Modification endpoints return design-row data for cancelled track number in design`() {
+        initUser()
+        val (tnId, tnOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter("0001+0001.000")),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+        testDBService.publish(trackNumbers = listOf(tnId))
+
+        initUser()
+        val designBranch = testDBService.createDesignBranch()
+        val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
+        testDBService.generateOid(tnId, designBranch)
+        val designContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        designContext.mutate(tnId) { tn -> tn.copy(startAddress = TrackMeter("0001+0002.000")) }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        trackNumberService.cancel(designBranch, tnId)
+        val cancellationPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
+
+        api.trackNumbersInDesign(designOid)
+            .getModifiedBetween(tnOid, designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.ratanumero.kohteen_tila_suunnitelmassa)
+            }
+
+        api.trackNumberCollectionInDesign(designOid)
+            .getModifiedBetween(designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.ratanumerot.single().kohteen_tila_suunnitelmassa)
+            }
+    }
+
+    @Test
     fun `Design item state is valmis for completed track number after publish to main`() {
         initUser()
         val (tnId, tnOid) =

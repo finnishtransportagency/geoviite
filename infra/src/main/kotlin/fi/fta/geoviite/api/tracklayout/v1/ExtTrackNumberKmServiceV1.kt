@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -64,8 +65,12 @@ constructor(
         coordinateSystem: Srid,
     ): ExtTrackKmsResponseV1? {
         val moment = publication.publicationTime
-        return trackNumberDao
-            .getOfficialAtMoment(branch, trackNumberId, moment)
+        val trackNumber =
+            if (branch is DesignBranch)
+                trackNumberDao.getDesignAtMoment(branch.designId, trackNumberId, moment)
+                    ?: trackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)
+            else trackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)
+        return trackNumber
             ?.takeIf { it.exists }
             ?.let { trackNumber ->
                 val geocodingContext =
