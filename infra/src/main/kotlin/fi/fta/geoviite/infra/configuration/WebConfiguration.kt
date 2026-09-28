@@ -57,7 +57,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.format.FormatterRegistry
 import org.springframework.http.CacheControl
 import org.springframework.http.converter.ByteArrayHttpMessageConverter
-import org.springframework.http.converter.HttpMessageConverter
+import org.springframework.http.converter.HttpMessageConverters
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
@@ -175,15 +175,19 @@ constructor(
         }
     }
 
-    override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>>) {
+    override fun configureMessageConverters(builder: HttpMessageConverters.ServerBuilder) {
         val mapper =
             jacksonMapperBuilder()
                 .disable(WRITE_DATES_AS_TIMESTAMPS)
                 .changeDefaultPropertyInclusion { it.withValueInclusion(JsonInclude.Include.NON_NULL) }
                 .build()
 
-        converters.add(ByteArrayHttpMessageConverter())
-        converters.add(JacksonJsonHttpMessageConverter(mapper))
+        // Deliberately narrow: only JSON (our API format) and raw bytes (file/CSV upload & download).
+        // No XML/multipart/etc. converters, to keep the attack surface minimal.
+        builder
+            .disableDefaults()
+            .addCustomConverter(ByteArrayHttpMessageConverter())
+            .withJsonConverter(JacksonJsonHttpMessageConverter(mapper))
     }
 }
 

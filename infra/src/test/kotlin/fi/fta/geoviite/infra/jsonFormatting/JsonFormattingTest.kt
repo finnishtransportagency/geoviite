@@ -8,8 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
 
@@ -54,6 +58,27 @@ class JsonFormattingTest @Autowired constructor(val mapper: JsonMapper, mockMvc:
         assertEquals(
             "\"2021-06-14T12:30:50.999Z\"",
             testApi.doGet("/json-test-path/to-instant/1623673850999", HttpStatus.OK),
+        )
+    }
+
+    @Test
+    fun `Byte array responses are served via ByteArrayHttpMessageConverter`() {
+        val result =
+            testApi.mockMvc
+                .perform(MockMvcRequestBuilders.get("/json-test-path/byte-array"))
+                .andExpect(status().isOk)
+                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
+                .andReturn()
+        assertEquals(BYTE_ARRAY_RESPONSE_BODY.toList(), result.response.contentAsByteArray.toList())
+    }
+
+    @Test
+    fun `Null-valued properties are omitted from the actual HTTP response`() {
+        // Verifies the WebConfig-level HttpMessageConverter setup (NON_NULL inclusion), not just the
+        // injected JsonMapper bean: the request goes through the real Spring MVC/Jackson wiring.
+        assertEquals(
+            """{"value1":"only value1 is set"}""",
+            testApi.doGet("/json-test-path/nullable-field", HttpStatus.OK),
         )
     }
 
