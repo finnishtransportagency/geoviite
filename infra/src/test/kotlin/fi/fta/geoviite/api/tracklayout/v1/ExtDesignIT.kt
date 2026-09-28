@@ -419,6 +419,29 @@ constructor(
     }
 
     @Test
+    fun `Modification endpoints return design-row data for cancelled location track in design`() {
+        val (designBranch, designOid, ltId, ltOid, designPublication) = setupLocationTrackInDesign()
+
+        locationTrackService.cancel(designBranch, ltId)
+        val cancellationPublication = testDBService.publish(designBranch, locationTracks = listOf(ltId))
+
+        api.locationTracksInDesign(designOid)
+            .getModifiedBetween(ltOid, designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+                assertEquals("kujaraide", response.sijaintiraide.tyyppi)
+            }
+
+        api.locationTrackCollectionInDesign(designOid)
+            .getModifiedBetween(designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                val lt = response.sijaintiraiteet.single()
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, lt.kohteen_tila_suunnitelmassa)
+                assertEquals("kujaraide", lt.tyyppi)
+            }
+    }
+
+    @Test
     fun `Design item state is valmis for completed location track after publish to main`() {
         val (designBranch, designOid, ltId, ltOid, _) = setupLocationTrackInDesign()
 

@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
@@ -141,26 +140,14 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1? {
         val moment = publication.publicationTime
-        val trackAndGeom: Pair<LocationTrack, LocationTrackGeometry>?
-        val designItemStateOverride: ExtDesignItemStateV1?
-        if (branch is DesignBranch) {
-            val designResult = locationTrackService.getDesignWithGeometryAtMoment(branch, id, moment)
-            val isCancelled =
-                (designResult?.first?.contextData as? DesignContextData)?.designAssetState == DesignAssetState.CANCELLED
-            if (isCancelled) {
-                trackAndGeom = locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)
-                designItemStateOverride = ExtDesignItemStateV1.CANCELLED
-            } else {
-                trackAndGeom = designResult ?: locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)
-                designItemStateOverride = null
-            }
-        } else {
-            trackAndGeom = locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)
-            designItemStateOverride = null
-        }
+        val trackAndGeom =
+            if (branch is DesignBranch)
+                locationTrackService.getDesignWithGeometryAtMoment(branch, id, moment)
+                    ?: locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)
+            else locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)
         return trackAndGeom?.let { (track, geometry) ->
             val (oid, officialOid) = oids
-            val data = getLocationTrackData(branch, moment, oid, officialOid, track, geometry, designItemStateOverride)
+            val data = getLocationTrackData(branch, moment, oid, officialOid, track, geometry)
             ExtLocationTrackResponseV1(
                 layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
@@ -178,20 +165,24 @@ constructor(
     ): ExtModifiedLocationTrackResponseV1? {
         val startMoment = publications.from.publicationTime
         val endMoment = publications.to.publicationTime
-        return publicationDao
-            .fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
-            ?.let { changeTime -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
-            ?.let(locationTrackService::getWithGeometry)
-            ?.let { (track, geometry) ->
-                val (oid, officialOid) = oids
-                val data = getLocationTrackData(branch, endMoment, oid, officialOid, track, geometry)
-                ExtModifiedLocationTrackResponseV1(
-                    layoutVersionFrom = ExtLayoutVersionV1(publications.from),
-                    layoutVersionTo = ExtLayoutVersionV1(publications.to),
-                    coordinateSystem = ExtSridV1(coordinateSystem),
-                    locationTrack = createExtLocationTrack(data, coordinateSystem),
-                )
-            } ?: layoutAssetVersionsAreTheSame(id, publications)
+        val changeTime =
+            publicationDao.fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
+                ?: return layoutAssetVersionsAreTheSame(id, publications)
+        val trackAndGeom =
+            if (branch is DesignBranch)
+                locationTrackService.getDesignWithGeometryAtMoment(branch, id, changeTime)
+                    ?: locationTrackService.getOfficialWithGeometryAtMoment(branch, id, changeTime)
+            else locationTrackService.getOfficialWithGeometryAtMoment(branch, id, changeTime)
+        return trackAndGeom?.let { (track, geometry) ->
+            val (oid, officialOid) = oids
+            val data = getLocationTrackData(branch, endMoment, oid, officialOid, track, geometry)
+            ExtModifiedLocationTrackResponseV1(
+                layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                layoutVersionTo = ExtLayoutVersionV1(publications.to),
+                coordinateSystem = ExtSridV1(coordinateSystem),
+                locationTrack = createExtLocationTrack(data, coordinateSystem),
+            )
+        } ?: layoutAssetVersionsAreTheSame(id, publications)
     }
 
     private fun createLocationTrackCollectionResponse(
@@ -203,29 +194,16 @@ constructor(
     ): ExtLocationTrackCollectionResponseV1 {
         val moment = publication.publicationTime
         val tracksAndGeoms: List<Pair<LocationTrack, LocationTrackGeometry>>
-        val designItemStateOverrides: Map<IntId<LocationTrack>, ExtDesignItemStateV1>
         if (branch is DesignBranch) {
             val designTracks = locationTrackService.listDesignWithGeometryAtMoment(branch, moment)
             val designIds = designTracks.map { (t, _) -> t.id as IntId<LocationTrack> }.toSet()
-            val (cancelledDesignTracks, activeDesignTracks) =
-                designTracks.partition { (t, _) ->
-                    (t.contextData as? DesignContextData)?.designAssetState == DesignAssetState.CANCELLED
-                }
-            val cancelledReplaced = cancelledDesignTracks.mapNotNull { (t, _) ->
-                locationTrackService.getOfficialWithGeometryAtMoment(branch, t.id as IntId<LocationTrack>, moment)
-            }
-            designItemStateOverrides =
-                cancelledDesignTracks
-                    .map { (t, _) -> t.id as IntId<LocationTrack> }
-                    .associateWith { ExtDesignItemStateV1.CANCELLED }
             val inherited =
                 locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false).filter { (t, _) ->
                     t.id as IntId<LocationTrack> !in designIds
                 }
-            tracksAndGeoms = activeDesignTracks + cancelledReplaced + inherited
+            tracksAndGeoms = designTracks + inherited
         } else {
             tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
-            designItemStateOverrides = emptyMap()
         }
         val branchTrackIds = if (branch == LayoutBranch.main) null else designBranchTrackIds(branch, tracksAndGeoms)
         val filteredTracksAndGeoms = tracksAndGeoms.filter(filterTracks(nameFilter, branchTrackIds))
@@ -239,7 +217,6 @@ constructor(
                     coordinateSystem,
                     filteredTracksAndGeoms,
                     trackNumberOidFilter,
-                    designItemStateOverrides,
                 ),
         )
     }
@@ -255,9 +232,13 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchLatestPublishedLocationTrackChangeTimesBetween(startMoment, endMoment, branch)
-            .mapNotNull { (id, changeTime) -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
-            .takeIf { versions -> versions.isNotEmpty() }
-            ?.let(locationTrackService::getManyWithGeometries)
+            .mapNotNull { (id, changeTime) ->
+                if (branch is DesignBranch)
+                    locationTrackService.getDesignWithGeometryAtMoment(branch, id, changeTime)
+                        ?: locationTrackService.getOfficialWithGeometryAtMoment(branch, id, changeTime)
+                else locationTrackService.getOfficialWithGeometryAtMoment(branch, id, changeTime)
+            }
+            .takeIf { tracksAndGeoms -> tracksAndGeoms.isNotEmpty() }
             ?.let { tracksAndGeoms ->
                 val branchTrackIds = if (branch is DesignBranch) null else designBranchTrackIds(branch, tracksAndGeoms)
                 tracksAndGeoms.filter(filterTracks(nameFilter, branchTrackIds))
@@ -282,9 +263,8 @@ constructor(
         coordinateSystem: Srid,
         tracksAndGeoms: List<Pair<LocationTrack, LocationTrackGeometry>>,
         trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
-        designItemStateOverrides: Map<IntId<LocationTrack>, ExtDesignItemStateV1> = emptyMap(),
     ): List<ExtLocationTrackV1> {
-        return getLocationTrackData(branch, moment, tracksAndGeoms, designItemStateOverrides)
+        return getLocationTrackData(branch, moment, tracksAndGeoms)
             .let { data -> trackNumberOidFilter?.let { data.filter { d -> d.trackNumberOid == it.value } } ?: data }
             .parallelStream()
             .map { data -> createExtLocationTrack(data, coordinateSystem) }
@@ -351,7 +331,6 @@ constructor(
         branch: LayoutBranch,
         moment: Instant,
         tracksAndGeoms: List<Pair<LocationTrack, LocationTrackGeometry>>,
-        designItemStateOverrides: Map<IntId<LocationTrack>, ExtDesignItemStateV1> = emptyMap(),
     ): List<LocationTrackData> {
         val locationTrackIds = tracksAndGeoms.map { (track, _) -> track.id as IntId }
         val distinctTrackNumberIds = tracksAndGeoms.map { (track, _) -> track.trackNumberId }.distinct()
@@ -378,8 +357,7 @@ constructor(
                     trackNumbers[track.trackNumberId] ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
                 geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) },
                 designItemState =
-                    designItemStateOverrides[track.id as IntId]
-                        ?: (track.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
+                    (track.contextData as? DesignContextData)?.designAssetState?.let(ExtDesignItemStateV1::of),
             )
         }
     }

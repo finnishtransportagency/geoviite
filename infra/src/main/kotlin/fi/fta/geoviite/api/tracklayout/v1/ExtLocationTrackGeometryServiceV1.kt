@@ -108,9 +108,15 @@ constructor(
             publicationDao.fetchLatestLocationTrackGeometryPublicationTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
         val newTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
+            if (branch is DesignBranch)
+                locationTrackDao.getDesignAtMoment(branch.designId, id, changeTime)
+                    ?: locationTrackDao.getOfficialAtMoment(branch, id, changeTime)
+            else locationTrackDao.getOfficialAtMoment(branch, id, changeTime)
         val oldTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+            if (branch is DesignBranch)
+                locationTrackDao.getDesignAtMoment(branch.designId, id, startMoment)
+                    ?: locationTrackDao.getOfficialAtMoment(branch, id, startMoment)
+            else locationTrackDao.getOfficialAtMoment(branch, id, startMoment)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldPoints =
