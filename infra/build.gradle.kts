@@ -12,15 +12,15 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "34.4"
-val kotlinVersion = "2.4.10"
+val kotlinVersion = "2.4.20"
 
 plugins {
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.4"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
-    kotlin("jvm") version "2.4.10"
-    kotlin("plugin.spring") version "2.4.10"
+    kotlin("jvm") version "2.4.20"
+    kotlin("plugin.spring") version "2.4.20"
 }
 
 // Mockito's inline mock maker needs to attach as a Java agent. Since JDK 21, self-attaching is deprecated.
