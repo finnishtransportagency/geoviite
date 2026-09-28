@@ -107,16 +107,8 @@ constructor(
         val changeTime =
             publicationDao.fetchLatestLocationTrackGeometryPublicationTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
-        val newTrack =
-            if (branch is DesignBranch)
-                locationTrackDao.getDesignAtMoment(branch.designId, id, changeTime)
-                    ?: locationTrackDao.getOfficialAtMoment(branch, id, changeTime)
-            else locationTrackDao.getOfficialAtMoment(branch, id, changeTime)
-        val oldTrack =
-            if (branch is DesignBranch)
-                locationTrackDao.getDesignAtMoment(branch.designId, id, startMoment)
-                    ?: locationTrackDao.getOfficialAtMoment(branch, id, startMoment)
-            else locationTrackDao.getOfficialAtMoment(branch, id, startMoment)
+        val newTrack = getLocationTrackAtMoment(branch, id, changeTime)
+        val oldTrack = getLocationTrackAtMoment(branch, id, startMoment)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldPoints =
@@ -154,11 +146,7 @@ constructor(
         addressFilter: AddressFilter,
     ): ExtLocationTrackGeometryResponseV1? {
         val moment = publication.publicationTime
-        val track =
-            if (branch is DesignBranch)
-                locationTrackDao.getDesignAtMoment(branch.designId, id, moment)
-                    ?: locationTrackDao.getOfficialAtMoment(branch, id, moment)
-            else locationTrackDao.getOfficialAtMoment(branch, id, moment)
+        val track = getLocationTrackAtMoment(branch, id, moment)
         return track
             // Deleted tracks have no geometry in API since there's no guarantee of geocodable addressing
             ?.takeIf { it.exists }
@@ -176,6 +164,12 @@ constructor(
                 )
             }
     }
+
+    private fun getLocationTrackAtMoment(branch: LayoutBranch, id: IntId<LocationTrack>, moment: Instant) =
+        if (branch is DesignBranch)
+            locationTrackDao.getDesignAtMoment(branch.designId, id, moment)
+                ?: locationTrackDao.getOfficialAtMoment(branch, id, moment)
+        else locationTrackDao.getOfficialAtMoment(branch, id, moment)
 
     private fun getAddressPoints(
         branch: LayoutBranch,
