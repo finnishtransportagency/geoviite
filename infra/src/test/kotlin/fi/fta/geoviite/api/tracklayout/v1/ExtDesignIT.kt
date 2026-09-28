@@ -338,6 +338,29 @@ constructor(
     }
 
     @Test
+    fun `Modification endpoints return design-row data for cancelled switch in design`() {
+        val (designBranch, designOid, switchId, switchOid, designPublication) = setupSwitchInDesign()
+
+        switchService.cancel(designBranch, switchId)
+        val cancellationPublication = testDBService.publish(designBranch, switches = listOf(switchId))
+
+        api.switchInDesign(designOid)
+            .getModifiedBetween(switchOid, designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.vaihde.kohteen_tila_suunnitelmassa)
+                assertEquals(FI_YES, response.vaihde.turvavaihde)
+            }
+
+        api.switchCollectionInDesign(designOid)
+            .getModifiedBetween(designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                val sw = response.vaihteet.single()
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, sw.kohteen_tila_suunnitelmassa)
+                assertEquals(FI_YES, sw.turvavaihde)
+            }
+    }
+
+    @Test
     fun `Design item state is valmis for completed switch after publish to main`() {
         val (designBranch, designOid, switchId, switchOid, _) = setupSwitchInDesign()
 
