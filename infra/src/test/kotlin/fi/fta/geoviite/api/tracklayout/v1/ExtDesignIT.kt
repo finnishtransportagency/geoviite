@@ -397,6 +397,28 @@ constructor(
     }
 
     @Test
+    fun `Sub-resource endpoints return design-row data for cancelled location track in design`() {
+        val (designBranch, designOid, ltId, ltOid, _) = setupLocationTrackInDesign()
+
+        locationTrackService.cancel(designBranch, ltId)
+        val cancellationPublication = testDBService.publish(designBranch, locationTracks = listOf(ltId))
+
+        api.locationTrackGeometryInDesign(designOid).getAtVersion(ltOid, cancellationPublication.uuid).also { response
+            ->
+            assertEquals(ltOid.toString(), response.virallinen_sijaintiraide_oid)
+        }
+
+        api.locationTrackProfileInDesign(designOid).getAtVersion(ltOid, cancellationPublication.uuid).also { response ->
+            assertEquals(ltOid.toString(), response.virallinen_sijaintiraide_oid)
+        }
+
+        api.locationTrackElementListingInDesign(designOid).getAtVersion(ltOid, cancellationPublication.uuid).also {
+            response ->
+            assertEquals(ltOid.toString(), response.virallinen_sijaintiraide_oid)
+        }
+    }
+
+    @Test
     fun `Design item state is valmis for completed location track after publish to main`() {
         val (designBranch, designOid, ltId, ltOid, _) = setupLocationTrackInDesign()
 
