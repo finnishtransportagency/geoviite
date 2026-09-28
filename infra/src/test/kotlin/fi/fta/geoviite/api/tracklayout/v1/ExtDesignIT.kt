@@ -256,10 +256,12 @@ constructor(
 
         api.trackNumbersInDesign(designOid).getAtVersion(tnOid, cancellationPublication.uuid).ratanumero.also { tn ->
             assertEquals(FI_DESIGN_ITEM_CANCELLED, tn.kohteen_tila_suunnitelmassa)
+            assertEquals("0001+0002.000", tn.alkusijainti?.rataosoite)
         }
         api.trackNumberCollectionInDesign(designOid).getAtVersion(cancellationPublication.uuid).ratanumerot.also { tns
             ->
             assertEquals(FI_DESIGN_ITEM_CANCELLED, tns.single().kohteen_tila_suunnitelmassa)
+            assertEquals("0001+0002.000", tns.single().alkusijainti?.rataosoite)
         }
     }
 
@@ -365,9 +367,11 @@ constructor(
 
         api.switchInDesign(designOid).getAtVersion(switchOid, cancellationPublication.uuid).vaihde.also { sw ->
             assertEquals(FI_DESIGN_ITEM_CANCELLED, sw.kohteen_tila_suunnitelmassa)
+            assertEquals(FI_YES, sw.turvavaihde)
         }
         api.switchCollectionInDesign(designOid).getAtVersion(cancellationPublication.uuid).vaihteet.also { switches ->
             assertEquals(FI_DESIGN_ITEM_CANCELLED, switches.single().kohteen_tila_suunnitelmassa)
+            assertEquals(FI_YES, switches.single().turvavaihde)
         }
     }
 
@@ -446,11 +450,15 @@ constructor(
         api.locationTracksInDesign(designOid).getAtVersion(ltOid, cancellationPublication.uuid).sijaintiraide.also { lt
             ->
             assertEquals(FI_DESIGN_ITEM_CANCELLED, lt.kohteen_tila_suunnitelmassa)
+            assertEquals(FI_CHORD, lt.tyyppi)
         }
         api.locationTrackCollectionInDesign(designOid)
             .getAtVersion(cancellationPublication.uuid)
             .sijaintiraiteet
-            .also { lts -> assertEquals(FI_DESIGN_ITEM_CANCELLED, lts.single().kohteen_tila_suunnitelmassa) }
+            .also { lts ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, lts.single().kohteen_tila_suunnitelmassa)
+                assertEquals(FI_CHORD, lts.single().tyyppi)
+            }
     }
 
     @Test

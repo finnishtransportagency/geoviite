@@ -264,7 +264,16 @@ constructor(
             trackNumber = data.trackNumber.number,
             trackNumberDescription = data.trackNumber.description,
             trackNumberState = data.trackNumber.state.let(ExtTrackNumberStateV1::of),
-            startLocation = data.geometry?.start?.let(toEndPoint),
+            // For design items, use startAddress directly: the geocoding context for CANCELLED/COMPLETED
+            // design items falls back to the official row, which would give the wrong address.
+            // For main-branch items, use the geocoding context so that deleted track numbers
+            // (geocoding context = null) correctly get null addresses.
+            startLocation =
+                data.geometry?.start?.let { p ->
+                    if (data.designItemState != null)
+                        toExtAddressPoint(p, data.trackNumber.startAddress, coordinateSystem)
+                    else toExtAddressPoint(p, data.geocodingContext, coordinateSystem)
+                },
             endLocation = data.geometry?.end?.let(toEndPoint),
             designItemState = data.designItemState,
         )
