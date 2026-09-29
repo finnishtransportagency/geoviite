@@ -17,7 +17,6 @@ import {
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { extendLocationTrack } from 'track-layout/layout-location-track-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { stopExtendingAlignment } from 'linking/alignment-extension-utils';
 
 type LocationTrackGeometryExtensionInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -31,6 +30,14 @@ export const LocationTrackGeometryExtensionInfoboxContainer: React.FC<
     const { t } = useTranslation();
     const delegates = createDelegates(TrackLayoutActions);
 
+    const stopExtendingLocationTrack = () => {
+        delegates.removeForcedVisibleLayer([
+            'alignment-extension-layer',
+            'location-track-selected-alignment-layer',
+        ]);
+        delegates.stopLinking();
+    };
+
     return (
         <LocationTrackGeometryExtensionInfobox
             locationTrack={locationTrack}
@@ -39,7 +46,7 @@ export const LocationTrackGeometryExtensionInfoboxContainer: React.FC<
                 delegates.setAlignmentDirectionSnap(directionSnap)
             }
             onClearExtension={() => delegates.clearAlignmentExtension()}
-            onStopExtendingGeometry={() => stopExtendingAlignment(delegates)}
+            onStopExtendingGeometry={stopExtendingLocationTrack}
             onSaveExtension={async (extension) => {
                 try {
                     await extendLocationTrack(
@@ -57,7 +64,7 @@ export const LocationTrackGeometryExtensionInfoboxContainer: React.FC<
                         track: locationTrack.name,
                     }),
                 );
-                stopExtendingAlignment(delegates);
+                stopExtendingLocationTrack();
             }}
         />
     );

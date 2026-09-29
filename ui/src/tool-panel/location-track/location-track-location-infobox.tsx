@@ -85,7 +85,14 @@ export const LocationTrackLocationInfoboxContainer: React.FC<
         <LocationTrackLocationInfobox
             {...props}
             changeTimes={changeTimes}
-            onStartSplitting={delegates.onStartSplitting}
+            onStartSplitting={(splitStart) => {
+                delegates.addForcedVisibleLayer(['location-track-split-location-layer']);
+                delegates.addForcedHiddenLayer([
+                    'location-track-selected-alignment-layer',
+                    'reference-line-selected-alignment-layer',
+                ]);
+                delegates.onStartSplitting(splitStart);
+            }}
             onStartLocationTrackGeometryChange={(interval: LinkInterval) => {
                 delegates.addForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.startAlignmentGeometryChange(interval);
@@ -100,7 +107,10 @@ export const LocationTrackLocationInfoboxContainer: React.FC<
                 delegates.startTrackBoundaryMove(headTrack);
             }}
             onStartExtendTrack={(id) => {
-                delegates.addForcedVisibleLayer(['alignment-extension-layer']);
+                delegates.addForcedVisibleLayer([
+                    'alignment-extension-layer',
+                    'location-track-selected-alignment-layer',
+                ]);
                 delegates.startExtendingAlignment({
                     type: MapAlignmentType.LocationTrack,
                     id,
