@@ -1357,6 +1357,38 @@ constructor(
     }
 
     @Test
+    fun `should trim surrounding whitespace in operational point name`() {
+        val trackNumberId =
+            trackNumberService
+                .saveDraft(
+                    LayoutBranch.main,
+                    trackNumber(testDBService.getUnusedTrackNumber(), draft = true),
+                    TmpReferenceLineGeometry.empty,
+                )
+                .id
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
+
+        val turpeelaOP =
+            ratkoOperationalPoint(
+                "1.2.3.4.6",
+                " Turpeela  ",
+                trackNumberOid = "5.5.5.5.5",
+            )
+
+        fakeRatko.hasOperationalPoints(listOf(turpeelaOP))
+        ratkoService.updateOperationalPointsFromRatko()
+
+        val pointsFromLayoutTable =
+            operationalPointService.list(
+                LayoutBranch.main.draft,
+                ids = null,
+            )
+        assertEquals(1, pointsFromLayoutTable.size)
+        val pointFromLayoutTable = pointsFromLayoutTable[0]
+        assertEquals("Turpeela", pointFromLayoutTable.name.toString())
+    }
+
+    @Test
     fun `listLatestVersions returns all points including deleted`() {
         val trackNumberId =
             trackNumberService
