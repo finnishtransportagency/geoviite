@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.INNER
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.OUTER
+import fi.fta.geoviite.infra.tracklayout.graph.DetailLevel
 import fi.fta.geoviite.infra.util.equalsBy
 import java.util.*
 import kotlin.math.PI
