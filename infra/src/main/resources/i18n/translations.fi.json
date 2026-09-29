@@ -790,6 +790,7 @@
             "reference-line-singular": "Pituusmittauslinja",
             "reference-line-plural": "Pituusmittauslinjat",
             "no-geometry": "Pituusmittauslinjalla ei ole geometriaa",
+            "shorten-reference-line-start-or-end": "Lyhennä pituusmittauslinjaa alusta/lopusta",
             "geometry-extension": {
                 "menu-item": "Jatka pituusmittauslinjan geometriaa",
                 "title": "Pituusmittauslinjan jatkaminen",
