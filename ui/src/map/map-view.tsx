@@ -716,7 +716,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             selection,
                             layoutContext,
-                            splittingState !== undefined,
                             changeTimes,
                             olView,
                             (loading) => onLayerLoading(layerName, loading),
@@ -736,7 +735,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString>,
                             selection,
                             layoutContext,
-                            splittingState !== undefined,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );

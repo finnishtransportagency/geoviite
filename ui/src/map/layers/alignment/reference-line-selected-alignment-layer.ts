@@ -29,22 +29,20 @@ export function createSelectedReferenceLineAlignmentLayer(
     existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
-    splittingIsActive: boolean,
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const selectedTrackNumber = first(selection.selectedItems.trackNumbers);
-    const dataPromise: Promise<AlignmentDataHolder[]> =
-        selectedTrackNumber && !splittingIsActive
-            ? getSelectedReferenceLineMapAlignmentByTiles(
-                  changeTimes.layoutTrackNumber,
-                  mapTiles,
-                  layoutContext,
-                  selectedTrackNumber,
-              )
-            : Promise.resolve([]);
+    const dataPromise: Promise<AlignmentDataHolder[]> = selectedTrackNumber
+        ? getSelectedReferenceLineMapAlignmentByTiles(
+              changeTimes.layoutTrackNumber,
+              mapTiles,
+              layoutContext,
+              selectedTrackNumber,
+          )
+        : Promise.resolve([]);
 
     const createFeatures = (referenceLines: AlignmentDataHolder[]) => {
         const selectedReferenceLine = first(referenceLines);

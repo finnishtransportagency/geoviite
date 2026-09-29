@@ -321,6 +321,13 @@ export const splitReducers = {
                 payload: ['location-track-split-location-layer'],
                 type: 'addForcedVisibleLayer',
             });
+            mapReducers.addForcedHiddenLayer(state.map, {
+                payload: [
+                    'location-track-selected-alignment-layer',
+                    'reference-line-selected-alignment-layer',
+                ],
+                type: 'addForcedHiddenLayer',
+            });
         }
     },
     stopSplitting: (state: TrackLayoutState): void => {
