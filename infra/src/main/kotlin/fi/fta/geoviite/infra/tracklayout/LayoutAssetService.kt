@@ -37,6 +37,10 @@ abstract class LayoutAssetService<
         return dao.getOfficialAtMoment(branch, id, moment)
     }
 
+    fun listOfficialAtMoment(branch: LayoutBranch, moment: Instant): List<ObjectType> {
+        return dao.listOfficialAtMoment(branch, moment)
+    }
+
     fun getOrThrow(context: LayoutContext, id: IntId<ObjectType>): ObjectType {
         return dao.getOrThrow(context, id)
     }
