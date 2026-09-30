@@ -44,6 +44,12 @@ class ExtInvalidAddressPointFilterOrderV1(
         localizedMessageKey,
     )
 
+class ExtInvalidTopologyResolutionV1(
+    value: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "$ERROR_KEY_BASE.bad-request.invalid-topology-resolution",
+) : ClientException(HttpStatus.BAD_REQUEST, "invalid topology resolution: value=$value", cause, localizedMessageKey)
+
 inline fun <reified T : LayoutAsset<T>> throwOidNotFound(branch: LayoutBranch, id: DomainId<T>): Nothing =
     error("${T::class.simpleName} OID not found: branch=$branch id=$id")
 
