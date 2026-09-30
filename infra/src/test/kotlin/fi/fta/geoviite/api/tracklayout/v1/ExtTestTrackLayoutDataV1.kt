@@ -456,6 +456,45 @@ data class ExtTestRouteV1(val pituus: Double, val reitin_osat: List<ExtTestRoute
 
 data class ExtTestRouteResponseV1(val rataverkon_versio: String, val koordinaatisto: String, val reitti: ExtTestRouteV1)
 
+data class ExtTestTopologyLocationTrackReferenceV1(val oid: String)
+
+data class ExtTestTopologySwitchReferenceV1(val oid: String, val vaihdepiste: Int)
+
+data class ExtTestTopologyEdgeReferenceV1(val id: String, val suunta: String)
+
+data class ExtTestTopologyTransitionV1(
+    val kaari_sisaan: ExtTestTopologyEdgeReferenceV1,
+    val kaari_ulos: ExtTestTopologyEdgeReferenceV1,
+)
+
+data class ExtTestTopologyEdgeV1(
+    val id: String,
+    val alkusolmu: String,
+    val loppusolmu: String,
+    val pituus: Double,
+    val raiteet: List<ExtTestTopologyLocationTrackReferenceV1>,
+)
+
+data class ExtTestTopologyNodeV1(
+    val id: String,
+    val tyyppi: String,
+    val vaihteet: List<ExtTestTopologySwitchReferenceV1>,
+    val sijainti: ExtTestCoordinateV1,
+    val kulkusuunnat: List<ExtTestTopologyTransitionV1>,
+)
+
+data class ExtTestTopologyV1(
+    val graafin_resoluutio: String,
+    val kaaret: List<ExtTestTopologyEdgeV1>,
+    val solmut: List<ExtTestTopologyNodeV1>,
+)
+
+data class ExtTestTopologyResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val topologia: ExtTestTopologyV1,
+)
+
 data class ExtTestDesignV1(
     val suunnitelma_oid: String,
     val nimi: String,

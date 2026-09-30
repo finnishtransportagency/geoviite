@@ -304,6 +304,8 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             assetCollectionClazz = ExtTestStationLinkCollectionResponseV1::class,
         )
 
+    val topology = TopologyApi(topologyUrl = { "/geoviite/paikannuspohja/v1/topologia" })
+
     inner class AssetApi<AssetId : Any, AssetResponse : Any, AssetModificationResponse : Any>(
         private val assetUrl: (String) -> String,
         private val assetClazz: KClass<AssetResponse>,
@@ -582,5 +584,21 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
                 )
             internalGetWithoutBody(routingUrl(), coordinateParams + params.toMap(), HttpStatus.NO_CONTENT)
         }
+    }
+
+    inner class TopologyApi(private val topologyUrl: () -> String) {
+        fun get(vararg params: Pair<String, String>): ExtTestTopologyResponseV1 =
+            internalGet(ExtTestTopologyResponseV1::class, topologyUrl(), params.toMap())
+
+        fun getAtVersion(
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): ExtTestTopologyResponseV1 = get(TRACK_LAYOUT_VERSION to layoutVersion.toString(), *params)
+
+        fun getWithExpectedError(
+            vararg params: Pair<String, String>,
+            httpStatus: HttpStatus,
+        ): ExtTestErrorResponseV1 =
+            internalGet(ExtTestErrorResponseV1::class, topologyUrl(), params.toMap(), httpStatus)
     }
 }
