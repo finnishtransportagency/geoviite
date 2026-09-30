@@ -18,6 +18,7 @@ import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
 import { RouteLocation } from 'track-layout/track-layout-slice';
 import { MapLayerName } from 'map/map-model';
+import { deduplicate } from 'utils/array-utils';
 
 const emptyFn = () => void 0;
 
@@ -139,7 +140,13 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.mapTools = mapTools;
     mapProps.hoveredRouteLocation = hoveredRouteLocation;
     mapProps.map = React.useMemo(
-        () => ({ ...mapProps.map, forcedHiddenLayers: forcedHiddenLayers }),
+        () => ({
+            ...mapProps.map,
+            forcedHiddenLayers: deduplicate([
+                ...mapProps.map.forcedHiddenLayers,
+                ...forcedHiddenLayers,
+            ]),
+        }),
         [mapProps.map, forcedHiddenLayers],
     );
 
