@@ -56,22 +56,16 @@ export type TrackNumberCandidateAndAlignment = {
 };
 
 export type LineStringFeatureChangeType =
-    | DraftChangeType.LOCATION_TRACK
-    | DraftChangeType.TRACK_NUMBER;
+    DraftChangeType.LOCATION_TRACK | DraftChangeType.TRACK_NUMBER;
 
 export type CandidateLineStringFeature =
-    | LocationTrackPublicationCandidate
-    | TrackNumberPublicationCandidate;
+    LocationTrackPublicationCandidate | TrackNumberPublicationCandidate;
 
 export type PointFeatureChangeType =
-    | DraftChangeType.SWITCH
-    | DraftChangeType.KM_POST
-    | DraftChangeType.OPERATIONAL_POINT;
+    DraftChangeType.SWITCH | DraftChangeType.KM_POST | DraftChangeType.OPERATIONAL_POINT;
 
 export type CandidatePointFeature =
-    | SwitchPublicationCandidate
-    | KmPostPublicationCandidate
-    | OperationalPointPublicationCandidate;
+    SwitchPublicationCandidate | KmPostPublicationCandidate | OperationalPointPublicationCandidate;
 
 export type PointRange = {
     indexRange: Range<number>;
@@ -489,14 +483,18 @@ const hexToRgba = (hex: string, alpha: number): string => {
 export const createCandidateOperationalPointAreaFeature = (
     candidate: OperationalPointPublicationCandidate,
     polygon: Polygon,
+    explicitness: ChangeExplicitness,
 ): Feature<OlPolygon> => {
-    const color = getHighlightColor(candidate.stage, ChangeExplicitness.EXPLICIT, candidate.operation);
-    const borderWidth = 3;
+    const color = getHighlightColor(candidate.stage, explicitness, candidate.operation);
+    const borderWidth =
+        candidate.stage === PublicationStage.UNSTAGED
+            ? UNSTAGED_ALIGNMENT_HIGHLIGHT_WIDTH
+            : STAGED_ALIGNMENT_HIGHLIGHT_WIDTH;
     const zIndex = getHighlightZIndex(
         candidate.operation,
         DraftChangeType.OPERATIONAL_POINT,
         candidate.stage,
-        ChangeExplicitness.EXPLICIT,
+        explicitness,
     );
 
     const feature = new Feature({
@@ -504,8 +502,8 @@ export const createCandidateOperationalPointAreaFeature = (
     });
     feature.setStyle([
         new Style({
-            stroke: new Stroke({ color: hexToRgba(color, 0.5), width: borderWidth }),
-            fill: new Fill({ color: hexToRgba(color, 0.2) }),
+            stroke: new Stroke({ color, width: borderWidth }),
+            fill: new Fill({ color: hexToRgba(color, 0.5) }),
             zIndex,
         }),
     ]);
