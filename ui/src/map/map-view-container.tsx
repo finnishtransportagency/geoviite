@@ -17,8 +17,8 @@ import { MapToolId, MapToolMenuItem } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
 import { RouteLocation } from 'track-layout/track-layout-slice';
-import { stopExtendingAlignment } from 'linking/alignment-extension-utils';
 import { MapLayerName } from 'map/map-model';
+import { deduplicate } from 'utils/array-utils';
 
 const emptyFn = () => void 0;
 
@@ -47,7 +47,14 @@ const getTrackLayoutProps = (): MapViewProps => {
         onViewportUpdate: delegates.onViewportChange,
         onSetOperationalPointPolygon: delegates.setOperationalPointArea,
         onSetAlignmentExtension: delegates.setAlignmentExtension,
-        onStopExtendingAlignment: () => stopExtendingAlignment(delegates),
+        onStopExtendingAlignment: () => {
+            delegates.removeForcedVisibleLayer([
+                'alignment-extension-layer',
+                'location-track-selected-alignment-layer',
+                'reference-line-selected-alignment-layer',
+            ]);
+            delegates.stopLinking();
+        },
         onSwitchPlacingPreviewChange: delegates.setSwitchPlacingSuggestion,
         layoutContext: store.layoutContext,
         selection: store.selection,
@@ -133,7 +140,13 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.mapTools = mapTools;
     mapProps.hoveredRouteLocation = hoveredRouteLocation;
     mapProps.map = React.useMemo(
-        () => ({ ...mapProps.map, forcedHiddenLayers: forcedHiddenLayers }),
+        () => ({
+            ...mapProps.map,
+            forcedHiddenLayers: deduplicate([
+                ...mapProps.map.forcedHiddenLayers,
+                ...forcedHiddenLayers,
+            ]),
+        }),
         [mapProps.map, forcedHiddenLayers],
     );
 

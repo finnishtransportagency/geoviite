@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import {
     isLayerInProxyLayerCollection,
+    isMenuItemFullyHiddenByProxy,
     layersToHideByProxy,
     layersToShowByProxy,
 } from 'map/map-store';
@@ -88,7 +89,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                     mapLayerVisibilities,
                     layersToShowByProxy,
                 );
-                const disabledByProxy = isLayerInProxyLayerCollection(
+                const disabledByProxy = isMenuItemFullyHiddenByProxy(
                     setting.name,
                     mapLayerVisibilities,
                     layersToHideByProxy,
@@ -113,7 +114,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                             mapLayerVisibilities,
                             layersToShowByProxy,
                         );
-                        const disabledByProxy = isLayerInProxyLayerCollection(
+                        const disabledByProxy = isMenuItemFullyHiddenByProxy(
                             setting.name,
                             mapLayerVisibilities,
                             layersToHideByProxy,

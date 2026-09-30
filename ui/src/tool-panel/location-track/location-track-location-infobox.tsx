@@ -101,7 +101,10 @@ export const LocationTrackLocationInfoboxContainer: React.FC<
                 delegates.startTrackBoundaryMove(headTrack);
             }}
             onStartExtendTrack={(id) => {
-                delegates.addForcedVisibleLayer(['alignment-extension-layer']);
+                delegates.addForcedVisibleLayer([
+                    'alignment-extension-layer',
+                    'location-track-selected-alignment-layer',
+                ]);
                 delegates.startExtendingAlignment({
                     type: MapAlignmentType.LocationTrack,
                     id,

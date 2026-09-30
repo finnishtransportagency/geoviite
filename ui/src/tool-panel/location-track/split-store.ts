@@ -23,7 +23,6 @@ import { draftLayoutContext, TrackMeter, TrackNumber } from 'common/common-model
 import { Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { getOperation } from './splitting/split-utils';
-import { mapReducers } from 'map/map-store';
 import { expectDefined } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { inferLayoutContextMode } from 'linking/linking-store';
@@ -316,11 +315,6 @@ export const splitReducers = {
                 endSplitPoint: payload.endSplitPoint,
                 ...prefilledSplitsNamed,
             };
-
-            mapReducers.addForcedVisibleLayer(state.map, {
-                payload: ['location-track-split-location-layer'],
-                type: 'addForcedVisibleLayer',
-            });
         }
     },
     stopSplitting: (state: TrackLayoutState): void => {

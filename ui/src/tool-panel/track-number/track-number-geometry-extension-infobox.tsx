@@ -16,7 +16,6 @@ import {
 } from 'geoviite-design-lib/alignment/track-number-badge';
 import { extendReferenceLine } from 'track-layout/layout-track-number-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { stopExtendingAlignment } from 'linking/alignment-extension-utils';
 
 type TrackNumberGeometryExtensionInfoboxContainerProps = {
     trackNumber: LayoutTrackNumber;
@@ -30,12 +29,20 @@ export const TrackNumberGeometryExtensionInfoboxContainer: React.FC<
     const { t } = useTranslation();
     const delegates = createDelegates(TrackLayoutActions);
 
+    const stopExtendingReferenceLine = () => {
+        delegates.removeForcedVisibleLayer([
+            'alignment-extension-layer',
+            'reference-line-selected-alignment-layer',
+        ]);
+        delegates.stopLinking();
+    };
+
     return (
         <TrackNumberGeometryExtensionInfobox
             trackNumber={trackNumber}
             linkingState={linkingState}
             onClearExtension={() => delegates.clearAlignmentExtension()}
-            onStopExtendingGeometry={() => stopExtendingAlignment(delegates)}
+            onStopExtendingGeometry={stopExtendingReferenceLine}
             onSaveExtension={async (extension) => {
                 try {
                     await extendReferenceLine(
@@ -53,7 +60,7 @@ export const TrackNumberGeometryExtensionInfoboxContainer: React.FC<
                         trackNumber: trackNumber.number,
                     }),
                 );
-                stopExtendingAlignment(delegates);
+                stopExtendingReferenceLine();
             }}
         />
     );
@@ -93,7 +100,8 @@ const TrackNumberGeometryExtensionInfobox: React.FC<TrackNumberGeometryExtension
             title={t('tool-panel.reference-line.geometry-extension.title')}
             contentVisible={true}>
             <InfoboxContent>
-                <InfoboxField label={t('tool-panel.reference-line.geometry-extension.track-number')}>
+                <InfoboxField
+                    label={t('tool-panel.reference-line.geometry-extension.track-number')}>
                     <TrackNumberBadge
                         trackNumber={trackNumber}
                         status={TrackNumberBadgeStatus.SELECTED}

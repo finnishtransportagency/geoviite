@@ -40,7 +40,10 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
                 delegates.stopLinking();
             }}
             onStartExtendReferenceLine={(id) => {
-                delegates.addForcedVisibleLayer(['alignment-extension-layer']);
+                delegates.addForcedVisibleLayer([
+                    'alignment-extension-layer',
+                    'reference-line-selected-alignment-layer',
+                ]);
                 delegates.startExtendingAlignment({
                     type: MapAlignmentType.ReferenceLine,
                     id,
