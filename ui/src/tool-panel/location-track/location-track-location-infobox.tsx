@@ -85,14 +85,7 @@ export const LocationTrackLocationInfoboxContainer: React.FC<
         <LocationTrackLocationInfobox
             {...props}
             changeTimes={changeTimes}
-            onStartSplitting={(splitStart) => {
-                delegates.addForcedVisibleLayer(['location-track-split-location-layer']);
-                delegates.addForcedHiddenLayer([
-                    'location-track-selected-alignment-layer',
-                    'reference-line-selected-alignment-layer',
-                ]);
-                delegates.onStartSplitting(splitStart);
-            }}
+            onStartSplitting={delegates.onStartSplitting}
             onStartLocationTrackGeometryChange={(interval: LinkInterval) => {
                 delegates.addForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.startAlignmentGeometryChange(interval);

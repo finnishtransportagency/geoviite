@@ -153,6 +153,22 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     const splittingState = trackLayoutState.splittingState;
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
+    React.useEffect(() => {
+        delegates.addForcedVisibleLayer(['location-track-split-location-layer']);
+        delegates.addForcedHiddenLayer([
+            'location-track-selected-alignment-layer',
+            'reference-line-selected-alignment-layer',
+        ]);
+
+        return () => {
+            delegates.removeForcedVisibleLayer(['location-track-split-location-layer']);
+            delegates.removeForcedHiddenLayer([
+                'location-track-selected-alignment-layer',
+                'reference-line-selected-alignment-layer',
+            ]);
+        };
+    }, [delegates]);
+
     const locationTrack = useLocationTrack(
         splittingState?.originLocationTrack.id,
         draftLayoutContext(layoutContext),
@@ -210,11 +226,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
 
     const stopSplitting = React.useCallback(() => {
         delegates.stopSplitting();
-        delegates.removeForcedVisibleLayer(['location-track-split-location-layer']);
-        delegates.removeForcedHiddenLayer([
-            'location-track-selected-alignment-layer',
-            'reference-line-selected-alignment-layer',
-        ]);
     }, [delegates]);
 
     return (
