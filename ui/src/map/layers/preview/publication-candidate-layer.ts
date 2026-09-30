@@ -29,11 +29,12 @@ import {
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
-import { Rectangle } from 'model/geometry';
+import { Polygon, Rectangle } from 'model/geometry';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
     CandidateDataProperties,
+    ChangeExplicitness,
     createBaseLocationTrackFeatures,
     createBaseReferenceLineFeatures,
     createCandidateLocationTrackFeatures,
@@ -52,6 +53,15 @@ import { getManyOperationalPoints } from 'track-layout/layout-operational-point-
 import { getSwitchStructures } from 'common/common-api';
 
 const layerName: MapLayerName = 'publication-candidate-layer';
+
+const polygonsEqual = (a: Polygon | undefined, b: Polygon | undefined): boolean =>
+    a === b ||
+    (a !== undefined &&
+        b !== undefined &&
+        a.points.length === b.points.length &&
+        a.points.every(
+            (point, index) => point.x === b.points[index]?.x && point.y === b.points[index]?.y,
+        ));
 
 export function createPublicationCandidateLayer(
     mapTiles: MapTile[],
@@ -254,8 +264,15 @@ export function createPublicationCandidateLayer(
                         ? data.baseOperationalPoints
                         : data.draftOperationalPoints;
                 const polygon = opSource.find((op) => op.id === candidate.id)?.polygon;
+                const basePolygon = data.baseOperationalPoints.find(
+                    (op) => op.id === candidate.id,
+                )?.polygon;
+                const explicitness =
+                    candidate.operation === 'DELETE' || !polygonsEqual(polygon, basePolygon)
+                        ? ChangeExplicitness.EXPLICIT
+                        : ChangeExplicitness.IMPLICIT;
                 return polygon
-                    ? [createCandidateOperationalPointAreaFeature(candidate, polygon)]
+                    ? [createCandidateOperationalPointAreaFeature(candidate, polygon, explicitness)]
                     : [];
             },
         );
