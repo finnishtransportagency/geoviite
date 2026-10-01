@@ -207,6 +207,7 @@ const val DESIGN_NAME = "nimi"
 const val DESIGN_STATE = "tila"
 const val DESIGN_ESTIMATED_COMPLETION_DATE = "suunniteltu_valmistumispaiva"
 const val DESIGN_COLLECTION = "suunnitelmat"
+const val DESIGN_ITEM_STATE = "kohteen_tila_suunnitelmassa"
 
 const val EXT_OPENAPI_DESIGN_OID_DESCRIPTION = "Suunnitelman OID-tunnus."
 const val EXT_OPENAPI_DESIGN_NOT_FOUND = "Annettua suunnitelmaa ei ole olemassa."

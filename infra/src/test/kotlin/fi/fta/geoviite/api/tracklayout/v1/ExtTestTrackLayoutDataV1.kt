@@ -41,6 +41,7 @@ data class ExtTestLocationTrackV1(
     val omistaja: String,
     val alkusijainti: ExtTestAddressPointV1?,
     val loppusijainti: ExtTestAddressPointV1?,
+    val kohteen_tila_suunnitelmassa: String? = null,
 )
 
 data class ExtTestLocationTrackResponseV1(
@@ -118,6 +119,7 @@ data class ExtTestTrackNumberV1(
     val tila: String,
     val alkusijainti: ExtTestAddressPointV1?,
     val loppusijainti: ExtTestAddressPointV1?,
+    val kohteen_tila_suunnitelmassa: String? = null,
 )
 
 data class ExtTestTrackNumberResponseV1(
@@ -232,6 +234,7 @@ data class ExtTestSwitchV1(
     val turvavaihde: String,
     val pisteet: List<ExtTestSwitchJointV1>,
     val raidelinkit: List<ExtTestSwitchTrackLinkV1>,
+    val kohteen_tila_suunnitelmassa: String? = null,
 )
 
 data class ExtTestSwitchResponseV1(
