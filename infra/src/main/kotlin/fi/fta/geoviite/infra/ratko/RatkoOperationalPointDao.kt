@@ -103,7 +103,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 .map { point ->
                     mapOf(
                         "externalId" to point.externalId.toString(),
-                        "name" to point.name.toString(),
+                        "name" to point.name.toString().trim(),
                         "abbreviation" to point.abbreviation.toString(),
                         "uicCode" to point.uicCode.toString(),
                         "type" to point.type.name,

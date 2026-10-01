@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -199,6 +200,13 @@ constructor(
         val updated = operationalPointService.get(mainDraftContext.context, a)!!
         assertEquals(location, updated.location)
         assertEquals(area, updated.polygon)
+    }
+
+    @Test
+    fun `should reject surrounding whitespace in operational point name`() {
+        assertThrows<InputValidationException> {
+            operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest(" has space around ")).id
+        }
     }
 
     @Test
