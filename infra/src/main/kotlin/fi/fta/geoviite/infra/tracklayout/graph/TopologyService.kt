@@ -405,9 +405,16 @@ fun switchLineUuid(switchOid: Oid<LayoutSwitch>, jointNumbers: List<JointNumber>
     )
 
 /**
+ * The identifier of a micro level edge that combines several nano level edges: UUIDv5 of the combined nano edge UUIDs,
+ * listed in the order they are traversed along the combined edge's own ascending m-direction.
+ */
+fun microEdgeUuid(nanoEdgeIds: List<UUID>): UUID =
+    TOPOLOGY_API_ARCS_UUID_GENERATOR.generate(nanoEdgeIds.joinToString(",") { id -> id.toString() })
+
+/**
  * Holds the topology of a single track layout version. The nano level topology is the full-detail base, from which the
  * coarser micro level topology is derived only if it is actually requested.
  */
-private data class CachedTopology(val nano: Topology) {
-    val micro: Topology by lazy { TODO("GVT-3703: simplify the nano level topology into the micro level topology") }
+internal data class CachedTopology(val nano: Topology) {
+    val micro: Topology by lazy { simplifyToMicroLevel(nano) }
 }
