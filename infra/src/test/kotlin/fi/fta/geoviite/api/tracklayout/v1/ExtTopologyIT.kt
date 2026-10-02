@@ -42,9 +42,8 @@ import org.springframework.test.web.servlet.MockMvc
 /**
  * Integration test for the topology API.
  *
- * The request contract tests hold already. The nano level graph tests are the TDD targets of GVT-3743: they describe
- * the response that the spec requires and are enabled one by one as the topology is implemented. Their combined state
- * is the measure of how complete the nano level implementation is.
+ * The request contract tests hold already. Each graph test verifies both the nano topology and its deterministic micro
+ * level simplification from the same published track layout.
  */
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -131,6 +130,9 @@ constructor(
         val explicitNano = api.topology.getAtVersion(publication.uuid, TOPOLOGY_RESOLUTION_PARAM to "nano")
         assertEquals("nano", explicitNano.topologia.graafin_resoluutio)
 
+        val micro = api.topology.getAtVersion(publication.uuid, TOPOLOGY_RESOLUTION_PARAM to "mikro")
+        assertEquals("mikro", micro.topologia.graafin_resoluutio)
+
         val transformed = api.topology.getAtVersion(publication.uuid, COORDINATE_SYSTEM to "EPSG:4326")
         assertEquals("EPSG:4326", transformed.koordinaatisto)
     }
@@ -151,10 +153,18 @@ constructor(
             )
 
         expectedLocations.forEach { (coordinateSystem, expected) ->
-            val response = api.topology.getAtVersion(layout.publication.uuid, COORDINATE_SYSTEM to coordinateSystem)
+            topologyResolutions.forEach { resolution ->
+                val response =
+                    api.topology.getAtVersion(
+                        layout.publication.uuid,
+                        COORDINATE_SYSTEM to coordinateSystem,
+                        TOPOLOGY_RESOLUTION_PARAM to resolution,
+                    )
 
-            assertEquals(coordinateSystem, response.koordinaatisto)
-            assertLocations(expected, response.topologia.solmut.map { node -> node.sijainti })
+                assertEquals(coordinateSystem, response.koordinaatisto)
+                assertEquals(resolution, response.topologia.graafin_resoluutio)
+                assertLocations(expected, response.topologia.solmut.map { node -> node.sijainti })
+            }
         }
     }
 
@@ -162,9 +172,6 @@ constructor(
     fun `Single track produces one edge between two track end nodes`() {
         val layout = simpleTrackLayout()
 
-        val topology = api.topology.getAtVersion(layout.publication.uuid).topologia
-
-        val edge = topology.kaaret.single()
         val dbEdge =
             locationTrackService
                 .listOfficialWithGeometryAtMoment(
@@ -175,37 +182,45 @@ constructor(
                 .second
                 .edges
                 .single()
-        assertEquals(dbEdge.uuid.toString(), edge.id)
-        assertEquals(listOf(layout.trackOid), edge.raiteet.map { it.oid })
-        assertEquals(1000.0, edge.pituus, 0.001)
+        topologiesAtVersion(layout.publication).forEach { (resolution, topology) ->
+            val edge = topology.kaaret.single()
+            assertEquals(dbEdge.uuid.toString(), edge.id, resolution)
+            assertEquals(listOf(layout.trackOid), edge.raiteet.map { it.oid }, resolution)
+            assertEquals(1000.0, edge.pituus, 0.001, resolution)
 
-        assertEquals(2, topology.solmut.size)
-        topology.solmut.forEach { node ->
-            assertEquals("raiteen_paa", node.tyyppi)
-            assertTrue(node.vaihteet.isEmpty(), "A track end node has no switches")
+            assertEquals(2, topology.solmut.size, resolution)
+            topology.solmut.forEach { node ->
+                assertEquals("raiteen_paa", node.tyyppi, resolution)
+                assertTrue(node.vaihteet.isEmpty(), "$resolution: A track end node has no switches")
+            }
+            assertEquals(
+                setOf(dbEdge.startNode.node.uuid.toString(), dbEdge.endNode.node.uuid.toString()),
+                topology.solmut.map { node -> node.id }.toSet(),
+                resolution,
+            )
+            assertEquals(
+                topology.solmut.map { it.id }.toSet(),
+                setOf(edge.alkusolmu, edge.loppusolmu),
+                resolution,
+            )
         }
-        assertEquals(
-            setOf(dbEdge.startNode.node.uuid.toString(), dbEdge.endNode.node.uuid.toString()),
-            topology.solmut.map { node -> node.id }.toSet(),
-        )
-        assertEquals(topology.solmut.map { it.id }.toSet(), setOf(edge.alkusolmu, edge.loppusolmu))
     }
 
     @Test
     fun `Track end node allows only a U-turn on its own edge`() {
         val layout = simpleTrackLayout()
 
-        val topology = api.topology.getAtVersion(layout.publication.uuid).topologia
-        val edge = topology.kaaret.single()
-
-        topology.solmut.forEach { node ->
-            val transition = node.kulkusuunnat.single()
-            assertEquals(edge.id, transition.kaari_sisaan.id)
-            assertEquals(edge.id, transition.kaari_ulos.id)
-            assertTrue(
-                transition.kaari_sisaan.suunta != transition.kaari_ulos.suunta,
-                "A U-turn enters and leaves the same edge in opposite directions",
-            )
+        topologiesAtVersion(layout.publication).forEach { (resolution, topology) ->
+            val edge = topology.kaaret.single()
+            topology.solmut.forEach { node ->
+                val transition = node.kulkusuunnat.single()
+                assertEquals(edge.id, transition.kaari_sisaan.id, resolution)
+                assertEquals(edge.id, transition.kaari_ulos.id, resolution)
+                assertTrue(
+                    transition.kaari_sisaan.suunta != transition.kaari_ulos.suunta,
+                    "$resolution: A U-turn enters and leaves the same edge in opposite directions",
+                )
+            }
         }
     }
 
@@ -220,17 +235,17 @@ constructor(
             )
         val publication = extTestDataService.publishInMain(listOf(ids))
 
-        val topology = api.topology.getAtVersion(publication.uuid).topologia
-
-        val switchNodes = topology.solmut.filter { it.tyyppi == "vaihde" }
-        assertTrue(switchNodes.isNotEmpty(), "Expected at least one switch node")
-        switchNodes.forEach { node ->
-            val switchReference = node.vaihteet.single()
-            assertEquals(ids.switch.oid.toString(), switchReference.oid)
-            assertTrue(
-                switchReference.vaihdepiste in structure.joints.map { it.number.intValue },
-                "Joint ${switchReference.vaihdepiste} should belong to the switch structure",
-            )
+        topologiesAtVersion(publication).forEach { (resolution, topology) ->
+            val switchNodes = topology.solmut.filter { it.tyyppi == "vaihde" }
+            assertTrue(switchNodes.isNotEmpty(), "$resolution: Expected at least one switch node")
+            switchNodes.forEach { node ->
+                val switchReference = node.vaihteet.single()
+                assertEquals(ids.switch.oid.toString(), switchReference.oid, resolution)
+                assertTrue(
+                    switchReference.vaihdepiste in structure.joints.map { it.number.intValue },
+                    "$resolution: Joint ${switchReference.vaihdepiste} should belong to the switch structure",
+                )
+            }
         }
     }
 
@@ -250,21 +265,23 @@ constructor(
             )
         val publication = extTestDataService.publishInMain(listOf(ids))
 
-        val topology = api.topology.getAtVersion(publication.uuid).topologia
-
-        assertEquals(
-            structure.alignments
-                .map { alignment -> switchLineUuid(ids.switch.oid, alignment.jointNumbers).toString() }
-                .toSet(),
-            topology.kaaret.map { edge -> edge.id }.toSet(),
-        )
-        assertEquals(
-            structure.alignments
-                .flatMap { alignment -> listOf(alignment.jointNumbers.first(), alignment.jointNumbers.last()) }
-                .distinct()
-                .size,
-            topology.solmut.size,
-        )
+        topologiesAtVersion(publication).forEach { (resolution, topology) ->
+            assertEquals(
+                structure.alignments
+                    .map { alignment -> switchLineUuid(ids.switch.oid, alignment.jointNumbers).toString() }
+                    .toSet(),
+                topology.kaaret.map { edge -> edge.id }.toSet(),
+                resolution,
+            )
+            assertEquals(
+                structure.alignments
+                    .flatMap { alignment -> listOf(alignment.jointNumbers.first(), alignment.jointNumbers.last()) }
+                    .distinct()
+                    .size,
+                topology.solmut.size,
+                resolution,
+            )
+        }
     }
 
     @Test
@@ -303,15 +320,19 @@ constructor(
                 switches = listOf(switchId),
             )
 
-        val topology = api.topology.getAtVersion(publication.uuid).topologia
-
-        assertEquals(
-            setOf(1, 2),
-            topology.solmut.flatMap { node -> node.vaihteet.map { reference -> reference.vaihdepiste } }.toSet(),
-        )
-        assertTrue(topology.solmut.all { node -> node.vaihteet.single().oid == switchOid.toString() })
-        assertEquals(2, topology.solmut.size)
-        assertEquals(1, topology.kaaret.size)
+        topologiesAtVersion(publication).forEach { (resolution, topology) ->
+            assertEquals(
+                setOf(1, 2),
+                topology.solmut.flatMap { node -> node.vaihteet.map { reference -> reference.vaihdepiste } }.toSet(),
+                resolution,
+            )
+            assertTrue(
+                topology.solmut.all { node -> node.vaihteet.single().oid == switchOid.toString() },
+                resolution,
+            )
+            assertEquals(2, topology.solmut.size, resolution)
+            assertEquals(1, topology.kaaret.size, resolution)
+        }
     }
 
     @Test
@@ -330,23 +351,30 @@ constructor(
             )
         val publication = extTestDataService.publishInMain(listOf(ids))
 
-        val topology = api.topology.getAtVersion(publication.uuid).topologia
-        val nodesByJoint = topology.solmut.associateBy { node -> node.vaihteet.single().vaihdepiste }
-        val startNode = nodesByJoint.getValue(start.intValue)
-        val endNode = nodesByJoint.getValue(end.intValue)
+        topologiesAtVersion(publication).forEach { (resolution, topology) ->
+            val nodesByJoint = topology.solmut.associateBy { node -> node.vaihteet.single().vaihdepiste }
+            val startNode = nodesByJoint.getValue(start.intValue)
+            val endNode = nodesByJoint.getValue(end.intValue)
 
-        assertEquals(setOf(start.intValue, end.intValue), nodesByJoint.keys)
-        nodesByJoint.values.forEach { node -> assertEquals(ids.switch.oid.toString(), node.vaihteet.single().oid) }
-        assertEquals(startLocation.x, startNode.sijainti.x)
-        assertEquals(startLocation.y, startNode.sijainti.y)
-        assertEquals(endLocation.x, endNode.sijainti.x)
-        assertEquals(endLocation.y, endNode.sijainti.y)
+            assertEquals(setOf(start.intValue, end.intValue), nodesByJoint.keys, resolution)
+            nodesByJoint.values.forEach { node ->
+                assertEquals(ids.switch.oid.toString(), node.vaihteet.single().oid, resolution)
+            }
+            assertEquals(startLocation.x, startNode.sijainti.x, resolution)
+            assertEquals(startLocation.y, startNode.sijainti.y, resolution)
+            assertEquals(endLocation.x, endNode.sijainti.x, resolution)
+            assertEquals(endLocation.y, endNode.sijainti.y, resolution)
 
-        val edge = topology.kaaret.single()
-        assertEquals(switchLineUuid(ids.switch.oid, linkedAlignment.jointNumbers).toString(), edge.id)
-        assertEquals(startNode.id, edge.alkusolmu)
-        assertEquals(endNode.id, edge.loppusolmu)
-        assertEquals(listOf(ids.tracks.single().oid.toString()), edge.raiteet.map { track -> track.oid })
+            val edge = topology.kaaret.single()
+            assertEquals(switchLineUuid(ids.switch.oid, linkedAlignment.jointNumbers).toString(), edge.id, resolution)
+            assertEquals(startNode.id, edge.alkusolmu, resolution)
+            assertEquals(endNode.id, edge.loppusolmu, resolution)
+            assertEquals(
+                listOf(ids.tracks.single().oid.toString()),
+                edge.raiteet.map { track -> track.oid },
+                resolution,
+            )
+        }
     }
 
     @Test
@@ -360,256 +388,100 @@ constructor(
             )
         val publication = extTestDataService.publishInMain(listOf(ids))
 
-        val topology = api.topology.getAtVersion(publication.uuid).topologia
-
-        // Every transition must connect edges that actually exist and must be listed only once.
-        val edgeIds = topology.kaaret.map { it.id }.toSet()
-        topology.solmut.forEach { node ->
-            node.kulkusuunnat.forEach { transition ->
-                assertTrue(edgeIds.contains(transition.kaari_sisaan.id), "Unknown incoming edge in $node")
-                assertTrue(edgeIds.contains(transition.kaari_ulos.id), "Unknown outgoing edge in $node")
+        topologiesAtVersion(publication).forEach { (resolution, topology) ->
+            // Every transition must connect edges that actually exist and must be listed only once.
+            val edgeIds = topology.kaaret.map { it.id }.toSet()
+            topology.solmut.forEach { node ->
+                node.kulkusuunnat.forEach { transition ->
+                    assertTrue(
+                        edgeIds.contains(transition.kaari_sisaan.id),
+                        "$resolution: Unknown incoming edge in $node",
+                    )
+                    assertTrue(
+                        edgeIds.contains(transition.kaari_ulos.id),
+                        "$resolution: Unknown outgoing edge in $node",
+                    )
+                }
+                assertEquals(
+                    node.kulkusuunnat,
+                    node.kulkusuunnat.distinct(),
+                    "$resolution: The same transition must not be listed twice",
+                )
             }
-            assertEquals(
-                node.kulkusuunnat,
-                node.kulkusuunnat.distinct(),
-                "The same transition must not be listed twice",
-            )
         }
     }
 
     @Test
     fun `Combined switch node allows travel from the first port to the second port`() {
-        // Setup
         val fixture = publishCombinedSwitchNodeFixture()
 
-        // Execute
-        val topology = api.topology.getAtVersion(fixture.publication.uuid).topologia
-
-        // Verify
-        val node = topology.solmut.single { node -> node.vaihteet.size == 2 }
-        val firstSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.firstSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.firstSwitchOid, alignment.jointNumbers).toString() }
-        val secondSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.secondSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.secondSwitchOid, alignment.jointNumbers).toString() }
-        val firstSwitchEdges = firstSwitchEdgeIds.map { edgeId -> topology.kaaret.single { edge -> edge.id == edgeId } }
-        val secondSwitchEdges = secondSwitchEdgeIds.map { edgeId ->
-            topology.kaaret.single { edge -> edge.id == edgeId }
+        topologiesAtVersion(fixture.publication).forEach { (resolution, topology) ->
+            assertCombinedPortTransitions(topology, incomingFromFirstPort = true, resolution)
         }
-        val expectedTransitions =
-            firstSwitchEdges
-                .flatMap { incomingEdge ->
-                    secondSwitchEdges.map { outgoingEdge ->
-                        TopologyTransitionKey(
-                            incomingEdge = incomingEdge.id,
-                            incomingDirection = if (incomingEdge.alkusolmu == node.id) "laskeva" else "nouseva",
-                            outgoingEdge = outgoingEdge.id,
-                            outgoingDirection = if (outgoingEdge.alkusolmu == node.id) "nouseva" else "laskeva",
-                        )
-                    }
-                }
-                .toSet()
-        val actualTransitions =
-            node.kulkusuunnat
-                .map(::TopologyTransitionKey)
-                .filter { transition -> transition.incomingEdge in firstSwitchEdgeIds }
-                .toSet()
-        assertEquals(
-            expectedTransitions,
-            actualTransitions,
-            "Arriving along any switch line of the first port should allow continuing along every line of the second",
-        )
     }
 
     @Test
     fun `Combined switch node allows travel from the second port to the first port`() {
-        // Setup
         val fixture = publishCombinedSwitchNodeFixture()
 
-        // Execute
-        val topology = api.topology.getAtVersion(fixture.publication.uuid).topologia
-
-        // Verify
-        val node = topology.solmut.single { node -> node.vaihteet.size == 2 }
-        val firstSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.firstSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.firstSwitchOid, alignment.jointNumbers).toString() }
-        val secondSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.secondSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.secondSwitchOid, alignment.jointNumbers).toString() }
-        val firstSwitchEdges = firstSwitchEdgeIds.map { edgeId -> topology.kaaret.single { edge -> edge.id == edgeId } }
-        val secondSwitchEdges = secondSwitchEdgeIds.map { edgeId ->
-            topology.kaaret.single { edge -> edge.id == edgeId }
+        topologiesAtVersion(fixture.publication).forEach { (resolution, topology) ->
+            assertCombinedPortTransitions(topology, incomingFromFirstPort = false, resolution)
         }
-        val expectedTransitions =
-            secondSwitchEdges
-                .flatMap { incomingEdge ->
-                    firstSwitchEdges.map { outgoingEdge ->
-                        TopologyTransitionKey(
-                            incomingEdge = incomingEdge.id,
-                            incomingDirection = if (incomingEdge.alkusolmu == node.id) "laskeva" else "nouseva",
-                            outgoingEdge = outgoingEdge.id,
-                            outgoingDirection = if (outgoingEdge.alkusolmu == node.id) "nouseva" else "laskeva",
-                        )
-                    }
-                }
-                .toSet()
-        val actualTransitions =
-            node.kulkusuunnat
-                .map(::TopologyTransitionKey)
-                .filter { transition -> transition.incomingEdge in secondSwitchEdgeIds }
-                .toSet()
-        assertEquals(
-            expectedTransitions,
-            actualTransitions,
-            "Arriving along any switch line of the second port should allow continuing along every line of the first",
-        )
     }
 
     @Test
     fun `Combined node of the joint 1 of two switches allows travel between both ports`() {
-        // Setup
         val fixture = publishCombinedSwitchNodeFixture(firstSwitchJoint = 1, secondSwitchJoint = 1)
 
-        // Execute
-        val topology = api.topology.getAtVersion(fixture.publication.uuid).topologia
-
-        // Verify
-        val node = topology.solmut.single { node -> node.vaihteet.size == 2 }
-        val firstSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.firstSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.firstSwitchOid, alignment.jointNumbers).toString() }
-        val secondSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.secondSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.secondSwitchOid, alignment.jointNumbers).toString() }
-        val firstSwitchEdges = firstSwitchEdgeIds.map { edgeId -> topology.kaaret.single { edge -> edge.id == edgeId } }
-        val secondSwitchEdges = secondSwitchEdgeIds.map { edgeId ->
-            topology.kaaret.single { edge -> edge.id == edgeId }
+        topologiesAtVersion(fixture.publication).forEach { (resolution, topology) ->
+            assertCombinedNode(
+                topology = topology,
+                expectedSwitches =
+                    setOf(fixture.firstSwitchOid.toString() to 1, fixture.secondSwitchOid.toString() to 1),
+                expectedFirstPortEdges = 2,
+                expectedSecondPortEdges = 2,
+                resolution = resolution,
+            )
         }
-        val expectedTransitions =
-            listOf(firstSwitchEdges to secondSwitchEdges, secondSwitchEdges to firstSwitchEdges)
-                .flatMap { (incomingEdges, outgoingEdges) ->
-                    incomingEdges.flatMap { incomingEdge ->
-                        outgoingEdges.map { outgoingEdge ->
-                            TopologyTransitionKey(
-                                incomingEdge = incomingEdge.id,
-                                incomingDirection = if (incomingEdge.alkusolmu == node.id) "laskeva" else "nouseva",
-                                outgoingEdge = outgoingEdge.id,
-                                outgoingDirection = if (outgoingEdge.alkusolmu == node.id) "nouseva" else "laskeva",
-                            )
-                        }
-                    }
-                }
-                .toSet()
-        assertEquals(
-            setOf(fixture.firstSwitchOid.toString() to 1, fixture.secondSwitchOid.toString() to 1),
-            node.vaihteet.map { reference -> reference.oid to reference.vaihdepiste }.toSet(),
-            "The node should combine the joint 1 of both switches",
-        )
-        assertEquals(
-            2,
-            firstSwitchEdges.size,
-            "Both switch lines of the first switch should meet at its joint 1",
-        )
-        assertEquals(
-            2,
-            secondSwitchEdges.size,
-            "Both switch lines of the second switch should meet at its joint 1",
-        )
-        assertEquals(
-            expectedTransitions,
-            node.kulkusuunnat.map(::TopologyTransitionKey).toSet(),
-            "Every leg of either switch should connect to both legs of the other switch, but not to its own switch",
-        )
     }
 
     @Test
     fun `Combined node of the joint 1 and the joint 2 of two switches allows travel between both ports`() {
-        // Setup
         val fixture = publishCombinedSwitchNodeFixture(firstSwitchJoint = 1, secondSwitchJoint = 2)
 
-        // Execute
-        val topology = api.topology.getAtVersion(fixture.publication.uuid).topologia
-
-        // Verify
-        val node = topology.solmut.single { node -> node.vaihteet.size == 2 }
-        val firstSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.firstSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.firstSwitchOid, alignment.jointNumbers).toString() }
-        val secondSwitchEdgeIds =
-            fixture.structure.alignments
-                .filter { alignment -> alignment.jointNumbers.contains(JointNumber(fixture.secondSwitchJoint)) }
-                .map { alignment -> switchLineUuid(fixture.secondSwitchOid, alignment.jointNumbers).toString() }
-        val firstSwitchEdges = firstSwitchEdgeIds.map { edgeId -> topology.kaaret.single { edge -> edge.id == edgeId } }
-        val secondSwitchEdges = secondSwitchEdgeIds.map { edgeId ->
-            topology.kaaret.single { edge -> edge.id == edgeId }
+        topologiesAtVersion(fixture.publication).forEach { (resolution, topology) ->
+            assertCombinedNode(
+                topology = topology,
+                expectedSwitches =
+                    setOf(fixture.firstSwitchOid.toString() to 1, fixture.secondSwitchOid.toString() to 2),
+                expectedFirstPortEdges = 2,
+                expectedSecondPortEdges = 1,
+                resolution = resolution,
+            )
         }
-        val expectedTransitions =
-            listOf(firstSwitchEdges to secondSwitchEdges, secondSwitchEdges to firstSwitchEdges)
-                .flatMap { (incomingEdges, outgoingEdges) ->
-                    incomingEdges.flatMap { incomingEdge ->
-                        outgoingEdges.map { outgoingEdge ->
-                            TopologyTransitionKey(
-                                incomingEdge = incomingEdge.id,
-                                incomingDirection = if (incomingEdge.alkusolmu == node.id) "laskeva" else "nouseva",
-                                outgoingEdge = outgoingEdge.id,
-                                outgoingDirection = if (outgoingEdge.alkusolmu == node.id) "nouseva" else "laskeva",
-                            )
-                        }
-                    }
-                }
-                .toSet()
-        assertEquals(
-            setOf(fixture.firstSwitchOid.toString() to 1, fixture.secondSwitchOid.toString() to 2),
-            node.vaihteet.map { reference -> reference.oid to reference.vaihdepiste }.toSet(),
-            "The node should combine the joint 1 of the first switch and the joint 2 of the second",
-        )
-        assertEquals(
-            2,
-            firstSwitchEdges.size,
-            "Both switch lines of the first switch should meet at its joint 1",
-        )
-        assertEquals(
-            1,
-            secondSwitchEdges.size,
-            "Only the through line of the second switch should reach its joint 2",
-        )
-        assertEquals(
-            expectedTransitions,
-            node.kulkusuunnat.map(::TopologyTransitionKey).toSet(),
-            "Both legs of the first switch should connect to the through line of the second, but not to each other",
-        )
     }
 
     @Test
     fun `Graph is internally consistent`() {
         val layout = simpleTrackLayout()
 
-        val topology = api.topology.getAtVersion(layout.publication.uuid).topologia
+        topologiesAtVersion(layout.publication).forEach { (resolution, topology) ->
+            val nodeIds = topology.solmut.map { it.id }
+            assertEquals(nodeIds, nodeIds.distinct(), "$resolution: The same node must not be listed twice")
 
-        val nodeIds = topology.solmut.map { it.id }
-        assertEquals(nodeIds, nodeIds.distinct(), "The same node must not be listed twice")
+            val edgeIds = topology.kaaret.map { it.id }
+            assertEquals(edgeIds, edgeIds.distinct(), "$resolution: The same edge must not be listed twice")
 
-        val edgeIds = topology.kaaret.map { it.id }
-        assertEquals(edgeIds, edgeIds.distinct(), "The same edge must not be listed twice")
-
-        topology.kaaret.forEach { edge ->
-            assertTrue(nodeIds.contains(edge.alkusolmu), "Edge ${edge.id} refers to an unknown start node")
-            assertTrue(nodeIds.contains(edge.loppusolmu), "Edge ${edge.id} refers to an unknown end node")
-            assertTrue(edge.pituus > 0.0, "Edge ${edge.id} should have a positive length")
-            assertEquals(
-                edge.raiteet,
-                edge.raiteet.distinct(),
-                "The same location track must not be listed twice on an edge",
-            )
+            topology.kaaret.forEach { edge ->
+                assertTrue(nodeIds.contains(edge.alkusolmu), "$resolution: Edge ${edge.id} has unknown start node")
+                assertTrue(nodeIds.contains(edge.loppusolmu), "$resolution: Edge ${edge.id} has unknown end node")
+                assertTrue(edge.pituus > 0.0, "$resolution: Edge ${edge.id} should have a positive length")
+                assertEquals(
+                    edge.raiteet,
+                    edge.raiteet.distinct(),
+                    "$resolution: The same location track must not be listed twice on an edge",
+                )
+            }
         }
     }
 
@@ -617,7 +489,7 @@ constructor(
     fun `Published version keeps producing the same topology after newer publications`() {
         initUser()
         val layout = simpleTrackLayout()
-        val topologyAtV1 = api.topology.getAtVersion(layout.publication.uuid).topologia
+        val topologiesAtV1 = topologiesAtVersion(layout.publication)
 
         // A newer publication adds a separate track, which must not change the older version's topology.
         initUser()
@@ -628,16 +500,13 @@ constructor(
             )
         testDBService.publish(locationTracks = listOf(otherTrackId))
 
-        assertEquals(topologyAtV1, api.topology.getAtVersion(layout.publication.uuid).topologia)
+        assertEquals(topologiesAtV1, topologiesAtVersion(layout.publication))
     }
 
     private data class CombinedSwitchNodeFixture(
         val publication: Publication,
-        val structure: SwitchStructure,
         val firstSwitchOid: Oid<LayoutSwitch>,
         val secondSwitchOid: Oid<LayoutSwitch>,
-        val firstSwitchJoint: Int,
-        val secondSwitchJoint: Int,
     )
 
     private data class TopologyTransitionKey(
@@ -655,6 +524,112 @@ constructor(
             outgoingDirection = transition.kaari_ulos.suunta,
         )
     }
+
+    private fun topologiesAtVersion(publication: Publication): List<Pair<String, ExtTestTopologyV1>> =
+        topologyResolutions.map { resolution ->
+            resolution to
+                api.topology.getAtVersion(publication.uuid, TOPOLOGY_RESOLUTION_PARAM to resolution).topologia.also {
+                    topology ->
+                    assertEquals(resolution, topology.graafin_resoluutio)
+                }
+        }
+
+    private fun assertCombinedPortTransitions(
+        topology: ExtTestTopologyV1,
+        incomingFromFirstPort: Boolean,
+        resolution: String,
+    ) {
+        val node = topology.solmut.single { candidate -> candidate.vaihteet.size == 2 }
+        val (firstPortEdges, secondPortEdges) = combinedPortEdges(topology, node)
+        val incomingEdges = if (incomingFromFirstPort) firstPortEdges else secondPortEdges
+        val outgoingEdges = if (incomingFromFirstPort) secondPortEdges else firstPortEdges
+        val expectedTransitions = transitionsBetween(node, incomingEdges, outgoingEdges)
+        val incomingEdgeIds = incomingEdges.mapTo(mutableSetOf(), ExtTestTopologyEdgeV1::id)
+        val actualTransitions =
+            node.kulkusuunnat
+                .map(::TopologyTransitionKey)
+                .filter { transition -> transition.incomingEdge in incomingEdgeIds }
+                .toSet()
+
+        assertEquals(
+            expectedTransitions,
+            actualTransitions,
+            "$resolution: arriving along either leg of one switch port must allow continuing along every leg of the other",
+        )
+    }
+
+    private fun assertCombinedNode(
+        topology: ExtTestTopologyV1,
+        expectedSwitches: Set<Pair<String, Int>>,
+        expectedFirstPortEdges: Int,
+        expectedSecondPortEdges: Int,
+        resolution: String,
+    ) {
+        val node = topology.solmut.single { candidate -> candidate.vaihteet.size == 2 }
+        val (firstPortEdges, secondPortEdges) = combinedPortEdges(topology, node)
+        val expectedTransitions =
+            transitionsBetween(node, firstPortEdges, secondPortEdges) +
+                transitionsBetween(node, secondPortEdges, firstPortEdges)
+
+        assertEquals(
+            expectedSwitches,
+            node.vaihteet.map { reference -> reference.oid to reference.vaihdepiste }.toSet(),
+            "$resolution: the combined node must contain both switch ports",
+        )
+        assertEquals(
+            expectedFirstPortEdges,
+            firstPortEdges.size,
+            "$resolution: unexpected first switch port edge count",
+        )
+        assertEquals(
+            expectedSecondPortEdges,
+            secondPortEdges.size,
+            "$resolution: unexpected second switch port edge count",
+        )
+        assertEquals(
+            expectedTransitions,
+            node.kulkusuunnat.map(::TopologyTransitionKey).toSet(),
+            "$resolution: only transitions between the two switch ports must be allowed",
+        )
+    }
+
+    private fun combinedPortEdges(
+        topology: ExtTestTopologyV1,
+        node: ExtTestTopologyNodeV1,
+    ): Pair<List<ExtTestTopologyEdgeV1>, List<ExtTestTopologyEdgeV1>> {
+        val nodesById = topology.solmut.associateBy(ExtTestTopologyNodeV1::id)
+        val edgesByOtherNode =
+            topology.kaaret
+                .filter { edge -> edge.alkusolmu == node.id || edge.loppusolmu == node.id }
+                .map { edge ->
+                    val otherNodeId = if (edge.alkusolmu == node.id) edge.loppusolmu else edge.alkusolmu
+                    edge to nodesById.getValue(otherNodeId)
+                }
+        return edgesByOtherNode
+            .filter { (_, otherNode) -> otherNode.sijainti.x < node.sijainti.x }
+            .map { (edge, _) -> edge } to
+            edgesByOtherNode
+                .filter { (_, otherNode) -> otherNode.sijainti.x > node.sijainti.x }
+                .map { (edge, _) -> edge }
+    }
+
+    private fun transitionsBetween(
+        node: ExtTestTopologyNodeV1,
+        incomingEdges: List<ExtTestTopologyEdgeV1>,
+        outgoingEdges: List<ExtTestTopologyEdgeV1>,
+    ): Set<TopologyTransitionKey> =
+        incomingEdges
+            .flatMap { incomingEdge ->
+                outgoingEdges.map { outgoingEdge ->
+                    TopologyTransitionKey(
+                        incomingEdge = incomingEdge.id,
+                        incomingDirection = if (incomingEdge.alkusolmu == node.id) "laskeva" else "nouseva",
+                        outgoingEdge = outgoingEdge.id,
+                        outgoingDirection = if (outgoingEdge.alkusolmu == node.id) "nouseva" else "laskeva",
+                    )
+                }
+            }
+            .toSet()
 
     /**
      * Two fully linked YV switches sharing a combined node: the [firstSwitchJoint] of the first switch and the
@@ -710,11 +685,8 @@ constructor(
 
         return CombinedSwitchNodeFixture(
             publication = publication,
-            structure = structure,
             firstSwitchOid = firstSwitchOid,
             secondSwitchOid = secondSwitchOid,
-            firstSwitchJoint = firstSwitchJoint,
-            secondSwitchJoint = secondSwitchJoint,
         )
     }
 
@@ -828,4 +800,6 @@ constructor(
             )
         }
     }
+
+    private val topologyResolutions = listOf("nano", "mikro")
 }
