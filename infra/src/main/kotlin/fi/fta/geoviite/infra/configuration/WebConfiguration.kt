@@ -7,6 +7,7 @@ import fi.fta.geoviite.api.tracklayout.v1.ExtLayoutVersionV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtMaybeTrackKmOrTrackMeterV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtResolutionV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtSridV1
+import fi.fta.geoviite.api.tracklayout.v1.ExtTopologyResolutionV1
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -169,6 +170,7 @@ constructor(
             registry.addStringConstructorConverter { FrameConverterLocationTrackTypeV1.fromValue(it) }
 
             registry.addStringConstructorConverter { ExtResolutionV1.fromValue(it) }
+            registry.addStringConstructorConverter { ExtTopologyResolutionV1.fromValue(it) }
             registry.addStringConstructorConverter { ::ExtMaybeTrackKmOrTrackMeterV1 }
             registry.addStringConstructorConverter { value: String -> ExtSridV1(value) }
             registry.addStringConstructorConverter { value: String -> ExtLayoutVersionV1(value) }

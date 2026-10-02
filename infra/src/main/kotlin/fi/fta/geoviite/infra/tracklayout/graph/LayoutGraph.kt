@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.tracklayout.graph
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
@@ -6,8 +6,17 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.tracklayout.DetailLevel.MICRO
-import fi.fta.geoviite.infra.tracklayout.DetailLevel.NANO
+import fi.fta.geoviite.infra.tracklayout.DbLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.DbNodeConnection
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
+import fi.fta.geoviite.infra.tracklayout.LayoutNode
+import fi.fta.geoviite.infra.tracklayout.LayoutNodeType
+import fi.fta.geoviite.infra.tracklayout.LineM
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.graph.DetailLevel.MICRO
+import fi.fta.geoviite.infra.tracklayout.graph.DetailLevel.NANO
 import java.util.*
 
 enum class DetailLevel {

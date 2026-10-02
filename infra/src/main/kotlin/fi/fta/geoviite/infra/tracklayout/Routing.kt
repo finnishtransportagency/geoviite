@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
+import fi.fta.geoviite.infra.tracklayout.graph.TrackSection
 import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.produceIf
 import java.util.*

@@ -72,6 +72,7 @@ constructor(
             api.trackNumberKmsCollection::getWithExpectedError,
             api.switchCollection::getWithExpectedError,
             api.operationalPointCollection::getWithExpectedError,
+            api.topology::getWithExpectedError,
         )
 
     private val modificationErrorTests =
