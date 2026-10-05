@@ -108,7 +108,7 @@ dependencies {
     implementation("org.apache.commons:commons-csv:1.14.1")
     implementation("commons-io:commons-io:2.22.0")
     implementation("com.auth0:jwks-rsa:0.24.1")
-    implementation("com.auth0:java-jwt:4.6.0")
+    implementation("com.auth0:java-jwt:4.6.1")
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.10.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.7.13")
     // Used by postgresql driver as runtime, but kotlin needs it at compile-time for nullability annotations
