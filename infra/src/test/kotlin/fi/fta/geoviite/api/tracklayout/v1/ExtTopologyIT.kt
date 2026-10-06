@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.edge
+import fi.fta.geoviite.infra.tracklayout.graph.OidSwitchRef
 import fi.fta.geoviite.infra.tracklayout.graph.switchLineUuid
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
@@ -268,7 +269,9 @@ constructor(
         topologiesAtVersion(publication).forEach { (resolution, topology) ->
             assertEquals(
                 structure.alignments
-                    .map { alignment -> switchLineUuid(ids.switch.oid, alignment.jointNumbers).toString() }
+                    .map { alignment ->
+                        switchLineUuid(OidSwitchRef(ids.switch.oid), alignment.jointNumbers).toString()
+                    }
                     .toSet(),
                 topology.kaaret.map { edge -> edge.id }.toSet(),
                 resolution,
@@ -366,7 +369,11 @@ constructor(
             assertEquals(endLocation.y, endNode.sijainti.y, resolution)
 
             val edge = topology.kaaret.single()
-            assertEquals(switchLineUuid(ids.switch.oid, linkedAlignment.jointNumbers).toString(), edge.id, resolution)
+            assertEquals(
+                switchLineUuid(OidSwitchRef(ids.switch.oid), linkedAlignment.jointNumbers).toString(),
+                edge.id,
+                resolution,
+            )
             assertEquals(startNode.id, edge.alkusolmu, resolution)
             assertEquals(endNode.id, edge.loppusolmu, resolution)
             assertEquals(
