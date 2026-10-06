@@ -5,16 +5,21 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.geography.WGS_84_SRID
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -85,6 +90,67 @@ constructor(
     }
 
     @Test
+    fun `Route on a single track in the descending direction returns reversed endpoints`() {
+        val start = Point(0.0, 0.0)
+        val end = Point(0.0, 1000.0)
+        val (trackNumberId, trackNumberOid) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+
+        val response = api.routing.get(startX = 0.0, startY = 900.0, endX = 0.0, endY = 100.0)
+
+        val section = response.reitti.reitin_osat.single()
+        assertEquals(trackOid.toString(), section.sijaintiraide_oid)
+        assertEquals(trackNumberOid.toString(), section.ratanumero_oid)
+        assertEquals("laskeva", section.suunta)
+        assertEquals(900.0, section.alku.m_arvo)
+        assertEquals(100.0, section.loppu.m_arvo)
+        assertEquals(800.0, section.pituus)
+        assertEquals(section.pituus, response.reitti.pituus)
+    }
+
+    @Test
+    fun `Route coordinates are read and returned in the requested coordinate system`() {
+        val start = Point(385782.89, 6672277.83)
+        val end = Point(385782.89, 6673277.83)
+        val routeStart = Point(start.x, start.y + 100.0)
+        val routeEnd = Point(end.x, end.y - 100.0)
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(start, end)),
+            )
+        val (trackId, _) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment(start, end)))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+        val transformedStart = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, routeStart)
+        val transformedEnd = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, routeEnd)
+
+        val response =
+            api.routing.get(
+                startX = transformedStart.x,
+                startY = transformedStart.y,
+                endX = transformedEnd.x,
+                endY = transformedEnd.y,
+                COORDINATE_SYSTEM to WGS_84_SRID.toString(),
+            )
+
+        assertEquals(WGS_84_SRID.toString(), response.koordinaatisto)
+        val section = response.reitti.reitin_osat.single()
+        assertEquals(transformedStart.x, section.alku.x, 0.0000001)
+        assertEquals(transformedStart.y, section.alku.y, 0.0000001)
+        assertEquals(transformedEnd.x, section.loppu.x, 0.0000001)
+        assertEquals(transformedEnd.y, section.loppu.y, 0.0000001)
+        assertEquals(100.0, section.alku.m_arvo, 0.01)
+        assertEquals(900.0, section.loppu.m_arvo, 0.01)
+    }
+
+    @Test
     fun `Route starting at the beginning of a track produces track end endpoint`() {
         val start = Point(0.0, 0.0)
         val end = Point(0.0, 1000.0)
@@ -125,6 +191,55 @@ constructor(
     }
 
     @Test
+    fun `Route through a switch returns ordered sections for both location tracks`() {
+        val structure = switchStructureYV60_300_1_9()
+        val joint1 = switchJoint(1, Point(0.0, 0.0))
+        val joint2 = switchJoint(2, Point(100.0, 0.0))
+        val ids = extTestDataService.insertSwitchAndTracks(mainDraftContext, listOf(joint1 to joint2), structure)
+        val externalTrackStart = Point(-100.0, 0.0)
+        val (externalTrackId, externalTrackOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(ids.trackNumber.id),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(externalTrackStart, joint1.location)),
+                        endOuterSwitch = SwitchLink(ids.switch.id, joint1.number, structure),
+                    )
+                ),
+            )
+        testDBService.publish(
+            trackNumbers = listOf(ids.trackNumber.id),
+            locationTracks = listOf(externalTrackId, ids.tracks.single().id),
+            switches = listOf(ids.switch.id),
+        )
+
+        val response =
+            api.routing.get(
+                startX = -50.0,
+                startY = 0.0,
+                endX = joint2.location.x,
+                endY = joint2.location.y,
+            )
+
+        val sections = response.reitti.reitin_osat
+        assertEquals(2, sections.size)
+        assertEquals(
+            listOf(externalTrackOid.toString(), ids.tracks.single().oid.toString()),
+            sections.map { section -> section.sijaintiraide_oid },
+        )
+        assertEquals(listOf("nouseva", "nouseva"), sections.map { section -> section.suunta })
+        assertEquals(
+            listOf(ids.trackNumber.oid.toString(), ids.trackNumber.oid.toString()),
+            sections.map { section -> section.ratanumero_oid },
+        )
+        assertEquals(ids.switch.oid.toString(), sections[0].loppu.vaihde_oid)
+        assertEquals(ids.switch.oid.toString(), sections[1].alku.vaihde_oid)
+        assertEquals(50.0, sections[0].pituus)
+        assertEquals(100.0, sections[1].pituus)
+        assertEquals(sections.sumOf { section -> section.pituus }, response.reitti.pituus, 0.001)
+    }
+
+    @Test
     fun `Returns 204 when start coordinates are too far from any track`() {
         val start = Point(0.0, 0.0)
         val end = Point(0.0, 1000.0)
@@ -139,6 +254,31 @@ constructor(
 
         // These coordinates are far from the track
         api.routing.assertNoRoute(startX = 999999.0, startY = 999999.0, endX = 0.0, endY = 500.0)
+    }
+
+    @Test
+    fun `Returns 204 when both coordinates are near tracks but the tracks are disconnected`() {
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 1000.0))),
+            )
+        val (firstTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(0.0, 1000.0))),
+            )
+        val (secondTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometryOfSegments(segment(Point(500.0, 0.0), Point(500.0, 1000.0))),
+            )
+        testDBService.publish(
+            trackNumbers = listOf(trackNumberId),
+            locationTracks = listOf(firstTrackId, secondTrackId),
+        )
+
+        api.routing.assertNoRoute(startX = 0.0, startY = 500.0, endX = 500.0, endY = 500.0)
     }
 
     @Test
