@@ -32,6 +32,9 @@ data class ExtLocationTrackV1(
     @Schema(type = "string", example = "Väylävirasto") @JsonProperty(OWNER) val locationTrackOwner: MetaDataName,
     @JsonProperty(START_LOCATION) val startLocation: ExtAddressPointV1?,
     @JsonProperty(END_LOCATION) val endLocation: ExtAddressPointV1?,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(DESIGN_ITEM_STATE)
+    val designItemState: ExtDesignItemStateV1? = null,
 )
 
 @Schema(title = "Vastaus: Sijaintiraide")

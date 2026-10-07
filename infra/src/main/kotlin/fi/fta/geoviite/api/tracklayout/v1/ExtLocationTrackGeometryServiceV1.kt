@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
@@ -106,10 +107,8 @@ constructor(
         val changeTime =
             publicationDao.fetchLatestLocationTrackGeometryPublicationTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
-        val newTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
-        val oldTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        val newTrack = getLocationTrackAtMoment(branch, id, changeTime)
+        val oldTrack = getLocationTrackAtMoment(branch, id, startMoment)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldPoints =
@@ -147,9 +146,8 @@ constructor(
         addressFilter: AddressFilter,
     ): ExtLocationTrackGeometryResponseV1? {
         val moment = publication.publicationTime
-        return locationTrackDao
-            .fetchOfficialVersionAtMoment(branch, id, moment)
-            ?.let(locationTrackDao::fetch)
+        val track = getLocationTrackAtMoment(branch, id, moment)
+        return track
             // Deleted tracks have no geometry in API since there's no guarantee of geocodable addressing
             ?.takeIf { it.exists }
             ?.let { locationTrack ->
@@ -166,6 +164,12 @@ constructor(
                 )
             }
     }
+
+    private fun getLocationTrackAtMoment(branch: LayoutBranch, id: IntId<LocationTrack>, moment: Instant) =
+        if (branch is DesignBranch)
+            locationTrackDao.getDesignAtMoment(branch.designId, id, moment)
+                ?: locationTrackDao.getOfficialAtMoment(branch, id, moment)
+        else locationTrackDao.getOfficialAtMoment(branch, id, moment)
 
     private fun getAddressPoints(
         branch: LayoutBranch,

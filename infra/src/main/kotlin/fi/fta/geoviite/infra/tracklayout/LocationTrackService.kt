@@ -352,6 +352,21 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun listDesignWithGeometryAtMoment(
+        designBranch: DesignBranch,
+        moment: Instant,
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> =
+        dao.fetchAllDesignVersionsAtMoment(designBranch.designId, moment).let(::getManyWithGeometries)
+
+    @Transactional(readOnly = true)
+    fun getDesignWithGeometryAtMoment(
+        designBranch: DesignBranch,
+        id: IntId<LocationTrack>,
+        moment: Instant,
+    ): Pair<LocationTrack, DbLocationTrackGeometry>? =
+        dao.fetchDesignVersionAtMoment(designBranch.designId, id, moment)?.let(::getWithGeometryInternal)
+
+    @Transactional(readOnly = true)
     fun getWithGeometry(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, DbLocationTrackGeometry> {
         return getWithGeometryInternal(version)
     }

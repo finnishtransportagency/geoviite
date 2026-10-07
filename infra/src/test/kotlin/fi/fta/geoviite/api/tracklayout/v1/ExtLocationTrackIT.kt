@@ -805,7 +805,7 @@ constructor(
     }
 
     @Test
-    fun `Cancelled design modification reports main branch state for single track`() {
+    fun `Cancelled design modification reports design row content for single track`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -836,12 +836,13 @@ constructor(
         }
 
         designApi.getModifiedBetween(oid, publication1.uuid, cancellationPublication.uuid).let { response ->
-            assertEquals("main description", response.sijaintiraide.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+            assertEquals("design description", response.sijaintiraide.kuvaus)
         }
     }
 
     @Test
-    fun `Cancelled design modification reports no collection modification`() {
+    fun `Cancelled design modification reports design row content in collection`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -871,9 +872,10 @@ constructor(
             assertEquals(listOf("design description"), response.sijaintiraiteet.map { track -> track.kuvaus })
         }
 
-        // After cancellation, the track reverts to main branch state ("main description")
+        // After cancellation, the modification shows the cancelled design row content
         designCollectionApi.getModifiedBetween(publication1.uuid, cancellationPublication.uuid).let { response ->
-            assertEquals(listOf("main description"), response.sijaintiraiteet.map { track -> track.kuvaus })
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraiteet.single().kohteen_tila_suunnitelmassa)
+            assertEquals(listOf("design description"), response.sijaintiraiteet.map { track -> track.kuvaus })
         }
     }
 
@@ -1078,7 +1080,7 @@ constructor(
     }
 
     @Test
-    fun `Cancelled design-created track reports no modification and does not exist at the latest version`() {
+    fun `Cancelled design-created track is visible as cancelled in modification and at latest version`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -1101,9 +1103,14 @@ constructor(
         val cancellationPublication = testDBService.publish(designBranch, locationTracks = listOf(trackId))
 
         val designApi = api.locationTracksInDesign(designOid)
-        // The creation was reverted before it ever reached main: there is no track state to report
-        designApi.assertNoModificationBetween(designTrackOid, mainPublication.uuid, cancellationPublication.uuid)
-        designApi.assertDoesntExist(designTrackOid)
+        // The creation was cancelled in design: the track is visible as cancelled
+        designApi.getModifiedBetween(designTrackOid, mainPublication.uuid, cancellationPublication.uuid).let { response
+            ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+        }
+        designApi.get(designTrackOid).let { response ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+        }
     }
 
     @Test
@@ -1138,15 +1145,16 @@ constructor(
             layoutDesign(name = designName, designState = DesignState.DELETED),
         )
 
-        // Deleting the design cancelled its changes: the track reverts to its main state, but remains served by
-        // the design routes with its design OID
+        // Deleting the design cancelled its changes: the track is visible as cancelled with design row content
         api.locationTracksInDesign(designOid).get(oid).let { response ->
-            assertEquals("main description 2", response.sijaintiraide.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+            assertEquals("design description", response.sijaintiraide.kuvaus)
             assertEquals(designTrackOid.toString(), response.sijaintiraide.sijaintiraide_oid)
             assertEquals(oid.toString(), response.sijaintiraide.virallinen_sijaintiraide_oid)
         }
         api.locationTrackCollectionInDesign(designOid).get().let { response ->
-            assertEquals(listOf("main description 2"), response.sijaintiraiteet.map { track -> track.kuvaus })
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraiteet.single().kohteen_tila_suunnitelmassa)
+            assertEquals(listOf("design description"), response.sijaintiraiteet.map { track -> track.kuvaus })
         }
     }
 
