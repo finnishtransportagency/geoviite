@@ -706,63 +706,11 @@ internal data class RoutingSwitchJoint(val switchId: IntId<LayoutSwitch>, val jo
 internal data class TopologyEdgeReference(val edgeId: UUID, val endpoint: TopologyEdgeEndpoint)
 
 fun buildGraph(topology: Topology): RoutingGraph {
-    val edgeData = topology.routingData.edgesByLayoutEdgeId.mapValues { (_, data) -> data.toRouteEdgeData() }
-    val topologyEdgeByDbEdgeId =
-        topology.edges
-            .mapNotNull { edge ->
-                (edge.routingReference as? LayoutEdgeRoutingReference)?.let { reference -> reference.edgeId to edge }
-            }
-            .toMap()
-    val topologySwitchEdgeList =
-        topology.edges.mapNotNull { edge ->
-            (edge.routingReference as? SwitchAlignmentRoutingReference)?.let { reference ->
-                TopologySwitchEdge(
-                    edge = edge,
-                    alignment = RoutingSwitchAlignment(reference.switchId, reference.alignment),
-                    forward = reference.forward,
-                )
-            }
-        }
-    val duplicateSwitchAlignments =
-        topologySwitchEdgeList.groupBy(TopologySwitchEdge::alignment).filterValues { edges -> edges.size > 1 }.keys
-    require(duplicateSwitchAlignments.isEmpty()) {
-        "Topology contains duplicate routing references for switch alignments: alignments=$duplicateSwitchAlignments"
-    }
+    val (edgeData, topologyEdgeByDbEdgeId, topologySwitchEdgeList) = topology.verifyBeforeBuildingGraph()
     val topologySwitchEdges = topologySwitchEdgeList.associateBy(TopologySwitchEdge::alignment)
     val topologySwitchEdgesById = topologySwitchEdges.values.associateBy { switchEdge -> switchEdge.edge.id }
-    val missingDbEdgeReferences =
-        edgeData.values
-            .filterNot { data -> data.edge.isSwitchInnerLink() }
-            .map(RouteEdgeData::edge)
-            .map(DbLayoutEdge::id)
-            .filterNot(topologyEdgeByDbEdgeId::containsKey)
-    require(missingDbEdgeReferences.isEmpty()) {
-        "Topology is missing routing references for database edges: edges=$missingDbEdgeReferences"
-    }
-    val missingRoutingData = topologyEdgeByDbEdgeId.keys.filterNot(edgeData::containsKey)
-    require(missingRoutingData.isEmpty()) {
-        "Topology is missing routing data for referenced database edges: edges=$missingRoutingData"
-    }
-    val layoutEdgeEndpointsByNode =
-        topology.edges
-            .filter { edge -> edge.routingReference is LayoutEdgeRoutingReference }
-            .flatMap { edge ->
-                listOf(
-                    edge.startNode.id to TopologyEdgeReference(edge.id, TopologyEdgeEndpoint.START),
-                    edge.endNode.id to TopologyEdgeReference(edge.id, TopologyEdgeEndpoint.END),
-                )
-            }
-            .groupBy({ (nodeId) -> nodeId }, { (_, endpoint) -> endpoint })
-    val externalEndpointsBySwitchJoint =
-        topology.nodes
-            .flatMap { node ->
-                node.switches.flatMap { link ->
-                    layoutEdgeEndpointsByNode[node.id].orEmpty().map { endpoint ->
-                        RoutingSwitchJoint(link.id, link.jointNumber) to endpoint
-                    }
-                }
-            }
-            .groupBy({ (joint) -> joint }, { (_, endpoint) -> endpoint })
+    val layoutEdgeEndpointsByNode = topology.layoutEdgeEndpointsByNode()
+    val externalEndpointsBySwitchJoint = topology.externalEndpointsBySwitchJoint(layoutEdgeEndpointsByNode)
     val switchInternalEdges =
         edgeData.entries.flatMap { (_, data) -> data.switchConnections.entries }.groupBy({ it.key }, { it.value })
     val jgraph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
@@ -825,6 +773,78 @@ fun buildGraph(topology: Topology): RoutingGraph {
             ),
     )
 }
+
+private fun Topology.verifyBeforeBuildingGraph(): VerifiedTopologyData {
+    val edgeData = routingData.edgesByLayoutEdgeId.mapValues { (_, data) -> data.toRouteEdgeData() }
+    val topologyEdgeByDbEdgeId =
+        edges
+            .mapNotNull { edge ->
+                (edge.routingReference as? LayoutEdgeRoutingReference)?.let { reference -> reference.edgeId to edge }
+            }
+            .toMap()
+    requireEmpty(edgeData.values.missingDbEdgeReferences(topologyEdgeByDbEdgeId)) { missing ->
+        "Topology is missing routing references for database edges: edges=$missing"
+    }
+    requireEmpty(topologyEdgeByDbEdgeId.keys.filterNot(edgeData::containsKey)) { missing ->
+        "Topology is missing routing data for referenced database edges: edges=$missing"
+    }
+    val topologySwitchEdgeList = edges.mapNotNull { edge ->
+        (edge.routingReference as? SwitchAlignmentRoutingReference)?.let { reference ->
+            TopologySwitchEdge(
+                edge = edge,
+                alignment = RoutingSwitchAlignment(reference.switchId, reference.alignment),
+                forward = reference.forward,
+            )
+        }
+    }
+    requireEmpty(topologySwitchEdgeList.duplicateAlignments()) { values ->
+        "Topology contains duplicate routing references for switch alignments: alignments=$values"
+    }
+    return VerifiedTopologyData(edgeData, topologyEdgeByDbEdgeId, topologySwitchEdgeList)
+}
+
+private data class VerifiedTopologyData(
+    val edgeData: Map<IntId<LayoutEdge>, RouteEdgeData>,
+    val topologyEdgeByDbEdgeId: Map<IntId<LayoutEdge>, TopologyEdge>,
+    val topologySwitchEdgeList: List<TopologySwitchEdge>,
+)
+
+private fun Topology.layoutEdgeEndpointsByNode() =
+    edges
+        .filter { edge -> edge.routingReference is LayoutEdgeRoutingReference }
+        .flatMap { edge ->
+            listOf(
+                edge.startNode.id to TopologyEdgeReference(edge.id, TopologyEdgeEndpoint.START),
+                edge.endNode.id to TopologyEdgeReference(edge.id, TopologyEdgeEndpoint.END),
+            )
+        }
+        .groupBy({ (nodeId) -> nodeId }, { (_, endpoint) -> endpoint })
+
+private fun Topology.externalEndpointsBySwitchJoint(layoutEdgeEndpointsByNode: Map<UUID, List<TopologyEdgeReference>>) =
+    nodes
+        .flatMap { node ->
+            node.switchReferences.flatMap { reference ->
+                val link = reference.switch
+                layoutEdgeEndpointsByNode[node.id].orEmpty().map { endpoint ->
+                    RoutingSwitchJoint(link.id, link.jointNumber) to endpoint
+                }
+            }
+        }
+        .groupBy({ (joint) -> joint }, { (_, endpoint) -> endpoint })
+
+private fun List<TopologySwitchEdge>.duplicateAlignments() =
+    this.groupBy(TopologySwitchEdge::alignment).filterValues { edges -> edges.size > 1 }.keys
+
+private inline fun <T> requireEmpty(values: Collection<T>, lazyMessage: (values: Collection<T>) -> Any) {
+    require(values.isEmpty()) { lazyMessage(values) }
+}
+
+private fun Collection<RouteEdgeData>.missingDbEdgeReferences(
+    topologyEdgeByDbEdgeId: Map<IntId<LayoutEdge>, TopologyEdge>
+) =
+    this.filterNot { data -> data.edge.isSwitchInnerLink() }
+        .map { data -> data.edge.id }
+        .filterNot { id -> topologyEdgeByDbEdgeId.containsKey(id) }
 
 private fun TopologyEdgeTraversal.startVertex(direction: VertexDirection): TopologyEndpointVertex =
     TopologyEndpointVertex(

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout.graph
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -60,12 +61,12 @@ internal data class TopologyLayoutEdgeData(
     val switchConnections: Map<TopologySwitchAlignment, TopologySwitchSegment>,
 )
 
-internal data class TopologySwitchAlignment(
+data class TopologySwitchAlignment(
     val switchId: IntId<LayoutSwitch>,
     val alignment: SwitchStructureAlignment,
 )
 
-internal data class TopologySwitchSegment(
+data class TopologySwitchSegment(
     val edgeId: IntId<LayoutEdge>,
     val direction: TopologyDirection,
     val mRange: Range<LineM<SwitchStructureAlignmentM>>,
@@ -78,9 +79,11 @@ internal constructor(
     val startNode: TopologyNode,
     val endNode: TopologyNode,
     val length: Double,
-    val tracks: List<LocationTrack>,
+    val trackReferences: List<TopologyLocationTrackReference>,
     val routingReference: TopologyEdgeRoutingReference?,
 )
+
+data class TopologyLocationTrackReference(val track: LocationTrack, val oid: Oid<LocationTrack>?)
 
 sealed interface TopologyEdgeRoutingReference
 
@@ -98,10 +101,12 @@ internal constructor(
     val id: UUID,
     val type: LayoutNodeType,
     val location: Point,
-    val switches: List<SwitchLink>,
+    val switchReferences: List<TopologySwitchReference>,
     /** The allowed movements through this node. A movement not listed here is forbidden. */
     val transitions: List<TopologyTransition>,
 )
+
+data class TopologySwitchReference(val switch: SwitchLink, val oid: Oid<LayoutSwitch>?)
 
 /** A single allowed directed movement through a node: arriving along one edge and continuing along another. */
 data class TopologyTransition(val incomingEdge: TopologyEdgeTraversal, val outgoingEdge: TopologyEdgeTraversal)
@@ -129,9 +134,19 @@ class TopologyBuilder internal constructor() {
     private val layoutEdges = linkedMapOf<IntId<LayoutEdge>, LayoutEdgeData>()
     private val switchSegments = mutableListOf<SwitchSegmentData>()
 
-    fun addNode(id: UUID, type: LayoutNodeType, location: Point, switches: List<SwitchLink> = emptyList()) {
+    fun addNode(
+        id: UUID,
+        type: LayoutNodeType,
+        location: Point,
+        switchReferences: List<TopologySwitchReference>,
+    ) {
         require(!nodes.containsKey(id)) { "Topology must not contain duplicate node UUIDs: node=$id" }
-        nodes[id] = NodeData(type, location, switches)
+        nodes[id] =
+            NodeData(
+                type,
+                location,
+                Collections.unmodifiableList(switchReferences),
+            )
     }
 
     fun addEdge(
@@ -139,19 +154,16 @@ class TopologyBuilder internal constructor() {
         startNode: UUID,
         endNode: UUID,
         length: Double,
-        tracks: List<LocationTrack>,
+        trackReferences: List<TopologyLocationTrackReference>,
         routingReference: TopologyEdgeRoutingReference? = null,
     ) {
-        require(tracks.distinctBy { track -> track.id }.size == tracks.size) {
-            "Topology edge must not contain duplicate location tracks: edge=$id"
-        }
         require(!edges.containsKey(id)) { "Topology must not contain duplicate edge UUIDs: edge=$id" }
         edges[id] =
             EdgeData(
                 startNode,
                 endNode,
                 length,
-                Collections.unmodifiableList(tracks.toList()),
+                Collections.unmodifiableList(trackReferences),
                 routingReference,
             )
     }
@@ -166,20 +178,14 @@ class TopologyBuilder internal constructor() {
         transitions.add(TransitionData(node, incomingEdge, incomingDirection, outgoingEdge, outgoingDirection))
     }
 
-    /**
-     * Describes which location tracks run along a database layout edge and where. Routing needs this to turn a graph
-     * path back into track addresses, so it is only described at the nano level where edges still map 1:1 to database
-     * edges.
-     */
-    internal fun addLayoutEdgeRouting(edge: DbLayoutEdge, tracks: Set<TrackSection>) {
+    fun addLayoutEdgeRouting(edge: DbLayoutEdge, tracks: Set<TrackSection>) {
         require(!layoutEdges.containsKey(edge.id)) {
             "Topology must not contain duplicate routing data for a layout edge: edge=${edge.id}"
         }
-        layoutEdges[edge.id] = LayoutEdgeData(edge, Collections.unmodifiableSet(tracks.toSet()))
+        layoutEdges[edge.id] = LayoutEdgeData(edge, Collections.unmodifiableSet(tracks))
     }
 
-    /** Describes the part of a switch alignment that a single database layout edge covers. */
-    internal fun addSwitchAlignmentSegment(alignment: TopologySwitchAlignment, segment: TopologySwitchSegment) {
+    fun addSwitchAlignmentSegment(alignment: TopologySwitchAlignment, segment: TopologySwitchSegment) {
         switchSegments.add(SwitchSegmentData(alignment, segment))
     }
 
@@ -189,7 +195,7 @@ class TopologyBuilder internal constructor() {
                 id = id,
                 type = data.type,
                 location = data.location,
-                switches = data.switches,
+                switchReferences = data.switchReferences,
                 transitions = Collections.unmodifiableList(data.transitions),
             )
         }
@@ -206,7 +212,7 @@ class TopologyBuilder internal constructor() {
                         "Topology edge refers to an unknown end node: edge=$id node=${data.endNode}"
                     },
                 length = data.length,
-                tracks = data.tracks,
+                trackReferences = data.trackReferences,
                 routingReference = data.routingReference,
             )
         }
@@ -269,7 +275,7 @@ class TopologyBuilder internal constructor() {
     private data class NodeData(
         val type: LayoutNodeType,
         val location: Point,
-        val switches: List<SwitchLink>,
+        val switchReferences: List<TopologySwitchReference>,
         val transitions: MutableList<TopologyTransition> = mutableListOf(),
     )
 
@@ -277,7 +283,7 @@ class TopologyBuilder internal constructor() {
         val startNode: UUID,
         val endNode: UUID,
         val length: Double,
-        val tracks: List<LocationTrack>,
+        val trackReferences: List<TopologyLocationTrackReference>,
         val routingReference: TopologyEdgeRoutingReference?,
     )
 

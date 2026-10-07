@@ -329,7 +329,7 @@ class MicroTopologyTest {
         val combined = microEdgeUuid(listOf(id("line-1-2"), id("east-edge")))
         assertEquals(
             listOf(MAIN_TRACK.id, DUPLICATE_TRACK.id, CONTINUATION_TRACK.id),
-            micro.edge(combined).tracks.map { track -> track.id },
+            micro.edge(combined).trackReferences.map { reference -> reference.track.id },
         )
     }
 
@@ -432,9 +432,12 @@ class MicroTopologyTest {
         val micro = CachedTopology(nano).micro
         assertEquals(
             listOf(mainJoint(SWITCH_A, 1), connectionJoint(SWITCH_B, 2)),
-            micro.node(id("combination-node")).switches,
+            micro.node(id("combination-node")).switchReferences.map { reference -> reference.switch },
         )
-        assertEquals(listOf(mainJoint(SWITCH_A, 1)), micro.node(id("overlapping-node")).switches)
+        assertEquals(
+            listOf(mainJoint(SWITCH_A, 1)),
+            micro.node(id("overlapping-node")).switchReferences.map { reference -> reference.switch },
+        )
     }
 
     @Test
@@ -463,7 +466,10 @@ class MicroTopologyTest {
         val eastMicro = microEdgeUuid(listOf(id("b-line"), id("east-edge")))
         val combination = micro.node(id("combination"))
 
-        assertEquals(listOf(mainJoint(SWITCH_A, 1), mainJoint(SWITCH_B, 1)), combination.switches)
+        assertEquals(
+            listOf(mainJoint(SWITCH_A, 1), mainJoint(SWITCH_B, 1)),
+            combination.switchReferences.map { reference -> reference.switch },
+        )
         assertEquals(
             setOf(asc(westMicro) to asc(eastMicro), desc(eastMicro) to desc(westMicro)),
             combination.transitionSummary(),
@@ -502,9 +508,12 @@ class MicroTopologyTest {
 
         assertEquals(
             listOf(mainJoint(SWITCH_A, 1), connectionJoint(SWITCH_B, 2)),
-            combination.switches,
+            combination.switchReferences.map { reference -> reference.switch },
         )
-        assertEquals(listOf(mainJoint(SWITCH_B, 1)), micro.node(id("b-main")).switches)
+        assertEquals(
+            listOf(mainJoint(SWITCH_B, 1)),
+            micro.node(id("b-main")).switchReferences.map { reference -> reference.switch },
+        )
         assertEquals(
             setOf(asc(westMicro) to desc(id("b-line")), asc(id("b-line")) to desc(westMicro)),
             combination.transitionSummary(),
@@ -652,7 +661,13 @@ private fun switchNanoFixture(structure: SwitchStructureData): SwitchNanoFixture
             id = mainNode,
             type = SWITCH,
             location = Point(0.0, 0.0),
-            switches = listOf(SwitchLink(SWITCH_A, SwitchJointRole.MAIN, mainJoint)),
+            switchReferences =
+                listOf(
+                    TopologySwitchReference(
+                        switch = SwitchLink(SWITCH_A, SwitchJointRole.MAIN, mainJoint),
+                        oid = null,
+                    )
+                ),
         )
         endJoints.forEachIndexed { index, joint ->
             if (joint != mainJoint) {
@@ -660,27 +675,34 @@ private fun switchNanoFixture(structure: SwitchStructureData): SwitchNanoFixture
                     id = switchNodes.getValue(joint),
                     type = SWITCH,
                     location = Point(index + 1.0, 0.0),
-                    switches = listOf(SwitchLink(SWITCH_A, SwitchJointRole.CONNECTION, joint)),
+                    switchReferences =
+                        listOf(
+                            TopologySwitchReference(
+                                switch = SwitchLink(SWITCH_A, SwitchJointRole.CONNECTION, joint),
+                                oid = null,
+                            )
+                        ),
                 )
                 addEdge(
                     id = switchInternalEdges.getValue(joint),
                     startNode = mainNode,
                     endNode = switchNodes.getValue(joint),
                     length = index + 1.0,
-                    tracks = listOf(MAIN_TRACK),
+                    trackReferences = listOf(TopologyLocationTrackReference(MAIN_TRACK, null)),
                 )
             }
             addNode(
                 id = trackEnds.getValue(joint),
                 type = TRACK_BOUNDARY,
                 location = Point(index.toDouble(), 100.0),
+                switchReferences = emptyList(),
             )
             addEdge(
                 id = outsideEdges.getValue(joint),
                 startNode = switchNodes.getValue(joint),
                 endNode = trackEnds.getValue(joint),
                 length = 100.0,
-                tracks = listOf(MAIN_TRACK),
+                trackReferences = listOf(TopologyLocationTrackReference(MAIN_TRACK, null)),
             )
             uTurn(trackEnds.getValue(joint), asc(outsideEdges.getValue(joint)))
         }
@@ -725,7 +747,7 @@ private fun assertSwitchSimplification(
     )
     assertEquals(
         listOf(SwitchLink(SWITCH_A, SwitchJointRole.MAIN, mainJoint)),
-        micro.node(mainNode).switches,
+        micro.node(mainNode).switchReferences.map { reference -> reference.switch },
         structure.type.toString(),
     )
     val edgesByTrackEnd =
@@ -794,10 +816,17 @@ private fun connectionJoint(switch: IntId<LayoutSwitch>, joint: Int) =
 private fun id(name: String): UUID = UUID.nameUUIDFromBytes(name.toByteArray(UTF_8))
 
 private fun TopologyBuilder.trackEndNode(name: String, location: Point): UUID =
-    id(name).also { nodeId -> addNode(nodeId, TRACK_BOUNDARY, location) }
+    id(name).also { nodeId -> addNode(nodeId, TRACK_BOUNDARY, location, emptyList()) }
 
 private fun TopologyBuilder.switchNode(name: String, location: Point, vararg switches: SwitchLink): UUID =
-    id(name).also { nodeId -> addNode(nodeId, SWITCH, location, switches.toList()) }
+    id(name).also { nodeId ->
+        addNode(
+            nodeId,
+            SWITCH,
+            location,
+            switches.map { switch -> TopologySwitchReference(switch, null) },
+        )
+    }
 
 private fun TopologyBuilder.edge(
     name: String,
@@ -805,7 +834,16 @@ private fun TopologyBuilder.edge(
     endNode: UUID,
     length: Double,
     vararg tracks: LocationTrack,
-): UUID = id(name).also { edgeId -> addEdge(edgeId, startNode, endNode, length, tracks.toList()) }
+): UUID =
+    id(name).also { edgeId ->
+        addEdge(
+            edgeId,
+            startNode,
+            endNode,
+            length,
+            tracks.map { track -> TopologyLocationTrackReference(track, null) },
+        )
+    }
 
 /** Adds the given transition through the node, as well as the same transition travelled in the opposite direction. */
 private fun TopologyBuilder.connectThrough(node: UUID, incoming: EdgeRef, outgoing: EdgeRef) {
@@ -860,9 +898,17 @@ private fun Topology.summary() =
         transitions = nodes.associate { node -> node.id to node.transitionSummary() },
     )
 
-private fun TopologyNode.summary() = NodeSummary(id, type, location, switches)
+private fun TopologyNode.summary() =
+    NodeSummary(id, type, location, switchReferences.map(TopologySwitchReference::switch))
 
-private fun TopologyEdge.summary() = EdgeSummary(id, startNode.id, endNode.id, length, tracks.map { track -> track.id })
+private fun TopologyEdge.summary() =
+    EdgeSummary(
+        id,
+        startNode.id,
+        endNode.id,
+        length,
+        trackReferences.map { reference -> reference.track.id },
+    )
 
 private fun TopologyNode.transitionSummary(): Set<Pair<EdgeRef, EdgeRef>> =
     transitions.map { transition -> transition.summary() }.toSet()
