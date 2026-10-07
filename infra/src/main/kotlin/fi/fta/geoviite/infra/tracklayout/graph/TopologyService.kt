@@ -125,6 +125,14 @@ class TopologyService(
     private fun createNanoTopology(topologyData: TopologyData): Topology {
         val (branch, tracks, topologySwitches) = topologyData
         val switches = topologySwitches.associateBy { switch -> switch.id as IntId }
+        val trackOids =
+            tracks
+                .map { (track) -> track.id as IntId<LocationTrack> }
+                .distinct()
+                .associateWith { trackId ->
+                    val oids = locationTrackService.getExternalIdsByBranch(trackId)
+                    oids[branch] ?: oids[LayoutBranch.main]
+                }
         val switchRefs =
             switches.values.associate { switch ->
                 val switchId = switch.id as IntId
@@ -132,40 +140,30 @@ class TopologyService(
                 val switchOid = oids[branch] ?: oids[LayoutBranch.main]
                 switchId to (switchOid?.let(::OidSwitchRef) ?: IdSwitchRef(switchId))
             }
-        return createNanoTopology(tracks, switches, switchLibraryService.getSwitchStructuresById(), switchRefs)
+        return createNanoTopology(
+            tracks,
+            switches,
+            switchLibraryService.getSwitchStructuresById(),
+            switchRefs,
+            trackOids,
+        )
     }
 }
 
 /**
- * Builds the nano level topology: a direct graph representation of the database layout, with switch alignments added
- * as their own edges.
+ * Builds the nano level topology: a direct graph representation of the database layout, with switch alignments added as
+ * their own edges.
  */
 internal fun createNanoTopology(
     tracks: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
     switches: Map<IntId<LayoutSwitch>, LayoutSwitch>,
     structures: Map<IntId<SwitchStructure>, SwitchStructure>,
     switchRefs: Map<IntId<LayoutSwitch>, SwitchRef>,
+    trackOids: Map<IntId<LocationTrack>, Oid<LocationTrack>?> = emptyMap(),
 ): Topology {
-    val topologySwitchJoints =
-        switches.values
-            .flatMap { switch ->
-                structures.getValue(switch.switchStructureId).endJointNumbers.map { joint ->
-                    SwitchJointKey(switch.id as IntId, joint)
-                }
-            }
-            .toSet()
-    val edgeOccurrences = tracks.flatMap { (track, geometry) -> geometry.edges.map { edge -> edge to track } }
-    val edgeGroups =
-        edgeOccurrences
-            .groupBy { (edge, _) -> edge.id }
-            .values
-            .map { occurrences ->
-                NanoEdgeData(
-                    edge = occurrences.first().first,
-                    tracks = occurrences.map { (_, track) -> track }.distinctBy { track -> track.id },
-                )
-            }
-    val nodesBySwitchJoint = collectNodesBySwitchJoint(edgeGroups, topologySwitchJoints)
+    val topologySwitchJoints = switches.values.switchJoints(structures)
+    val edgeGroups = tracks.tracksByEdges()
+    val nodesBySwitchJoint = edgeGroups.collectNodesBySwitchJoint(topologySwitchJoints)
     val switchLines =
         switches.values.flatMap { switch ->
             createSwitchLines(
@@ -203,14 +201,18 @@ internal fun createNanoTopology(
         databaseNodes.values.forEach { occurrences ->
             val dbNode = occurrences.first().node
             val location = nodeLocation(dbNode, occurrences, switches, topologySwitchJoints)
+            val nodeSwitches =
+                (dbNode as? DbSwitchNode)?.switchLinks?.filter { link ->
+                    SwitchJointKey(link.id, link.jointNumber) in topologySwitchJoints
+                } ?: emptyList()
             addNode(
                 id = nodeUuid(dbNode),
                 type = dbNode.type,
                 location = location,
-                switches =
-                    (dbNode as? DbSwitchNode)?.switchLinks?.filter { link ->
-                        SwitchJointKey(link.id, link.jointNumber) in topologySwitchJoints
-                    } ?: emptyList(),
+                switchReferences =
+                    nodeSwitches.map { link ->
+                        TopologySwitchReference(link, (switchRefs[link.id] as? OidSwitchRef)?.oid)
+                    },
             )
         }
         regularEdges.forEach { (edge, edgeTracks) ->
@@ -220,7 +222,10 @@ internal fun createNanoTopology(
                 startNode = nodeUuid(edge.startNode.node),
                 endNode = nodeUuid(edge.endNode.node),
                 length = edge.length.distance,
-                tracks = edgeTracks,
+                trackReferences =
+                    edgeTracks.map { track ->
+                        TopologyLocationTrackReference(track, trackOids[track.id as IntId<LocationTrack>])
+                    },
                 routingReference = LayoutEdgeRoutingReference(edge.id),
             )
             endpointConnections.add(edge.startNode, edgeId, EdgeEndpoint.START)
@@ -232,7 +237,10 @@ internal fun createNanoTopology(
                 startNode = line.startNode,
                 endNode = line.endNode,
                 length = line.alignment.length(),
-                tracks = line.tracks,
+                trackReferences =
+                    line.tracks.map { track ->
+                        TopologyLocationTrackReference(track, trackOids[track.id as IntId<LocationTrack>])
+                    },
                 routingReference =
                     SwitchAlignmentRoutingReference(
                         switchId = line.startKey.switchId,
@@ -253,6 +261,25 @@ internal fun createNanoTopology(
         }
     }
 }
+
+private fun Collection<LayoutSwitch>.switchJoints(structures: Map<IntId<SwitchStructure>, SwitchStructure>) =
+    this.flatMap { switch ->
+            structures.getValue(switch.switchStructureId).endJointNumbers.map { joint ->
+                SwitchJointKey(switch.id as IntId, joint)
+            }
+        }
+        .toSet()
+
+private fun List<Pair<LocationTrack, DbLocationTrackGeometry>>.tracksByEdges() =
+    this.flatMap { (track, geometry) -> geometry.edges.map { edge -> edge to track } }
+        .groupBy { (edge, _) -> edge.id }
+        .values
+        .map { occurrences ->
+            NanoEdgeData(
+                edge = occurrences.first().first,
+                tracks = occurrences.map { (_, track) -> track }.distinctBy { track -> track.id },
+            )
+        }
 
 private fun TopologyBuilder.addNodeTransitions(node: DbLayoutNode, connections: List<EndpointConnection>) {
     when (node) {
@@ -289,7 +316,6 @@ private fun TopologyBuilder.addTransitions(node: UUID, transitions: List<Generat
             outgoingDirection = transition.outgoingDirection,
         )
     }
-
 
 internal fun createSwitchTransitions(connections: List<EndpointConnection>): List<GeneratedTransition> =
     createTransitionsBetween(connections) { first, second ->
@@ -408,11 +434,10 @@ private fun MutableMap<UUID, MutableList<EndpointConnection>>.add(
     getOrPut(nodeId, ::mutableListOf).add(EndpointConnection(edgeId, endpoint, side))
 }
 
-private fun collectNodesBySwitchJoint(
-    edgeGroups: List<NanoEdgeData>,
-    topologySwitchJoints: Set<SwitchJointKey>,
+private fun List<NanoEdgeData>.collectNodesBySwitchJoint(
+    topologySwitchJoints: Set<SwitchJointKey>
 ): Map<SwitchJointKey, DbSwitchNode> =
-    edgeGroups
+    this.asSequence()
         .flatMap { (edge) -> listOf(edge.startNode.node, edge.endNode.node) }
         .filterIsInstance<DbSwitchNode>()
         .flatMap { node -> node.switchLinks.map { link -> SwitchJointKey(link.id, link.jointNumber) to node } }
