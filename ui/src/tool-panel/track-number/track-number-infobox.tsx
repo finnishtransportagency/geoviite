@@ -300,7 +300,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                                             );
                                                         },
                                                         t(
-                                                            'tool-panel.location-track.shorten-track-start-or-end',
+                                                            'tool-panel.reference-line.shorten-reference-line-start-or-end',
                                                         ),
                                                         'shorten-reference-line-start-or-end',
                                                         !canModifyStartOrEnd,

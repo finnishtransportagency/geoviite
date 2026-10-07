@@ -41,6 +41,22 @@ export const isLayerInProxyLayerCollection = (
     return visibleLayers.some((layer) => keys.includes(layer));
 };
 
+export const isMenuItemFullyHiddenByProxy = (
+    menuItemName: MapLayerMenuItemName,
+    visibleLayers: MapLayerName[],
+    proxyLayerCollection: LayerCollection,
+): boolean => {
+    const layersFromMenuItem = layerMenuItemMapLayers[menuItemName];
+    return (
+        layersFromMenuItem.length > 0 &&
+        layersFromMenuItem.every((menuItemLayer) =>
+            visibleLayers.some((visibleLayer) =>
+                proxyLayerCollection[visibleLayer]?.includes(menuItemLayer),
+            ),
+        )
+    );
+};
+
 const alwaysOnLayers: MapLayerName[] = [
     'plan-section-highlight-layer',
     'publication-candidate-layer',
@@ -251,6 +267,12 @@ export const mapReducers = {
     },
     removeForcedVisibleLayer(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
         state.forcedVisibleLayers = state.forcedVisibleLayers.filter((l) => !layers.includes(l));
+    },
+    addForcedHiddenLayer(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
+        state.forcedHiddenLayers = deduplicate([...state.forcedHiddenLayers, ...layers]);
+    },
+    removeForcedHiddenLayer(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
+        state.forcedHiddenLayers = state.forcedHiddenLayers.filter((l) => !layers.includes(l));
     },
     onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
         state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);

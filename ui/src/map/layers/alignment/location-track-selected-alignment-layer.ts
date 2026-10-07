@@ -49,7 +49,6 @@ export function createLocationTrackSelectedAlignmentLayer(
     existingOlLayer: GeoviiteMapLayer<LineString | OlPoint> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
-    splittingIsActive: boolean,
     changeTimes: ChangeTimes,
     olView: OlView,
     onLoadingData: (loading: boolean) => void,
@@ -59,15 +58,14 @@ export function createLocationTrackSelectedAlignmentLayer(
     const resolution = olView.getResolution() || 0;
 
     const selectedTrack = first(selection.selectedItems.locationTracks);
-    const alignmentPromise: Promise<AlignmentDataHolder[]> =
-        selectedTrack && !splittingIsActive
-            ? getSelectedLocationTrackMapAlignmentByTiles(
-                  changeTimes.layoutLocationTrack,
-                  mapTiles,
-                  layoutContext,
-                  selectedTrack,
-              )
-            : Promise.resolve([]);
+    const alignmentPromise: Promise<AlignmentDataHolder[]> = selectedTrack
+        ? getSelectedLocationTrackMapAlignmentByTiles(
+              changeTimes.layoutLocationTrack,
+              mapTiles,
+              layoutContext,
+              selectedTrack,
+          )
+        : Promise.resolve([]);
 
     const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
         const selectedTrack = first(locationTracks);
