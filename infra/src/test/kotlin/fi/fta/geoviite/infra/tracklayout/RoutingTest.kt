@@ -18,6 +18,8 @@ import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
 import fi.fta.geoviite.infra.tracklayout.graph.IdSwitchRef
 import fi.fta.geoviite.infra.tracklayout.graph.LayoutEdgeRoutingReference
+import fi.fta.geoviite.infra.tracklayout.graph.TopologyLocationTrackReference
+import fi.fta.geoviite.infra.tracklayout.graph.TopologySwitchReference
 import fi.fta.geoviite.infra.tracklayout.graph.addLayoutRouting
 import fi.fta.geoviite.infra.tracklayout.graph.buildTopology
 import fi.fta.geoviite.infra.tracklayout.graph.createNanoTopology
@@ -1110,19 +1112,25 @@ class RoutingTest {
             )
             val trackStartNodeId = UUID.randomUUID()
             val switchJoint1NodeId = UUID.randomUUID()
-            addNode(trackStartNodeId, LayoutNodeType.TRACK_BOUNDARY, trackStart)
+            addNode(trackStartNodeId, LayoutNodeType.TRACK_BOUNDARY, trackStart, emptyList())
             addNode(
                 switchJoint1NodeId,
                 LayoutNodeType.SWITCH,
                 joint1,
-                listOf(switchLinkYV(switchId, 1)),
+                listOf(TopologySwitchReference(switchLinkYV(switchId, 1), null)),
             )
             addEdge(
                 id = UUID.randomUUID(),
                 startNode = trackStartNodeId,
                 endNode = switchJoint1NodeId,
                 length = externalEdge.length.distance,
-                tracks = listOf(locationTrack(IntId(1), id = trackGeometry.trackId)),
+                trackReferences =
+                    listOf(
+                        TopologyLocationTrackReference(
+                            track = locationTrack(IntId(1), id = trackGeometry.trackId),
+                            oid = null,
+                        )
+                    ),
                 routingReference = LayoutEdgeRoutingReference(externalEdge.id),
             )
         }

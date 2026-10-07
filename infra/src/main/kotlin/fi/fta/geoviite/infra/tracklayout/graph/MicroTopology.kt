@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout.graph
 
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import java.util.UUID
 
 /**
@@ -34,14 +32,22 @@ internal fun simplifyToMicroLevel(nano: Topology): Topology {
     return buildTopology {
         nano.nodes
             .filter { node -> node.id in keptNodeIds }
-            .forEach { node -> addNode(node.id, node.type, node.location, microSwitchLinks(node.switches)) }
+            .forEach { node ->
+                val switchReferences = microSwitchReferences(node.switchReferences)
+                addNode(
+                    node.id,
+                    node.type,
+                    node.location,
+                    switchReferences,
+                )
+            }
         microEdges.forEach { edge ->
             addEdge(
                 id = edge.id,
                 startNode = edge.startNode,
                 endNode = edge.endNode,
                 length = edge.length,
-                tracks = edge.tracks,
+                trackReferences = edge.trackReferences,
             )
         }
         nano.nodes
@@ -74,15 +80,18 @@ private fun collectIncidentEdges(nano: Topology): Map<UUID, List<TopologyEdge>> 
  */
 private fun isMicroNode(node: TopologyNode, incidentEdges: List<TopologyEdge>): Boolean =
     node.type == LayoutNodeType.TRACK_BOUNDARY ||
-        node.switches.any { link -> link.jointRole == SwitchJointRole.MAIN } ||
+        node.switchReferences.any { reference -> reference.switch.jointRole == SwitchJointRole.MAIN } ||
         incidentEdges.size != 2 ||
         incidentEdges[0].id == incidentEdges[1].id
 
 /** Each switch is listed once, described by its MAIN role joint link if the node has one. */
-private fun microSwitchLinks(links: List<SwitchLink>): List<SwitchLink> =
-    links.groupBy(SwitchLink::id).map { (_, switchLinks) ->
-        switchLinks.firstOrNull { link -> link.jointRole == SwitchJointRole.MAIN } ?: switchLinks.first()
-    }
+private fun microSwitchReferences(references: List<TopologySwitchReference>): List<TopologySwitchReference> =
+    references
+        .groupBy { reference -> reference.switch.id }
+        .map { (_, switchReferences) ->
+            switchReferences.firstOrNull { reference -> reference.switch.jointRole == SwitchJointRole.MAIN }
+                ?: switchReferences.first()
+        }
 
 /** Splits the nano edges into the chains of edges that each become a single micro edge. */
 private fun collectChains(
@@ -147,18 +156,19 @@ private fun canonicalChain(chain: List<ChainLink>): List<ChainLink> {
 }
 
 private fun isSwitchInternal(edge: TopologyEdge): Boolean {
-    val startSwitches = edge.startNode.switches.mapTo(mutableSetOf(), SwitchLink::id)
-    return edge.endNode.switches.any { link -> link.id in startSwitches }
+    val startSwitches = edge.startNode.switchReferences.mapTo(mutableSetOf()) { reference -> reference.switch.id }
+    return edge.endNode.switchReferences.any { reference -> reference.switch.id in startSwitches }
 }
 
 private fun toMicroEdge(chain: List<ChainLink>): MicroEdgeData {
     val edges = chain.map(ChainLink::edge)
+    val trackReferences = edges.flatMap(TopologyEdge::trackReferences).distinctBy { reference -> reference.track.id }
     return MicroEdgeData(
         id = if (edges.size == 1) edges.first().id else microEdgeUuid(edges.map(TopologyEdge::id)),
         startNode = chain.first().startNode.id,
         endNode = chain.last().endNode.id,
         length = edges.sumOf(TopologyEdge::length),
-        tracks = edges.flatMap(TopologyEdge::tracks).distinctBy { track -> track.id },
+        trackReferences = trackReferences,
         chain = chain,
     )
 }
@@ -187,7 +197,7 @@ private data class MicroEdgeData(
     val startNode: UUID,
     val endNode: UUID,
     val length: Double,
-    val tracks: List<LocationTrack>,
+    val trackReferences: List<TopologyLocationTrackReference>,
     val chain: List<ChainLink>,
 )
 
