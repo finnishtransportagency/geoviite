@@ -126,9 +126,11 @@ complexity:
   LargeClass:
     active: true
     threshold: 1200
+    excludes: ['**/test/**']
   LongMethod:
     active: true
     threshold: 120
+    excludes: ['**/test/**']
   LongParameterList:
     active: false
     functionThreshold: 6
