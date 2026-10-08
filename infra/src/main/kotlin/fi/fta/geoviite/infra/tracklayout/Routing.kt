@@ -868,53 +868,6 @@ private fun TopologyEdgeTraversal.endVertex(direction: VertexDirection): Topolog
         direction = direction,
     )
 
-internal fun buildLegacyGraph(
-    trackGeoms: List<DbLocationTrackGeometry>,
-    switches: List<LayoutSwitch>,
-    structures: Map<IntId<SwitchStructure>, SwitchStructure>,
-): RoutingGraph {
-    val edgeData = createEdgeData(trackGeoms, switches, structures)
-    val edges = edgeData.values.map { edgeData -> edgeData.edge }.toSet()
-    val nodes = edges.flatMap { edge -> listOf(edge.startNode.node, edge.endNode.node) }.toSet()
-    val switchInternalEdges =
-        edgeData.entries.flatMap { (_, data) -> data.switchConnections.entries }.groupBy({ it.key }, { it.value })
-
-    // Graph types: https://jgrapht.org/guide/UserOverview#graph-structures
-    val jgraph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
-
-    val switchVertices = switches.flatMap { s -> createSwitchVertices(s, structures) }
-    val trackVertices = trackGeoms.flatMap(::createTrackEndVertices)
-    (switchVertices.asSequence() + trackVertices.asSequence()).forEach { v -> jgraph.addVertex(v) }
-
-    val switchConnections = switches.flatMap { s -> createThroughSwitchConnections(s, structures) }
-    val directConnections = nodes.flatMap(::createDirectConnections)
-    val trackConnections = edges.flatMap(::createTrackConnections)
-    (switchConnections.asSequence() + directConnections.asSequence() + trackConnections.asSequence()).forEach {
-        (connection, edge) ->
-        jgraph.addWeightedEdge(connection.from, connection.to, edge, connection.length)
-    }
-    return RoutingGraph(jgraph = jgraph, edgeData = edgeData, switchInternalEdges = switchInternalEdges)
-}
-
-private fun createEdgeData(
-    trackGeoms: List<DbLocationTrackGeometry>,
-    switches: List<LayoutSwitch>,
-    structures: Map<IntId<SwitchStructure>, SwitchStructure>,
-): Map<IntId<LayoutEdge>, RouteEdgeData> {
-    val switchesById = switches.associateBy { switch -> switch.id as IntId }
-    return trackGeoms
-        .flatMap { geom -> geom.edgesWithM.map { (edge, m) -> edge to TrackSection(geom.trackId, m) } }
-        .groupBy { (edge) -> edge.id }
-        .mapValues { (_, occurrences) ->
-            val edge = occurrences.first().first
-            RouteEdgeData(
-                edge = edge,
-                tracks = occurrences.map { (_, track) -> track }.toSet(),
-                switchConnections = resolveSwitchAlignments(edge, switchesById, structures),
-            )
-        }
-}
-
 fun resolveSwitchAlignments(
     edge: DbLayoutEdge,
     switches: Map<IntId<LayoutSwitch>, LayoutSwitch>,
