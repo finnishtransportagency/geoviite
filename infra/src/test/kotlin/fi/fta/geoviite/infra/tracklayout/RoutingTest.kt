@@ -16,6 +16,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
+import fi.fta.geoviite.infra.tracklayout.graph.IdSwitchRef
+import fi.fta.geoviite.infra.tracklayout.graph.createNanoTopology
+import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -410,29 +413,32 @@ class RoutingTest {
     }
 
     @Test
-    fun `A sane graph is created for a simple track layout`() {
+    fun `A sane topology graph is created for a simple track layout`() {
         val structure1 = switchStructureYV60_300_1_9()
         val structure2 = switchStructureRR54_4x1_9()
         val structures = mapOf(structure1.id to structure1, structure2.id to structure2)
 
-        val switch1 = switch(id = IntId(1), name = "Switch1", structureId = structure1.id)
-        val switch2 = switch(id = IntId(2), name = "Switch2", structureId = structure2.id)
+        val switch1Id = IntId<LayoutSwitch>(1)
+        val switch2Id = IntId<LayoutSwitch>(2)
+        val switch1 = switch(id = switch1Id, name = "Switch1", structureId = structure1.id)
+        val switch2 = switch(id = switch2Id, name = "Switch2", structureId = structure2.id)
 
         // Build the following tracks
         //  Track1: Start at nowhere, connect to switch 1 joint 1, go through the switch and end at joint 2
         //  Track2 (Continuing): Start where track 1 ended (switch 1 joint 2) and continue to end at switch 2 joint 4
         //  Track3 (Branching): start at switch1 joint 1, go through the switch, continue a bit to end at nowhere
 
-        val track1StartNode = dbTrackEndNode(10, 1, START)
-        val switch1StartNode = dbSwitchNode(11, 1, 1)
-        val switch1StraightEndNode = dbSwitchNode(12, 1, 2)
-        val switch1BranchEndNode = dbSwitchNode(13, 1, 3)
-        val switch2StartNode = dbSwitchNode(14, 2, 4)
-        val track3EndNode = dbTrackEndNode(15, 3, END)
+        val track1StartNode = DbTrackBoundaryNode(IntId(10), TrackBoundary(IntId(1), START), null, UUID(0L, 10L))
+        val switch1StartNode = DbSwitchNode(IntId(11), switchLinkYV(IntId(1), 1), null, UUID(0L, 11L))
+        val switch1StraightEndNode = DbSwitchNode(IntId(12), switchLinkYV(IntId(1), 2), null, UUID(0L, 12L))
+        val switch1BranchEndNode = DbSwitchNode(IntId(13), switchLinkYV(IntId(1), 3), null, UUID(0L, 13L))
+        val switch2StartNode = DbSwitchNode(IntId(14), switchLinkYV(IntId(2), 4), null, UUID(0L, 14L))
+        val track3EndNode = DbTrackBoundaryNode(IntId(15), TrackBoundary(IntId(3), END), null, UUID(0L, 15L))
 
         val track1StartEdge =
             DbLayoutEdge(
                 id = IntId(10000),
+                uuid = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                 endNode = DbNodeConnection(NodePortType.B, switch1StartNode),
                 segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
@@ -440,6 +446,7 @@ class RoutingTest {
         val switch1InnerMainEdge =
             DbLayoutEdge(
                 id = IntId(10001),
+                uuid = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch1StraightEndNode),
                 segments = listOf(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
@@ -447,6 +454,7 @@ class RoutingTest {
         val switch1InnerBranchEdge =
             DbLayoutEdge(
                 id = IntId(10002),
+                uuid = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch1BranchEndNode),
                 segments = listOf(segment(Point(100.0, 0.0), Point(200.0, 50.0))),
@@ -454,6 +462,7 @@ class RoutingTest {
         val track2Edge =
             DbLayoutEdge(
                 id = IntId(10003),
+                uuid = UUID(1L, 10003L),
                 startNode = DbNodeConnection(NodePortType.B, switch1StraightEndNode),
                 endNode = DbNodeConnection(NodePortType.B, switch2StartNode),
                 segments = listOf(segment(Point(200.0, 0.0), Point(300.0, 0.0))),
@@ -461,6 +470,7 @@ class RoutingTest {
         val track3EndEdge =
             DbLayoutEdge(
                 id = IntId(10004),
+                uuid = UUID(1L, 10004L),
                 startNode = DbNodeConnection(NodePortType.B, switch1BranchEndNode),
                 endNode = DbNodeConnection(NodePortType.A, track3EndNode),
                 segments = listOf(segment(Point(200.0, 50.0), Point(300.0, 100.0))),
@@ -478,73 +488,61 @@ class RoutingTest {
                 edges = listOf(switch1InnerBranchEdge, track3EndEdge),
             )
 
-        val graph =
-            buildGraph(
-                trackGeoms = listOf(trackGeom1, trackGeom2, trackGeom3),
-                switches = listOf(switch1, switch2),
+        val topology =
+            createNanoTopology(
+                tracks =
+                    listOf(
+                        locationTrack(IntId(1), id = trackGeom1.trackId) to trackGeom1,
+                        locationTrack(IntId(1), id = trackGeom2.trackId) to trackGeom2,
+                        locationTrack(IntId(1), id = trackGeom3.trackId) to trackGeom3,
+                    ),
+                switches = mapOf(switch1Id to switch1, switch2Id to switch2),
                 structures = structures,
+                switchRefs = mapOf(switch1Id to IdSwitchRef(switch1Id), switch2Id to IdSwitchRef(switch2Id)),
             )
+        val graph = buildGraph(topology)
 
+        // The topology graph is built on edge endpoints: each topology edge gets in & out vertices for both ends
         assertEquals(
-            listOf(
-                    // The switch vertices should be all the outer point, according to structure (not geometry)
-                    jointVertex(1, 1, IN),
-                    jointVertex(1, 1, OUT),
-                    jointVertex(1, 2, IN),
-                    jointVertex(1, 2, OUT),
-                    jointVertex(1, 3, IN),
-                    jointVertex(1, 3, OUT),
-                    jointVertex(2, 1, IN),
-                    jointVertex(2, 1, OUT),
-                    jointVertex(2, 2, IN),
-                    jointVertex(2, 2, OUT),
-                    jointVertex(2, 3, IN),
-                    jointVertex(2, 3, OUT),
-                    jointVertex(2, 4, IN),
-                    jointVertex(2, 4, OUT),
-                    // There should be vertices for starting/ending tracks
-                    trackBoundaryVertex(1, START, IN),
-                    trackBoundaryVertex(1, START, OUT),
-                    trackBoundaryVertex(3, END, IN),
-                    trackBoundaryVertex(3, END, OUT),
-                )
-                .sortedBy { it.toString() },
-            graph.getVertices().sortedBy { it.toString() },
+            topology.edges.size * 4,
+            graph.getVertices().filterIsInstance<TopologyEndpointVertex>().size,
+        )
+        assertEquals(topology.edges.size * 4, graph.getVertices().size)
+
+        // The database edges that are not switch internal geometry are routable in both directions
+        assertEquals(
+            setOf(
+                TrackEdge(track1StartEdge.id, UP),
+                TrackEdge(track1StartEdge.id, DOWN),
+                TrackEdge(track2Edge.id, UP),
+                TrackEdge(track2Edge.id, DOWN),
+                TrackEdge(track3EndEdge.id, UP),
+                TrackEdge(track3EndEdge.id, DOWN),
+            ),
+            graph.getEdges().keys.filterIsInstance<TrackEdge>().toSet(),
         )
 
+        // Switch internal geometry is routable via switch alignments, for the linked alignments of switch 1.
+        // Switch 2 is only connected from the outside (joint 4), so it has no routable alignments.
         assertEquals(
-            mapOf(
-                    // Inner switch edges
-                    edgeSwitch(1, UP, structure1.alignments[0]) to (jointVertex(1, 1, IN) to jointVertex(1, 2, OUT)),
-                    edgeSwitch(1, DOWN, structure1.alignments[0]) to (jointVertex(1, 2, IN) to jointVertex(1, 1, OUT)),
-                    edgeSwitch(1, UP, structure1.alignments[1]) to (jointVertex(1, 1, IN) to jointVertex(1, 3, OUT)),
-                    edgeSwitch(1, DOWN, structure1.alignments[1]) to (jointVertex(1, 3, IN) to jointVertex(1, 1, OUT)),
-                    edgeSwitch(2, UP, structure2.alignments[0]) to (jointVertex(2, 1, IN) to jointVertex(2, 2, OUT)),
-                    edgeSwitch(2, DOWN, structure2.alignments[0]) to (jointVertex(2, 2, IN) to jointVertex(2, 1, OUT)),
-                    edgeSwitch(2, UP, structure2.alignments[1]) to (jointVertex(2, 4, IN) to jointVertex(2, 3, OUT)),
-                    edgeSwitch(2, DOWN, structure2.alignments[1]) to (jointVertex(2, 3, IN) to jointVertex(2, 4, OUT)),
-                    // Direct return connection at track ends
-                    DirectConnectionEdge(track1StartNode.id, UP) to
-                        (trackBoundaryVertex(1, START, OUT) to trackBoundaryVertex(1, START, IN)),
-                    DirectConnectionEdge(track3EndNode.id, UP) to
-                        (trackBoundaryVertex(3, END, OUT) to trackBoundaryVertex(3, END, IN)),
-                    // Track connections between nodes, excluding switch internal edges
-                    TrackEdge(track1StartEdge.id, UP) to (trackBoundaryVertex(1, START, IN) to jointVertex(1, 1, IN)),
-                    TrackEdge(track1StartEdge.id, DOWN) to
-                        (jointVertex(1, 1, OUT) to trackBoundaryVertex(1, START, OUT)),
-                    TrackEdge(track2Edge.id, UP) to (jointVertex(1, 2, OUT) to jointVertex(2, 4, IN)),
-                    TrackEdge(track2Edge.id, DOWN) to (jointVertex(2, 4, OUT) to jointVertex(1, 2, IN)),
-                    TrackEdge(track3EndEdge.id, UP) to (jointVertex(1, 3, OUT) to trackBoundaryVertex(3, END, OUT)),
-                    TrackEdge(track3EndEdge.id, DOWN) to (trackBoundaryVertex(3, END, IN) to jointVertex(1, 3, IN)),
-                )
-                .entries
-                .sortedBy { it.key.toString() },
-            graph.getEdges().entries.sortedBy { it.key.toString() },
+            setOf(
+                edgeSwitch(1, UP, structure1.alignments[0]),
+                edgeSwitch(1, DOWN, structure1.alignments[0]),
+                edgeSwitch(1, UP, structure1.alignments[1]),
+                edgeSwitch(1, DOWN, structure1.alignments[1]),
+            ),
+            graph.getEdges().keys.filterIsInstance<SwitchInternalEdge>().toSet(),
         )
+
+        // Routing between the topology edges happens via node transitions: 4 at switch 1 joint 1 (two alignments,
+        // both directions), 2 at joints 2 and 3 each, and a U-turn at both track boundaries. Switch 2 only has a
+        // single connection at joint 4, so it has no transitions.
+        assertEquals(10, graph.getEdges().keys.filterIsInstance<TopologyTransitionEdge>().size)
+        assertEquals(20, graph.getEdges().size)
     }
 
     @Test
-    fun `Basic pathfinding works`() {
+    fun `Basic pathfinding works on a topology graph`() {
         val structure = switchStructureYV60_300_1_9()
         val structures = mapOf(structure.id to structure)
 
@@ -555,13 +553,13 @@ class RoutingTest {
         //  Track1 (Straight): Start at nowhere, go through the switch and continue on to end at nowhere
         //  Track2 (Branching): start at switch1 joint 1, go through the switch and end at nowhere
 
-        val track1StartNode = dbTrackEndNode(10, 111, START)
-        val track1EndNode = dbTrackEndNode(11, 111, END)
-        val switchStartNode = dbSwitchNode(12, 1, 1)
-        val switchStraightMidNode = dbSwitchNode(13, 1, 5)
-        val switchStraightEndNode = dbSwitchNode(14, 1, 2)
-        val switchBranchEndNode = dbSwitchNode(15, 1, 3)
-        val track2EndNode = dbTrackEndNode(16, 222, END)
+        val track1StartNode = DbTrackBoundaryNode(IntId(10), TrackBoundary(IntId(111), START), null, UUID(0L, 10L))
+        val track1EndNode = DbTrackBoundaryNode(IntId(11), TrackBoundary(IntId(111), END), null, UUID(0L, 11L))
+        val switchStartNode = DbSwitchNode(IntId(12), switchLinkYV(IntId(1), 1), null, UUID(0L, 12L))
+        val switchStraightMidNode = DbSwitchNode(IntId(13), switchLinkYV(IntId(1), 5), null, UUID(0L, 13L))
+        val switchStraightEndNode = DbSwitchNode(IntId(14), switchLinkYV(IntId(1), 2), null, UUID(0L, 14L))
+        val switchBranchEndNode = DbSwitchNode(IntId(15), switchLinkYV(IntId(1), 3), null, UUID(0L, 15L))
+        val track2EndNode = DbTrackBoundaryNode(IntId(16), TrackBoundary(IntId(222), END), null, UUID(0L, 16L))
 
         val track1Start = Point(0.0, 0.0)
         val joint1Location = Point(100.0, 0.0) + structure.getJointLocation(JointNumber(1))
@@ -574,6 +572,7 @@ class RoutingTest {
         val track1StartEdge =
             DbLayoutEdge(
                 id = IntId(10000),
+                uuid = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                 endNode = DbNodeConnection(NodePortType.B, switchStartNode),
                 segments = listOf(segment(track1Start, joint1Location)),
@@ -581,6 +580,7 @@ class RoutingTest {
         val switchInnerMainEdge1 =
             DbLayoutEdge(
                 id = IntId(10001),
+                uuid = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switchStartNode),
                 endNode = DbNodeConnection(NodePortType.A, switchStraightMidNode),
                 segments = listOf(segment(joint1Location, joint5Location)),
@@ -588,6 +588,7 @@ class RoutingTest {
         val switchInnerMainEdge2 =
             DbLayoutEdge(
                 id = IntId(10002),
+                uuid = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.A, switchStraightMidNode),
                 endNode = DbNodeConnection(NodePortType.A, switchStraightEndNode),
                 segments = listOf(segment(joint5Location, joint2Location)),
@@ -595,6 +596,7 @@ class RoutingTest {
         val track1EndEdge =
             DbLayoutEdge(
                 id = IntId(10003),
+                uuid = UUID(1L, 10003L),
                 startNode = DbNodeConnection(NodePortType.B, switchStraightEndNode),
                 endNode = DbNodeConnection(NodePortType.A, track1EndNode),
                 segments = listOf(segment(joint2Location, track1End)),
@@ -603,6 +605,7 @@ class RoutingTest {
         val switchInnerBranchEdge =
             DbLayoutEdge(
                 id = IntId(10004),
+                uuid = UUID(1L, 10004L),
                 startNode = DbNodeConnection(NodePortType.A, switchStartNode),
                 endNode = DbNodeConnection(NodePortType.A, switchBranchEndNode),
                 segments = listOf(segment(joint1Location, joint3Location)),
@@ -610,6 +613,7 @@ class RoutingTest {
         val track2EndEdge =
             DbLayoutEdge(
                 id = IntId(10005),
+                uuid = UUID(1L, 10005L),
                 startNode = DbNodeConnection(NodePortType.B, switchBranchEndNode),
                 endNode = DbNodeConnection(NodePortType.A, track2EndNode),
                 segments = listOf(segment(joint3Location, track2End)),
@@ -627,7 +631,18 @@ class RoutingTest {
             )
 
         val graph =
-            buildGraph(trackGeoms = listOf(trackGeom1, trackGeom2), switches = listOf(switch1), structures = structures)
+            buildGraph(
+                createNanoTopology(
+                    tracks =
+                        listOf(
+                            locationTrack(IntId(1), id = trackGeom1.trackId) to trackGeom1,
+                            locationTrack(IntId(1), id = trackGeom2.trackId) to trackGeom2,
+                        ),
+                    switches = mapOf(switchId to switch1),
+                    structures = structures,
+                    switchRefs = mapOf(switchId to IdSwitchRef(switchId)),
+                )
+            )
         val getRoute =
             {
                 (from, fromTrack): Pair<Point, DbLocationTrackGeometry>,
@@ -730,7 +745,7 @@ class RoutingTest {
     }
 
     @Test
-    fun `Routing does not throw when an edge has a broken switch linking`() {
+    fun `Topology routing does not throw when an edge has a broken switch linking`() {
         // While we no longer create these, some historical data has edges with broken switch linkings:
         //   Both ends connect to a switch as inner connection, but the switches are different. In effect,
         //   the edge claims to be part of the internal geometry of two different switches.
@@ -743,10 +758,10 @@ class RoutingTest {
         val switch1 = switch(id = switch1Id, structureId = structure.id)
         val switch2 = switch(id = switch2Id, structureId = structure.id)
 
-        val trackStartNode = dbTrackEndNode(10, 111, START)
-        val trackEndNode = dbTrackEndNode(11, 111, END)
-        val switch1Node = dbSwitchNode(12, 1, 1)
-        val switch2Node = dbSwitchNode(13, 2, 2)
+        val trackStartNode = DbTrackBoundaryNode(IntId(10), TrackBoundary(IntId(111), START), null, UUID(0L, 10L))
+        val trackEndNode = DbTrackBoundaryNode(IntId(11), TrackBoundary(IntId(111), END), null, UUID(0L, 11L))
+        val switch1Node = DbSwitchNode(IntId(12), switchLinkYV(IntId(1), 1), null, UUID(0L, 12L))
+        val switch2Node = DbSwitchNode(IntId(13), switchLinkYV(IntId(2), 2), null, UUID(0L, 13L))
 
         val trackStart = Point(0.0, 0.0)
         val switch1Location = Point(100.0, 0.0)
@@ -756,6 +771,7 @@ class RoutingTest {
         val startEdge =
             DbLayoutEdge(
                 id = IntId(10000),
+                uuid = UUID(1L, 10000L),
                 // Start at track start
                 startNode = DbNodeConnection(NodePortType.A, trackStartNode),
                 // Connect to switch1 as outer connection
@@ -765,6 +781,7 @@ class RoutingTest {
         val brokenInnerSwitchEdge =
             DbLayoutEdge(
                 id = IntId(10001),
+                uuid = UUID(1L, 10001L),
                 // Connect start to switch1 as inner connection
                 startNode = DbNodeConnection(NodePortType.A, switch1Node),
                 // Connect end to switch2 as inner connection
@@ -774,6 +791,7 @@ class RoutingTest {
         val endEdge =
             DbLayoutEdge(
                 id = IntId(10002),
+                uuid = UUID(1L, 10002L),
                 // Start at switch2 as outer connection
                 startNode = DbNodeConnection(NodePortType.B, switch2Node),
                 // End at track end
@@ -787,15 +805,24 @@ class RoutingTest {
                 edges = listOf(startEdge, brokenInnerSwitchEdge, endEdge),
             )
 
-        val graph = assertDoesNotThrow { buildGraph(listOf(trackGeom), listOf(switch1, switch2), structures) }
-
-        // The graph should still have vertices for the valid switches and track ends
-        val vertices = graph.getVertices()
-        assertEquals(4, vertices.filter { it is TrackBoundaryVertex }.size) {
-            "Graph should contain in & out boundary vertices for track start and end (2 x 2)"
+        val graph = assertDoesNotThrow {
+            buildGraph(
+                createNanoTopology(
+                    tracks = listOf(locationTrack(IntId(1), id = trackGeom.trackId) to trackGeom),
+                    switches = mapOf(switch1Id to switch1, switch2Id to switch2),
+                    structures = structures,
+                    switchRefs = mapOf(switch1Id to IdSwitchRef(switch1Id), switch2Id to IdSwitchRef(switch2Id)),
+                )
+            )
         }
-        assertEquals(12, vertices.filter { it is SwitchJointVertex }.size) {
-            "Graph should contain in & out joint vertices for both switches' connection points (2 x 2 x 3)"
+
+        // The graph should contain endpoint vertices for all three edges: the broken edge is not recognized as
+        // switch internal geometry, so it remains a regular topology edge
+        assertEquals(12, graph.getVertices().filterIsInstance<TopologyEndpointVertex>().size) {
+            "Graph should contain in & out endpoint vertices for both ends of the three track edges (3 x 2 x 2)"
+        }
+        assertEquals(0, graph.getEdges().keys.filterIsInstance<SwitchInternalEdge>().size) {
+            "Graph should not contain routable alignments for the broken switch linking"
         }
 
         // Routing over / from / to the switch won't work but shouldn't throw either
@@ -816,9 +843,9 @@ class RoutingTest {
     }
 
     @Test
-    fun `Routing does not throw when a switch is deleted but tracks still reference it`() {
+    fun `Topology routing does not throw when a switch is deleted but tracks still reference it`() {
         // When a switch has stateCategory=NOT_EXISTING, RoutingService filters it out of the
-        // switches list passed to buildGraph. But the track edges may still have nodes that
+        // switches passed to the topology. But the track edges may still have nodes that
         // reference the deleted switch. The graph building/routing should handle this gracefully.
         val structure = switchStructureYV60_300_1_9()
         val structures = mapOf(structure.id to structure)
@@ -827,10 +854,10 @@ class RoutingTest {
         val deletedSwitch =
             switch(id = switchId, structureId = structure.id, stateCategory = LayoutStateCategory.NOT_EXISTING)
 
-        val trackStartNode = dbTrackEndNode(10, 111, START)
-        val trackEndNode = dbTrackEndNode(11, 111, END)
-        val switchStartNode = dbSwitchNode(12, 1, 1)
-        val switchEndNode = dbSwitchNode(13, 1, 2)
+        val trackStartNode = DbTrackBoundaryNode(IntId(10), TrackBoundary(IntId(111), START), null, UUID(0L, 10L))
+        val trackEndNode = DbTrackBoundaryNode(IntId(11), TrackBoundary(IntId(111), END), null, UUID(0L, 11L))
+        val switchStartNode = DbSwitchNode(IntId(12), switchLinkYV(IntId(1), 1), null, UUID(0L, 12L))
+        val switchEndNode = DbSwitchNode(IntId(13), switchLinkYV(IntId(1), 2), null, UUID(0L, 13L))
 
         val trackStart = Point(0.0, 0.0)
         val switchLocation = Point(100.0, 0.0)
@@ -840,6 +867,7 @@ class RoutingTest {
         val startEdge =
             DbLayoutEdge(
                 id = IntId(10000),
+                uuid = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, trackStartNode),
                 endNode = DbNodeConnection(NodePortType.B, switchStartNode),
                 segments = listOf(segment(trackStart, switchLocation)),
@@ -847,6 +875,7 @@ class RoutingTest {
         val switchInnerEdge =
             DbLayoutEdge(
                 id = IntId(10001),
+                uuid = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switchStartNode),
                 endNode = DbNodeConnection(NodePortType.A, switchEndNode),
                 segments = listOf(segment(switchLocation, switchEndLocation)),
@@ -854,6 +883,7 @@ class RoutingTest {
         val endEdge =
             DbLayoutEdge(
                 id = IntId(10002),
+                uuid = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.B, switchEndNode),
                 endNode = DbNodeConnection(NodePortType.A, trackEndNode),
                 segments = listOf(segment(switchEndLocation, trackEnd)),
@@ -866,9 +896,18 @@ class RoutingTest {
             )
 
         // Simulate RoutingService behavior: the deleted switch is filtered out
-        val activeSwitches = listOf(deletedSwitch).filter { it.exists }
+        val activeSwitches = listOf(deletedSwitch).filter { it.exists }.associateBy { it.id as IntId }
 
-        val graph = assertDoesNotThrow { buildGraph(listOf(trackGeom), activeSwitches, structures) }
+        val graph = assertDoesNotThrow {
+            buildGraph(
+                createNanoTopology(
+                    tracks = listOf(locationTrack(IntId(1), id = trackGeom.trackId) to trackGeom),
+                    switches = activeSwitches,
+                    structures = structures,
+                    switchRefs = activeSwitches.keys.associateWith(::IdSwitchRef),
+                )
+            )
+        }
 
         // Routing over or from the deleted switch area won't work but should not throw
         assertNull(
@@ -883,7 +922,7 @@ class RoutingTest {
     }
 
     @Test
-    fun `Route length is correctly calculated in and over switches`() {
+    fun `Topology route length is correctly calculated in and over switches`() {
         val structure = switchStructureYV60_300_1_9()
         val structures = mapOf(structure.id to structure)
 
@@ -897,12 +936,12 @@ class RoutingTest {
         //  Track2: switch1 (inner) -- switch2 (inner)
         //  Track3: switch2 (outer) -- end
 
-        val track1StartNode = dbTrackEndNode(10, 111, START)
-        val switch1StartNode = dbSwitchNode(11, 1, 1)
-        val switch1EndNode = dbSwitchNode(12, 1, 2)
-        val switch2StartNode = dbSwitchNode(13, 2, 1)
-        val switch2EndNode = dbSwitchNode(14, 2, 2)
-        val track3EndNode = dbTrackEndNode(15, 333, END)
+        val track1StartNode = DbTrackBoundaryNode(IntId(10), TrackBoundary(IntId(111), START), null, UUID(0L, 10L))
+        val switch1StartNode = DbSwitchNode(IntId(11), switchLinkYV(IntId(1), 1), null, UUID(0L, 11L))
+        val switch1EndNode = DbSwitchNode(IntId(12), switchLinkYV(IntId(1), 2), null, UUID(0L, 12L))
+        val switch2StartNode = DbSwitchNode(IntId(13), switchLinkYV(IntId(2), 1), null, UUID(0L, 13L))
+        val switch2EndNode = DbSwitchNode(IntId(14), switchLinkYV(IntId(2), 2), null, UUID(0L, 14L))
+        val track3EndNode = DbTrackBoundaryNode(IntId(15), TrackBoundary(IntId(333), END), null, UUID(0L, 15L))
 
         val track1Start = Point(0.0, 10.0)
         val switch1Joint1Location = Point(100.0, 10.0)
@@ -914,6 +953,7 @@ class RoutingTest {
         val track1Edge =
             DbLayoutEdge(
                 id = IntId(10000),
+                uuid = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                 endNode = DbNodeConnection(NodePortType.B, switch1StartNode),
                 segments = listOf(segment(track1Start, switch1Joint1Location)),
@@ -921,6 +961,7 @@ class RoutingTest {
         val switch1InnerEdge =
             DbLayoutEdge(
                 id = IntId(10001),
+                uuid = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch1EndNode),
                 segments = listOf(segment(switch1Joint1Location, switch1Joint2Location)),
@@ -928,6 +969,7 @@ class RoutingTest {
         val track2MidEdge =
             DbLayoutEdge(
                 id = IntId(10002),
+                uuid = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.B, switch1EndNode),
                 endNode = DbNodeConnection(NodePortType.B, switch2StartNode),
                 segments = listOf(segment(switch1Joint2Location, switch2Joint1Location)),
@@ -935,6 +977,7 @@ class RoutingTest {
         val switch2InnerEdge =
             DbLayoutEdge(
                 id = IntId(10003),
+                uuid = UUID(1L, 10003L),
                 startNode = DbNodeConnection(NodePortType.A, switch2StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch2EndNode),
                 segments = listOf(segment(switch2Joint1Location, switch2Joint2Location)),
@@ -942,6 +985,7 @@ class RoutingTest {
         val track3Edge =
             DbLayoutEdge(
                 id = IntId(10004),
+                uuid = UUID(1L, 10004L),
                 startNode = DbNodeConnection(NodePortType.B, switch2EndNode),
                 endNode = DbNodeConnection(NodePortType.A, track3EndNode),
                 segments = listOf(segment(switch2Joint2Location, track3End)),
@@ -954,9 +998,17 @@ class RoutingTest {
 
         val graph =
             buildGraph(
-                trackGeoms = listOf(trackGeom1, trackGeom2, trackGeom3),
-                switches = listOf(switch1, switch2),
-                structures = structures,
+                createNanoTopology(
+                    tracks =
+                        listOf(
+                            locationTrack(IntId(1), id = trackGeom1.trackId) to trackGeom1,
+                            locationTrack(IntId(1), id = trackGeom2.trackId) to trackGeom2,
+                            locationTrack(IntId(1), id = trackGeom3.trackId) to trackGeom3,
+                        ),
+                    switches = mapOf(switchId1 to switch1, switchId2 to switch2),
+                    structures = structures,
+                    switchRefs = mapOf(switchId1 to IdSwitchRef(switchId1), switchId2 to IdSwitchRef(switchId2)),
+                )
             )
         val getLength =
             {

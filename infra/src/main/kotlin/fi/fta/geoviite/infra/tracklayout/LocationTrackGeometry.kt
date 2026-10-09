@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.INNER
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.OUTER
+import fi.fta.geoviite.infra.tracklayout.graph.DetailLevel
 import fi.fta.geoviite.infra.util.equalsBy
 import java.util.*
 import kotlin.math.PI
@@ -642,6 +643,7 @@ data class DbLayoutEdge(
     override val startNode: DbNodeConnection,
     override val endNode: DbNodeConnection,
     @get:JsonIgnore override val segments: List<LayoutSegment>,
+    val uuid: UUID? = null,
 ) : LayoutEdge() {
     init {
         verifyEdgeContent(this)
@@ -818,6 +820,7 @@ sealed class LayoutNode {
 
 sealed class DbLayoutNode : LayoutNode() {
     abstract val id: IntId<LayoutNode>
+    abstract val uuid: UUID?
 }
 
 sealed class TmpLayoutNode : LayoutNode()
@@ -826,6 +829,7 @@ data class DbSwitchNode(
     override val id: IntId<LayoutNode>,
     override val portA: SwitchLink,
     override val portB: SwitchLink?,
+    override val uuid: UUID? = null,
 ) : DbLayoutNode() {
     override val type: LayoutNodeType = SWITCH
 
@@ -846,6 +850,7 @@ data class DbTrackBoundaryNode(
     override val id: IntId<LayoutNode>,
     override val portA: TrackBoundary,
     override val portB: TrackBoundary? = null,
+    override val uuid: UUID? = null,
 ) : DbLayoutNode() {
     override val type: LayoutNodeType = TRACK_BOUNDARY
 

@@ -122,6 +122,7 @@ dependencies {
     }
     implementation("org.aspectj:aspectjweaver:1.9.25.1")
     implementation("org.jgrapht:jgrapht-core:1.5.3")
+    implementation("com.fasterxml.uuid:java-uuid-generator:5.2.0")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.9")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
