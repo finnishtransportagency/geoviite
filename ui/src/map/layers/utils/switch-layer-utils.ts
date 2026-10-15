@@ -47,20 +47,80 @@ const CIRCLE_RADIUS_SMALL = 4.5;
 const CIRCLE_RADIUS_LARGE = 6.5;
 const NEARBY_SWITCH_PROXIMITY_THRESHOLD = 2;
 
-const inTheSameLocation = (a: LayoutSwitch, b: LayoutSwitch): boolean => {
-    const aJoint = a.joints.find((joint) => joint.role === 'MAIN')?.location;
-    const bJoint = b.joints.find((joint) => joint.role === 'MAIN')?.location;
-    if (!aJoint || !bJoint) return false;
-    return (
-        getPlanarDistanceUnwrapped(aJoint.x, aJoint.y, bJoint.x, bJoint.y) <
-        NEARBY_SWITCH_PROXIMITY_THRESHOLD
-    );
-};
+const mainJointLocation = (layoutSwitch: LayoutSwitch) =>
+    layoutSwitch.joints.find((joint) => joint.role === 'MAIN')?.location;
 
 // Switches stacked in the same location, sorted by name. The first one draws the shared label.
 export type SwitchCluster = {
     members: LayoutSwitch[];
     highlightedIds: LayoutSwitchId[];
+};
+
+// Groups switches into clusters as connected components of the "closer than threshold" relation,
+// so that every member of a cluster gets exactly the same cluster. Switches are bucketed into a
+// grid with the threshold as cell size, so only neighbouring cells need to be compared.
+const buildSwitchClusters = (
+    switches: LayoutSwitch[],
+    isHighlighted: (switchItem: LayoutSwitch) => boolean,
+): Map<LayoutSwitchId, SwitchCluster> => {
+    const located = switches.flatMap((layoutSwitch) => {
+        const location = mainJointLocation(layoutSwitch);
+        return location ? [{ layoutSwitch, x: location.x, y: location.y }] : [];
+    });
+
+    const parents = located.map((_, index) => index);
+    const findRoot = (index: number): number => {
+        let root = index;
+        while (parents[root] !== root) root = expectDefined(parents[root]);
+        let current = index;
+        while (parents[current] !== root) {
+            const next = expectDefined(parents[current]);
+            parents[current] = root;
+            current = next;
+        }
+        return root;
+    };
+
+    const cellOf = (value: number) => Math.floor(value / NEARBY_SWITCH_PROXIMITY_THRESHOLD);
+    const grid = new Map<string, number[]>();
+    located.forEach((item, index) => {
+        const cx = cellOf(item.x);
+        const cy = cellOf(item.y);
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                const neighbours = grid.get(`${cx + dx}_${cy + dy}`) ?? [];
+                neighbours.forEach((otherIndex) => {
+                    const other = expectDefined(located[otherIndex]);
+                    if (
+                        getPlanarDistanceUnwrapped(item.x, item.y, other.x, other.y) <
+                        NEARBY_SWITCH_PROXIMITY_THRESHOLD
+                    ) {
+                        parents[findRoot(index)] = findRoot(otherIndex);
+                    }
+                });
+            }
+        }
+        const ownKey = `${cx}_${cy}`;
+        grid.set(ownKey, [...(grid.get(ownKey) ?? []), index]);
+    });
+
+    const components = new Map<number, LayoutSwitch[]>();
+    located.forEach((item, index) => {
+        const root = findRoot(index);
+        components.set(root, [...(components.get(root) ?? []), item.layoutSwitch]);
+    });
+
+    const clusters = new Map<LayoutSwitchId, SwitchCluster>();
+    components.forEach((unsorted) => {
+        if (unsorted.length < 2) return;
+        const members = [...unsorted].sort((a, b) => a.name.localeCompare(b.name));
+        const cluster = {
+            members,
+            highlightedIds: members.filter(isHighlighted).map((s) => s.id),
+        };
+        members.forEach((member) => clusters.set(member.id, cluster));
+    });
+    return clusters;
 };
 
 const CLUSTER_PADDING_VER = 4;
@@ -246,6 +306,8 @@ export function getSwitchRenderer(
     // Only the first switch of a stack draws the shared label, the others only draw their circle
     const drawsLabel = showLabel && rows[0]?.id === layoutSwitch.id;
     const layout = getClusterLayout(large, rows.length);
+    // Measure the label once here instead of on every render frame
+    const box = drawsLabel ? getClusterBox(layout, rows, valid) : undefined;
     return getCanvasRenderer(
         layoutSwitch,
         (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
@@ -262,12 +324,11 @@ export function getSwitchRenderer(
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
             (_, coord, ctx, { pixelRatio }) => {
-                if (!drawsLabel) return;
+                if (!box) return;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 const [x, y] = expectCoordinate(coord);
 
-                const box = getClusterBox(layout, rows, valid);
                 const textX = x + layout.textOffsetX * pixelRatio;
                 const boxLeft = x + box.left * pixelRatio;
                 const boxWidth = box.width * pixelRatio;
@@ -538,16 +599,10 @@ function createSwitchFeatures(
     switchStructures?: SwitchStructure[],
     validationResult?: ValidatedSwitch[],
 ): Feature<OlPoint>[] {
-    const unselected = layoutSwitches.filter((s) => !isSelected(s));
-    const getCluster = (layoutSwitch: LayoutSwitch): SwitchCluster | undefined => {
-        if (isSelected(layoutSwitch)) return undefined;
-        const members = unselected
-            .filter((s) => inTheSameLocation(s, layoutSwitch))
-            .sort((a, b) => a.name.localeCompare(b.name));
-        return members.length > 1 && members.some((s) => s.id === layoutSwitch.id)
-            ? { members, highlightedIds: members.filter(isHighlighted).map((s) => s.id) }
-            : undefined;
-    };
+    const clusters = buildSwitchClusters(
+        layoutSwitches.filter((s) => !isSelected(s)),
+        isHighlighted,
+    );
 
     return layoutSwitches
         .filter((s) => s.joints.length > 0)
@@ -571,7 +626,7 @@ function createSwitchFeatures(
                 planId,
                 presentationJointNumber,
                 validationResult?.find((sw) => sw.id === layoutSwitch.id),
-                getCluster(layoutSwitch),
+                clusters.get(layoutSwitch.id),
             );
         });
 }
@@ -620,11 +675,20 @@ export function createSwitchFeature(
     const isLabelOwner =
         showLabel && !showSelectedLabel && cluster?.members[0]?.id === layoutSwitch.id;
 
+    const clusterLayout =
+        isLabelOwner && cluster ? getClusterLayout(largeSymbol, cluster.members.length) : undefined;
+
     setSwitchFeatureProperty(switchFeature, {
         switch: layoutSwitch,
         planId: planId,
         clusterLabel:
-            isLabelOwner && cluster ? { members: cluster.members, large: largeSymbol } : undefined,
+            clusterLayout && cluster
+                ? {
+                      members: cluster.members,
+                      layout: clusterLayout,
+                      box: getClusterBox(clusterLayout, cluster.members),
+                  }
+                : undefined,
     });
 
     const jointFeatures =
@@ -710,7 +774,7 @@ function getSwitchJointStyle(
 type SwitchFeatureProperty = {
     switch: LayoutSwitch;
     planId: GeometryPlanId | undefined;
-    clusterLabel?: { members: LayoutSwitch[]; large: boolean };
+    clusterLabel?: { members: LayoutSwitch[]; layout: ClusterLayout; box: ClusterBox };
 };
 
 const SWITCH_FEATURE_DATA_PROPERTY = 'switch-data';
@@ -756,8 +820,7 @@ export function findHoveredClusterSwitch(
             (feature.getGeometry() as OlPoint | undefined)?.getCoordinates() ?? [];
         if (!cluster || switchX === undefined || switchY === undefined) continue;
 
-        const layout = getClusterLayout(cluster.large, cluster.members.length);
-        const box = getClusterBox(layout, cluster.members);
+        const { layout, box } = cluster;
         // Screen y grows downwards, map y upwards
         const dx = (cursorX - switchX) / resolution;
         const dy = (switchY - cursorY) / resolution;
