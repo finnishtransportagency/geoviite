@@ -14,6 +14,7 @@ import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import {
     createLayoutSwitchFeatures,
+    findHoveredClusterSwitch,
     findMatchingSwitches,
 } from 'map/layers/utils/switch-layer-utils';
 import { LayoutContext, SwitchStructure, TimeStamp } from 'common/common-model';
@@ -142,11 +143,17 @@ export function createSwitchLayer(
     return {
         name: layerName,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => ({
-            switches: !splittingState?.disabled
-                ? findMatchingSwitches(hitArea, source, options).map((d) => d.switch.id)
-                : [],
-        }),
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => {
+            if (splittingState?.disabled) return { switches: [] };
+            // A row of a stacked-switch label takes priority, so the hovered switch gets picked
+            const hoveredRowSwitch = findHoveredClusterSwitch(hitArea, source, resolution);
+            const matches = findMatchingSwitches(hitArea, source, options).map((d) => d.switch.id);
+            return {
+                switches: hoveredRowSwitch
+                    ? [hoveredRowSwitch, ...matches.filter((id) => id !== hoveredRowSwitch)]
+                    : matches,
+            };
+        },
         onRemove: () => updateShownSwitches([]),
     };
 }
