@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './track-number-panel.scss';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { fieldComparator } from 'utils/array-utils';
-import { Radio } from 'vayla-design-lib/radio/radio';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { useTranslation } from 'react-i18next';
 import { TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
@@ -54,12 +54,12 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                             <li className={trackNumberClassNames} key={trackNumber.id}>
                                 <div>
                                     <span onMouseUp={() => onSelectTrackNumber(trackNumber)}>
-                                        <Radio
+                                        <Checkbox
                                             checked={isSelected}
                                             readOnly={true}
-                                            name={trackNumber.number}
-                                        />
-                                        {trackNumber.number}
+                                            name={trackNumber.number}>
+                                            {trackNumber.number}
+                                        </Checkbox>
                                     </span>
                                     {!colorSelectorDisabled && (
                                         <ColorSelector
