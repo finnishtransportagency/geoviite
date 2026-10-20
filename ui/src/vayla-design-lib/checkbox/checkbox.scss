@@ -17,6 +17,9 @@
     align-items: center;
     justify-content: center;
 
+    outline: 0 solid colors.$color-blue-default;
+    outline-offset: 2px;
+
     width: 20px;
     height: 20px;
     background: colors.$color-white-default;
@@ -28,6 +31,9 @@
 
 .checkbox__checked-icon {
     opacity: 0;
+    > svg {
+        padding-top: 3px;
+    }
 }
 
 .checkbox__input:checked + .checkbox__visualization {
@@ -87,16 +93,17 @@
 .checkbox__input:focus + {
     .checkbox__visualization {
         background: colors.$color-blue-lighter;
-        border-style: dashed;
+        outline: 2px solid colors.$color-blue-default;
+        outline-offset: 2px;
     }
 }
 
 .checkbox--focus .checkbox__input:checked,
 .checkbox__input:focus.checkbox__input:checked {
     + .checkbox__visualization {
-        border-style: dashed;
         background: colors.$color-blue-light;
-        border-color: colors.$color-blue-default;
+        outline: 2px solid colors.$color-blue-default;
+        outline-offset: 2px;
 
         .checkbox__checked-icon {
             opacity: 1;
