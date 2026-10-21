@@ -164,6 +164,7 @@ class TestDBService(
                 arrayOf(
                     "design",
                     "km_post",
+                    "km_post_version",
                     "location_track",
                     "location_track_version",
                     "location_track_version_edge",
