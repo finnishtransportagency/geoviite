@@ -290,7 +290,7 @@ constructor(
     }
 
     @Test
-    fun `editing several objects and finishing merging all to main leaves design empty`() {
+    fun `editing several objects and finishing merging all to main leaves only COMPLETED rows in design`() {
         val trackNumber =
             mainOfficialContext
                 .save(trackNumber(), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
@@ -397,11 +397,10 @@ constructor(
                 MergerCompletionVersion(rs.getBoolean("draft"), rs.getInt("version"), rs.getBoolean("deleted"))
             }
 
-        // The main publication initially creates the actual completion marker (draft), then that
-        // gets published (draft to official, draft is deleted) and immediately cleaned up (deleted)
-        // in the triggered design publication.
+        // The main publication creates the completion marker (draft), which then gets published in the
+        // triggered design publication (draft to official, draft row deleted). The official row stays.
         assertEquals(
-            setOf(true to false, false to false, false to true, true to true),
+            setOf(true to false, false to false, true to true),
             completionVersions.map { it.draft to it.deleted }.toSet(),
         )
         // ... and the non-deleted official one is the one that actually gets recorded in the

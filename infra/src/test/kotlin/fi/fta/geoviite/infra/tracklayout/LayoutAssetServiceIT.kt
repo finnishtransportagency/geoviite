@@ -9,6 +9,8 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -26,6 +28,11 @@ constructor(
     private val layoutLocationTrackService: LocationTrackService,
     private val layoutSwitchService: LayoutSwitchService,
     private val layoutKmPostService: LayoutKmPostService,
+    private val trackNumberDao: LayoutTrackNumberDao,
+    private val locationTrackDao: LocationTrackDao,
+    private val switchDao: LayoutSwitchDao,
+    private val kmPostDao: LayoutKmPostDao,
+    private val operationalPointDao: OperationalPointDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -255,5 +262,96 @@ constructor(
         assertEquals(locationTrack, designDraftContext.fetchVersion(locationTrack.id))
         assertEquals(switch, designDraftContext.fetchVersion(switch.id))
         assertEquals(kmPost, designDraftContext.fetchVersion(kmPost.id))
+    }
+
+    @Test
+    fun `COMPLETED design rows reveal the main-official version in design contexts and at-moment fetches`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
+        val trackNumber = mainOfficialContext.save(trackNumber(), referenceLineGeometry(segment))
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segment))
+        val switch = mainOfficialContext.save(switch())
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber.id, KmNumber(123)))
+        val operationalPoint = mainOfficialContext.save(operationalPoint())
+
+        val designTrackNumber = designOfficialContext.copyFrom(trackNumber)
+        val designLocationTrack = designOfficialContext.copyFrom(locationTrack)
+        val designSwitch = designOfficialContext.copyFrom(switch)
+        val designKmPost = designOfficialContext.copyFrom(kmPost)
+        val designOperationalPoint = designOfficialContext.copyFrom(operationalPoint)
+
+        // Completion marker as a design draft: design-draft shows main, design-official still shows the design row
+        val trackNumberCompletion = designDraftContext.save(completed(trackNumberDao.fetch(designTrackNumber)))
+        val locationTrackCompletion =
+            layoutLocationTrackService.getWithGeometry(designLocationTrack).let { (track, geometry) ->
+                designDraftContext.save(completed(track), geometry)
+            }
+        val switchCompletion = designDraftContext.save(completed(switchDao.fetch(designSwitch)))
+        val kmPostCompletion = designDraftContext.save(completed(kmPostDao.fetch(designKmPost)))
+        val operationalPointCompletion =
+            designDraftContext.save(completed(operationalPointDao.fetch(designOperationalPoint)))
+
+        assertEquals(trackNumber, designDraftContext.fetchVersion(trackNumber.id))
+        assertEquals(locationTrack, designDraftContext.fetchVersion(locationTrack.id))
+        assertEquals(switch, designDraftContext.fetchVersion(switch.id))
+        assertEquals(kmPost, designDraftContext.fetchVersion(kmPost.id))
+        assertEquals(operationalPoint, designDraftContext.fetchVersion(operationalPoint.id))
+        assertEquals(designTrackNumber, designOfficialContext.fetchVersion(trackNumber.id))
+        assertEquals(designLocationTrack, designOfficialContext.fetchVersion(locationTrack.id))
+
+        // Publishing the completion: the COMPLETED row stays live but both design contexts show main
+        publishCompletion(trackNumberCompletion, designTrackNumber)
+        publishCompletion(locationTrackCompletion, designLocationTrack)
+        publishCompletion(switchCompletion, designSwitch)
+        publishCompletion(kmPostCompletion, designKmPost)
+        publishCompletion(operationalPointCompletion, designOperationalPoint)
+
+        listOf(designOfficialContext, designDraftContext).forEach { context ->
+            assertEquals(trackNumber, context.fetchVersion(trackNumber.id))
+            assertEquals(locationTrack, context.fetchVersion(locationTrack.id))
+            assertEquals(switch, context.fetchVersion(switch.id))
+            assertEquals(kmPost, context.fetchVersion(kmPost.id))
+            assertEquals(operationalPoint, context.fetchVersion(operationalPoint.id))
+        }
+
+        val afterCompletion = testDBService.layoutChangeTime()
+        assertEquals(
+            trackNumber,
+            trackNumberDao.fetchOfficialVersionAtMoment(designBranch, trackNumber.id, afterCompletion),
+        )
+        assertEquals(
+            locationTrack,
+            locationTrackDao.fetchOfficialVersionAtMoment(designBranch, locationTrack.id, afterCompletion),
+        )
+        assertEquals(
+            listOf(locationTrack),
+            locationTrackDao.fetchAllOfficialVersionsAtMoment(designBranch, afterCompletion),
+        )
+        assertEquals(
+            listOf(locationTrack),
+            locationTrackDao.fetchOfficialVersionsNearAtMoment(
+                designBranch,
+                BoundingBox(Point(-1.0, -1.0), Point(1.0, 3.0)),
+                afterCompletion,
+            ),
+        )
+    }
+
+    /**
+     * Leaves the same rows behind as publishing a completion marker: the draft is gone, design-official is COMPLETED.
+     */
+    private inline fun <reified T : LayoutAsset<T>> publishCompletion(
+        draft: LayoutRowVersion<T>,
+        designOfficial: LayoutRowVersion<T>,
+    ) {
+        testDBService.delete(draft)
+        testDBService.update(designOfficial) { asset ->
+            asset.withContext(
+                (asset.contextData as DesignOfficialContextData<T>).copy(designAssetState = DesignAssetState.COMPLETED)
+            )
+        }
     }
 }

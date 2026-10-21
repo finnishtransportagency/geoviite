@@ -406,13 +406,12 @@ constructor(
         val mainPublication = trackNumberService.publish(LayoutBranch.main, mainDraft)
         val mainOfficial = mainPublication.published
         val designMergerDraft = mainPublication.completed!!.second
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial,
-            designOfficial = designOfficial,
-            designDraft = designMergerDraft,
-        )
+        // The completion marker is a design draft but hides itself like a cancellation: design-draft shows main
+        assertEquals(mainOfficial, trackNumberDao.fetchVersion(LayoutBranch.main.official, tnId))
+        assertEquals(mainOfficial, trackNumberDao.fetchVersion(LayoutBranch.main.draft, tnId))
+        assertEquals(designOfficial, trackNumberDao.fetchVersion(designBranch.official, tnId))
+        assertEquals(mainOfficial, trackNumberDao.fetchVersion(designBranch.draft, tnId))
+        assertEquals(DesignAssetState.COMPLETED, trackNumberDao.fetch(designMergerDraft).designAssetState)
     }
 
     @Test
@@ -459,13 +458,12 @@ constructor(
         val mainOfficial2 = afterMainPublication2.published
         val designMergerDraft = afterMainPublication2.completed!!.second
 
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainOfficial = mainOfficial2,
-            designOfficial = designOfficial,
-            designDraft = designMergerDraft,
-        )
+        // The completion marker is a design draft but hides itself like a cancellation: design-draft shows main
+        assertEquals(mainOfficial2, trackNumberDao.fetchVersion(LayoutBranch.main.official, tnId))
+        assertEquals(mainOfficial2, trackNumberDao.fetchVersion(LayoutBranch.main.draft, tnId))
+        assertEquals(designOfficial, trackNumberDao.fetchVersion(designBranch.official, tnId))
+        assertEquals(mainOfficial2, trackNumberDao.fetchVersion(designBranch.draft, tnId))
+        assertEquals(DesignAssetState.COMPLETED, trackNumberDao.fetch(designMergerDraft).designAssetState)
     }
 
     @Test

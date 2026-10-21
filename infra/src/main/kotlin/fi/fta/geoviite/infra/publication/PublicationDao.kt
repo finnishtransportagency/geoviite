@@ -131,12 +131,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
               postgis.st_astext(candidate_track_number.bounding_box) as bounding_box
             from layout.track_number candidate_track_number
             where draft = (:candidate_state = 'DRAFT') and design_id is not distinct from :candidate_design_id
-              and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
+              and not (design_id is not null and not draft and (design_asset_state != 'OPEN' or exists (
                 select * from layout.track_number drafted_cancellation
                 where drafted_cancellation.draft
                   and drafted_cancellation.design_id = candidate_track_number.design_id
                   and drafted_cancellation.id = candidate_track_number.id
-                  and drafted_cancellation.design_asset_state = 'CANCELLED')))
+                  and drafted_cancellation.design_asset_state != 'OPEN')))
             """
                 .trimIndent()
         val candidates =
@@ -215,12 +215,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
             where candidate_location_track.draft = (:candidate_state = 'DRAFT')
               and candidate_location_track.design_id is not distinct from :candidate_design_id and
               not (candidate_location_track.design_id is not null and not candidate_location_track.draft
-                   and (design_asset_state = 'CANCELLED' or exists (
+                   and (design_asset_state != 'OPEN' or exists (
                      select * from layout.location_track drafted_cancellation
                      where drafted_cancellation.draft
                        and drafted_cancellation.design_id = candidate_location_track.design_id
                        and drafted_cancellation.id = candidate_location_track.id
-                       and drafted_cancellation.design_asset_state = 'CANCELLED')))
+                       and drafted_cancellation.design_asset_state != 'OPEN')))
             """
                 .trimIndent()
         val candidates =
@@ -319,12 +319,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
             where candidate_switch.draft = (:candidate_state = 'DRAFT')
               and candidate_switch.design_id is not distinct from :candidate_design_id
               and not (candidate_switch.design_id is not null and not candidate_switch.draft
-                       and (design_asset_state = 'CANCELLED' or exists (
+                       and (design_asset_state != 'OPEN' or exists (
                          select * from layout.switch drafted_cancellation
                          where drafted_cancellation.draft
                            and drafted_cancellation.design_id = design_id
                            and drafted_cancellation.id = candidate_switch.id
-                           and drafted_cancellation.design_asset_state = 'CANCELLED')))
+                           and drafted_cancellation.design_asset_state != 'OPEN')))
             """
                 .trimIndent()
         val candidates =
@@ -373,12 +373,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
             from layout.km_post candidate_km_post
             where draft = (:candidate_state = 'DRAFT')
               and design_id is not distinct from :candidate_design_id
-              and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
+              and not (design_id is not null and not draft and (design_asset_state != 'OPEN' or exists (
                 select * from layout.km_post drafted_cancellation
                 where drafted_cancellation.draft
                   and drafted_cancellation.design_id = design_id
                   and drafted_cancellation.id = candidate_km_post.id
-                  and drafted_cancellation.design_asset_state = 'CANCELLED')))
+                  and drafted_cancellation.design_asset_state != 'OPEN')))
             order by km_number
             """
                 .trimIndent()
@@ -434,12 +434,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?, val alignme
                           and live_op.layout_context_id = candidate_operational_point.layout_context_id)
               and draft = (:candidate_state = 'DRAFT')
               and design_id is not distinct from :candidate_design_id
-              and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
+              and not (design_id is not null and not draft and (design_asset_state != 'OPEN' or exists (
                 select * from layout.operational_point drafted_cancellation
                 where drafted_cancellation.draft
                   and drafted_cancellation.design_id = design_id
                   and drafted_cancellation.id = candidate_operational_point.id
-                  and drafted_cancellation.design_asset_state = 'CANCELLED')))
+                  and drafted_cancellation.design_asset_state != 'OPEN')))
             order by name
             """
                 .trimIndent()
