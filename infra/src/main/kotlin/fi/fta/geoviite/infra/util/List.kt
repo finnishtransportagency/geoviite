@@ -101,3 +101,5 @@ fun <T, R : Comparable<R>> getIndexRangeForRangeInOrderedList(
     val end = if (endInsertionPoint < 0) -endInsertionPoint - 2 else endInsertionPoint
     return start..end
 }
+
+fun <T> List<T>.singleOrDefault(defaultProvider: () -> T): T = singleOrNull() ?: defaultProvider()

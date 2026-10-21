@@ -73,7 +73,7 @@ data class TopologySwitchSegment(
 )
 
 /** An edge of the graph, covered by the location tracks whose geometry runs along it. */
-data class TopologyEdge
+class TopologyEdge
 internal constructor(
     val id: UUID,
     val startNode: TopologyNode,
@@ -101,7 +101,7 @@ data class SwitchAlignmentRoutingAlternative(
 )
 
 /** A node of the graph: either the end of a track or a switch. */
-data class TopologyNode
+class TopologyNode
 internal constructor(
     val id: UUID,
     val type: LayoutNodeType,

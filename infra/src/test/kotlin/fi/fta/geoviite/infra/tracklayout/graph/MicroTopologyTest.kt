@@ -568,28 +568,28 @@ class MicroTopologyTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(101),
-                            uuid = id("west-edge"),
+                            extId = id("west-edge"),
                             startNode = DbNodeConnection(NodePortType.A, westEnd),
                             endNode = DbNodeConnection(NodePortType.B, aMain),
                             segments = listOf(segment(Point(0.0, 0.0), Point(16.0, 0.0))),
                         ),
                         DbLayoutEdge(
                             id = IntId(102),
-                            uuid = id("a-inner"),
+                            extId = id("a-inner"),
                             startNode = DbNodeConnection(NodePortType.A, aMain),
                             endNode = DbNodeConnection(NodePortType.A, shared),
                             segments = listOf(segment(Point(16.0, 0.0), Point(50.0, 0.0))),
                         ),
                         DbLayoutEdge(
                             id = IntId(103),
-                            uuid = id("b-inner"),
+                            extId = id("b-inner"),
                             startNode = DbNodeConnection(NodePortType.B, shared),
                             endNode = DbNodeConnection(NodePortType.A, bJoint2),
                             segments = listOf(segment(Point(50.0, 0.0), Point(70.0, 0.0))),
                         ),
                         DbLayoutEdge(
                             id = IntId(104),
-                            uuid = id("east-edge"),
+                            extId = id("east-edge"),
                             startNode = DbNodeConnection(NodePortType.B, bJoint2),
                             endNode = DbNodeConnection(NodePortType.A, eastEnd),
                             segments = listOf(segment(Point(70.0, 0.0), Point(100.0, 0.0))),
@@ -729,28 +729,28 @@ private fun twoSwitchCombinationNano(secondJoint: JointNumber): Topology {
                 listOf(
                     DbLayoutEdge(
                         id = IntId(101),
-                        uuid = id("west-edge"),
+                        extId = id("west-edge"),
                         startNode = DbNodeConnection(NodePortType.A, westEnd),
                         endNode = DbNodeConnection(NodePortType.B, aJoint2),
                         segments = listOf(segment(Point(0.0, 0.0), Point(20.0, 0.0))),
                     ),
                     DbLayoutEdge(
                         id = IntId(102),
-                        uuid = id("a-inner"),
+                        extId = id("a-inner"),
                         startNode = DbNodeConnection(NodePortType.A, aJoint2),
                         endNode = DbNodeConnection(NodePortType.A, combination),
                         segments = listOf(segment(Point(20.0, 0.0), Point(50.0, 0.0))),
                     ),
                     DbLayoutEdge(
                         id = IntId(103),
-                        uuid = id("b-inner"),
+                        extId = id("b-inner"),
                         startNode = DbNodeConnection(NodePortType.B, combination),
                         endNode = DbNodeConnection(NodePortType.A, bOther),
                         segments = listOf(segment(Point(50.0, 0.0), Point(80.0, 0.0))),
                     ),
                     DbLayoutEdge(
                         id = IntId(104),
-                        uuid = id("east-edge"),
+                        extId = id("east-edge"),
                         startNode = DbNodeConnection(NodePortType.B, bOther),
                         endNode = DbNodeConnection(NodePortType.A, eastEnd),
                         segments = listOf(segment(Point(80.0, 0.0), Point(100.0, 0.0))),
@@ -839,7 +839,7 @@ private fun switchNanoFixture(
                 id = IntId(100 + joint.intValue),
                 portA = SwitchLink(SWITCH_A, role, joint),
                 portB = null,
-                uuid = id("switch-joint-${joint.intValue}"),
+                extId = id("switch-joint-${joint.intValue}"),
             )
         }
     val trackEnds = endJoints.associateWith { joint -> id("track-end-${joint.intValue}") }
@@ -851,14 +851,14 @@ private fun switchNanoFixture(
                 id = IntId(200 + joint.intValue),
                 portA = TrackBoundary(trackId, START),
                 portB = null,
-                uuid = trackEnds.getValue(joint),
+                extId = trackEnds.getValue(joint),
             )
         val jointLoc = structure.getJointLocation(joint)
         val endLoc = Point(jointLoc.x * 2.0, jointLoc.y * 2.0 + 100.0)
         val edge =
             DbLayoutEdge(
                 id = IntId(nextEdgeId++),
-                uuid = id("outside-${joint.intValue}"),
+                extId = id("outside-${joint.intValue}"),
                 startNode = DbNodeConnection(NodePortType.A, boundaryNode),
                 endNode = DbNodeConnection(NodePortType.B, switchNodes.getValue(joint)),
                 segments = listOf(segment(endLoc, jointLoc)),
@@ -886,7 +886,7 @@ private fun switchNanoFixture(
                     listOf(
                         DbLayoutEdge(
                             id = IntId(nextEdgeId++),
-                            uuid = id("inner-$index-1"),
+                            extId = id("inner-$index-1"),
                             startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(firstJoint)),
                             endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(mainJoint)),
                             segments =
@@ -899,7 +899,7 @@ private fun switchNanoFixture(
                         ),
                         DbLayoutEdge(
                             id = IntId(nextEdgeId++),
-                            uuid = id("inner-$index-2"),
+                            extId = id("inner-$index-2"),
                             startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(mainJoint)),
                             endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(lastJoint)),
                             segments =
@@ -915,7 +915,7 @@ private fun switchNanoFixture(
                     listOf(
                         DbLayoutEdge(
                             id = IntId(nextEdgeId++),
-                            uuid = id("inner-$index-full"),
+                            extId = id("inner-$index-full"),
                             startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(firstJoint)),
                             endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(lastJoint)),
                             segments =

@@ -46,12 +46,12 @@ class LocationTrackGeometryTest {
             TmpTrackBoundaryNode(track123(), START).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START), uuid = UUID(0L, 456L)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START), extId = UUID(0L, 456L)).contentKey,
             TmpTrackBoundaryNode(track123(), START).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START), uuid = UUID(0L, 456L)).contentKey,
-            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), START), uuid = UUID(0L, 654L)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START), extId = UUID(0L, 456L)).contentKey,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), START), extId = UUID(0L, 654L)).contentKey,
         )
         assertNotEquals(
             TmpTrackBoundaryNode(track123(), START).contentKey,
@@ -60,12 +60,12 @@ class LocationTrackGeometryTest {
 
         assertEquals(TmpTrackBoundaryNode(track123(), END).contentKey, TmpTrackBoundaryNode(track123(), END).contentKey)
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END), uuid = UUID(0L, 456L)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END), extId = UUID(0L, 456L)).contentKey,
             TmpTrackBoundaryNode(track123(), END).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END), uuid = UUID(0L, 456L)).contentKey,
-            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), END), uuid = UUID(0L, 654L)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END), extId = UUID(0L, 456L)).contentKey,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), END), extId = UUID(0L, 654L)).contentKey,
         )
         assertNotEquals(
             TmpTrackBoundaryNode(track123(), END).contentKey,
