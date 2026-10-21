@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
+import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -45,12 +46,12 @@ class LocationTrackGeometryTest {
             TmpTrackBoundaryNode(track123(), START).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START), uuid = UUID(0L, 456L)).contentKey,
             TmpTrackBoundaryNode(track123(), START).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START)).contentKey,
-            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), START)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START), uuid = UUID(0L, 456L)).contentKey,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), START), uuid = UUID(0L, 654L)).contentKey,
         )
         assertNotEquals(
             TmpTrackBoundaryNode(track123(), START).contentKey,
@@ -59,12 +60,12 @@ class LocationTrackGeometryTest {
 
         assertEquals(TmpTrackBoundaryNode(track123(), END).contentKey, TmpTrackBoundaryNode(track123(), END).contentKey)
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END), uuid = UUID(0L, 456L)).contentKey,
             TmpTrackBoundaryNode(track123(), END).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END)).contentKey,
-            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), END)).contentKey,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END), uuid = UUID(0L, 456L)).contentKey,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), END), uuid = UUID(0L, 654L)).contentKey,
         )
         assertNotEquals(
             TmpTrackBoundaryNode(track123(), END).contentKey,
@@ -85,12 +86,12 @@ class LocationTrackGeometryTest {
         fun switch123Main2() = SwitchLink(IntId(123), MAIN, JointNumber(2))
         assertEquals(TmpSwitchNode(switch123Main1(), null).contentKey, TmpSwitchNode(switch123Main1(), null).contentKey)
         assertEquals(
-            DbSwitchNode(IntId(789), switch123Main1(), null).contentKey,
+            DbSwitchNode(IntId(789), switch123Main1(), null, UUID(0L, 789L)).contentKey,
             TmpSwitchNode(switch123Main1(), null).contentKey,
         )
         assertEquals(
-            DbSwitchNode(IntId(789), switch123Main1(), null).contentKey,
-            DbSwitchNode(IntId(987), switch123Main1(), null).contentKey,
+            DbSwitchNode(IntId(789), switch123Main1(), null, UUID(0L, 789L)).contentKey,
+            DbSwitchNode(IntId(987), switch123Main1(), null, UUID(0L, 987L)).contentKey,
         )
         assertNotEquals(
             TmpSwitchNode(switch123Main1(), switch124Main1()),

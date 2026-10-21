@@ -189,12 +189,12 @@ internal fun createNanoTopology(
     }
     val topologyNodeIds =
         regularEdges
-            .flatMap { (edge) -> listOf(nodeUuid(edge.startNode.node), nodeUuid(edge.endNode.node)) }
+            .flatMap { (edge) -> listOf(edge.startNode.node.uuid, edge.endNode.node.uuid) }
             .plus(switchLines.flatMap { line -> listOf(line.startNode, line.endNode) })
             .toSet()
     val databaseNodes =
         nodeOccurrences
-            .filter { occurrence -> nodeUuid(occurrence.node) in topologyNodeIds }
+            .filter { occurrence -> occurrence.node.uuid in topologyNodeIds }
             .groupBy { occurrence -> occurrence.node.id }
     val endpointConnections = mutableMapOf<UUID, MutableList<EndpointConnection>>()
 
@@ -212,7 +212,7 @@ internal fun createNanoTopology(
                     SwitchJointKey(link.id, link.jointNumber) in topologySwitchJoints
                 } ?: emptyList()
             addNode(
-                id = nodeUuid(dbNode),
+                id = dbNode.uuid,
                 type = dbNode.type,
                 location = location,
                 switchReferences =
@@ -232,11 +232,11 @@ internal fun createNanoTopology(
                 )
             }
         regularEdges.forEach { (edge, edgeTracks) ->
-            val edgeId = edgeUuid(edge)
+            val edgeId = edge.uuid
             addEdge(
                 id = edgeId,
-                startNode = nodeUuid(edge.startNode.node),
-                endNode = nodeUuid(edge.endNode.node),
+                startNode = edge.startNode.node.uuid,
+                endNode = edge.endNode.node.uuid,
                 length = edge.length.distance,
                 trackReferences =
                     edgeTracks.map { track ->
@@ -268,7 +268,7 @@ internal fun createNanoTopology(
         }
         databaseNodes.values.forEach { occurrences ->
             val node = occurrences.first().node
-            addNodeTransitions(node, endpointConnections[nodeUuid(node)].orEmpty())
+            addNodeTransitions(node, endpointConnections[node.uuid].orEmpty())
         }
         synthesizedSwitchNodes.values
             .filter { node -> node.id in topologyNodeIds }
@@ -303,17 +303,17 @@ private fun TopologyBuilder.addNodeTransitions(node: DbLayoutNode, connections: 
         is DbTrackBoundaryNode -> {
             if (node.portB == null) {
                 connections.forEach { connection ->
-                    addUTurn(nodeUuid(node), connection.edgeId, connection.incomingDirection)
+                    addUTurn(node.uuid, connection.edgeId, connection.incomingDirection)
                 }
             } else {
-                addTransitionsBetween(nodeUuid(node), connections) { first, second ->
+                addTransitionsBetween(node.uuid, connections) { first, second ->
                     val firstBoundary = (first.side as? BoundarySide)?.boundary
                     val secondBoundary = (second.side as? BoundarySide)?.boundary
                     firstBoundary != null && secondBoundary != null && firstBoundary != secondBoundary
                 }
             }
         }
-        is DbSwitchNode -> addTransitions(nodeUuid(node), createSwitchTransitions(connections))
+        is DbSwitchNode -> addTransitions(node.uuid, createSwitchTransitions(connections))
     }
 }
 
@@ -403,12 +403,6 @@ private fun TopologyBuilder.addUTurn(node: UUID, edge: UUID, incomingDirection: 
         outgoingDirection = incomingDirection.reverse(),
     )
 
-private fun edgeUuid(edge: DbLayoutEdge): UUID =
-    requireNotNull(edge.uuid) { "Database layout edge has no UUID: edge=${edge.id}" }
-
-private fun nodeUuid(node: DbLayoutNode): UUID =
-    requireNotNull(node.uuid) { "Database layout node has no UUID: node=${node.id}" }
-
 private data class NanoEdgeData(val edge: DbLayoutEdge, val tracks: List<LocationTrack>)
 
 private data class NodeOccurrence(val node: DbLayoutNode, val edgeId: IntId<LayoutEdge>, val location: Point)
@@ -480,7 +474,7 @@ private fun MutableMap<UUID, MutableList<EndpointConnection>>.add(
     edgeId: UUID,
     endpoint: EdgeEndpoint,
 ) {
-    val nodeId = nodeUuid(connection.node)
+    val nodeId = connection.node.uuid
     val side =
         when (connection.node) {
             is DbTrackBoundaryNode -> connection.trackBoundaryIn?.let(::BoundarySide)
@@ -526,8 +520,8 @@ private fun createSwitchLines(
             val routingAlignment = TopologySwitchAlignment(switchId, alignment)
             SwitchLineData(
                 id = switchLineUuid(uuidReference, alignment.jointNumbers),
-                startNode = nodeUuid(startNode),
-                endNode = nodeUuid(endNode),
+                startNode = startNode.uuid,
+                endNode = endNode.uuid,
                 startSide = SwitchSide.Internal(startKey, setOf(routingAlignment)),
                 endSide = SwitchSide.Internal(endKey, setOf(routingAlignment)),
                 length = alignment.length(),
@@ -611,7 +605,7 @@ private fun centerMainNodeId(
     synthesizedNodes: MutableMap<UUID, SynthesizedSwitchNode>,
 ): UUID? {
     nodesBySwitchJoint[mainKey]?.let {
-        return nodeUuid(it)
+        return it.uuid
     }
     val mainLocation = switch.getJoint(mainJoint)?.location ?: return null
     val id = switchNodeUuid(uuidReference, mainJoint)
@@ -660,7 +654,7 @@ private fun createCenterMainSwitchLine(
     return SwitchLineData(
         id = switchLineUuid(uuidReference, listOf(mainJoint, endJoint)),
         startNode = mainNodeId,
-        endNode = nodeUuid(endNode),
+        endNode = endNode.uuid,
         startSide = SwitchSide.Internal(mainKey, routingAlignments),
         endSide = SwitchSide.Internal(endKey, routingAlignments),
         length = legLength,
