@@ -42,10 +42,12 @@ import fi.fta.geoviite.infra.tracklayout.graph.TopologyDetailLevel.NANO
 import java.time.Instant
 import java.util.UUID
 import kotlin.math.abs
+import org.slf4j.LoggerFactory
 
 private const val TOPOLOGY_CACHE_SIZE = 10L
 private val TOPOLOGY_API_ARCS_UUID_GENERATOR: NameBasedGenerator =
     Generators.nameBasedGenerator(UUID.fromString("e1ad9cd7-78d2-5f98-a85e-e07870846250"))
+private val TOPOLOGY_SERVICE_LOGGER = LoggerFactory.getLogger(TopologyService::class.java)
 
 @GeoviiteService
 class TopologyService(
@@ -167,7 +169,9 @@ internal fun createNanoTopology(
 ): Topology {
     val topologySwitchJoints = switches.values.switchJoints(structures)
     val edgeGroups = tracks.tracksByEdges()
-    val nodesBySwitchJoint = edgeGroups.collectNodesBySwitchJoint(topologySwitchJoints)
+    val switchJointNodes = edgeGroups.collectNodesBySwitchJoint(topologySwitchJoints)
+    val nodesBySwitchJoint = switchJointNodes.nodes
+    val validSwitchJoints = topologySwitchJoints - switchJointNodes.ambiguousJoints
     val synthesizedSwitchNodes = mutableMapOf<UUID, SynthesizedSwitchNode>()
     val switchLines =
         switches.values.flatMap { switch ->
@@ -176,6 +180,7 @@ internal fun createNanoTopology(
                 structure = structures.getValue(switch.switchStructureId),
                 uuidReference = switchRefs.getValue(switch.id as IntId),
                 nodesBySwitchJoint = nodesBySwitchJoint,
+                ambiguousSwitchJoints = switchJointNodes.ambiguousJoints,
                 edgeGroups = edgeGroups,
                 synthesizedNodes = synthesizedSwitchNodes,
             )
@@ -206,10 +211,10 @@ internal fun createNanoTopology(
         )
         databaseNodes.values.forEach { occurrences ->
             val dbNode = occurrences.first().node
-            val location = nodeLocation(dbNode, occurrences, switches, topologySwitchJoints)
+            val location = nodeLocation(dbNode, occurrences, switches, validSwitchJoints)
             val nodeSwitches =
                 (dbNode as? DbSwitchNode)?.switchLinks?.filter { link ->
-                    SwitchJointKey(link.id, link.jointNumber) in topologySwitchJoints
+                    SwitchJointKey(link.id, link.jointNumber) in validSwitchJoints
                 } ?: emptyList()
             addNode(
                 id = dbNode.uuid,
@@ -244,8 +249,8 @@ internal fun createNanoTopology(
                     },
                 routingReference = LayoutEdgeRoutingReference(edge.id),
             )
-            endpointConnections.add(edge.startNode, edgeId, EdgeEndpoint.START)
-            endpointConnections.add(edge.endNode, edgeId, EdgeEndpoint.END)
+            endpointConnections.add(edge.startNode, edgeId, EdgeEndpoint.START, switchJointNodes.ambiguousJoints)
+            endpointConnections.add(edge.endNode, edgeId, EdgeEndpoint.END, switchJointNodes.ambiguousJoints)
         }
         switchLines.forEach { line ->
             addEdge(
@@ -473,38 +478,54 @@ private fun MutableMap<UUID, MutableList<EndpointConnection>>.add(
     connection: fi.fta.geoviite.infra.tracklayout.DbNodeConnection,
     edgeId: UUID,
     endpoint: EdgeEndpoint,
+    ambiguousSwitchJoints: Set<SwitchJointKey>,
 ) {
     val nodeId = connection.node.uuid
     val side =
         when (connection.node) {
             is DbTrackBoundaryNode -> connection.trackBoundaryIn?.let(::BoundarySide)
             is DbSwitchNode ->
-                connection.switchOut?.let { link -> SwitchSide.External(SwitchJointKey(link.id, link.jointNumber)) }
+                connection.switchOut
+                    ?.let { link -> SwitchJointKey(link.id, link.jointNumber) }
+                    ?.takeUnless { key -> key in ambiguousSwitchJoints }
+                    ?.let(SwitchSide::External)
         }
     getOrPut(nodeId, ::mutableListOf).add(EndpointConnection(edgeId, endpoint, side))
 }
 
-private fun List<NanoEdgeData>.collectNodesBySwitchJoint(
-    topologySwitchJoints: Set<SwitchJointKey>
-): Map<SwitchJointKey, DbSwitchNode> =
-    this.asSequence()
-        .flatMap { (edge) -> listOf(edge.startNode.node, edge.endNode.node) }
-        .filterIsInstance<DbSwitchNode>()
-        .flatMap { node -> node.switchLinks.map { link -> SwitchJointKey(link.id, link.jointNumber) to node } }
-        .filter { (key) -> key in topologySwitchJoints }
-        .groupBy({ (key) -> key }, { (_, node) -> node })
-        .mapValues { (key, nodes) ->
-            require(nodes.map(DbLayoutNode::id).distinct().size == 1) {
-                "Switch joint is connected to multiple layout nodes: switch=${key.switchId} joint=${key.joint}"
-            }
-            nodes.first()
-        }
+private fun List<NanoEdgeData>.collectNodesBySwitchJoint(topologySwitchJoints: Set<SwitchJointKey>): SwitchJointNodes {
+    val nodesByJoint =
+        this.asSequence()
+            .flatMap { (edge) -> listOf(edge.startNode.node, edge.endNode.node) }
+            .filterIsInstance<DbSwitchNode>()
+            .flatMap { node -> node.switchLinks.map { link -> SwitchJointKey(link.id, link.jointNumber) to node } }
+            .filter { (key) -> key in topologySwitchJoints }
+            .groupBy({ (key) -> key }, { (_, node) -> node })
+    val ambiguousJoints = nodesByJoint.filterValues { nodes -> nodes.map(DbLayoutNode::id).distinct().size > 1 }.keys
+    ambiguousJoints.forEach { key ->
+        val nodeIds = nodesByJoint.getValue(key).map(DbLayoutNode::id).distinct()
+        TOPOLOGY_SERVICE_LOGGER.warn(
+            "Incomplete topology: switch joint is connected to multiple layout nodes: " +
+                "switch=${key.switchId} joint=${key.joint} nodes=$nodeIds"
+        )
+    }
+    return SwitchJointNodes(
+        nodes = nodesByJoint.filterKeys { key -> key !in ambiguousJoints }.mapValues { (_, nodes) -> nodes.first() },
+        ambiguousJoints = ambiguousJoints,
+    )
+}
+
+private data class SwitchJointNodes(
+    val nodes: Map<SwitchJointKey, DbSwitchNode>,
+    val ambiguousJoints: Set<SwitchJointKey>,
+)
 
 private fun createSwitchLines(
     switch: LayoutSwitch,
     structure: SwitchStructure,
     uuidReference: SwitchRef,
     nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
+    ambiguousSwitchJoints: Set<SwitchJointKey>,
     edgeGroups: List<NanoEdgeData>,
     synthesizedNodes: MutableMap<UUID, SynthesizedSwitchNode>,
 ): List<SwitchLineData> {
@@ -546,6 +567,7 @@ private fun createSwitchLines(
             structure = structure,
             uuidReference = uuidReference,
             nodesBySwitchJoint = nodesBySwitchJoint,
+            ambiguousSwitchJoints = ambiguousSwitchJoints,
             edgeGroups = edgeGroups,
             synthesizedNodes = synthesizedNodes,
         )
@@ -557,12 +579,14 @@ private fun createCenterMainSwitchLines(
     structure: SwitchStructure,
     uuidReference: SwitchRef,
     nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
+    ambiguousSwitchJoints: Set<SwitchJointKey>,
     edgeGroups: List<NanoEdgeData>,
     synthesizedNodes: MutableMap<UUID, SynthesizedSwitchNode>,
 ): List<SwitchLineData> {
     val switchId = switch.id as IntId
     val mainJoint = structure.presentationJointNumber
     val mainKey = SwitchJointKey(switchId, mainJoint)
+    if (mainKey in ambiguousSwitchJoints) return emptyList()
     val linkedAlignments = linkedCenterMainAlignments(structure, switchId, nodesBySwitchJoint)
     if (linkedAlignments.isEmpty()) return emptyList()
 

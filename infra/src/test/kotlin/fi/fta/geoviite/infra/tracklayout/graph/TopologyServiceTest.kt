@@ -32,6 +32,7 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class TopologyServiceTest {
@@ -110,7 +111,7 @@ class TopologyServiceTest {
         val boundary1 =
             DbTrackBoundaryNode(
                 id = IntId(201),
-                portA = TrackBoundary(IntId(1), START),
+                portA = TrackBoundary(IntId<LocationTrack>(1), START),
                 portB = null,
                 uuid = uuid("track-end-1"),
             )
@@ -174,6 +175,76 @@ class TopologyServiceTest {
             setOf(mainJoint, JointNumber(2)),
             micro.nodes.flatMap { node -> node.switchReferences.map { ref -> ref.switch.jointNumber } }.toSet(),
         )
+    }
+
+    @Test
+    fun `Ambiguous switch joint is omitted from nano and micro topology`() {
+        val structureId = IntId<SwitchStructure>(1)
+        val structure = SwitchStructure(RowVersion(structureId, 1), switchStructures.first { it.baseType.name == "YV" })
+        val switchJoints = structure.joints.map { joint -> switchJoint(joint.number.intValue, joint.location) }
+        val layoutSwitch = switch(id = SWITCH_ID, structureId = structureId, joints = switchJoints)
+        val switchRef = IdSwitchRef(SWITCH_ID)
+        val tracks = buildSwitchTracks(structure, splitAtMainJoint = true)
+        val duplicateTrackId = IntId<LocationTrack>(999)
+        val duplicateTrack = locationTrack(IntId(1), id = duplicateTrackId)
+        val ambiguousJoint = structure.presentationJointNumber
+        val duplicateNode =
+            DbSwitchNode(
+                id = IntId(999),
+                portA =
+                    SwitchLink(
+                        SWITCH_ID,
+                        SwitchJointRole.MAIN,
+                        ambiguousJoint,
+                    ),
+                portB = null,
+                uuid = uuid("duplicate-switch-joint"),
+            )
+        val duplicateBoundary =
+            DbTrackBoundaryNode(
+                id = IntId(998),
+                portA = TrackBoundary(duplicateTrackId, START),
+                portB = null,
+                uuid = uuid("duplicate-track-end"),
+            )
+        val jointLocation = structure.getJointLocation(ambiguousJoint)
+        val duplicateEdge =
+            DbLayoutEdge(
+                id = IntId(999),
+                uuid = uuid("duplicate-external-edge"),
+                startNode = DbNodeConnection(NodePortType.A, duplicateBoundary),
+                endNode = DbNodeConnection(NodePortType.B, duplicateNode),
+                segments = listOf(segment(Point(jointLocation.x - 100.0, jointLocation.y), jointLocation)),
+            )
+
+        val nano =
+            createNanoTopology(
+                tracks =
+                    tracks +
+                        (duplicateTrack to
+                            DbLocationTrackGeometry(
+                                trackRowVersion =
+                                    LayoutRowVersion(
+                                        LayoutRowId(
+                                            duplicateTrackId,
+                                            LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL),
+                                        ),
+                                        1,
+                                    ),
+                                edges = listOf(duplicateEdge),
+                            )),
+                switches = mapOf(SWITCH_ID to layoutSwitch),
+                structures = mapOf(structureId to structure),
+                switchRefs = mapOf(SWITCH_ID to switchRef),
+            )
+        val micro = CachedTopology(nano).micro
+        listOf(nano, micro).forEach { topology ->
+            assertTrue(
+                topology.nodes.none { node ->
+                    node.switchReferences.any { reference -> reference.switch.jointNumber == ambiguousJoint }
+                }
+            )
+        }
     }
 
     private fun buildSwitchTracks(
