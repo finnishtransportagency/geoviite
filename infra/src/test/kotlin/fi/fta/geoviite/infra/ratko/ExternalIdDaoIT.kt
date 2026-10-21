@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -41,5 +42,20 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
         val oidResult = trackNumberDao.getByExternalIds(mainOfficialContext.context, testOids + listOf(notExistingOid))
         assertEquals(3, oidResult.size)
         assertEquals(null, oidResult[notExistingOid])
+    }
+
+    @Test
+    fun `External ids can be found by branch for multiple assets`() {
+        val testIdsAndOids =
+            (1..2).map { mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())) }
+        val ids = testIdsAndOids.map { (id, _) -> id }
+
+        val externalIds = trackNumberDao.fetchExternalIdsByBranch(ids)
+
+        assertEquals(
+            testIdsAndOids.associate { (id, oid) -> id to mapOf(LayoutBranch.main to oid) },
+            externalIds.mapValues { (_, branchIds) -> branchIds.mapValues { (_, externalId) -> externalId.oid } },
+        )
+        assertEquals(0, trackNumberDao.fetchExternalIdsByBranch(emptyList()).size)
     }
 }

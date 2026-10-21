@@ -39,6 +39,8 @@ interface IExternalIdDao<T : LayoutAsset<T>> {
 
     fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>>
 
+    fun fetchExternalIdsByBranch(ids: Collection<IntId<T>>): Map<IntId<T>, Map<LayoutBranch, RatkoExternalId<T>>>
+
     fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>?
 
     fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?>
@@ -142,14 +144,26 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             .associate { it }
     }
 
-    override fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>> {
-        val sql = """select design_id, external_id, plan_item_id from $extIdTable where id = :id"""
+    override fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>> =
+        fetchExternalIdsByBranch(listOf(id))[id].orEmpty()
+
+    override fun fetchExternalIdsByBranch(
+        ids: Collection<IntId<T>>
+    ): Map<IntId<T>, Map<LayoutBranch, RatkoExternalId<T>>> {
+        if (ids.isEmpty()) return emptyMap()
+
+        val sql = """select id, design_id, external_id, plan_item_id from $extIdTable where id = any(array[:ids])"""
         return jdbcTemplate
-            .query(sql, mapOf("id" to id.intValue)) { rs, _ ->
-                rs.getLayoutBranch("design_id") to rs.getRatkoExternalId<T>("external_id", "plan_item_id")
+            .query(sql, mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+                Triple(
+                    rs.getIntId<T>("id"),
+                    rs.getLayoutBranch("design_id"),
+                    rs.getRatkoExternalId<T>("external_id", "plan_item_id"),
+                )
             }
-            .associate { it }
-            .also { logger.daoAccess(AccessType.FETCH, RatkoExternalId::class, "ALL") }
+            .groupBy({ it.first }, { it.second to it.third })
+            .mapValues { (_, externalIds) -> externalIds.associate { it } }
+            .also { logger.daoAccess(AccessType.FETCH, RatkoExternalId::class, ids) }
     }
 
     override fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>? {
