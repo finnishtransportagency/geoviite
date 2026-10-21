@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
@@ -66,7 +67,15 @@ class ExtApiTestDataServiceV1 : DBTestBase() {
             listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
         structure: SwitchStructure = switchStructureYV60_300_1_9(),
     ): SwitchAndTrackIds {
-        val allJoints = joints.flatMap { listOf(it.first, it.second) }.distinctBy { it.number }
+        val presentationJoint = structure.presentationJointNumber
+        val allJoints =
+            (joints.flatMap { listOf(it.first, it.second) } +
+                    switchJoint(
+                        presentationJoint.intValue,
+                        structure.getJointLocation(presentationJoint),
+                    ))
+                .distinctBy { it.number }
+                .map { joint -> joint.copy(role = SwitchJointRole.of(structure, joint.number)) }
         val switchId = layoutContext.save(switch(structure.id, allJoints)).id
         val savedSwitch = layoutContext.fetch(switchId)!!
 
