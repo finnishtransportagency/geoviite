@@ -91,9 +91,14 @@ data class LayoutEdgeRoutingReference(val edgeId: IntId<LayoutEdge>) : TopologyE
 
 data class SwitchAlignmentRoutingReference(
     val switchId: IntId<LayoutSwitch>,
+    val alternatives: List<SwitchAlignmentRoutingAlternative>,
+) : TopologyEdgeRoutingReference
+
+data class SwitchAlignmentRoutingAlternative(
     val alignment: SwitchStructureAlignment,
     val forward: Boolean,
-) : TopologyEdgeRoutingReference
+    val mRange: Range<LineM<SwitchStructureAlignmentM>>,
+)
 
 /** A node of the graph: either the end of a track or a switch. */
 data class TopologyNode
@@ -109,7 +114,11 @@ internal constructor(
 data class TopologySwitchReference(val switch: SwitchLink, val oid: Oid<LayoutSwitch>?)
 
 /** A single allowed directed movement through a node: arriving along one edge and continuing along another. */
-data class TopologyTransition(val incomingEdge: TopologyEdgeTraversal, val outgoingEdge: TopologyEdgeTraversal)
+data class TopologyTransition(
+    val incomingEdge: TopologyEdgeTraversal,
+    val outgoingEdge: TopologyEdgeTraversal,
+    internal val routingAlignments: Set<TopologySwitchAlignment> = emptySet(),
+)
 
 /** Travel along one edge in one direction. */
 data class TopologyEdgeTraversal(val edge: TopologyEdge, val direction: TopologyDirection) {
@@ -174,8 +183,11 @@ class TopologyBuilder internal constructor() {
         incomingDirection: TopologyDirection,
         outgoingEdge: UUID,
         outgoingDirection: TopologyDirection,
+        routingAlignments: Set<TopologySwitchAlignment> = emptySet(),
     ) {
-        transitions.add(TransitionData(node, incomingEdge, incomingDirection, outgoingEdge, outgoingDirection))
+        transitions.add(
+            TransitionData(node, incomingEdge, incomingDirection, outgoingEdge, outgoingDirection, routingAlignments)
+        )
     }
 
     fun addLayoutEdgeRouting(edge: DbLayoutEdge, tracks: Set<TrackSection>) {
@@ -266,7 +278,11 @@ class TopologyBuilder internal constructor() {
         require(outgoing.startNode === node) {
             "Topology transition must continue from its own node: node=${node.id} edge=${data.outgoingEdge}"
         }
-        return TopologyTransition(incomingEdge = incoming, outgoingEdge = outgoing)
+        return TopologyTransition(
+            incomingEdge = incoming,
+            outgoingEdge = outgoing,
+            routingAlignments = data.routingAlignments,
+        )
     }
 
     private fun getEdge(edgesById: Map<UUID, TopologyEdge>, id: UUID, node: TopologyNode): TopologyEdge =
@@ -293,6 +309,7 @@ class TopologyBuilder internal constructor() {
         val incomingDirection: TopologyDirection,
         val outgoingEdge: UUID,
         val outgoingDirection: TopologyDirection,
+        val routingAlignments: Set<TopologySwitchAlignment>,
     )
 
     private data class LayoutEdgeData(val edge: DbLayoutEdge, val tracks: Set<TrackSection>)

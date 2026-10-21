@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -25,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
+import fi.fta.geoviite.infra.tracklayout.switchStructureRR54_4x1_9
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
@@ -55,6 +57,7 @@ constructor(
     mockMvc: MockMvc,
     private val extTestDataService: ExtApiTestDataServiceV1,
     private val locationTrackService: LocationTrackService,
+    private val switchStructureDao: SwitchStructureDao,
 ) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
@@ -508,6 +511,55 @@ constructor(
         testDBService.publish(locationTracks = listOf(otherTrackId))
 
         assertEquals(topologiesAtV1, topologiesAtVersion(layout.publication))
+    }
+
+    @Test
+    fun `Rail crossing switch includes main joint in nano and simplifies to a single node in micro`() {
+        val structureData = switchStructureRR54_4x1_9().data
+        val structure =
+            SwitchStructure(
+                version = switchStructureDao.upsertSwitchStructure(structureData),
+                data = structureData,
+            )
+        val ids =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                structure.alignments.map { alignment ->
+                    val start = alignment.jointNumbers.first()
+                    val end = alignment.jointNumbers.last()
+                    switchJoint(start.intValue, structure.getJointLocation(start)) to
+                        switchJoint(end.intValue, structure.getJointLocation(end))
+                },
+                structure,
+            )
+        val publication = extTestDataService.publishInMain(listOf(ids))
+
+        val nano = api.topology.getAtVersion(publication.uuid, TOPOLOGY_RESOLUTION_PARAM to "nano").topologia
+        val micro = api.topology.getAtVersion(publication.uuid, TOPOLOGY_RESOLUTION_PARAM to "mikro").topologia
+
+        // Nano includes the 4 connection joints and the center presentation joint 5
+        assertEquals(
+            setOf(1, 2, 3, 4, 5),
+            nano.solmut
+                .filter { node -> node.tyyppi == "vaihde" }
+                .flatMap { node -> node.vaihteet.map { ref -> ref.vaihdepiste } }
+                .toSet(),
+        )
+        assertEquals(
+            setOf(1, 2, 3, 4)
+                .map { joint ->
+                    switchLineUuid(OidSwitchRef(ids.switch.oid), listOf(JointNumber(5), JointNumber(joint))).toString()
+                }
+                .toSet(),
+            nano.kaaret.map(ExtTestTopologyEdgeV1::id).toSet(),
+        )
+
+        // Micro keeps the 4 uncombined connection endpoints and the single presentation node 5 with 4 straight
+        // transitions
+        val mainMicroNode =
+            micro.solmut.single { node -> node.tyyppi == "vaihde" && node.vaihteet.any { ref -> ref.vaihdepiste == 5 } }
+        assertEquals(listOf(ids.switch.oid.toString() to 5), mainMicroNode.vaihteet.map { it.oid to it.vaihdepiste })
+        assertEquals(4, mainMicroNode.kulkusuunnat.size)
     }
 
     private data class CombinedSwitchNodeFixture(

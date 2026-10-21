@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.combine
 import fi.fta.geoviite.infra.math.length
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
@@ -22,9 +21,8 @@ import fi.fta.geoviite.infra.tracklayout.graph.TopologyEdgeTraversal
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyLayoutEdgeData
 import fi.fta.geoviite.infra.tracklayout.graph.TopologySwitchAlignment
 import fi.fta.geoviite.infra.tracklayout.graph.TopologySwitchSegment
+import fi.fta.geoviite.infra.tracklayout.graph.TopologyTransition
 import fi.fta.geoviite.infra.tracklayout.graph.TrackSection
-import fi.fta.geoviite.infra.tracklayout.graph.resolveTopologySwitchSegments
-import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.produceIf
 import java.util.*
 import kotlin.math.abs
@@ -166,6 +164,7 @@ data class TopologyEndpointVertex(
     val edgeId: UUID,
     val endpoint: TopologyEdgeEndpoint,
     val direction: VertexDirection,
+    val routingAlignment: RoutingSwitchAlignment? = null,
 ) : RoutingVertex() {
     override fun reverse(): TopologyEndpointVertex = copy(direction = direction.reverse())
 }
@@ -229,6 +228,7 @@ data class TopologyTransitionEdge(
     val incomingDirection: TopologyDirection,
     val outgoingEdgeId: UUID,
     val outgoingDirection: TopologyDirection,
+    val routingAlignment: RoutingSwitchAlignment? = null,
 ) : RoutingEdge() {
     override fun reverse(): TopologyTransitionEdge =
         copy(
@@ -257,7 +257,12 @@ data class TopologySwitchEdge(
     val edge: TopologyEdge,
     val alignment: RoutingSwitchAlignment,
     val forward: Boolean,
+    val mRange: Range<LineM<SwitchStructureAlignmentM>> = Range(LineM(0.0), LineM(alignment.length)),
 ) {
+    val isFullAlignment: Boolean
+        get() =
+            abs(mRange.min.distance) < LAYOUT_M_DELTA && abs(mRange.max.distance - alignment.length) < LAYOUT_M_DELTA
+
     fun direction(topologyDirection: TopologyDirection): EdgeDirection =
         when {
             forward && topologyDirection == TopologyDirection.ASCENDING -> UP
@@ -266,12 +271,12 @@ data class TopologySwitchEdge(
             else -> UP
         }
 
-    fun endpointAtSwitchM(m: Double): TopologyEdgeEndpoint {
+    fun endpointAtSwitchM(m: Double): TopologyEdgeEndpoint? {
         val alignmentEndpoint =
             when {
-                abs(m) < LAYOUT_M_DELTA -> TopologyEdgeEndpoint.START
-                abs(m - alignment.length) < LAYOUT_M_DELTA -> TopologyEdgeEndpoint.END
-                else -> error("Switch topology endpoint is not at alignment end: alignment=$alignment m=$m")
+                abs(m - mRange.min.distance) < LAYOUT_M_DELTA -> TopologyEdgeEndpoint.START
+                abs(m - mRange.max.distance) < LAYOUT_M_DELTA -> TopologyEdgeEndpoint.END
+                else -> return null
             }
         return if (forward) alignmentEndpoint
         else
@@ -286,22 +291,37 @@ data class SwitchEdge(
     val id: IntId<LayoutEdge>,
     val direction: EdgeDirection,
     val mRange: Range<LineM<SwitchStructureAlignmentM>>,
+    val edgeLength: Double,
 ) {
     fun toSwitchM(edgeM: LineM<EdgeM>): LineM<SwitchStructureAlignmentM> =
         LineM(
             when (direction) {
-                UP -> mRange.min.distance + edgeM.distance
-                DOWN -> mRange.max.distance - edgeM.distance
+                UP -> mRange.min.distance + edgeM.distance * mRange.length().distance / edgeLength
+                DOWN -> mRange.max.distance - edgeM.distance * mRange.length().distance / edgeLength
             }
         )
 
     fun toEdgeM(switchM: LineM<SwitchStructureAlignmentM>): LineM<EdgeM> =
         LineM(
             when (direction) {
-                UP -> switchM.distance - mRange.min.distance
-                DOWN -> mRange.max.distance - switchM.distance
+                UP -> (switchM.distance - mRange.min.distance) * edgeLength / mRange.length().distance
+                DOWN -> (mRange.max.distance - switchM.distance) * edgeLength / mRange.length().distance
             }
         )
+}
+
+private data class SwitchRouteCandidate(
+    val switchEdge: SwitchEdge,
+    val switchMRange: Range<LineM<SwitchStructureAlignmentM>>,
+    val routeSection: RouteSection,
+)
+
+private fun Range<LineM<SwitchStructureAlignmentM>>.overlap(
+    other: Range<LineM<SwitchStructureAlignmentM>>
+): Range<LineM<SwitchStructureAlignmentM>>? {
+    val min = if (this.min.distance >= other.min.distance) this.min else other.min
+    val max = if (this.max.distance <= other.max.distance) this.max else other.max
+    return if (max.distance - min.distance >= LAYOUT_M_DELTA) Range(min, max) else null
 }
 
 data class RoutingGraph
@@ -354,18 +374,115 @@ internal constructor(
         edgeDirection: EdgeDirection,
         favoredTrackIds: Set<IntId<LocationTrack>>,
         mRangeLimit: Range<LineM<SwitchStructureAlignmentM>>? = null,
-    ) =
-        switchInternalEdges[alignment]?.mapNotNull { switchEdge ->
-            val edgeDirection = if (edgeDirection == UP) switchEdge.direction else switchEdge.direction.reverse()
-            val edgeRangeLimit = mRangeLimit?.let { switchM ->
-                val edgeMin = switchEdge.toEdgeM(switchM.min)
-                val edgeMax = switchEdge.toEdgeM(switchM.max)
-                Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax))
+    ): List<RouteSection> {
+        val switchEdges = switchInternalEdges[alignment].orEmpty()
+        if (
+            mRangeLimit == null ||
+                (abs(mRangeLimit.min.distance) < LAYOUT_M_DELTA &&
+                    abs(mRangeLimit.max.distance - alignment.length) < LAYOUT_M_DELTA)
+        ) {
+            return switchEdges.mapNotNull { switchEdge ->
+                val direction = if (edgeDirection == UP) switchEdge.direction else switchEdge.direction.reverse()
+                findRouteSection(switchEdge.id, direction, favoredTrackIds)
             }
-            if (edgeRangeLimit == null || edgeRangeLimit.length().distance >= LAYOUT_M_DELTA) {
-                findRouteSection(switchEdge.id, edgeDirection, favoredTrackIds, edgeRangeLimit)
-            } else null
-        } ?: emptyList()
+        }
+
+        val requestedMRange: Range<LineM<SwitchStructureAlignmentM>> = mRangeLimit
+        val candidates = switchRouteCandidates(alignment, requestedMRange, edgeDirection, favoredTrackIds)
+        val routeSections = mutableListOf<RouteSection>()
+        var currentM = requestedMRange.min
+        while ((requestedMRange.max - currentM).distance >= LAYOUT_M_DELTA) {
+            val candidate = bestSwitchRouteCandidate(candidates, currentM, favoredTrackIds)
+            if (candidate == null) {
+                currentM = nextSwitchRouteCandidateStart(candidates, currentM) ?: requestedMRange.max
+            } else {
+                val switchMRange = candidate.switchMRangeFrom(currentM, requestedMRange.max)
+                routeSectionFor(candidate.switchEdge, switchMRange, edgeDirection, favoredTrackIds)
+                    ?.let(routeSections::add)
+                currentM = switchMRange.max
+            }
+        }
+        return routeSections
+    }
+
+    private fun switchRouteCandidates(
+        alignment: RoutingSwitchAlignment,
+        requestedMRange: Range<LineM<SwitchStructureAlignmentM>>,
+        edgeDirection: EdgeDirection,
+        favoredTrackIds: Set<IntId<LocationTrack>>,
+    ): List<SwitchRouteCandidate> =
+        switchInternalEdges[alignment].orEmpty().mapNotNull { switchEdge ->
+            val switchMRange = switchEdge.mRange.overlap(requestedMRange) ?: return@mapNotNull null
+            val routeSection =
+                routeSectionFor(switchEdge, switchMRange, edgeDirection, favoredTrackIds) ?: return@mapNotNull null
+            SwitchRouteCandidate(switchEdge, switchMRange, routeSection)
+        }
+
+    private fun bestSwitchRouteCandidate(
+        candidates: List<SwitchRouteCandidate>,
+        currentM: LineM<SwitchStructureAlignmentM>,
+        favoredTrackIds: Set<IntId<LocationTrack>>,
+    ): SwitchRouteCandidate? =
+        candidates
+            .filter { candidate ->
+                candidate.switchMRange.min <= currentM + LAYOUT_M_DELTA &&
+                    candidate.switchMRange.max > currentM + LAYOUT_M_DELTA
+            }
+            .maxWithOrNull(
+                // Prefer full-alignment source geometry over a shared joint fragment when coverage ties.
+                compareBy<SwitchRouteCandidate> { it.switchMRange.max.distance }
+                    .thenBy { (it.switchEdge.mRange.max - it.switchEdge.mRange.min).distance }
+                    .thenBy { favoredTrackIds.contains(it.routeSection.trackId) }
+                    .thenBy { -it.routeSection.trackId.intValue }
+            )
+
+    private fun nextSwitchRouteCandidateStart(
+        candidates: List<SwitchRouteCandidate>,
+        currentM: LineM<SwitchStructureAlignmentM>,
+    ): LineM<SwitchStructureAlignmentM>? =
+        candidates
+            .map(SwitchRouteCandidate::switchMRange)
+            .filter { range -> range.min.distance > currentM.distance }
+            .minByOrNull { range -> range.min.distance }
+            ?.min
+
+    private fun routeSectionFor(
+        switchEdge: SwitchEdge,
+        switchMRange: Range<LineM<SwitchStructureAlignmentM>>,
+        edgeDirection: EdgeDirection,
+        favoredTrackIds: Set<IntId<LocationTrack>>,
+    ): RouteSection? {
+        if (switchMRange.length().distance < LAYOUT_M_DELTA) return null
+        val direction = if (edgeDirection == UP) switchEdge.direction else switchEdge.direction.reverse()
+        val edgeMRange =
+            Range(
+                    switchEdge.toEdgeM(switchMRange.min),
+                    switchEdge.toEdgeM(switchMRange.max),
+                )
+                .let { range -> Range(minOf(range.min, range.max), maxOf(range.min, range.max)) }
+        val routeSection = findRouteSection(switchEdge.id, direction, favoredTrackIds) ?: return null
+        val edgeLength = edgeData.getValue(switchEdge.id).edge.length.distance
+        val trackLength = routeSection.mRange.length().distance
+        val trackMRange =
+            Range(
+                LineM<LocationTrackM>(
+                    routeSection.mRange.min.distance + edgeMRange.min.distance / edgeLength * trackLength
+                ),
+                LineM<LocationTrackM>(
+                    routeSection.mRange.min.distance + edgeMRange.max.distance / edgeLength * trackLength
+                ),
+            )
+        return routeSection.copy(mRange = trackMRange)
+    }
+
+    private fun SwitchRouteCandidate.switchMRangeFrom(
+        currentM: LineM<SwitchStructureAlignmentM>,
+        requestedMax: LineM<SwitchStructureAlignmentM>,
+    ): Range<LineM<SwitchStructureAlignmentM>> {
+        val start = if (currentM.distance >= switchMRange.min.distance) currentM else switchMRange.min
+        val end = if (requestedMax.distance <= switchMRange.max.distance) requestedMax else switchMRange.max
+        return Range(start, end)
+    }
 
     private fun findRouteSection(
         edgeId: IntId<LayoutEdge>,
@@ -562,28 +679,32 @@ internal constructor(
                             TopologyEdgeEndpoint.START -> if (switchEdge.direction == UP) 0.0 else alignment.length
                             TopologyEdgeEndpoint.END -> if (switchEdge.direction == UP) alignment.length else 0.0
                         }
-                    topologyRouting.switchEdgesByAlignment[alignment]?.let { topologySwitchEdge ->
-                        listOf(
-                            TmpSwitchVertexData(
-                                vertex =
-                                    TopologyEndpointVertex(
-                                        topologySwitchEdge.edge.id,
-                                        topologySwitchEdge.endpointAtSwitchM(switchM),
-                                        topologyVertexDirection,
-                                    ),
-                                vertexM = LineM(switchM),
-                                alignment = alignment,
-                                switchEdge = switchEdge,
-                            )
-                        )
-                    }
-                        ?: createPartialSwitchEndpointVertices(
+                    val matchingTopologyEdges =
+                        topologyRouting.switchEdgesByAlignment[alignment].orEmpty().mapNotNull { topologySwitchEdge ->
+                            topologySwitchEdge.endpointAtSwitchM(switchM)?.let { endpoint ->
+                                TmpSwitchVertexData(
+                                    vertex =
+                                        TopologyEndpointVertex(
+                                            topologySwitchEdge.edge.id,
+                                            endpoint,
+                                            topologyVertexDirection,
+                                            topologySwitchEdge.alignment,
+                                        ),
+                                    vertexM = LineM(switchM),
+                                    alignment = alignment,
+                                    switchEdge = switchEdge,
+                                )
+                            }
+                        }
+                    matchingTopologyEdges.ifEmpty {
+                        createPartialSwitchEndpointVertices(
                             topologyRouting,
                             alignment,
                             switchEdge,
                             switchM,
                             vertexDirection,
                         )
+                    }
                 }
                 .distinctBy(TmpVertexData::vertex)
         } else {
@@ -633,7 +754,7 @@ internal constructor(
 
 internal data class RoutingTopologyData(
     val edgesByDbEdgeId: Map<IntId<LayoutEdge>, TopologyEdge>,
-    val switchEdgesByAlignment: Map<RoutingSwitchAlignment, TopologySwitchEdge>,
+    val switchEdgesByAlignment: Map<RoutingSwitchAlignment, List<TopologySwitchEdge>>,
     val externalEndpointsBySwitchJoint: Map<RoutingSwitchJoint, List<TopologyEdgeReference>>,
 )
 
@@ -643,60 +764,18 @@ internal data class TopologyEdgeReference(val edgeId: UUID, val endpoint: Topolo
 
 fun buildGraph(topology: Topology): RoutingGraph {
     val (edgeData, topologyEdgeByDbEdgeId, topologySwitchEdgeList) = topology.verifyBeforeBuildingGraph()
-    val topologySwitchEdges = topologySwitchEdgeList.associateBy(TopologySwitchEdge::alignment)
-    val topologySwitchEdgesById = topologySwitchEdges.values.associateBy { switchEdge -> switchEdge.edge.id }
+    val topologySwitchEdges = topologySwitchEdgeList.groupBy(TopologySwitchEdge::alignment)
+    val topologySwitchEdgesById = topologySwitchEdgeList.groupBy { switchEdge -> switchEdge.edge.id }
     val layoutEdgeEndpointsByNode = topology.layoutEdgeEndpointsByNode()
     val externalEndpointsBySwitchJoint = topology.externalEndpointsBySwitchJoint(layoutEdgeEndpointsByNode)
     val switchInternalEdges =
         edgeData.entries.flatMap { (_, data) -> data.switchConnections.entries }.groupBy({ it.key }, { it.value })
     val jgraph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
 
-    topology.edges.forEach { edge ->
-        TopologyEdgeEndpoint.entries.forEach { endpoint ->
-            jgraph.addVertex(TopologyEndpointVertex(edge.id, endpoint, IN))
-            jgraph.addVertex(TopologyEndpointVertex(edge.id, endpoint, OUT))
-        }
-        val forwardRoutingEdge =
-            when (val reference = edge.routingReference) {
-                is LayoutEdgeRoutingReference -> TrackEdge(reference.edgeId, UP)
-                is SwitchAlignmentRoutingReference ->
-                    topologySwitchEdgesById.getValue(edge.id).let { switchEdge ->
-                        SwitchInternalEdge(
-                            switchEdge.alignment,
-                            switchEdge.direction(TopologyDirection.ASCENDING),
-                        )
-                    }
-                null -> error("Nano topology edge has no routing reference: edge=${edge.id}")
-            }
-        jgraph.addWeightedEdge(
-            TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.START, OUT),
-            TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.END, IN),
-            forwardRoutingEdge,
-            edge.length,
-        )
-        jgraph.addWeightedEdge(
-            TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.END, OUT),
-            TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.START, IN),
-            forwardRoutingEdge.reverse(),
-            edge.length,
-        )
+    topology.edges.forEach { edge -> addTopologyEdgeToRoutingGraph(jgraph, edge, topologySwitchEdgesById) }
+    topology.nodes.forEach { node ->
+        node.transitions.forEach { transition -> addTopologyTransitionToRoutingGraph(jgraph, node.id, transition) }
     }
-    topology.nodes
-        .flatMap { node -> node.transitions.map { transition -> node to transition } }
-        .forEach { (node, transition) ->
-            jgraph.addWeightedEdge(
-                transition.incomingEdge.endVertex(IN),
-                transition.outgoingEdge.startVertex(OUT),
-                TopologyTransitionEdge(
-                    nodeId = node.id,
-                    incomingEdgeId = transition.incomingEdge.edge.id,
-                    incomingDirection = transition.incomingEdge.direction,
-                    outgoingEdgeId = transition.outgoingEdge.edge.id,
-                    outgoingDirection = transition.outgoingEdge.direction,
-                ),
-                0.0,
-            )
-        }
     return RoutingGraph(
         jgraph = jgraph,
         edgeData = edgeData,
@@ -708,6 +787,124 @@ fun buildGraph(topology: Topology): RoutingGraph {
                 externalEndpointsBySwitchJoint = externalEndpointsBySwitchJoint,
             ),
     )
+}
+
+private fun addTopologyEdgeToRoutingGraph(
+    jgraph: DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>,
+    edge: TopologyEdge,
+    topologySwitchEdgesById: Map<UUID, List<TopologySwitchEdge>>,
+) {
+    when (val reference = edge.routingReference) {
+        is LayoutEdgeRoutingReference -> addLayoutEdgeToRoutingGraph(jgraph, edge, reference)
+        is SwitchAlignmentRoutingReference ->
+            topologySwitchEdgesById.getValue(edge.id).forEach { switchEdge ->
+                addSwitchAlignmentEdgeToRoutingGraph(jgraph, edge, switchEdge)
+            }
+        null -> error("Nano topology edge has no routing reference: edge=${edge.id}")
+    }
+}
+
+private fun addLayoutEdgeToRoutingGraph(
+    jgraph: DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>,
+    edge: TopologyEdge,
+    reference: LayoutEdgeRoutingReference,
+) {
+    TopologyEdgeEndpoint.entries.forEach { endpoint ->
+        jgraph.addVertex(TopologyEndpointVertex(edge.id, endpoint, IN))
+        jgraph.addVertex(TopologyEndpointVertex(edge.id, endpoint, OUT))
+    }
+    val forwardRoutingEdge = TrackEdge(reference.edgeId, UP)
+    jgraph.addWeightedEdge(
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.START, OUT),
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.END, IN),
+        forwardRoutingEdge,
+        edge.length,
+    )
+    jgraph.addWeightedEdge(
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.END, OUT),
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.START, IN),
+        forwardRoutingEdge.reverse(),
+        edge.length,
+    )
+}
+
+private fun addSwitchAlignmentEdgeToRoutingGraph(
+    jgraph: DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>,
+    edge: TopologyEdge,
+    switchEdge: TopologySwitchEdge,
+) {
+    TopologyEdgeEndpoint.entries.forEach { endpoint ->
+        VertexDirection.entries.forEach { direction ->
+            jgraph.addVertex(TopologyEndpointVertex(edge.id, endpoint, direction, switchEdge.alignment))
+        }
+    }
+    val direction = switchEdge.direction(TopologyDirection.ASCENDING)
+    val forwardRoutingEdge =
+        if (switchEdge.isFullAlignment) {
+            SwitchInternalEdge(switchEdge.alignment, direction)
+        } else {
+            PartialSwitchInternalEdge(switchEdge.alignment, direction, switchEdge.mRange)
+        }
+    jgraph.addWeightedEdge(
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.START, OUT, switchEdge.alignment),
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.END, IN, switchEdge.alignment),
+        forwardRoutingEdge,
+        edge.length,
+    )
+    jgraph.addWeightedEdge(
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.END, OUT, switchEdge.alignment),
+        TopologyEndpointVertex(edge.id, TopologyEdgeEndpoint.START, IN, switchEdge.alignment),
+        forwardRoutingEdge.reverse(),
+        edge.length,
+    )
+}
+
+private fun addTopologyTransitionToRoutingGraph(
+    jgraph: DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>,
+    nodeId: UUID,
+    transition: TopologyTransition,
+) {
+    transition.routingAlignmentPairs().forEach { (incomingAlignment, outgoingAlignment) ->
+        jgraph.addWeightedEdge(
+            transition.incomingEdge.endVertex(IN, incomingAlignment),
+            transition.outgoingEdge.startVertex(OUT, outgoingAlignment),
+            TopologyTransitionEdge(
+                nodeId = nodeId,
+                incomingEdgeId = transition.incomingEdge.edge.id,
+                incomingDirection = transition.incomingEdge.direction,
+                outgoingEdgeId = transition.outgoingEdge.edge.id,
+                outgoingDirection = transition.outgoingEdge.direction,
+                routingAlignment = incomingAlignment ?: outgoingAlignment,
+            ),
+            0.0,
+        )
+    }
+}
+
+private fun TopologyTransition.routingAlignmentPairs(): List<Pair<RoutingSwitchAlignment?, RoutingSwitchAlignment?>> {
+    val incomingAlternatives = topologyRouteAlternatives(incomingEdge.edge)
+    val outgoingAlternatives = topologyRouteAlternatives(outgoingEdge.edge)
+    if (routingAlignments.isEmpty()) {
+        return incomingAlternatives.flatMap { incoming ->
+            outgoingAlternatives.map { outgoing -> incoming to outgoing }
+        }
+    }
+    return routingAlignments.mapNotNull { topologyAlignment ->
+        val alignment = topologyAlignment.toRoutingSwitchAlignment()
+        val incoming =
+            when {
+                alignment in incomingAlternatives -> alignment
+                null in incomingAlternatives -> null
+                else -> return@mapNotNull null
+            }
+        val outgoing =
+            when {
+                alignment in outgoingAlternatives -> alignment
+                null in outgoingAlternatives -> null
+                else -> return@mapNotNull null
+            }
+        incoming to outgoing
+    }
 }
 
 private fun Topology.verifyBeforeBuildingGraph(): VerifiedTopologyData {
@@ -724,12 +921,17 @@ private fun Topology.verifyBeforeBuildingGraph(): VerifiedTopologyData {
     requireEmpty(topologyEdgeByDbEdgeId.keys.filterNot(edgeData::containsKey)) { missing ->
         "Topology is missing routing data for referenced database edges: edges=$missing"
     }
-    val topologySwitchEdgeList = edges.mapNotNull { edge ->
-        (edge.routingReference as? SwitchAlignmentRoutingReference)?.let { reference ->
+    val topologySwitchEdgeList = edges.flatMap { edge ->
+        (edge.routingReference as? SwitchAlignmentRoutingReference)?.alternatives.orEmpty().map { alternative ->
             TopologySwitchEdge(
                 edge = edge,
-                alignment = RoutingSwitchAlignment(reference.switchId, reference.alignment),
-                forward = reference.forward,
+                alignment =
+                    RoutingSwitchAlignment(
+                        (edge.routingReference as SwitchAlignmentRoutingReference).switchId,
+                        alternative.alignment,
+                    ),
+                forward = alternative.forward,
+                mRange = alternative.mRange,
             )
         }
     }
@@ -769,7 +971,10 @@ private fun Topology.externalEndpointsBySwitchJoint(layoutEdgeEndpointsByNode: M
         .groupBy({ (joint) -> joint }, { (_, endpoint) -> endpoint })
 
 private fun List<TopologySwitchEdge>.duplicateAlignments() =
-    this.groupBy(TopologySwitchEdge::alignment).filterValues { edges -> edges.size > 1 }.keys
+    this.groupBy { edge -> edge.alignment to edge.mRange }
+        .filterValues { edges -> edges.size > 1 }
+        .keys
+        .map { it.first }
 
 private inline fun <T> requireEmpty(values: Collection<T>, lazyMessage: (values: Collection<T>) -> Any) {
     require(values.isEmpty()) { lazyMessage(values) }
@@ -782,7 +987,10 @@ private fun Collection<RouteEdgeData>.missingDbEdgeReferences(
         .map { data -> data.edge.id }
         .filterNot { id -> topologyEdgeByDbEdgeId.containsKey(id) }
 
-private fun TopologyEdgeTraversal.startVertex(direction: VertexDirection): TopologyEndpointVertex =
+private fun TopologyEdgeTraversal.startVertex(
+    direction: VertexDirection,
+    routingAlignment: RoutingSwitchAlignment? = null,
+): TopologyEndpointVertex =
     TopologyEndpointVertex(
         edgeId = edge.id,
         endpoint =
@@ -791,9 +999,13 @@ private fun TopologyEdgeTraversal.startVertex(direction: VertexDirection): Topol
                 TopologyDirection.DESCENDING -> TopologyEdgeEndpoint.END
             },
         direction = direction,
+        routingAlignment = routingAlignment,
     )
 
-private fun TopologyEdgeTraversal.endVertex(direction: VertexDirection): TopologyEndpointVertex =
+private fun TopologyEdgeTraversal.endVertex(
+    direction: VertexDirection,
+    routingAlignment: RoutingSwitchAlignment? = null,
+): TopologyEndpointVertex =
     TopologyEndpointVertex(
         edgeId = edge.id,
         endpoint =
@@ -802,7 +1014,18 @@ private fun TopologyEdgeTraversal.endVertex(direction: VertexDirection): Topolog
                 TopologyDirection.DESCENDING -> TopologyEdgeEndpoint.START
             },
         direction = direction,
+        routingAlignment = routingAlignment,
     )
+
+private fun topologyRouteAlternatives(edge: TopologyEdge): List<RoutingSwitchAlignment?> =
+    when (val reference = edge.routingReference) {
+        is LayoutEdgeRoutingReference -> listOf(null)
+        is SwitchAlignmentRoutingReference ->
+            reference.alternatives.map { alternative ->
+                RoutingSwitchAlignment(reference.switchId, alternative.alignment)
+            }
+        null -> error("Nano topology edge has no routing reference: edge=${edge.id}")
+    }
 
 private fun TopologyLayoutEdgeData.toRouteEdgeData(): RouteEdgeData =
     RouteEdgeData(
@@ -810,14 +1033,16 @@ private fun TopologyLayoutEdgeData.toRouteEdgeData(): RouteEdgeData =
         tracks = tracks,
         switchConnections =
             switchConnections
-                .map { (alignment, segment) -> alignment.toRoutingSwitchAlignment() to segment.toSwitchEdge() }
+                .map { (alignment, segment) ->
+                    alignment.toRoutingSwitchAlignment() to segment.toSwitchEdge(edge.length.distance)
+                }
                 .toMap(),
     )
 
 private fun TopologySwitchAlignment.toRoutingSwitchAlignment(): RoutingSwitchAlignment =
     RoutingSwitchAlignment(switchId, alignment)
 
-private fun TopologySwitchSegment.toSwitchEdge(): SwitchEdge =
+private fun TopologySwitchSegment.toSwitchEdge(edgeLength: Double): SwitchEdge =
     SwitchEdge(
         id = edgeId,
         direction =
@@ -826,6 +1051,7 @@ private fun TopologySwitchSegment.toSwitchEdge(): SwitchEdge =
                 TopologyDirection.DESCENDING -> DOWN
             },
         mRange = mRange,
+        edgeLength = edgeLength,
     )
 
 private fun DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>.addWeightedEdge(

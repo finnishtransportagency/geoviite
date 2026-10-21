@@ -3,20 +3,39 @@ package fi.fta.geoviite.infra.tracklayout.graph
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.dataImport.switchStructures
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.tracklayout.DbLayoutEdge
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.DbNodeConnection
+import fi.fta.geoviite.infra.tracklayout.DbSwitchNode
+import fi.fta.geoviite.infra.tracklayout.DbTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.SWITCH
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_BOUNDARY
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.NodePortType
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.TrackBoundary
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyDirection.ASCENDING
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyDirection.DESCENDING
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -399,13 +418,24 @@ class MicroTopologyTest {
 
     @TestFactory
     fun `Every switch library structure is correctly simplified`(): List<DynamicTest> =
-        switchStructures.map { structure ->
-            DynamicTest.dynamicTest(structure.type.toString()) {
-                val fixture = switchNanoFixture(structure)
-                val nano = fixture.nano
-                val micro = CachedTopology(nano).micro
+        switchStructures.flatMap { structure ->
+            val splitVariants =
+                if (structure.presentationJointNumber in structure.endJointNumbers) {
+                    listOf(true to structure.type.toString())
+                } else {
+                    listOf(
+                        true to "${structure.type} (split at main joint)",
+                        false to "${structure.type} (unsplit at main joint)",
+                    )
+                }
+            splitVariants.map { (splitAtMainJoint, name) ->
+                DynamicTest.dynamicTest(name) {
+                    val fixture = switchNanoFixture(structure, splitAtMainJoint = splitAtMainJoint)
+                    val nano = fixture.nano
+                    val micro = CachedTopology(nano).micro
 
-                assertSwitchSimplification(structure, fixture, micro)
+                    assertSwitchSimplification(structure, fixture, micro)
+                }
             }
         }
 
@@ -442,28 +472,13 @@ class MicroTopologyTest {
 
     @Test
     fun `MAIN-MAIN combination node keeps both switches and their cross-switch transitions`() {
-        val nano = buildTopology {
-            val combination =
-                switchNode("combination", Point(50.0, 0.0), mainJoint(SWITCH_A, 1), mainJoint(SWITCH_B, 1))
-            val aJoint2 = switchNode("a-joint-2", Point(20.0, 0.0), connectionJoint(SWITCH_A, 2))
-            val bJoint2 = switchNode("b-joint-2", Point(80.0, 0.0), connectionJoint(SWITCH_B, 2))
-            val westEnd = trackEndNode("west-end", Point(0.0, 0.0))
-            val eastEnd = trackEndNode("east-end", Point(100.0, 0.0))
-            val aLine = edge("a-line", combination, aJoint2, 30.0, MAIN_TRACK)
-            val bLine = edge("b-line", combination, bJoint2, 30.0, MAIN_TRACK)
-            val westEdge = edge("west-edge", westEnd, aJoint2, 20.0, MAIN_TRACK)
-            val eastEdge = edge("east-edge", bJoint2, eastEnd, 20.0, MAIN_TRACK)
-
-            connectThrough(combination, desc(aLine), asc(bLine))
-            connectThrough(aJoint2, asc(aLine), desc(westEdge))
-            connectThrough(bJoint2, asc(bLine), asc(eastEdge))
-            uTurn(westEnd, desc(westEdge))
-            uTurn(eastEnd, asc(eastEdge))
-        }
+        val nano = twoSwitchCombinationNano(secondJoint = JointNumber(1))
+        val aLine = switchLineUuid(IdSwitchRef(SWITCH_A), listOf(JointNumber(1), JointNumber(5), JointNumber(2)))
+        val bLine = switchLineUuid(IdSwitchRef(SWITCH_B), listOf(JointNumber(1), JointNumber(5), JointNumber(2)))
 
         val micro = CachedTopology(nano).micro
-        val westMicro = microEdgeUuid(listOf(id("west-edge"), id("a-line")))
-        val eastMicro = microEdgeUuid(listOf(id("b-line"), id("east-edge")))
+        val westMicro = microEdgeUuid(listOf(id("west-edge"), aLine))
+        val eastMicro = microEdgeUuid(listOf(bLine, id("east-edge")))
         val combination = micro.node(id("combination"))
 
         assertEquals(
@@ -478,32 +493,12 @@ class MicroTopologyTest {
 
     @Test
     fun `MAIN-NON_MAIN combination node keeps both switch references and only the MAIN joint makes it survive`() {
-        val nano = buildTopology {
-            val combination =
-                switchNode(
-                    "combination",
-                    Point(50.0, 0.0),
-                    mainJoint(SWITCH_A, 1),
-                    connectionJoint(SWITCH_B, 2),
-                )
-            val aJoint2 = switchNode("a-joint-2", Point(20.0, 0.0), connectionJoint(SWITCH_A, 2))
-            val bMain = switchNode("b-main", Point(80.0, 0.0), mainJoint(SWITCH_B, 1))
-            val westEnd = trackEndNode("west-end", Point(0.0, 0.0))
-            val eastEnd = trackEndNode("east-end", Point(100.0, 0.0))
-            val aLine = edge("a-line", combination, aJoint2, 30.0, MAIN_TRACK)
-            val bLine = edge("b-line", bMain, combination, 30.0, MAIN_TRACK)
-            val westEdge = edge("west-edge", westEnd, aJoint2, 20.0, MAIN_TRACK)
-            val eastEdge = edge("east-edge", bMain, eastEnd, 20.0, MAIN_TRACK)
-
-            connectThrough(combination, desc(aLine), desc(bLine))
-            connectThrough(aJoint2, asc(aLine), desc(westEdge))
-            connectThrough(bMain, desc(bLine), asc(eastEdge))
-            uTurn(westEnd, desc(westEdge))
-            uTurn(eastEnd, asc(eastEdge))
-        }
+        val nano = twoSwitchCombinationNano(secondJoint = JointNumber(2))
+        val aLine = switchLineUuid(IdSwitchRef(SWITCH_A), listOf(JointNumber(1), JointNumber(5), JointNumber(2)))
+        val bLine = switchLineUuid(IdSwitchRef(SWITCH_B), listOf(JointNumber(1), JointNumber(5), JointNumber(2)))
 
         val micro = CachedTopology(nano).micro
-        val westMicro = microEdgeUuid(listOf(id("west-edge"), id("a-line")))
+        val westMicro = microEdgeUuid(listOf(id("west-edge"), aLine))
         val combination = micro.node(id("combination"))
 
         assertEquals(
@@ -512,43 +507,135 @@ class MicroTopologyTest {
         )
         assertEquals(
             listOf(mainJoint(SWITCH_B, 1)),
-            micro.node(id("b-main")).switchReferences.map { reference -> reference.switch },
+            micro.node(id("b-other")).switchReferences.map { reference -> reference.switch },
         )
         assertEquals(
-            setOf(asc(westMicro) to desc(id("b-line")), asc(id("b-line")) to desc(westMicro)),
+            setOf(asc(westMicro) to desc(bLine), asc(bLine) to desc(westMicro)),
             combination.transitionSummary(),
         )
     }
 
     @Test
-    fun `Micro level keeps the transitions between the two switches of a combination node`() {
-        // Two switch front joints at the same place: the node allows moving from one switch to the other
-        val nano = buildTopology {
-            val combination =
-                switchNode("combination-node", Point(50.0, 0.0), mainJoint(SWITCH_A, 1), mainJoint(SWITCH_B, 1))
-            val aJoint2 = switchNode("a-joint-2", Point(16.0, 0.0), connectionJoint(SWITCH_A, 2))
-            val bJoint2 = switchNode("b-joint-2", Point(84.0, 0.0), connectionJoint(SWITCH_B, 2))
-            val westEnd = trackEndNode("west-end", Point(0.0, 0.0))
-            val eastEnd = trackEndNode("east-end", Point(100.0, 0.0))
-            val aLine = edge("a-line-1-2", combination, aJoint2, 34.0, MAIN_TRACK)
-            val bLine = edge("b-line-1-2", combination, bJoint2, 34.0, MAIN_TRACK)
-            val westEdge = edge("west-edge", westEnd, aJoint2, 16.0, MAIN_TRACK)
-            val eastEdge = edge("east-edge", bJoint2, eastEnd, 16.0, MAIN_TRACK)
+    fun `NON_MAIN-NON_MAIN combination node with a crossing switch collapses into the edge between the switches`() {
+        val yvData = switchStructures.first { structure -> structure.baseType.name == "YV" }
+        val rrData = switchStructures.first { structure -> structure.baseType.name == "RR" }
+        val yvStructureId = IntId<SwitchStructure>(1)
+        val rrStructureId = IntId<SwitchStructure>(2)
+        val yvStructure = SwitchStructure(RowVersion(yvStructureId, 1), yvData)
+        val rrStructure = SwitchStructure(RowVersion(rrStructureId, 1), rrData)
 
-            connectThrough(combination, desc(aLine), asc(bLine))
-            connectThrough(aJoint2, asc(aLine), desc(westEdge))
-            connectThrough(bJoint2, asc(bLine), asc(eastEdge))
-            uTurn(westEnd, desc(westEdge))
-            uTurn(eastEnd, asc(eastEdge))
-        }
+        val switchA =
+            switch(
+                id = SWITCH_A,
+                structureId = yvStructureId,
+                joints =
+                    listOf(
+                        switchJoint(1, Point(16.0, 0.0)),
+                        switchJoint(5, Point(33.0, 0.0)),
+                        switchJoint(2, Point(50.0, 0.0)),
+                        switchJoint(3, Point(50.0, 3.0)),
+                    ),
+            )
+        val switchB =
+            switch(
+                id = SWITCH_B,
+                structureId = rrStructureId,
+                joints =
+                    listOf(
+                        switchJoint(1, Point(50.0, 0.0)),
+                        switchJoint(5, Point(60.0, 0.0)),
+                        switchJoint(2, Point(70.0, 0.0)),
+                        switchJoint(4, Point(50.0, 2.0)),
+                        switchJoint(3, Point(70.0, -2.0)),
+                    ),
+            )
 
-        // west-edge is the only non switch internal edge in its chain, so the combined edge runs west-end -> node
+        val westEnd = DbTrackBoundaryNode(IntId(1), TrackBoundary(IntId(1), START), null, id("west-end"))
+        val aMain = DbSwitchNode(IntId(2), mainJoint(SWITCH_A, 1), null, id("a-main"))
+        // Combination node joining YV connection joint 2 and RR connection joint 1 directly
+        val shared = DbSwitchNode(IntId(3), connectionJoint(SWITCH_A, 2), connectionJoint(SWITCH_B, 1), id("shared"))
+        val bJoint2 = DbSwitchNode(IntId(4), connectionJoint(SWITCH_B, 2), null, id("b-joint-2"))
+        val eastEnd = DbTrackBoundaryNode(IntId(5), TrackBoundary(IntId(1), END), null, id("east-end"))
+
+        val trackGeom =
+            DbLocationTrackGeometry(
+                trackRowVersion =
+                    LayoutRowVersion(
+                        LayoutRowId(IntId(1), LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)),
+                        1,
+                    ),
+                edges =
+                    listOf(
+                        DbLayoutEdge(
+                            id = IntId(101),
+                            uuid = id("west-edge"),
+                            startNode = DbNodeConnection(NodePortType.A, westEnd),
+                            endNode = DbNodeConnection(NodePortType.B, aMain),
+                            segments = listOf(segment(Point(0.0, 0.0), Point(16.0, 0.0))),
+                        ),
+                        DbLayoutEdge(
+                            id = IntId(102),
+                            uuid = id("a-inner"),
+                            startNode = DbNodeConnection(NodePortType.A, aMain),
+                            endNode = DbNodeConnection(NodePortType.A, shared),
+                            segments = listOf(segment(Point(16.0, 0.0), Point(50.0, 0.0))),
+                        ),
+                        DbLayoutEdge(
+                            id = IntId(103),
+                            uuid = id("b-inner"),
+                            startNode = DbNodeConnection(NodePortType.B, shared),
+                            endNode = DbNodeConnection(NodePortType.A, bJoint2),
+                            segments = listOf(segment(Point(50.0, 0.0), Point(70.0, 0.0))),
+                        ),
+                        DbLayoutEdge(
+                            id = IntId(104),
+                            uuid = id("east-edge"),
+                            startNode = DbNodeConnection(NodePortType.B, bJoint2),
+                            endNode = DbNodeConnection(NodePortType.A, eastEnd),
+                            segments = listOf(segment(Point(70.0, 0.0), Point(100.0, 0.0))),
+                        ),
+                    ),
+            )
+
+        val nano =
+            createNanoTopology(
+                tracks = listOf(MAIN_TRACK to trackGeom),
+                switches = mapOf(SWITCH_A to switchA, SWITCH_B to switchB),
+                structures = mapOf(yvStructureId to yvStructure, rrStructureId to rrStructure),
+                switchRefs = mapOf(SWITCH_A to IdSwitchRef(SWITCH_A), SWITCH_B to IdSwitchRef(SWITCH_B)),
+            )
         val micro = CachedTopology(nano).micro
-        val westMicro = microEdgeUuid(listOf(id("west-edge"), id("a-line-1-2")))
-        val eastMicro = microEdgeUuid(listOf(id("b-line-1-2"), id("east-edge")))
+        val bMainId = switchNodeUuid(IdSwitchRef(SWITCH_B), JointNumber(5))
+
+        // Both the shared connection node (A:2 + B:1) and B:2 collapse in micro; A's main node (1) and B's main node
+        // (5) survive with a combined edge between them.
         assertEquals(
-            setOf(asc(westMicro) to asc(eastMicro), desc(eastMicro) to desc(westMicro)),
-            micro.node(id("combination-node")).transitionSummary(),
+            setOf(id("west-end"), id("a-main"), bMainId, id("east-end")),
+            micro.nodes.map(TopologyNode::id).toSet(),
+        )
+        val aLine = switchLineUuid(IdSwitchRef(SWITCH_A), listOf(JointNumber(1), JointNumber(5), JointNumber(2)))
+        val bLeg1 = switchLineUuid(IdSwitchRef(SWITCH_B), listOf(JointNumber(5), JointNumber(1)))
+        val bLeg2 = switchLineUuid(IdSwitchRef(SWITCH_B), listOf(JointNumber(5), JointNumber(2)))
+        val eastMicro = microEdgeUuid(listOf(bLeg2, id("east-edge")))
+        val betweenSwitches =
+            micro.edges.single { edge -> setOf(edge.startNode.id, edge.endNode.id) == setOf(id("a-main"), bMainId) }
+        assertEquals(
+            setOf(
+                outwardFrom(bMainId, betweenSwitches).reversed() to asc(eastMicro),
+                desc(eastMicro) to outwardFrom(bMainId, betweenSwitches),
+            ),
+            micro.node(bMainId).transitionSummary(),
+        )
+        // Verify that the combined edge between the switches is composed of aLine and bLeg1
+        assertEquals(
+            yvStructure.alignments.first().length() +
+                rrStructure.distance(JointNumber(5), JointNumber(1), rrStructure.alignments.first()),
+            betweenSwitches.length,
+            1e-6,
+        )
+        assertEquals(
+            true,
+            betweenSwitches.id in setOf(microEdgeUuid(listOf(aLine, bLeg1)), microEdgeUuid(listOf(bLeg1, aLine))),
         )
     }
 
@@ -584,6 +671,99 @@ class MicroTopologyTest {
 
         assertEquals(firstMicro.summary(), secondMicro.summary())
     }
+}
+
+/**
+ * Builds two YV switches linked through a shared combination node at [SWITCH_A] joint 1 and [SWITCH_B] [secondJoint],
+ * using [createNanoTopology].
+ */
+private fun twoSwitchCombinationNano(secondJoint: JointNumber): Topology {
+    val yvData = switchStructures.first { structure -> structure.baseType.name == "YV" }
+    val structureId = IntId<SwitchStructure>(1)
+    val structure = SwitchStructure(RowVersion(structureId, 1), yvData)
+    val otherJoint = if (secondJoint == JointNumber(1)) JointNumber(2) else JointNumber(1)
+    val secondLink =
+        if (secondJoint == JointNumber(1)) mainJoint(SWITCH_B, 1) else connectionJoint(SWITCH_B, secondJoint.intValue)
+    val otherLink =
+        if (otherJoint == JointNumber(1)) mainJoint(SWITCH_B, 1) else connectionJoint(SWITCH_B, otherJoint.intValue)
+
+    val switchA =
+        switch(
+            id = SWITCH_A,
+            structureId = structureId,
+            joints =
+                listOf(
+                    switchJoint(1, Point(50.0, 0.0)),
+                    switchJoint(5, Point(35.0, 0.0)),
+                    switchJoint(2, Point(20.0, 0.0)),
+                    switchJoint(3, Point(20.0, 3.0)),
+                ),
+        )
+    val switchB =
+        switch(
+            id = SWITCH_B,
+            structureId = structureId,
+            joints =
+                listOf(
+                    switchJoint(secondJoint.intValue, Point(50.0, 0.0)),
+                    switchJoint(5, Point(65.0, 0.0)),
+                    switchJoint(otherJoint.intValue, Point(80.0, 0.0)),
+                    switchJoint(3, Point(80.0, 3.0)),
+                ),
+        )
+
+    val westEnd = DbTrackBoundaryNode(IntId(1), TrackBoundary(IntId(1), START), null, id("west-end"))
+    val aJoint2 = DbSwitchNode(IntId(2), connectionJoint(SWITCH_A, 2), null, id("a-joint-2"))
+    val combination = DbSwitchNode(IntId(3), mainJoint(SWITCH_A, 1), secondLink, id("combination"))
+    val bOther = DbSwitchNode(IntId(4), otherLink, null, id("b-other"))
+    val eastEnd = DbTrackBoundaryNode(IntId(5), TrackBoundary(IntId(1), END), null, id("east-end"))
+
+    val trackGeom =
+        DbLocationTrackGeometry(
+            trackRowVersion =
+                LayoutRowVersion(
+                    LayoutRowId(IntId(1), LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)),
+                    1,
+                ),
+            edges =
+                listOf(
+                    DbLayoutEdge(
+                        id = IntId(101),
+                        uuid = id("west-edge"),
+                        startNode = DbNodeConnection(NodePortType.A, westEnd),
+                        endNode = DbNodeConnection(NodePortType.B, aJoint2),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(20.0, 0.0))),
+                    ),
+                    DbLayoutEdge(
+                        id = IntId(102),
+                        uuid = id("a-inner"),
+                        startNode = DbNodeConnection(NodePortType.A, aJoint2),
+                        endNode = DbNodeConnection(NodePortType.A, combination),
+                        segments = listOf(segment(Point(20.0, 0.0), Point(50.0, 0.0))),
+                    ),
+                    DbLayoutEdge(
+                        id = IntId(103),
+                        uuid = id("b-inner"),
+                        startNode = DbNodeConnection(NodePortType.B, combination),
+                        endNode = DbNodeConnection(NodePortType.A, bOther),
+                        segments = listOf(segment(Point(50.0, 0.0), Point(80.0, 0.0))),
+                    ),
+                    DbLayoutEdge(
+                        id = IntId(104),
+                        uuid = id("east-edge"),
+                        startNode = DbNodeConnection(NodePortType.B, bOther),
+                        endNode = DbNodeConnection(NodePortType.A, eastEnd),
+                        segments = listOf(segment(Point(80.0, 0.0), Point(100.0, 0.0))),
+                    ),
+                ),
+        )
+
+    return createNanoTopology(
+        tracks = listOf(MAIN_TRACK to trackGeom),
+        switches = mapOf(SWITCH_A to switchA, SWITCH_B to switchB),
+        structures = mapOf(structureId to structure),
+        switchRefs = mapOf(SWITCH_A to IdSwitchRef(SWITCH_A), SWITCH_B to IdSwitchRef(SWITCH_B)),
+    )
 }
 
 /**
@@ -637,95 +817,138 @@ private data class SwitchNanoFixture(
 )
 
 /**
- * Builds one fully linked switch as a nano graph. Every external switch joint is a port with an outside track edge, and
- * every non-main port has a switch-internal edge to the presentation point. The transition pairs at the presentation
- * point are taken directly from the structure's alignments. This makes simple, crossing and multi-route switch
- * categories use the same graph shape while retaining their category-specific routing rules.
+ * Builds one fully linked switch as a nano graph using [createNanoTopology]. Every external switch joint has an outside
+ * track edge leading to a track boundary node, and every structure alignment is linked by an internal track.
  */
-private fun switchNanoFixture(structure: SwitchStructureData): SwitchNanoFixture {
+private fun switchNanoFixture(
+    structureData: SwitchStructureData,
+    splitAtMainJoint: Boolean = true,
+): SwitchNanoFixture {
+    val structureId = IntId<SwitchStructure>(1)
+    val structure = SwitchStructure(RowVersion(structureId, 1), structureData)
     val endJoints = structure.endJointNumbers.sorted()
     val mainJoint = structure.presentationJointNumber
-    val mainNode = id("switch-main")
-    val switchNodes = endJoints.associateWith { joint ->
-        if (joint == mainJoint) mainNode else id("switch-joint-${joint.intValue}")
-    }
-    val trackEnds = endJoints.associateWith { joint -> id("track-end-${joint.intValue}") }
-    val outsideEdges = endJoints.associateWith { joint -> id("outside-${joint.intValue}") }
-    val switchInternalEdges =
-        endJoints
-            .filter { joint -> joint != mainJoint }
-            .associateWith { joint -> id("switch-internal-${joint.intValue}") }
+    val switchJoints = structure.joints.map { joint -> switchJoint(joint.number.intValue, joint.location) }
+    val layoutSwitch = switch(id = SWITCH_A, structureId = structureId, joints = switchJoints)
+    val switchRef = IdSwitchRef(SWITCH_A)
 
-    val nano = buildTopology {
-        addNode(
-            id = mainNode,
-            type = SWITCH,
-            location = Point(0.0, 0.0),
-            switchReferences =
-                listOf(
-                    TopologySwitchReference(
-                        switch = SwitchLink(SWITCH_A, SwitchJointRole.MAIN, mainJoint),
-                        oid = null,
-                    )
-                ),
-        )
-        endJoints.forEachIndexed { index, joint ->
-            if (joint != mainJoint) {
-                addNode(
-                    id = switchNodes.getValue(joint),
-                    type = SWITCH,
-                    location = Point(index + 1.0, 0.0),
-                    switchReferences =
-                        listOf(
-                            TopologySwitchReference(
-                                switch = SwitchLink(SWITCH_A, SwitchJointRole.CONNECTION, joint),
-                                oid = null,
-                            )
-                        ),
-                )
-                addEdge(
-                    id = switchInternalEdges.getValue(joint),
-                    startNode = mainNode,
-                    endNode = switchNodes.getValue(joint),
-                    length = index + 1.0,
-                    trackReferences = listOf(TopologyLocationTrackReference(MAIN_TRACK, null)),
-                )
-            }
-            addNode(
-                id = trackEnds.getValue(joint),
-                type = TRACK_BOUNDARY,
-                location = Point(index.toDouble(), 100.0),
-                switchReferences = emptyList(),
+    val switchNodes =
+        (structure.endJointNumbers + mainJoint).associateWith { joint ->
+            val role = if (joint == mainJoint) SwitchJointRole.MAIN else SwitchJointRole.CONNECTION
+            DbSwitchNode(
+                id = IntId(100 + joint.intValue),
+                portA = SwitchLink(SWITCH_A, role, joint),
+                portB = null,
+                uuid = id("switch-joint-${joint.intValue}"),
             )
-            addEdge(
-                id = outsideEdges.getValue(joint),
-                startNode = switchNodes.getValue(joint),
-                endNode = trackEnds.getValue(joint),
-                length = 100.0,
-                trackReferences = listOf(TopologyLocationTrackReference(MAIN_TRACK, null)),
+        }
+    val trackEnds = endJoints.associateWith { joint -> id("track-end-${joint.intValue}") }
+    var nextEdgeId = 1000
+    val externalTracks = endJoints.mapIndexed { index, joint ->
+        val trackId = IntId<LocationTrack>(index + 1)
+        val boundaryNode =
+            DbTrackBoundaryNode(
+                id = IntId(200 + joint.intValue),
+                portA = TrackBoundary(trackId, START),
+                portB = null,
+                uuid = trackEnds.getValue(joint),
             )
-            uTurn(trackEnds.getValue(joint), asc(outsideEdges.getValue(joint)))
-        }
-        endJoints
-            .filter { joint -> joint != mainJoint }
-            .forEach { joint ->
-                connectThrough(
-                    switchNodes.getValue(joint),
-                    asc(switchInternalEdges.getValue(joint)),
-                    asc(outsideEdges.getValue(joint)),
-                )
-            }
-        structure.alignments.forEach { alignment ->
-            val first = alignment.jointNumbers.first()
-            val last = alignment.jointNumbers.last()
-            val firstOut =
-                if (first == mainJoint) asc(outsideEdges.getValue(first)) else asc(switchInternalEdges.getValue(first))
-            val lastOut =
-                if (last == mainJoint) asc(outsideEdges.getValue(last)) else asc(switchInternalEdges.getValue(last))
-            connectThrough(mainNode, firstOut.reversed(), lastOut)
-        }
+        val jointLoc = structure.getJointLocation(joint)
+        val endLoc = Point(jointLoc.x * 2.0, jointLoc.y * 2.0 + 100.0)
+        val edge =
+            DbLayoutEdge(
+                id = IntId(nextEdgeId++),
+                uuid = id("outside-${joint.intValue}"),
+                startNode = DbNodeConnection(NodePortType.A, boundaryNode),
+                endNode = DbNodeConnection(NodePortType.B, switchNodes.getValue(joint)),
+                segments = listOf(segment(endLoc, jointLoc)),
+            )
+        val geom =
+            DbLocationTrackGeometry(
+                trackRowVersion =
+                    LayoutRowVersion(
+                        LayoutRowId(trackId, LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)),
+                        1,
+                    ),
+                edges = listOf(edge),
+            )
+        locationTrack(TRACK_NUMBER, id = trackId) to geom
     }
-    return SwitchNanoFixture(nano, mainNode, trackEnds)
+    val alignmentTracks =
+        structure.alignments.mapIndexed { index, alignment ->
+            val trackId = IntId<LocationTrack>(10 + index)
+            val firstJoint = alignment.jointNumbers.first()
+            val lastJoint = alignment.jointNumbers.last()
+            val edges =
+                if (
+                    splitAtMainJoint && mainJoint in alignment.jointNumbers && mainJoint !in structure.endJointNumbers
+                ) {
+                    listOf(
+                        DbLayoutEdge(
+                            id = IntId(nextEdgeId++),
+                            uuid = id("inner-$index-1"),
+                            startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(firstJoint)),
+                            endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(mainJoint)),
+                            segments =
+                                listOf(
+                                    segment(
+                                        structure.getJointLocation(firstJoint),
+                                        structure.getJointLocation(mainJoint),
+                                    )
+                                ),
+                        ),
+                        DbLayoutEdge(
+                            id = IntId(nextEdgeId++),
+                            uuid = id("inner-$index-2"),
+                            startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(mainJoint)),
+                            endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(lastJoint)),
+                            segments =
+                                listOf(
+                                    segment(
+                                        structure.getJointLocation(mainJoint),
+                                        structure.getJointLocation(lastJoint),
+                                    )
+                                ),
+                        ),
+                    )
+                } else {
+                    listOf(
+                        DbLayoutEdge(
+                            id = IntId(nextEdgeId++),
+                            uuid = id("inner-$index-full"),
+                            startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(firstJoint)),
+                            endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(lastJoint)),
+                            segments =
+                                listOf(
+                                    segment(
+                                        structure.getJointLocation(firstJoint),
+                                        structure.getJointLocation(lastJoint),
+                                    )
+                                ),
+                        )
+                    )
+                }
+            val geom =
+                DbLocationTrackGeometry(
+                    trackRowVersion =
+                        LayoutRowVersion(
+                            LayoutRowId(trackId, LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)),
+                            1,
+                        ),
+                    edges = edges,
+                )
+            locationTrack(TRACK_NUMBER, id = trackId) to geom
+        }
+    val nano =
+        createNanoTopology(
+            tracks = externalTracks + alignmentTracks,
+            switches = mapOf(SWITCH_A to layoutSwitch),
+            structures = mapOf(structureId to structure),
+            switchRefs = mapOf(SWITCH_A to switchRef),
+        )
+    val mainNodeId =
+        nano.nodes.single { node -> node.switchReferences.any { ref -> ref.switch.jointNumber == mainJoint } }.id
+    return SwitchNanoFixture(nano, mainNodeId, trackEnds)
 }
 
 private fun assertSwitchSimplification(
@@ -733,8 +956,24 @@ private fun assertSwitchSimplification(
     fixture: SwitchNanoFixture,
     micro: Topology,
 ) {
+    val nano = fixture.nano
     val mainJoint = structure.presentationJointNumber
     val mainNode = fixture.mainNode
+
+    // Nano contains the main joint and all end joints, connected by switch internal edges
+    assertEquals(
+        structure.endJointNumbers + mainJoint,
+        nano.nodes.flatMap { node -> node.switchReferences.map { ref -> ref.switch.jointNumber } }.toSet(),
+        "Nano switch joints for ${structure.type}",
+    )
+    val expectedNanoSwitchLegCount =
+        if (mainJoint in structure.endJointNumbers) structure.alignments.size else structure.endJointNumbers.size
+    assertEquals(
+        expectedNanoSwitchLegCount,
+        nano.edges.count { edge -> edge.routingReference is SwitchAlignmentRoutingReference },
+        "Nano switch internal legs for ${structure.type}",
+    )
+
     val expectedNodeIds = fixture.trackEnds.values.toSet() + mainNode
     val expectedEdgeNodePairs =
         structure.endJointNumbers.map { joint -> nodePair(mainNode, fixture.trackEnds.getValue(joint)) }.toSet()

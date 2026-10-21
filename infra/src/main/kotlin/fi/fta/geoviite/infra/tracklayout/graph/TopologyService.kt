@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -32,12 +33,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.SwitchStructureAlignmentM
 import fi.fta.geoviite.infra.tracklayout.TrackBoundary
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyDetailLevel.MICRO
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyDetailLevel.NANO
 import java.time.Instant
 import java.util.UUID
+import kotlin.math.abs
 
 private const val TOPOLOGY_CACHE_SIZE = 10L
 private val TOPOLOGY_API_ARCS_UUID_GENERATOR: NameBasedGenerator =
@@ -164,6 +168,7 @@ internal fun createNanoTopology(
     val topologySwitchJoints = switches.values.switchJoints(structures)
     val edgeGroups = tracks.tracksByEdges()
     val nodesBySwitchJoint = edgeGroups.collectNodesBySwitchJoint(topologySwitchJoints)
+    val synthesizedSwitchNodes = mutableMapOf<UUID, SynthesizedSwitchNode>()
     val switchLines =
         switches.values.flatMap { switch ->
             createSwitchLines(
@@ -172,6 +177,7 @@ internal fun createNanoTopology(
                 uuidReference = switchRefs.getValue(switch.id as IntId),
                 nodesBySwitchJoint = nodesBySwitchJoint,
                 edgeGroups = edgeGroups,
+                synthesizedNodes = synthesizedSwitchNodes,
             )
         }
     val regularEdges = edgeGroups.filterNot { (edge) -> edge.isSwitchInnerLink() }
@@ -215,6 +221,16 @@ internal fun createNanoTopology(
                     },
             )
         }
+        synthesizedSwitchNodes.values
+            .filter { node -> node.id in topologyNodeIds }
+            .forEach { node ->
+                addNode(
+                    id = node.id,
+                    type = fi.fta.geoviite.infra.tracklayout.LayoutNodeType.SWITCH,
+                    location = node.location,
+                    switchReferences = listOf(node.switchReference),
+                )
+            }
         regularEdges.forEach { (edge, edgeTracks) ->
             val edgeId = edgeUuid(edge)
             addEdge(
@@ -236,35 +252,36 @@ internal fun createNanoTopology(
                 id = line.id,
                 startNode = line.startNode,
                 endNode = line.endNode,
-                length = line.alignment.length(),
+                length = line.length,
                 trackReferences =
                     line.tracks.map { track ->
                         TopologyLocationTrackReference(track, trackOids[track.id as IntId<LocationTrack>])
                     },
-                routingReference =
-                    SwitchAlignmentRoutingReference(
-                        switchId = line.startKey.switchId,
-                        alignment = line.alignment,
-                        forward = true,
-                    ),
+                routingReference = line.routingReference,
             )
             endpointConnections
                 .getOrPut(line.startNode, ::mutableListOf)
-                .add(EndpointConnection(line.id, EdgeEndpoint.START, SwitchSide.Internal(line.startKey)))
+                .add(EndpointConnection(line.id, EdgeEndpoint.START, line.startSide))
             endpointConnections
                 .getOrPut(line.endNode, ::mutableListOf)
-                .add(EndpointConnection(line.id, EdgeEndpoint.END, SwitchSide.Internal(line.endKey)))
+                .add(EndpointConnection(line.id, EdgeEndpoint.END, line.endSide))
         }
         databaseNodes.values.forEach { occurrences ->
             val node = occurrences.first().node
             addNodeTransitions(node, endpointConnections[nodeUuid(node)].orEmpty())
         }
+        synthesizedSwitchNodes.values
+            .filter { node -> node.id in topologyNodeIds }
+            .forEach { node ->
+                addTransitions(node.id, createSwitchTransitions(endpointConnections[node.id].orEmpty()))
+            }
     }
 }
 
 private fun Collection<LayoutSwitch>.switchJoints(structures: Map<IntId<SwitchStructure>, SwitchStructure>) =
     this.flatMap { switch ->
-            structures.getValue(switch.switchStructureId).endJointNumbers.map { joint ->
+            val structure = structures.getValue(switch.switchStructureId)
+            (structure.endJointNumbers + structure.presentationJointNumber).map { joint ->
                 SwitchJointKey(switch.id as IntId, joint)
             }
         }
@@ -314,17 +331,25 @@ private fun TopologyBuilder.addTransitions(node: UUID, transitions: List<Generat
             incomingDirection = transition.incomingDirection,
             outgoingEdge = transition.outgoingEdge,
             outgoingDirection = transition.outgoingDirection,
+            routingAlignments = transition.routingAlignments,
         )
     }
 
 internal fun createSwitchTransitions(connections: List<EndpointConnection>): List<GeneratedTransition> =
-    createTransitionsBetween(connections) { first, second ->
-        switchSidesConnect(first.side as? SwitchSide, second.side as? SwitchSide)
-    }
+    createTransitionsBetween(
+        connections,
+        connects = { first, second -> switchSidesConnect(first.side as? SwitchSide, second.side as? SwitchSide) },
+        routingAlignments = { first, second ->
+            switchTransitionRoutingAlignments(first.side as? SwitchSide, second.side as? SwitchSide)
+        },
+    )
 
 private fun createTransitionsBetween(
     connections: List<EndpointConnection>,
     connects: (EndpointConnection, EndpointConnection) -> Boolean,
+    routingAlignments: (EndpointConnection, EndpointConnection) -> Set<TopologySwitchAlignment> = { _, _ ->
+        emptySet()
+    },
 ): List<GeneratedTransition> = connections.flatMap { incoming ->
     connections.mapNotNull { outgoing ->
         if (incoming != outgoing && connects(incoming, outgoing)) {
@@ -333,6 +358,7 @@ private fun createTransitionsBetween(
                 incomingDirection = incoming.incomingDirection,
                 outgoingEdge = outgoing.edgeId,
                 outgoingDirection = outgoing.outgoingDirection,
+                routingAlignments = routingAlignments(incoming, outgoing),
             )
         } else {
             null
@@ -343,9 +369,28 @@ private fun createTransitionsBetween(
 private fun switchSidesConnect(first: SwitchSide?, second: SwitchSide?): Boolean =
     when {
         first == null || second == null -> false
-        first.key == second.key -> first::class != second::class
+        first.key == second.key ->
+            when {
+                first is SwitchSide.Internal && second is SwitchSide.Internal ->
+                    first.routingAlignments.intersect(second.routingAlignments).isNotEmpty()
+                else -> first::class != second::class
+            }
         else ->
             first is SwitchSide.Internal && second is SwitchSide.Internal && first.key.switchId != second.key.switchId
+    }
+
+private fun switchTransitionRoutingAlignments(
+    first: SwitchSide?,
+    second: SwitchSide?,
+): Set<TopologySwitchAlignment> =
+    when {
+        first is SwitchSide.Internal && second is SwitchSide.Internal && first.key == second.key ->
+            first.routingAlignments.intersect(second.routingAlignments)
+        first is SwitchSide.Internal && second is SwitchSide.External && first.key == second.key ->
+            first.routingAlignments
+        first is SwitchSide.External && second is SwitchSide.Internal && first.key == second.key ->
+            second.routingAlignments
+        else -> emptySet()
     }
 
 /** At the end of a track, the only allowed transition is a U-turn back along the same edge. */
@@ -375,12 +420,19 @@ internal data class SwitchJointKey(val switchId: IntId<LayoutSwitch>, val joint:
 
 private data class SwitchLineData(
     val id: UUID,
-    val alignment: SwitchStructureAlignment,
     val startNode: UUID,
     val endNode: UUID,
-    val startKey: SwitchJointKey,
-    val endKey: SwitchJointKey,
+    val startSide: SwitchSide.Internal,
+    val endSide: SwitchSide.Internal,
+    val length: Double,
     val tracks: List<LocationTrack>,
+    val routingReference: SwitchAlignmentRoutingReference,
+)
+
+private data class SynthesizedSwitchNode(
+    val id: UUID,
+    val location: Point,
+    val switchReference: TopologySwitchReference,
 )
 
 internal sealed interface EndpointSide
@@ -390,7 +442,10 @@ private data class BoundarySide(val boundary: TrackBoundary) : EndpointSide
 internal sealed interface SwitchSide : EndpointSide {
     val key: SwitchJointKey
 
-    data class Internal(override val key: SwitchJointKey) : SwitchSide
+    data class Internal(
+        override val key: SwitchJointKey,
+        val routingAlignments: Set<TopologySwitchAlignment> = emptySet(),
+    ) : SwitchSide
 
     data class External(override val key: SwitchJointKey) : SwitchSide
 }
@@ -417,6 +472,7 @@ internal data class GeneratedTransition(
     val incomingDirection: TopologyDirection,
     val outgoingEdge: UUID,
     val outgoingDirection: TopologyDirection,
+    val routingAlignments: Set<TopologySwitchAlignment> = emptySet(),
 )
 
 private fun MutableMap<UUID, MutableList<EndpointConnection>>.add(
@@ -456,34 +512,262 @@ private fun createSwitchLines(
     uuidReference: SwitchRef,
     nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
     edgeGroups: List<NanoEdgeData>,
+    synthesizedNodes: MutableMap<UUID, SynthesizedSwitchNode>,
 ): List<SwitchLineData> {
     val switchId = switch.id as IntId
-    return structure.alignments.mapNotNull { alignment ->
-        val startKey = SwitchJointKey(switchId, alignment.jointNumbers.first())
-        val endKey = SwitchJointKey(switchId, alignment.jointNumbers.last())
-        val startNode = nodesBySwitchJoint[startKey] ?: return@mapNotNull null
-        val endNode = nodesBySwitchJoint[endKey] ?: return@mapNotNull null
-        val tracks =
-            edgeGroups
-                .filter { (edge) ->
-                    edge.startNode.switchIn?.id == switchId &&
-                        edge.endNode.switchIn?.id == switchId &&
-                        edge.startNode.switchIn?.jointNumber?.let(alignment::contains) == true &&
-                        edge.endNode.switchIn?.jointNumber?.let(alignment::contains) == true
-                }
-                .flatMap(NanoEdgeData::tracks)
-                .distinctBy { track -> track.id }
-        SwitchLineData(
-            id = switchLineUuid(uuidReference, alignment.jointNumbers),
-            alignment = alignment,
-            startNode = nodeUuid(startNode),
-            endNode = nodeUuid(endNode),
-            startKey = startKey,
-            endKey = endKey,
-            tracks = tracks,
+    val mainJoint = structure.presentationJointNumber
+    return if (mainJoint in structure.endJointNumbers) {
+        structure.alignments.mapNotNull { alignment ->
+            val startKey = SwitchJointKey(switchId, alignment.jointNumbers.first())
+            val endKey = SwitchJointKey(switchId, alignment.jointNumbers.last())
+            val startNode = nodesBySwitchJoint[startKey] ?: return@mapNotNull null
+            val endNode = nodesBySwitchJoint[endKey] ?: return@mapNotNull null
+            val tracks = alignmentTracks(edgeGroups, switchId, alignment)
+            val routingAlignment = TopologySwitchAlignment(switchId, alignment)
+            SwitchLineData(
+                id = switchLineUuid(uuidReference, alignment.jointNumbers),
+                startNode = nodeUuid(startNode),
+                endNode = nodeUuid(endNode),
+                startSide = SwitchSide.Internal(startKey, setOf(routingAlignment)),
+                endSide = SwitchSide.Internal(endKey, setOf(routingAlignment)),
+                length = alignment.length(),
+                tracks = tracks,
+                routingReference =
+                    SwitchAlignmentRoutingReference(
+                        switchId = switchId,
+                        alternatives =
+                            listOf(
+                                SwitchAlignmentRoutingAlternative(
+                                    alignment = alignment,
+                                    forward = true,
+                                    mRange = Range(LineM(0.0), LineM(alignment.length())),
+                                )
+                            ),
+                    ),
+            )
+        }
+    } else {
+        createCenterMainSwitchLines(
+            switch = switch,
+            structure = structure,
+            uuidReference = uuidReference,
+            nodesBySwitchJoint = nodesBySwitchJoint,
+            edgeGroups = edgeGroups,
+            synthesizedNodes = synthesizedNodes,
         )
     }
 }
+
+private fun createCenterMainSwitchLines(
+    switch: LayoutSwitch,
+    structure: SwitchStructure,
+    uuidReference: SwitchRef,
+    nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
+    edgeGroups: List<NanoEdgeData>,
+    synthesizedNodes: MutableMap<UUID, SynthesizedSwitchNode>,
+): List<SwitchLineData> {
+    val switchId = switch.id as IntId
+    val mainJoint = structure.presentationJointNumber
+    val mainKey = SwitchJointKey(switchId, mainJoint)
+    val linkedAlignments = linkedCenterMainAlignments(structure, switchId, nodesBySwitchJoint)
+    if (linkedAlignments.isEmpty()) return emptyList()
+
+    val mainNodeId =
+        centerMainNodeId(switch, uuidReference, mainJoint, mainKey, nodesBySwitchJoint, synthesizedNodes)
+            ?: return emptyList()
+    return structure.endJointNumbers.mapNotNull { endJoint ->
+        createCenterMainSwitchLine(
+            switchId,
+            structure,
+            uuidReference,
+            mainJoint,
+            mainKey,
+            mainNodeId,
+            endJoint,
+            linkedAlignments,
+            nodesBySwitchJoint,
+            edgeGroups,
+        )
+    }
+}
+
+private fun linkedCenterMainAlignments(
+    structure: SwitchStructure,
+    switchId: IntId<LayoutSwitch>,
+    nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
+): List<SwitchStructureAlignment> =
+    structure.alignments.filter { alignment ->
+        val startKey = SwitchJointKey(switchId, alignment.jointNumbers.first())
+        val endKey = SwitchJointKey(switchId, alignment.jointNumbers.last())
+        startKey in nodesBySwitchJoint && endKey in nodesBySwitchJoint
+    }
+
+private fun centerMainNodeId(
+    switch: LayoutSwitch,
+    uuidReference: SwitchRef,
+    mainJoint: JointNumber,
+    mainKey: SwitchJointKey,
+    nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
+    synthesizedNodes: MutableMap<UUID, SynthesizedSwitchNode>,
+): UUID? {
+    nodesBySwitchJoint[mainKey]?.let {
+        return nodeUuid(it)
+    }
+    val mainLocation = switch.getJoint(mainJoint)?.location ?: return null
+    val id = switchNodeUuid(uuidReference, mainJoint)
+    synthesizedNodes.getOrPut(id) {
+        SynthesizedSwitchNode(
+            id = id,
+            location = mainLocation,
+            switchReference =
+                TopologySwitchReference(
+                    switch = SwitchLink(mainKey.switchId, SwitchJointRole.MAIN, mainJoint),
+                    oid = (uuidReference as? OidSwitchRef)?.oid,
+                ),
+        )
+    }
+    return id
+}
+
+private fun createCenterMainSwitchLine(
+    switchId: IntId<LayoutSwitch>,
+    structure: SwitchStructure,
+    uuidReference: SwitchRef,
+    mainJoint: JointNumber,
+    mainKey: SwitchJointKey,
+    mainNodeId: UUID,
+    endJoint: JointNumber,
+    linkedAlignments: List<SwitchStructureAlignment>,
+    nodesBySwitchJoint: Map<SwitchJointKey, DbSwitchNode>,
+    edgeGroups: List<NanoEdgeData>,
+): SwitchLineData? {
+    val endKey = SwitchJointKey(switchId, endJoint)
+    val endNode = nodesBySwitchJoint[endKey] ?: return null
+    val jointAlignments = linkedAlignments.filter { alignment ->
+        alignment.jointNumbers.first() == endJoint || alignment.jointNumbers.last() == endJoint
+    }
+    if (jointAlignments.isEmpty()) return null
+
+    val routingAlternatives = jointAlignments.map { alignment ->
+        createCenterMainRoutingAlternative(structure, endJoint, mainJoint, alignment)
+    }
+    val routingAlignments =
+        routingAlternatives.mapTo(mutableSetOf()) { alternative ->
+            TopologySwitchAlignment(switchId, alternative.alignment)
+        }
+    val legTracks = centerMainLegTracks(edgeGroups, switchId, endJoint, jointAlignments)
+    val legLength = structure.distanceAlongAlignment(endJoint, mainJoint, jointAlignments.first())
+    return SwitchLineData(
+        id = switchLineUuid(uuidReference, listOf(mainJoint, endJoint)),
+        startNode = mainNodeId,
+        endNode = nodeUuid(endNode),
+        startSide = SwitchSide.Internal(mainKey, routingAlignments),
+        endSide = SwitchSide.Internal(endKey, routingAlignments),
+        length = legLength,
+        tracks = legTracks,
+        routingReference =
+            SwitchAlignmentRoutingReference(
+                switchId = switchId,
+                alternatives = routingAlternatives,
+            ),
+    )
+}
+
+private fun createCenterMainRoutingAlternative(
+    structure: SwitchStructure,
+    endJoint: JointNumber,
+    mainJoint: JointNumber,
+    alignment: SwitchStructureAlignment,
+): SwitchAlignmentRoutingAlternative {
+    val isStartOfAlignment = alignment.jointNumbers.first() == endJoint
+    val legLength = structure.distanceAlongAlignment(endJoint, mainJoint, alignment)
+    val alignmentLength = alignment.length()
+    val mRange: Range<LineM<SwitchStructureAlignmentM>> =
+        if (isStartOfAlignment) {
+            Range(LineM(0.0), LineM(legLength))
+        } else {
+            Range(LineM(alignmentLength - legLength), LineM(alignmentLength))
+        }
+    return SwitchAlignmentRoutingAlternative(
+        alignment = alignment,
+        forward = !isStartOfAlignment,
+        mRange = mRange,
+    )
+}
+
+private fun SwitchStructure.distanceAlongAlignment(
+    from: JointNumber,
+    to: JointNumber,
+    alignment: SwitchStructureAlignment,
+): Double = abs(mAtJoint(alignment, to) - mAtJoint(alignment, from))
+
+private fun SwitchStructure.mAtJoint(alignment: SwitchStructureAlignment, joint: JointNumber): Double {
+    val jointIndex = alignment.jointNumbers.indexOf(joint)
+    require(jointIndex >= 0) { "Alignment must contain joint $joint: alignment=$alignment" }
+    if (jointIndex == 0) return 0.0
+    if (jointIndex == alignment.jointNumbers.lastIndex) return alignment.length()
+
+    return if (alignment.elements.size == alignment.jointNumbers.size - 1) {
+        alignment.elements.take(jointIndex).sumOf { element -> element.length }
+    } else {
+        val jointDistances =
+            alignment.jointNumbers.zipWithNext().map { (start, end) ->
+                lineLength(getJointLocation(start), getJointLocation(end))
+            }
+        val totalJointDistance = jointDistances.sum()
+        alignment.length() * jointDistances.take(jointIndex).sum() / totalJointDistance
+    }
+}
+
+private fun centerMainLegTracks(
+    edgeGroups: List<NanoEdgeData>,
+    switchId: IntId<LayoutSwitch>,
+    endJoint: JointNumber,
+    jointAlignments: List<SwitchStructureAlignment>,
+): List<LocationTrack> =
+    edgeGroups
+        .filter { edgeData -> edgeData.isCenterMainLeg(switchId, endJoint, jointAlignments) }
+        .flatMap(NanoEdgeData::tracks)
+        .distinctBy { track -> track.id }
+
+private fun NanoEdgeData.isCenterMainLeg(
+    switchId: IntId<LayoutSwitch>,
+    endJoint: JointNumber,
+    jointAlignments: List<SwitchStructureAlignment>,
+): Boolean {
+    val startLink = edge.startNode.switchIn ?: return false
+    val endLink = edge.endNode.switchIn ?: return false
+    return startLink.id == switchId &&
+        endLink.id == switchId &&
+        (startLink.jointNumber == endJoint || endLink.jointNumber == endJoint) &&
+        jointAlignments.any { alignment ->
+            alignment.contains(startLink.jointNumber) && alignment.contains(endLink.jointNumber)
+        }
+}
+
+private fun alignmentTracks(
+    edgeGroups: List<NanoEdgeData>,
+    switchId: IntId<LayoutSwitch>,
+    alignment: SwitchStructureAlignment,
+): List<LocationTrack> =
+    edgeGroups
+        .filter { (edge) ->
+            edge.startNode.switchIn?.id == switchId &&
+                edge.endNode.switchIn?.id == switchId &&
+                edge.startNode.switchIn?.jointNumber?.let(alignment::contains) == true &&
+                edge.endNode.switchIn?.jointNumber?.let(alignment::contains) == true
+        }
+        .flatMap(NanoEdgeData::tracks)
+        .distinctBy { track -> track.id }
+
+fun switchNodeUuid(switchReference: SwitchRef, jointNumber: JointNumber): UUID =
+    TOPOLOGY_API_ARCS_UUID_GENERATOR.generate("node:${switchReference.uuidKey()}:${jointNumber.intValue}")
+
+private fun SwitchRef.uuidKey(): String =
+    when (this) {
+        is IdSwitchRef -> "id:${id.intValue}"
+        is OidSwitchRef -> oid.toString()
+    }
 
 private fun nodeLocation(
     node: DbLayoutNode,
@@ -579,8 +863,10 @@ internal fun resolveTopologySwitchSegments(
         structure.alignments
             .filter { alignment -> alignment.contains(startJoint) && alignment.contains(endJoint) }
             .mapNotNull { alignment ->
-                val startJointSwitchM = structure.distance(alignment.jointNumbers.first(), startJoint, alignment)
-                val endJointSwitchM = structure.distance(alignment.jointNumbers.first(), endJoint, alignment)
+                val startJointSwitchM =
+                    structure.distanceAlongAlignment(alignment.jointNumbers.first(), startJoint, alignment)
+                val endJointSwitchM =
+                    structure.distanceAlongAlignment(alignment.jointNumbers.first(), endJoint, alignment)
                 val startSwitchM = minOf(startJointSwitchM, endJointSwitchM)
                 val endSwitchM = maxOf(startJointSwitchM, endJointSwitchM)
                 if (endSwitchM - startSwitchM >= LAYOUT_M_DELTA) {
