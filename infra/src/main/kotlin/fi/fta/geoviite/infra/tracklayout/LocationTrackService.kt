@@ -875,6 +875,14 @@ class LocationTrackService(
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
 
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(
+        ids: Collection<IntId<LocationTrack>>
+    ): Map<IntId<LocationTrack>, Map<LayoutBranch, Oid<LocationTrack>>> =
+        locationTrackDao.fetchExternalIdsByBranch(ids).mapValues { (_, externalIds) ->
+            mapNonNullValues(externalIds) { (_, externalId) -> externalId.oid }
+        }
+
     @Transactional
     fun updateDependencies(
         branch: LayoutBranch,

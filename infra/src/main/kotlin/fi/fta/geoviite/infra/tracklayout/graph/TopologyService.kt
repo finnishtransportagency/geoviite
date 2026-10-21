@@ -129,18 +129,18 @@ class TopologyService(
     private fun createNanoTopology(topologyData: TopologyData): Topology {
         val (branch, tracks, topologySwitches) = topologyData
         val switches = topologySwitches.associateBy { switch -> switch.id as IntId }
-        val trackOids =
-            tracks
-                .map { (track) -> track.id as IntId<LocationTrack> }
-                .distinct()
-                .associateWith { trackId ->
-                    val oids = locationTrackService.getExternalIdsByBranch(trackId)
-                    oids[branch] ?: oids[LayoutBranch.main]
-                }
+        val trackIds = tracks.map { (track) -> track.id as IntId<LocationTrack> }.distinct()
+        val trackExternalIds = locationTrackService.getExternalIdsByBranch(trackIds)
+        val trackOids = trackIds.associateWith { trackId ->
+            val oids = trackExternalIds[trackId].orEmpty()
+            oids[branch] ?: oids[LayoutBranch.main]
+        }
+        val switchIds = switches.keys.toList()
+        val switchExternalIds = layoutSwitchService.getExternalIdsByBranch(switchIds)
         val switchRefs =
             switches.values.associate { switch ->
                 val switchId = switch.id as IntId
-                val oids = layoutSwitchService.getExternalIdsByBranch(switchId)
+                val oids = switchExternalIds[switchId].orEmpty()
                 val switchOid = oids[branch] ?: oids[LayoutBranch.main]
                 switchId to (switchOid?.let(::OidSwitchRef) ?: IdSwitchRef(switchId))
             }
