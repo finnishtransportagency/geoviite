@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout.graph
 
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
+import fi.fta.geoviite.infra.util.singleOrDefault
 import java.util.UUID
 
 /**
@@ -156,15 +157,16 @@ private fun canonicalChain(chain: List<ChainLink>): List<ChainLink> {
 }
 
 private fun isSwitchInternal(edge: TopologyEdge): Boolean {
-    val startSwitches = edge.startNode.switchReferences.mapTo(mutableSetOf()) { reference -> reference.switch.id }
+    val startSwitches = edge.startNode.switchReferences.map { reference -> reference.switch.id }
     return edge.endNode.switchReferences.any { reference -> reference.switch.id in startSwitches }
 }
 
 private fun toMicroEdge(chain: List<ChainLink>): MicroEdgeData {
     val edges = chain.map(ChainLink::edge)
+    val edgeIds = edges.map(TopologyEdge::id)
     val trackReferences = edges.flatMap(TopologyEdge::trackReferences).distinctBy { reference -> reference.track.id }
     return MicroEdgeData(
-        id = if (edges.size == 1) edges.first().id else microEdgeUuid(edges.map(TopologyEdge::id)),
+        id = edgeIds.singleOrDefault { microEdgeUuid(edgeIds) },
         startNode = chain.first().startNode.id,
         endNode = chain.last().endNode.id,
         length = edges.sumOf(TopologyEdge::length),

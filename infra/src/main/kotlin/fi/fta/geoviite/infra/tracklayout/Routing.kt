@@ -732,24 +732,21 @@ internal constructor(
         switchEdge: SwitchEdge,
         switchM: Double,
         vertexDirection: VertexDirection,
-    ): List<TmpVertexData> {
-        val jointNumber =
-            when {
+    ): List<TmpVertexData> =
+        when {
                 abs(switchM) < LAYOUT_M_DELTA -> alignment.jointNumbers.first()
                 abs(switchM - alignment.length) < LAYOUT_M_DELTA -> alignment.jointNumbers.last()
-                else -> return emptyList()
+                else -> null
             }
-        return topologyRouting.externalEndpointsBySwitchJoint[RoutingSwitchJoint(alignment.id, jointNumber)]
-            .orEmpty()
-            .map { endpoint ->
+            ?.let { topologyRouting.externalEndpointsBySwitchJoint[RoutingSwitchJoint(alignment.id, it)] }
+            ?.map { endpoint ->
                 TmpSwitchVertexData(
                     vertex = TopologyEndpointVertex(endpoint.edgeId, endpoint.endpoint, vertexDirection),
                     vertexM = LineM(switchM),
                     alignment = alignment,
                     switchEdge = switchEdge,
                 )
-            }
-    }
+            } ?: emptyList()
 }
 
 internal data class RoutingTopologyData(

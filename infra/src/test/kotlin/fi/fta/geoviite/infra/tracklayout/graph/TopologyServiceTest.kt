@@ -99,21 +99,21 @@ class TopologyServiceTest {
                 id = IntId(101),
                 portA = SwitchLink(SWITCH_ID, SwitchJointRole.CONNECTION, JointNumber(1)),
                 portB = null,
-                uuid = uuid("switch-node-1"),
+                extId = uuid("switch-node-1"),
             )
         val node2 =
             DbSwitchNode(
                 id = IntId(102),
                 portA = SwitchLink(SWITCH_ID, SwitchJointRole.CONNECTION, JointNumber(2)),
                 portB = null,
-                uuid = uuid("switch-node-2"),
+                extId = uuid("switch-node-2"),
             )
         val boundary1 =
             DbTrackBoundaryNode(
                 id = IntId(201),
                 portA = TrackBoundary(IntId<LocationTrack>(1), START),
                 portB = null,
-                uuid = uuid("track-end-1"),
+                extId = uuid("track-end-1"),
             )
         val loc1 = structure.getJointLocation(JointNumber(1))
         val loc2 = structure.getJointLocation(JointNumber(2))
@@ -130,14 +130,14 @@ class TopologyServiceTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(1001),
-                            uuid = uuid("external-1"),
+                            extId = uuid("external-1"),
                             startNode = DbNodeConnection(NodePortType.A, boundary1),
                             endNode = DbNodeConnection(NodePortType.B, node1),
                             segments = listOf(segment(endLoc1, loc1)),
                         ),
                         DbLayoutEdge(
                             id = IntId(1002),
-                            uuid = uuid("inner-1-2"),
+                            extId = uuid("inner-1-2"),
                             startNode = DbNodeConnection(NodePortType.A, node1),
                             endNode = DbNodeConnection(NodePortType.A, node2),
                             segments = listOf(segment(loc1, loc2)),
@@ -198,20 +198,20 @@ class TopologyServiceTest {
                         ambiguousJoint,
                     ),
                 portB = null,
-                uuid = uuid("duplicate-switch-joint"),
+                extId = uuid("duplicate-switch-joint"),
             )
         val duplicateBoundary =
             DbTrackBoundaryNode(
                 id = IntId(998),
                 portA = TrackBoundary(duplicateTrackId, START),
                 portB = null,
-                uuid = uuid("duplicate-track-end"),
+                extId = uuid("duplicate-track-end"),
             )
         val jointLocation = structure.getJointLocation(ambiguousJoint)
         val duplicateEdge =
             DbLayoutEdge(
                 id = IntId(999),
-                uuid = uuid("duplicate-external-edge"),
+                extId = uuid("duplicate-external-edge"),
                 startNode = DbNodeConnection(NodePortType.A, duplicateBoundary),
                 endNode = DbNodeConnection(NodePortType.B, duplicateNode),
                 segments = listOf(segment(Point(jointLocation.x - 100.0, jointLocation.y), jointLocation)),
@@ -259,7 +259,7 @@ class TopologyServiceTest {
                     id = IntId(100 + joint.intValue),
                     portA = SwitchLink(SWITCH_ID, role, joint),
                     portB = null,
-                    uuid = uuid("switch-node-${joint.intValue}"),
+                    extId = uuid("switch-node-${joint.intValue}"),
                 )
             }
         var nextEdgeId = 1000
@@ -271,14 +271,14 @@ class TopologyServiceTest {
                         id = IntId(200 + joint.intValue),
                         portA = TrackBoundary(trackId, START),
                         portB = null,
-                        uuid = uuid("track-end-${joint.intValue}"),
+                        extId = uuid("track-end-${joint.intValue}"),
                     )
                 val jointLoc = structure.getJointLocation(joint)
                 val endLoc = Point(jointLoc.x * 2.0, jointLoc.y * 2.0 + 100.0)
                 val edge =
                     DbLayoutEdge(
                         id = IntId(nextEdgeId++),
-                        uuid = uuid("external-${joint.intValue}"),
+                        extId = uuid("external-${joint.intValue}"),
                         startNode = DbNodeConnection(NodePortType.A, boundaryNode),
                         endNode = DbNodeConnection(NodePortType.B, switchNodes.getValue(joint)),
                         segments = listOf(segment(endLoc, jointLoc)),
@@ -308,7 +308,7 @@ class TopologyServiceTest {
                         listOf(
                             DbLayoutEdge(
                                 id = IntId(nextEdgeId++),
-                                uuid = uuid("inner-$index-1"),
+                                extId = uuid("inner-$index-1"),
                                 startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(firstJoint)),
                                 endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(mainJoint)),
                                 segments =
@@ -321,7 +321,7 @@ class TopologyServiceTest {
                             ),
                             DbLayoutEdge(
                                 id = IntId(nextEdgeId++),
-                                uuid = uuid("inner-$index-2"),
+                                extId = uuid("inner-$index-2"),
                                 startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(mainJoint)),
                                 endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(lastJoint)),
                                 segments =
@@ -337,7 +337,7 @@ class TopologyServiceTest {
                         listOf(
                             DbLayoutEdge(
                                 id = IntId(nextEdgeId++),
-                                uuid = uuid("inner-$index-full"),
+                                extId = uuid("inner-$index-full"),
                                 startNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(firstJoint)),
                                 endNode = DbNodeConnection(NodePortType.A, switchNodes.getValue(lastJoint)),
                                 segments =

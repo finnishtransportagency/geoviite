@@ -188,7 +188,7 @@ constructor(
                 .single()
         topologiesAtVersion(layout.publication).forEach { (resolution, topology) ->
             val edge = topology.kaaret.single()
-            assertEquals(dbEdge.uuid.toString(), edge.id, resolution)
+            assertEquals(dbEdge.extId.toString(), edge.id, resolution)
             assertEquals(listOf(layout.trackOid), edge.raiteet.map { it.oid }, resolution)
             assertEquals(1000.0, edge.pituus, 0.001, resolution)
 
@@ -198,7 +198,7 @@ constructor(
                 assertTrue(node.vaihteet.isEmpty(), "$resolution: A track end node has no switches")
             }
             assertEquals(
-                setOf(dbEdge.startNode.node.uuid.toString(), dbEdge.endNode.node.uuid.toString()),
+                setOf(dbEdge.startNode.node.extId.toString(), dbEdge.endNode.node.extId.toString()),
                 topology.solmut.map { node -> node.id }.toSet(),
                 resolution,
             )

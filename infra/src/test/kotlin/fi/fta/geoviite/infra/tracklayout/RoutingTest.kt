@@ -182,7 +182,7 @@ class RoutingTest {
         val track1StartEdge =
             DbLayoutEdge(
                 id = IntId(10000),
-                uuid = UUID(1L, 10000L),
+                extId = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                 endNode = DbNodeConnection(NodePortType.B, switch1StartNode),
                 segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
@@ -190,7 +190,7 @@ class RoutingTest {
         val switch1InnerMainEdge =
             DbLayoutEdge(
                 id = IntId(10001),
-                uuid = UUID(1L, 10001L),
+                extId = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch1StraightEndNode),
                 segments = listOf(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
@@ -198,7 +198,7 @@ class RoutingTest {
         val switch1InnerBranchEdge =
             DbLayoutEdge(
                 id = IntId(10002),
-                uuid = UUID(1L, 10002L),
+                extId = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch1BranchEndNode),
                 segments = listOf(segment(Point(100.0, 0.0), Point(200.0, 50.0))),
@@ -206,7 +206,7 @@ class RoutingTest {
         val track2Edge =
             DbLayoutEdge(
                 id = IntId(10003),
-                uuid = UUID(1L, 10003L),
+                extId = UUID(1L, 10003L),
                 startNode = DbNodeConnection(NodePortType.B, switch1StraightEndNode),
                 endNode = DbNodeConnection(NodePortType.B, switch2StartNode),
                 segments = listOf(segment(Point(200.0, 0.0), Point(300.0, 0.0))),
@@ -214,7 +214,7 @@ class RoutingTest {
         val track3EndEdge =
             DbLayoutEdge(
                 id = IntId(10004),
-                uuid = UUID(1L, 10004L),
+                extId = UUID(1L, 10004L),
                 startNode = DbNodeConnection(NodePortType.B, switch1BranchEndNode),
                 endNode = DbNodeConnection(NodePortType.A, track3EndNode),
                 segments = listOf(segment(Point(200.0, 50.0), Point(300.0, 100.0))),
@@ -316,7 +316,7 @@ class RoutingTest {
         val track1StartEdge =
             DbLayoutEdge(
                 id = IntId(10000),
-                uuid = UUID(1L, 10000L),
+                extId = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                 endNode = DbNodeConnection(NodePortType.B, switchStartNode),
                 segments = listOf(segment(track1Start, joint1Location)),
@@ -324,7 +324,7 @@ class RoutingTest {
         val switchInnerMainEdge1 =
             DbLayoutEdge(
                 id = IntId(10001),
-                uuid = UUID(1L, 10001L),
+                extId = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switchStartNode),
                 endNode = DbNodeConnection(NodePortType.A, switchStraightMidNode),
                 segments = listOf(segment(joint1Location, joint5Location)),
@@ -332,7 +332,7 @@ class RoutingTest {
         val switchInnerMainEdge2 =
             DbLayoutEdge(
                 id = IntId(10002),
-                uuid = UUID(1L, 10002L),
+                extId = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.A, switchStraightMidNode),
                 endNode = DbNodeConnection(NodePortType.A, switchStraightEndNode),
                 segments = listOf(segment(joint5Location, joint2Location)),
@@ -340,7 +340,7 @@ class RoutingTest {
         val track1EndEdge =
             DbLayoutEdge(
                 id = IntId(10003),
-                uuid = UUID(1L, 10003L),
+                extId = UUID(1L, 10003L),
                 startNode = DbNodeConnection(NodePortType.B, switchStraightEndNode),
                 endNode = DbNodeConnection(NodePortType.A, track1EndNode),
                 segments = listOf(segment(joint2Location, track1End)),
@@ -349,7 +349,7 @@ class RoutingTest {
         val switchInnerBranchEdge =
             DbLayoutEdge(
                 id = IntId(10004),
-                uuid = UUID(1L, 10004L),
+                extId = UUID(1L, 10004L),
                 startNode = DbNodeConnection(NodePortType.A, switchStartNode),
                 endNode = DbNodeConnection(NodePortType.A, switchBranchEndNode),
                 segments = listOf(segment(joint1Location, joint3Location)),
@@ -357,7 +357,7 @@ class RoutingTest {
         val track2EndEdge =
             DbLayoutEdge(
                 id = IntId(10005),
-                uuid = UUID(1L, 10005L),
+                extId = UUID(1L, 10005L),
                 startNode = DbNodeConnection(NodePortType.B, switchBranchEndNode),
                 endNode = DbNodeConnection(NodePortType.A, track2EndNode),
                 segments = listOf(segment(joint3Location, track2End)),
@@ -515,7 +515,7 @@ class RoutingTest {
         val startEdge =
             DbLayoutEdge(
                 id = IntId(10000),
-                uuid = UUID(1L, 10000L),
+                extId = UUID(1L, 10000L),
                 // Start at track start
                 startNode = DbNodeConnection(NodePortType.A, trackStartNode),
                 // Connect to switch1 as outer connection
@@ -525,7 +525,7 @@ class RoutingTest {
         val brokenInnerSwitchEdge =
             DbLayoutEdge(
                 id = IntId(10001),
-                uuid = UUID(1L, 10001L),
+                extId = UUID(1L, 10001L),
                 // Connect start to switch1 as inner connection
                 startNode = DbNodeConnection(NodePortType.A, switch1Node),
                 // Connect end to switch2 as inner connection
@@ -535,7 +535,7 @@ class RoutingTest {
         val endEdge =
             DbLayoutEdge(
                 id = IntId(10002),
-                uuid = UUID(1L, 10002L),
+                extId = UUID(1L, 10002L),
                 // Start at switch2 as outer connection
                 startNode = DbNodeConnection(NodePortType.B, switch2Node),
                 // End at track end
@@ -611,7 +611,7 @@ class RoutingTest {
         val startEdge =
             DbLayoutEdge(
                 id = IntId(10000),
-                uuid = UUID(1L, 10000L),
+                extId = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, trackStartNode),
                 endNode = DbNodeConnection(NodePortType.B, switchStartNode),
                 segments = listOf(segment(trackStart, switchLocation)),
@@ -619,7 +619,7 @@ class RoutingTest {
         val switchInnerEdge =
             DbLayoutEdge(
                 id = IntId(10001),
-                uuid = UUID(1L, 10001L),
+                extId = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switchStartNode),
                 endNode = DbNodeConnection(NodePortType.A, switchEndNode),
                 segments = listOf(segment(switchLocation, switchEndLocation)),
@@ -627,7 +627,7 @@ class RoutingTest {
         val endEdge =
             DbLayoutEdge(
                 id = IntId(10002),
-                uuid = UUID(1L, 10002L),
+                extId = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.B, switchEndNode),
                 endNode = DbNodeConnection(NodePortType.A, trackEndNode),
                 segments = listOf(segment(switchEndLocation, trackEnd)),
@@ -697,7 +697,7 @@ class RoutingTest {
         val track1Edge =
             DbLayoutEdge(
                 id = IntId(10000),
-                uuid = UUID(1L, 10000L),
+                extId = UUID(1L, 10000L),
                 startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                 endNode = DbNodeConnection(NodePortType.B, switch1StartNode),
                 segments = listOf(segment(track1Start, switch1Joint1Location)),
@@ -705,7 +705,7 @@ class RoutingTest {
         val switch1InnerEdge =
             DbLayoutEdge(
                 id = IntId(10001),
-                uuid = UUID(1L, 10001L),
+                extId = UUID(1L, 10001L),
                 startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch1EndNode),
                 segments = listOf(segment(switch1Joint1Location, switch1Joint2Location)),
@@ -713,7 +713,7 @@ class RoutingTest {
         val track2MidEdge =
             DbLayoutEdge(
                 id = IntId(10002),
-                uuid = UUID(1L, 10002L),
+                extId = UUID(1L, 10002L),
                 startNode = DbNodeConnection(NodePortType.B, switch1EndNode),
                 endNode = DbNodeConnection(NodePortType.B, switch2StartNode),
                 segments = listOf(segment(switch1Joint2Location, switch2Joint1Location)),
@@ -721,7 +721,7 @@ class RoutingTest {
         val switch2InnerEdge =
             DbLayoutEdge(
                 id = IntId(10003),
-                uuid = UUID(1L, 10003L),
+                extId = UUID(1L, 10003L),
                 startNode = DbNodeConnection(NodePortType.A, switch2StartNode),
                 endNode = DbNodeConnection(NodePortType.A, switch2EndNode),
                 segments = listOf(segment(switch2Joint1Location, switch2Joint2Location)),
@@ -729,7 +729,7 @@ class RoutingTest {
         val track3Edge =
             DbLayoutEdge(
                 id = IntId(10004),
-                uuid = UUID(1L, 10004L),
+                extId = UUID(1L, 10004L),
                 startNode = DbNodeConnection(NodePortType.B, switch2EndNode),
                 endNode = DbNodeConnection(NodePortType.A, track3EndNode),
                 segments = listOf(segment(switch2Joint2Location, track3End)),
@@ -892,28 +892,28 @@ class RoutingTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(10001),
-                            uuid = UUID(1L, 10001L),
+                            extId = UUID(1L, 10001L),
                             startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                             endNode = DbNodeConnection(NodePortType.B, node1),
                             segments = listOf(segment(track1Start, jointLoc(1))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10002),
-                            uuid = UUID(1L, 10002L),
+                            extId = UUID(1L, 10002L),
                             startNode = DbNodeConnection(NodePortType.A, node1),
                             endNode = DbNodeConnection(NodePortType.A, node5),
                             segments = listOf(segment(jointLoc(1), jointLoc(5))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10003),
-                            uuid = UUID(1L, 10003L),
+                            extId = UUID(1L, 10003L),
                             startNode = DbNodeConnection(NodePortType.A, node5),
                             endNode = DbNodeConnection(NodePortType.A, node2),
                             segments = listOf(segment(jointLoc(5), jointLoc(2))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10004),
-                            uuid = UUID(1L, 10004L),
+                            extId = UUID(1L, 10004L),
                             startNode = DbNodeConnection(NodePortType.B, node2),
                             endNode = DbNodeConnection(NodePortType.A, track1EndNode),
                             segments = listOf(segment(jointLoc(2), track1End)),
@@ -927,28 +927,28 @@ class RoutingTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(10005),
-                            uuid = UUID(1L, 10005L),
+                            extId = UUID(1L, 10005L),
                             startNode = DbNodeConnection(NodePortType.A, track2StartNode),
                             endNode = DbNodeConnection(NodePortType.B, node4),
                             segments = listOf(segment(track2Start, jointLoc(4))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10006),
-                            uuid = UUID(1L, 10006L),
+                            extId = UUID(1L, 10006L),
                             startNode = DbNodeConnection(NodePortType.A, node4),
                             endNode = DbNodeConnection(NodePortType.A, node5),
                             segments = listOf(segment(jointLoc(4), jointLoc(5))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10007),
-                            uuid = UUID(1L, 10007L),
+                            extId = UUID(1L, 10007L),
                             startNode = DbNodeConnection(NodePortType.A, node5),
                             endNode = DbNodeConnection(NodePortType.A, node3),
                             segments = listOf(segment(jointLoc(5), jointLoc(3))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10008),
-                            uuid = UUID(1L, 10008L),
+                            extId = UUID(1L, 10008L),
                             startNode = DbNodeConnection(NodePortType.B, node3),
                             endNode = DbNodeConnection(NodePortType.A, track2EndNode),
                             segments = listOf(segment(jointLoc(3), track2End)),
@@ -1048,28 +1048,28 @@ class RoutingTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(10001),
-                            uuid = UUID(1L, 10001L),
+                            extId = UUID(1L, 10001L),
                             startNode = DbNodeConnection(NodePortType.A, track1StartNode),
                             endNode = DbNodeConnection(NodePortType.B, node1),
                             segments = listOf(segment(track1Start, jointLoc(1))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10002),
-                            uuid = UUID(1L, 10002L),
+                            extId = UUID(1L, 10002L),
                             startNode = DbNodeConnection(NodePortType.A, node1),
                             endNode = DbNodeConnection(NodePortType.A, node5),
                             segments = listOf(segment(jointLoc(1), jointLoc(5))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10003),
-                            uuid = UUID(1L, 10003L),
+                            extId = UUID(1L, 10003L),
                             startNode = DbNodeConnection(NodePortType.A, node5),
                             endNode = DbNodeConnection(NodePortType.A, node2),
                             segments = listOf(segment(jointLoc(5), jointLoc(2))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10004),
-                            uuid = UUID(1L, 10004L),
+                            extId = UUID(1L, 10004L),
                             startNode = DbNodeConnection(NodePortType.B, node2),
                             endNode = DbNodeConnection(NodePortType.A, track1EndNode),
                             segments = listOf(segment(jointLoc(2), track1End)),
@@ -1084,28 +1084,28 @@ class RoutingTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(10005),
-                            uuid = UUID(1L, 10005L),
+                            extId = UUID(1L, 10005L),
                             startNode = DbNodeConnection(NodePortType.A, track2StartNode),
                             endNode = DbNodeConnection(NodePortType.B, node4),
                             segments = listOf(segment(track2Start, jointLoc(4))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10006),
-                            uuid = UUID(1L, 10006L),
+                            extId = UUID(1L, 10006L),
                             startNode = DbNodeConnection(NodePortType.A, node4),
                             endNode = DbNodeConnection(NodePortType.A, node5),
                             segments = listOf(segment(jointLoc(4), jointLoc(5))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10007),
-                            uuid = UUID(1L, 10007L),
+                            extId = UUID(1L, 10007L),
                             startNode = DbNodeConnection(NodePortType.A, node5),
                             endNode = DbNodeConnection(NodePortType.A, node3),
                             segments = listOf(segment(jointLoc(5), jointLoc(3))),
                         ),
                         DbLayoutEdge(
                             id = IntId(10008),
-                            uuid = UUID(1L, 10008L),
+                            extId = UUID(1L, 10008L),
                             startNode = DbNodeConnection(NodePortType.B, node3),
                             endNode = DbNodeConnection(NodePortType.A, track2EndNode),
                             segments = listOf(segment(jointLoc(3), track2End)),
@@ -1120,7 +1120,7 @@ class RoutingTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(10009),
-                            uuid = UUID(1L, 10009L),
+                            extId = UUID(1L, 10009L),
                             startNode = DbNodeConnection(NodePortType.A, node1),
                             endNode = DbNodeConnection(NodePortType.A, node3),
                             segments = listOf(segment(jointLoc(1), jointLoc(3))),
@@ -1135,7 +1135,7 @@ class RoutingTest {
                     listOf(
                         DbLayoutEdge(
                             id = IntId(10010),
-                            uuid = UUID(1L, 10010L),
+                            extId = UUID(1L, 10010L),
                             startNode = DbNodeConnection(NodePortType.A, node4),
                             endNode = DbNodeConnection(NodePortType.A, node2),
                             segments = listOf(segment(jointLoc(4), jointLoc(2))),

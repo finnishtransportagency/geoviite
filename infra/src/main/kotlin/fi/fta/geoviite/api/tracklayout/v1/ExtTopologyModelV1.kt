@@ -14,6 +14,11 @@ import java.util.UUID
 
 @Schema(
     title = "Topologiagraafin resoluutio",
+    description =
+        "Nano palauttaa topologian tarkimmalla tasolla. Jokainen topologisesti linkitetty vaihteen liittymäkohta on " +
+            "oma solmunsa, ja vaihteen sisäiset linjat ovat omia kaariaan. Mikro yksinkertaistaa esitystä " +
+            "käyttämällä vaihteelle yhtä solmua esityspisteessä ja yhdistämällä poistettujen välisolmujen kautta " +
+            "kulkevia kaaria; raiteiden päätesolmut säilyvät.",
     type = "string",
     allowableValues = [FI_NANO, FI_MICRO],
     defaultValue = FI_NANO,
@@ -38,10 +43,10 @@ enum class ExtTopologyResolutionV1(val value: String) {
     }
 }
 
-@Schema(title = "Topologiasolmun tyyppi", type = "string", allowableValues = [FI_TRACK_END, FI_SWITCH_ENDPOINT])
+@Schema(title = "Topologiasolmun tyyppi", type = "string", allowableValues = [FI_TRACK_END, FI_SWITCH])
 enum class ExtTopologyNodeTypeV1(val value: String) {
     TRACK_END(FI_TRACK_END),
-    SWITCH(FI_SWITCH_ENDPOINT);
+    SWITCH(FI_SWITCH);
 
     @JsonValue override fun toString() = value
 }

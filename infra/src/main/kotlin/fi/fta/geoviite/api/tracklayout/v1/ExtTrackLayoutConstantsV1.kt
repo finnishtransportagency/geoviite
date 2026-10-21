@@ -217,16 +217,13 @@ const val TOPOLOGY_INCOMING_EDGE = "kaari_sisaan"
 const val TOPOLOGY_OUTGOING_EDGE = "kaari_ulos"
 const val TOPOLOGY_DIRECTION = "suunta"
 
-const val EXT_OPENAPI_TOPOLOGY_RESOLUTION =
-    "Palautettavan topologiagraafin resoluutio. Oletuksena topologia palautetaan nano-resoluutiolla, jossa " +
-        "raiteiden päät ja vaihteiden pisteet ovat graafin solmuja."
+const val EXT_OPENAPI_TOPOLOGY_RESOLUTION = "Palautettavan topologiagraafin resoluutio."
 
 const val EXT_OPENAPI_TOPOLOGY_TRACK_LAYOUT_VERSION =
-    "Rataverkon UUID-tunnus, jonka topologia muodostetaan. Vain päähaaran (MAIN) julkaisut ovat sallittuja. " +
-        "Oletuksena käytetään uusinta päähaaran versiota."
+    "Topologian muodostukseen käytettävä rataverkon versio (UUID-tunnus). Topologiaa ei voi hakea suunnitelmatiloille."
 
 const val EXT_OPENAPI_TOPOLOGY_TRACK_LAYOUT_VERSION_NOT_FOUND =
-    "Annettua rataverkon versiota ei ole olemassa tai se ei ole sallittu päähaaran (MAIN) versio."
+    "Annettua rataverkon versiota ei ole olemassa tai se ei ole sallittu versio (esim. suunnitelman versio)."
 
 const val DESIGN = "suunnitelma"
 const val DESIGN_OID = "suunnitelma_oid"
