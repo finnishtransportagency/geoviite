@@ -320,6 +320,38 @@ constructor(
     }
 
     @Test
+    fun `Completed design rows are excluded from moment cache keys`() {
+        val designBranch = testDBService.createDesignBranch()
+        val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
+
+        val tnMain = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnMain.id
+        val kmp1Main = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
+
+        val tnDesign = officialDesignContext.copyFrom(tnMain)
+        val kmp1Design = officialDesignContext.copyFrom(kmp1Main)
+        val beforeCompletion = testDBService.layoutChangeTime()
+        Thread.sleep(1) // Ensure the completions get a new changetime so that moment-fetch makes sense
+
+        markDesignOfficial(tnDesign, DesignAssetState.COMPLETED)
+        markDesignOfficial(kmp1Design, DesignAssetState.COMPLETED)
+        val afterCompletion = testDBService.layoutChangeTime()
+
+        assertEquals(
+            geocodingContextCacheKey(tnMain, kmp1Main),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, afterCompletion),
+        )
+        assertEquals(
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, afterCompletion),
+        )
+        assertEquals(
+            geocodingContextCacheKey(tnDesign, kmp1Design),
+            geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, beforeCompletion),
+        )
+    }
+
+    @Test
     fun `Cancelled design rows are excluded from validation version cache keys`() {
         val designBranch = testDBService.createDesignBranch()
         val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
@@ -401,10 +433,13 @@ constructor(
      */
     private inline fun <reified T : LayoutAsset<T>> cancelDesignOfficial(
         version: LayoutRowVersion<T>
+    ): LayoutRowVersion<T> = markDesignOfficial(version, DesignAssetState.CANCELLED)
+
+    private inline fun <reified T : LayoutAsset<T>> markDesignOfficial(
+        version: LayoutRowVersion<T>,
+        state: DesignAssetState,
     ): LayoutRowVersion<T> =
         testDBService.update(version) { asset ->
-            asset.withContext(
-                (asset.contextData as DesignOfficialContextData<T>).copy(designAssetState = DesignAssetState.CANCELLED)
-            )
+            asset.withContext((asset.contextData as DesignOfficialContextData<T>).copy(designAssetState = state))
         }
 }

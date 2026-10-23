@@ -113,10 +113,6 @@ abstract class LayoutAssetService<
             }
         dao.deleteRow(draftVersion.rowId)
 
-        if (draft.designAssetState == DesignAssetState.COMPLETED) {
-            dao.deleteRow(publicationVersion.rowId)
-        }
-
         val completedVersion =
             (draft.contextData as? MainDraftContextData)?.originBranch?.let { originBranch ->
                 completeMergeToMain(draftVersion.id, originBranch, publishedSaveParams)

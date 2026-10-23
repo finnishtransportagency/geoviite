@@ -578,7 +578,7 @@ class LocationTrackDao(
                         and change_time <= :moment
                       order by id, design_id, change_time desc, version desc
                   ) candidate
-                  where not deleted and design_asset_state is distinct from 'CANCELLED'
+                  where not deleted and coalesce(design_asset_state, 'OPEN') = 'OPEN'
                   order by id, is_design desc
               ) location_track
               where (:include_deleted or state != 'DELETED')
