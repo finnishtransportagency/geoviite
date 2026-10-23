@@ -48,6 +48,9 @@ data class ExtSwitchV1(
     @JsonProperty(TRAP_POINT) val trapPoint: ExtSwitchTrapPointV1,
     @JsonProperty(SWITCH_JOINTS) val switchJoints: List<ExtSwitchJointV1>,
     @JsonProperty(SWITCH_TRACK_LINKS) val trackLinks: List<ExtSwitchTrackLinkV1>,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(DESIGN_ITEM_STATE)
+    val designItemState: ExtDesignItemStateV1? = null,
 )
 
 @Schema(title = "Vastaus: Vaihde")

@@ -80,6 +80,120 @@ constructor(
         expectAllVersions(listOf(a(LayoutBranch.main, 1)), designBranch, officialVersionTimesB[1])
     }
 
+    @Test
+    fun `fetchAllDesignVersionsAtMoment returns OPEN items in the design`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        mainOfficialContext.save(trackNumber(number = TrackNumber("main only")))
+        val designDraft = designDraftContext.save(trackNumber(number = TrackNumber("in design")))
+        val designOfficial = trackNumberService.publish(designBranch, designDraft).published
+
+        val result = trackNumberDao.fetchAllDesignVersionsAtMoment(designBranch.designId, Instant.now())
+
+        assertEquals(listOf(designOfficial.id), result.map { it.id })
+    }
+
+    @Test
+    fun `fetchAllDesignVersionsAtMoment returns CANCELLED items`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val designDraft = designDraftContext.save(trackNumber(number = TrackNumber("to cancel")))
+        val tnId = designDraft.id
+        trackNumberService.publish(designBranch, designDraft)
+        val cancelDraft = trackNumberService.cancel(designBranch, tnId)!!
+        trackNumberService.publish(designBranch, cancelDraft)
+
+        val result = trackNumberDao.fetchAllDesignVersionsAtMoment(designBranch.designId, Instant.now())
+
+        assertEquals(listOf(tnId), result.map { it.id })
+    }
+
+    @Test
+    fun `fetchAllDesignVersionsAtMoment returns COMPLETED items`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val designDraft = designDraftContext.save(trackNumber(number = TrackNumber("to complete")))
+        val tnId = designDraft.id
+        trackNumberService.publish(designBranch, designDraft)
+        val mainDraft = trackNumberService.mergeToMainBranch(designBranch, tnId)
+        val completedDesignDraft = trackNumberService.publish(LayoutBranch.main, mainDraft).completed!!.second
+        trackNumberService.publish(designBranch, completedDesignDraft)
+
+        val result = trackNumberDao.fetchAllDesignVersionsAtMoment(designBranch.designId, Instant.now())
+
+        assertEquals(listOf(tnId), result.map { it.id })
+    }
+
+    @Test
+    fun `fetchAllDesignVersionsAtMoment does not return items not in the design`() {
+        val designBranch = testDBService.createDesignBranch()
+
+        mainOfficialContext.save(trackNumber(number = TrackNumber("main only")))
+
+        val result = trackNumberDao.fetchAllDesignVersionsAtMoment(designBranch.designId, Instant.now())
+
+        assertEquals(emptyList(), result)
+    }
+
+    @Test
+    fun `fetchDesignVersionAtMoment returns version for OPEN item in design`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val draft = designDraftContext.save(trackNumber(number = TrackNumber("in design")))
+        val designOfficial = trackNumberService.publish(designBranch, draft).published
+
+        val result = trackNumberDao.fetchDesignVersionAtMoment(designBranch.designId, designOfficial.id, Instant.now())
+
+        assertEquals(designOfficial, result)
+    }
+
+    @Test
+    fun `fetchDesignVersionAtMoment returns null for item not in design`() {
+        val designBranch = testDBService.createDesignBranch()
+        val mainOnly = mainOfficialContext.save(trackNumber(number = TrackNumber("main only")))
+
+        val result = trackNumberDao.fetchDesignVersionAtMoment(designBranch.designId, mainOnly.id, Instant.now())
+
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `fetchDesignVersionAtMoment returns CANCELLED item`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val draft = designDraftContext.save(trackNumber(number = TrackNumber("to cancel")))
+        val tnId = draft.id
+        trackNumberService.publish(designBranch, draft)
+        val cancelDraft = trackNumberService.cancel(designBranch, tnId)!!
+        trackNumberService.publish(designBranch, cancelDraft)
+
+        val result = trackNumberDao.fetchDesignVersionAtMoment(designBranch.designId, tnId, Instant.now())
+
+        assertEquals(tnId, result?.id)
+    }
+
+    @Test
+    fun `fetchDesignVersionAtMoment returns COMPLETED item`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val draft = designDraftContext.save(trackNumber(number = TrackNumber("to complete")))
+        val tnId = draft.id
+        trackNumberService.publish(designBranch, draft)
+        val mainDraft = trackNumberService.mergeToMainBranch(designBranch, tnId)
+        val completedDesignDraft = trackNumberService.publish(LayoutBranch.main, mainDraft).completed!!.second
+        trackNumberService.publish(designBranch, completedDesignDraft)
+
+        val result = trackNumberDao.fetchDesignVersionAtMoment(designBranch.designId, tnId, Instant.now())
+
+        assertEquals(tnId, result?.id)
+    }
+
     private fun expectAllVersions(
         expectedVersions: List<LayoutRowVersion<LayoutTrackNumber>>,
         branch: LayoutBranch,

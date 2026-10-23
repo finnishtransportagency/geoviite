@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
@@ -132,9 +133,12 @@ constructor(
         addressFilter: AddressFilter,
     ): ExtTrackNumberGeometryResponseV1? {
         val moment = publication.publicationTime
-        return trackNumberDao
-            .fetchOfficialVersionAtMoment(branch, trackNumberId, moment)
-            ?.let(trackNumberDao::fetch)
+        val trackNumber =
+            if (branch is DesignBranch)
+                trackNumberDao.getDesignAtMoment(branch.designId, trackNumberId, moment)
+                    ?: trackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)
+            else trackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)
+        return trackNumber
             // Deleted track numbers have no geometry in API since there's no guarantee of geocodable addressing
             ?.takeIf { it.exists }
             ?.let { _ ->
