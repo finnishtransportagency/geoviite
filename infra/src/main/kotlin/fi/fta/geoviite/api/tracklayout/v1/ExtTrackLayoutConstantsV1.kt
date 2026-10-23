@@ -201,6 +201,30 @@ const val ROUTE_START_Y = "sijainti_alku_y"
 const val ROUTE_END_X = "sijainti_loppu_x"
 const val ROUTE_END_Y = "sijainti_loppu_y"
 
+const val TOPOLOGY = "topologia"
+const val TOPOLOGY_RESOLUTION = "graafin_resoluutio"
+const val TOPOLOGY_RESOLUTION_PARAM = "resoluutio"
+const val TOPOLOGY_EDGES = "kaaret"
+const val TOPOLOGY_NODES = "solmut"
+const val TOPOLOGY_ID = "id"
+const val TOPOLOGY_EDGE_START_NODE = "alkusolmu"
+const val TOPOLOGY_EDGE_END_NODE = "loppusolmu"
+const val TOPOLOGY_EDGE_LENGTH = "pituus"
+const val TOPOLOGY_REFERENCE_OID = "oid"
+const val TOPOLOGY_SWITCH_JOINT = "vaihdepiste"
+const val TOPOLOGY_TRANSITIONS = "kulkusuunnat"
+const val TOPOLOGY_INCOMING_EDGE = "kaari_sisaan"
+const val TOPOLOGY_OUTGOING_EDGE = "kaari_ulos"
+const val TOPOLOGY_DIRECTION = "suunta"
+
+const val EXT_OPENAPI_TOPOLOGY_RESOLUTION = "Palautettavan topologiagraafin resoluutio."
+
+const val EXT_OPENAPI_TOPOLOGY_TRACK_LAYOUT_VERSION =
+    "Topologian muodostukseen käytettävä rataverkon versio (UUID-tunnus). Topologiaa ei voi hakea suunnitelmatiloille."
+
+const val EXT_OPENAPI_TOPOLOGY_TRACK_LAYOUT_VERSION_NOT_FOUND =
+    "Annettua rataverkon versiota ei ole olemassa tai se ei ole sallittu versio (esim. suunnitelman versio)."
+
 const val DESIGN = "suunnitelma"
 const val DESIGN_OID = "suunnitelma_oid"
 const val DESIGN_NAME = "nimi"
