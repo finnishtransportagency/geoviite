@@ -150,12 +150,7 @@ class TopologyBuilder internal constructor() {
         switchReferences: List<TopologySwitchReference>,
     ) {
         require(!nodes.containsKey(id)) { "Topology must not contain duplicate node UUIDs: node=$id" }
-        nodes[id] =
-            NodeData(
-                type,
-                location,
-                Collections.unmodifiableList(switchReferences),
-            )
+        nodes[id] = NodeData(type, location, switchReferences)
     }
 
     fun addEdge(
@@ -172,7 +167,7 @@ class TopologyBuilder internal constructor() {
                 startNode,
                 endNode,
                 length,
-                Collections.unmodifiableList(trackReferences),
+                trackReferences,
                 routingReference,
             )
     }
@@ -194,7 +189,7 @@ class TopologyBuilder internal constructor() {
         require(!layoutEdges.containsKey(edge.id)) {
             "Topology must not contain duplicate routing data for a layout edge: edge=${edge.id}"
         }
-        layoutEdges[edge.id] = LayoutEdgeData(edge, Collections.unmodifiableSet(tracks))
+        layoutEdges[edge.id] = LayoutEdgeData(edge, tracks)
     }
 
     fun addSwitchAlignmentSegment(alignment: TopologySwitchAlignment, segment: TopologySwitchSegment) {
@@ -202,13 +197,15 @@ class TopologyBuilder internal constructor() {
     }
 
     internal fun build(): Topology {
+        val transitionsByNode = nodes.keys.associateWith { mutableListOf<TopologyTransition>() }
         val builtNodes = nodes.map { (id, data) ->
             TopologyNode(
                 id = id,
                 type = data.type,
                 location = data.location,
-                switchReferences = data.switchReferences,
-                transitions = Collections.unmodifiableList(data.transitions),
+                switchReferences = immutableList(data.switchReferences),
+                // The graph is cyclic; this private list is filled while resolving transitions below.
+                transitions = Collections.unmodifiableList(transitionsByNode.getValue(id)),
             )
         }
         val nodesById = builtNodes.associateBy(TopologyNode::id)
@@ -224,25 +221,38 @@ class TopologyBuilder internal constructor() {
                         "Topology edge refers to an unknown end node: edge=$id node=${data.endNode}"
                     },
                 length = data.length,
-                trackReferences = data.trackReferences,
-                routingReference = data.routingReference,
+                trackReferences = immutableList(data.trackReferences),
+                routingReference = immutableRoutingReference(data.routingReference),
             )
         }
         val edgesById = builtEdges.associateBy(TopologyEdge::id)
         transitions.groupBy(TransitionData::node).forEach { (nodeId, nodeTransitions) ->
             val node =
                 requireNotNull(nodesById[nodeId]) { "Topology transition refers to an unknown node: node=$nodeId" }
-            nodes
+            transitionsByNode
                 .getValue(nodeId)
-                .transitions
                 .addAll(nodeTransitions.distinct().map { data -> resolve(data, node, edgesById) })
         }
         return Topology(
-            nodes = builtNodes,
-            edges = builtEdges,
+            nodes = immutableList(builtNodes),
+            edges = immutableList(builtEdges),
             routingData = buildRoutingData(),
         )
     }
+
+    private fun <T> immutableList(values: Collection<T>): List<T> = Collections.unmodifiableList(ArrayList(values))
+
+    private fun <T> immutableSet(values: Collection<T>): Set<T> = Collections.unmodifiableSet(LinkedHashSet(values))
+
+    private fun immutableRoutingReference(
+        routingReference: TopologyEdgeRoutingReference?
+    ): TopologyEdgeRoutingReference? =
+        when (routingReference) {
+            is SwitchAlignmentRoutingReference ->
+                routingReference.copy(alternatives = immutableList(routingReference.alternatives))
+            is LayoutEdgeRoutingReference,
+            null -> routingReference
+        }
 
     private fun buildRoutingData(): TopologyRoutingData {
         val segmentsByLayoutEdge =
@@ -258,7 +268,7 @@ class TopologyBuilder internal constructor() {
             layoutEdges.mapValues { (layoutEdgeId, data) ->
                 TopologyLayoutEdgeData(
                     edge = data.edge,
-                    tracks = data.tracks,
+                    tracks = immutableSet(data.tracks),
                     switchConnections = segmentsByLayoutEdge[layoutEdgeId].orEmpty(),
                 )
             }
@@ -281,7 +291,7 @@ class TopologyBuilder internal constructor() {
         return TopologyTransition(
             incomingEdge = incoming,
             outgoingEdge = outgoing,
-            routingAlignments = data.routingAlignments,
+            routingAlignments = immutableSet(data.routingAlignments),
         )
     }
 
@@ -292,7 +302,6 @@ class TopologyBuilder internal constructor() {
         val type: LayoutNodeType,
         val location: Point,
         val switchReferences: List<TopologySwitchReference>,
-        val transitions: MutableList<TopologyTransition> = mutableListOf(),
     )
 
     private data class EdgeData(
