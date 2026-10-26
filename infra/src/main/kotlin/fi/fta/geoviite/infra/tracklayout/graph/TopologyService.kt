@@ -179,6 +179,8 @@ internal fun createNanoTopology(
 ): Topology {
     val topologySwitchJoints = switches.values.switchJoints(structures)
     val edgeGroups = tracks.tracksByEdges()
+    val switchInternalEdgesBySwitch =
+        edgeGroups.asSequence().filter { it.edge.isSwitchInnerLink() }.groupBy { it.edge.startNode.switchIn!!.id }
     val switchJointNodes = edgeGroups.collectNodesBySwitchJoint(topologySwitchJoints)
     val nodesBySwitchJoint = switchJointNodes.nodes
     val validSwitchJoints = topologySwitchJoints - switchJointNodes.ambiguousJoints
@@ -191,7 +193,7 @@ internal fun createNanoTopology(
                 uuidReference = switchRefs.getValue(switch.id as IntId),
                 nodesBySwitchJoint = nodesBySwitchJoint,
                 ambiguousSwitchJoints = switchJointNodes.ambiguousJoints,
-                edgeGroups = edgeGroups,
+                edgeGroups = switchInternalEdgesBySwitch[switch.id as IntId] ?: emptyList(),
                 synthesizedNodes = synthesizedSwitchNodes,
             )
         }
