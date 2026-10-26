@@ -1,4 +1,4 @@
--- increment this to force re-execution: 2
+-- increment this to force re-execution: 1
 drop function if exists layout.switch_in_layout_context(layout.publication_state, int);
 drop function if exists layout.switch_in_layout_context(layout.publication_state, int, int);
 drop function if exists layout.switch_is_in_layout_context(publication_state_in layout.publication_state, design_id_in integer, switch layout.switch);
@@ -30,7 +30,7 @@ select
                                from layout.switch overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
-                                 and overriding_design_official.design_asset_state = 'OPEN'
+                                 and coalesce(overriding_design_official.design_asset_state, 'OPEN') = 'OPEN'
                                  and overriding_design_official.id = switch.id
                                  and (publication_state_in = 'OFFICIAL' or not exists (
                                    select *

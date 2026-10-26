@@ -20,7 +20,6 @@ select completed.id, completed.layout_context_id, completed.version
            and completed.layout_context_id = deletion.layout_context_id
            and completed.version = deletion.version - 1
   where deletion.design_id is not null
-    and exists (select * from layout.design where design.id = deletion.design_id)
     and not deletion.draft
     and deletion.deleted
     and completed.design_asset_state = 'COMPLETED'
@@ -30,12 +29,6 @@ select completed.id, completed.layout_context_id, completed.version
       from layout.track_number_version latest
       where latest.id = deletion.id
         and latest.layout_context_id = deletion.layout_context_id
-  )
-    and not exists (
-    select *
-      from layout.track_number live
-      where live.id = deletion.id
-        and live.layout_context_id = deletion.layout_context_id
   );
 
 -- Put N back into the live table
@@ -104,7 +97,6 @@ select completed.id, completed.layout_context_id, completed.version
            and completed.layout_context_id = deletion.layout_context_id
            and completed.version = deletion.version - 1
   where deletion.design_id is not null
-    and exists (select * from layout.design where design.id = deletion.design_id)
     and not deletion.draft
     and deletion.deleted
     and completed.design_asset_state = 'COMPLETED'
@@ -114,12 +106,6 @@ select completed.id, completed.layout_context_id, completed.version
       from layout.location_track_version latest
       where latest.id = deletion.id
         and latest.layout_context_id = deletion.layout_context_id
-  )
-    and not exists (
-    select *
-      from layout.location_track live
-      where live.id = deletion.id
-        and live.layout_context_id = deletion.layout_context_id
   );
 
 -- Put N back into the live table
@@ -202,7 +188,6 @@ select completed.id, completed.layout_context_id, completed.version
            and completed.layout_context_id = deletion.layout_context_id
            and completed.version = deletion.version - 1
   where deletion.design_id is not null
-    and exists (select * from layout.design where design.id = deletion.design_id)
     and not deletion.draft
     and deletion.deleted
     and completed.design_asset_state = 'COMPLETED'
@@ -212,12 +197,6 @@ select completed.id, completed.layout_context_id, completed.version
       from layout.switch_version latest
       where latest.id = deletion.id
         and latest.layout_context_id = deletion.layout_context_id
-  )
-    and not exists (
-    select *
-      from layout.switch live
-      where live.id = deletion.id
-        and live.layout_context_id = deletion.layout_context_id
   );
 
 -- Put N back into the live table
@@ -287,7 +266,6 @@ select completed.id, completed.layout_context_id, completed.version
            and completed.layout_context_id = deletion.layout_context_id
            and completed.version = deletion.version - 1
   where deletion.design_id is not null
-    and exists (select * from layout.design where design.id = deletion.design_id)
     and not deletion.draft
     and deletion.deleted
     and completed.design_asset_state = 'COMPLETED'
@@ -297,12 +275,6 @@ select completed.id, completed.layout_context_id, completed.version
       from layout.km_post_version latest
       where latest.id = deletion.id
         and latest.layout_context_id = deletion.layout_context_id
-  )
-    and not exists (
-    select *
-      from layout.km_post live
-      where live.id = deletion.id
-        and live.layout_context_id = deletion.layout_context_id
   );
 
 -- Put N back into the live table
@@ -372,7 +344,6 @@ select completed.id, completed.layout_context_id, completed.version
            and completed.layout_context_id = deletion.layout_context_id
            and completed.version = deletion.version - 1
   where deletion.design_id is not null
-    and exists (select * from layout.design where design.id = deletion.design_id)
     and not deletion.draft
     and deletion.deleted
     and completed.design_asset_state = 'COMPLETED'
@@ -382,12 +353,6 @@ select completed.id, completed.layout_context_id, completed.version
       from layout.operational_point_version latest
       where latest.id = deletion.id
         and latest.layout_context_id = deletion.layout_context_id
-  )
-    and not exists (
-    select *
-      from layout.operational_point live
-      where live.id = deletion.id
-        and live.layout_context_id = deletion.layout_context_id
   );
 
 -- Put N back into the live table
