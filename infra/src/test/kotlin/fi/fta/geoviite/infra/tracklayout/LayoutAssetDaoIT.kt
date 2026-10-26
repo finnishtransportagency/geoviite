@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -78,6 +79,33 @@ constructor(
         // after b's cancellation: b disappears
         expectAllVersions(listOf(a(LayoutBranch.main, 1)), LayoutBranch.main, officialVersionTimesB[1])
         expectAllVersions(listOf(a(LayoutBranch.main, 1)), designBranch, officialVersionTimesB[1])
+    }
+
+    @Test
+    fun `change time is scoped to effective layout contexts`() {
+        val designBranch = testDBService.createDesignBranch()
+        val otherDesignBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+        val otherDesignDraftContext = testDBService.testContext(otherDesignBranch, PublicationState.DRAFT)
+
+        mainOfficialContext.save(trackNumber(number = TrackNumber("main official initial")))
+        val initialDesignDraftChangeTime = trackNumberService.getChangeTime(designDraftContext.context)
+        val initialDesignOfficialChangeTime = trackNumberService.getChangeTime(designOfficialContext.context)
+        val initialMainDraftChangeTime = trackNumberService.getChangeTime(mainDraftContext.context)
+
+        designDraftContext.save(trackNumber(number = TrackNumber("design draft update")))
+        val designDraftChangeTime = trackNumberService.getChangeTime(designDraftContext.context)
+        assertNotEquals(initialDesignDraftChangeTime, designDraftChangeTime)
+        assertEquals(initialDesignOfficialChangeTime, trackNumberService.getChangeTime(designOfficialContext.context))
+
+        otherDesignDraftContext.save(trackNumber(number = TrackNumber("other design draft update")))
+        mainDraftContext.save(trackNumber(number = TrackNumber("main draft update")))
+        assertNotEquals(initialMainDraftChangeTime, trackNumberService.getChangeTime(mainDraftContext.context))
+        assertEquals(designDraftChangeTime, trackNumberService.getChangeTime(designDraftContext.context))
+
+        mainOfficialContext.save(trackNumber(number = TrackNumber("main official update")))
+        assertNotEquals(designDraftChangeTime, trackNumberService.getChangeTime(designDraftContext.context))
     }
 
     private fun expectAllVersions(

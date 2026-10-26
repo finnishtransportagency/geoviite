@@ -49,6 +49,8 @@ abstract class LayoutAssetService<
         return dao.fetchChangeTime()
     }
 
+    fun getChangeTime(context: LayoutContext): Instant = dao.fetchChangeTime(context)
+
     fun getLayoutAssetChangeInfo(context: LayoutContext, id: IntId<ObjectType>): LayoutAssetChangeInfo? {
         return dao.fetchLayoutAssetChangeInfo(context, id)
     }

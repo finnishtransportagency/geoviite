@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.math.Point
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -54,6 +56,7 @@ class TopologyService(
     private val locationTrackService: LocationTrackService,
     private val layoutSwitchService: LayoutSwitchService,
     private val switchLibraryService: SwitchLibraryService,
+    private val publicationDao: PublicationDao,
 ) : ManualCacheStatsProvider {
 
     private val topologyCache: Cache<TopologyRequest, CachedTopology> =
@@ -69,17 +72,24 @@ class TopologyService(
 
     fun getTopology(
         context: LayoutContext,
-        changeTime: Instant,
         detailLevel: TopologyDetailLevel,
     ): Topology =
-        getTopology(
-            if (context.state == OFFICIAL) {
-                TopologyRequest.Snapshot(context.branch, changeTime)
-            } else {
-                TopologyRequest.Layout(context, changeTime)
-            },
-            detailLevel,
-        )
+        when (context.state) {
+            OFFICIAL ->
+                getTopology(
+                    context.branch,
+                    publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH,
+                    detailLevel,
+                )
+            DRAFT -> {
+                val topologyChangeTimes =
+                    DraftLayoutChangeTimes(
+                        locationTrackChangeTime = locationTrackService.getChangeTime(context),
+                        switchChangeTime = layoutSwitchService.getChangeTime(context),
+                    )
+                getTopology(TopologyRequest.Draft(context, topologyChangeTimes), detailLevel)
+            }
+        }
 
     fun getTopology(
         context: LayoutContextTransition,
@@ -112,7 +122,7 @@ class TopologyService(
                                 .listOfficialAtMoment(request.branch, request.moment)
                                 .filter(LayoutSwitch::exists),
                     )
-                is TopologyRequest.Layout ->
+                is TopologyRequest.Draft ->
                     TopologyData(
                         branch = request.context.branch,
                         tracks = locationTrackService.listWithGeometries(request.context, includeDeleted = false),
@@ -844,7 +854,7 @@ internal data class CachedTopology(val nano: Topology) {
 private sealed interface TopologyRequest {
     data class Snapshot(val branch: LayoutBranch, val moment: Instant) : TopologyRequest
 
-    data class Layout(val context: LayoutContext, val changeTime: Instant) : TopologyRequest
+    data class Draft(val context: LayoutContext, val topologyChangeTimes: DraftLayoutChangeTimes) : TopologyRequest
 
     data class Validation(
         val context: LayoutContextTransition,
@@ -857,6 +867,11 @@ private data class TopologyData(
     val branch: LayoutBranch,
     val tracks: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
     val switches: List<LayoutSwitch>,
+)
+
+internal data class DraftLayoutChangeTimes(
+    val locationTrackChangeTime: Instant,
+    val switchChangeTime: Instant,
 )
 
 internal fun TopologyBuilder.addLayoutRouting(

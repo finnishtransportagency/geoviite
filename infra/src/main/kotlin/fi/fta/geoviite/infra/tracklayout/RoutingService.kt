@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.ValidationContext
+import fi.fta.geoviite.infra.tracklayout.graph.DraftLayoutChangeTimes
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyDetailLevel.NANO
 import fi.fta.geoviite.infra.tracklayout.graph.TopologyService
 import java.time.Instant
@@ -29,10 +30,10 @@ class RoutingService(
     private val publicationDao: PublicationDao,
     private val topologyService: TopologyService,
 ) : ManualCacheStatsProvider {
-    sealed class GraphCacheKey {
-        data class Layout(
+    private sealed class GraphCacheKey {
+        data class Draft(
             val context: LayoutContext,
-            val changeTime: Instant,
+            val draftChangeTimes: DraftLayoutChangeTimes,
         ) : GraphCacheKey()
 
         data class Snapshot(
@@ -68,14 +69,22 @@ class RoutingService(
 
     fun getGraph(context: LayoutContext): RoutingGraph = getGraph(contextCacheKey(context))
 
-    private fun contextCacheKey(context: LayoutContext): GraphCacheKey {
-        val changeTime =
-            when (context.state) {
-                OFFICIAL -> publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH
-                DRAFT -> maxOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime())
-            }
-        return GraphCacheKey.Layout(context, changeTime)
-    }
+    private fun contextCacheKey(context: LayoutContext): GraphCacheKey =
+        when (context.state) {
+            OFFICIAL ->
+                GraphCacheKey.Snapshot(
+                    context.branch,
+                    publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH,
+                )
+            DRAFT ->
+                GraphCacheKey.Draft(
+                    context,
+                    DraftLayoutChangeTimes(
+                        locationTrackChangeTime = locationTrackDao.fetchChangeTime(context),
+                        switchChangeTime = switchDao.fetchChangeTime(context),
+                    ),
+                )
+        }
 
     fun getGraph(
         context: ValidationContext,
@@ -95,7 +104,7 @@ class RoutingService(
     private fun createGraph(key: GraphCacheKey): RoutingGraph =
         buildGraph(
             when (key) {
-                is GraphCacheKey.Layout -> topologyService.getTopology(key.context, key.changeTime, NANO)
+                is GraphCacheKey.Draft -> topologyService.getTopology(key.context, NANO)
                 is GraphCacheKey.Snapshot -> topologyService.getTopology(key.branch, key.moment, NANO)
                 is GraphCacheKey.Validation ->
                     topologyService.getTopology(
@@ -158,15 +167,11 @@ class RoutingService(
         val bbox = boundingBoxAroundPoint(location, thresholdMeters)
 
         return when (key) {
-            is GraphCacheKey.Layout -> {
-                val versions =
-                    when (key.context.state) {
-                        OFFICIAL ->
-                            locationTrackDao.fetchOfficialVersionsNearAtMoment(key.context.branch, bbox, key.changeTime)
-                        DRAFT -> locationTrackDao.fetchVersionsNear(key.context, bbox)
-                    }
-                versions.mapNotNull { version -> createHit(version, location, thresholdMeters) }.minOrNull()
-            }
+            is GraphCacheKey.Draft ->
+                locationTrackDao
+                    .fetchVersionsNear(key.context, bbox)
+                    .mapNotNull { version -> createHit(version, location, thresholdMeters) }
+                    .minOrNull()
 
             is GraphCacheKey.Snapshot ->
                 locationTrackDao
