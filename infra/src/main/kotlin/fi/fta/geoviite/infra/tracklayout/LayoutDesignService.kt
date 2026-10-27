@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.error.DesignHasCompletedItemsException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.Publication
@@ -42,6 +43,9 @@ class LayoutDesignService(
     /** @return The publication ID reporting this design change, if one was made */
     @Transactional
     fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<Publication>? {
+        if (request.designState == DesignState.DELETED && dao.designHasCompletedItems(id)) {
+            throw DesignHasCompletedItemsException(id)
+        }
         try {
             dao.update(id, request)
         } catch (e: DataIntegrityViolationException) {

@@ -1,16 +1,20 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.error.DesignHasCompletedItemsException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationLogService
+import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.publicationRequestIds
@@ -21,6 +25,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -36,6 +41,10 @@ constructor(
     private val publicationLogService: PublicationLogService,
     private val publicationTestSupportService: PublicationTestSupportService,
     private val trackNumberService: LayoutTrackNumberService,
+    private val locationTrackService: LocationTrackService,
+    private val switchService: LayoutSwitchService,
+    private val kmPostService: LayoutKmPostService,
+    private val operationalPointService: OperationalPointService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
     private val switchDao: LayoutSwitchDao,
@@ -248,6 +257,134 @@ constructor(
         assertContainsSingleCancelledOfficialObject(details.switches.map { it.version }, switchDao)
         assertContainsSingleCancelledOfficialObject(details.locationTracks.map { it.version }, locationTrackDao)
     }
+
+    @Test
+    fun `deleting a design with a completed track number is rejected`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = testDBService.testContext(designBranch, PublicationState.DRAFT).save(trackNumber()).id
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber))) {
+            trackNumberService.mergeToMainBranch(designBranch, trackNumber)
+        }
+
+        assertDeletionRejected(designBranch, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER)
+    }
+
+    @Test
+    fun `deleting a design with a completed location track is rejected`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val locationTrack =
+            testDBService
+                .testContext(designBranch, PublicationState.DRAFT)
+                .save(locationTrack(trackNumber), trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0))))
+                .id
+        completeInDesign(designBranch, publicationRequestIds(locationTracks = listOf(locationTrack))) {
+            locationTrackService.mergeToMainBranch(designBranch, locationTrack)
+        }
+
+        assertDeletionRejected(designBranch, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK)
+    }
+
+    @Test
+    fun `deleting a design with a completed switch is rejected`() {
+        val designBranch = testDBService.createDesignBranch()
+        val switch = testDBService.testContext(designBranch, PublicationState.DRAFT).save(switch()).id
+        completeInDesign(designBranch, publicationRequestIds(switches = listOf(switch))) {
+            switchService.mergeToMainBranch(designBranch, switch)
+        }
+
+        assertDeletionRejected(designBranch, LayoutAssetTable.LAYOUT_ASSET_SWITCH)
+    }
+
+    @Test
+    fun `deleting a design with a completed km post is rejected`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val kmPost =
+            testDBService.testContext(designBranch, PublicationState.DRAFT).save(kmPost(trackNumber, KmNumber(1))).id
+        completeInDesign(designBranch, publicationRequestIds(kmPosts = listOf(kmPost))) {
+            kmPostService.mergeToMainBranch(designBranch, kmPost)
+        }
+
+        assertDeletionRejected(designBranch, LayoutAssetTable.LAYOUT_ASSET_KM_POST)
+    }
+
+    @Test
+    fun `deleting a design with a completed operational point is rejected`() {
+        val designBranch = testDBService.createDesignBranch()
+        val operationalPoint =
+            testDBService.testContext(designBranch, PublicationState.DRAFT).save(operationalPoint()).id
+        completeInDesign(designBranch, publicationRequestIds(operationalPoints = listOf(operationalPoint))) {
+            operationalPointService.mergeToMainBranch(designBranch, operationalPoint)
+        }
+
+        assertDeletionRejected(designBranch, LayoutAssetTable.LAYOUT_ASSET_OPERATIONAL_POINT)
+    }
+
+    @Test
+    fun `deleting a design with only open and cancelled items still works`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val open = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val cancelled = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(trackNumbers = listOf(open, cancelled)),
+        )
+        trackNumberService.cancel(designBranch, cancelled)
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(cancelled)))
+
+        deleteDesign(designBranch.designId)
+
+        assertEquals(DesignState.DELETED, layoutDesignDao.fetch(designBranch.designId).designState)
+        assertEquals(
+            listOf("CANCELLED", "CANCELLED"),
+            designAssetStates(designBranch.designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER),
+        )
+    }
+
+    @Test
+    fun `cancelling single items is still allowed after a partial merge`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val completed = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val toCancel = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(toCancel)))
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(completed))) {
+            trackNumberService.mergeToMainBranch(designBranch, completed)
+        }
+
+        trackNumberService.cancel(designBranch, toCancel)
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(toCancel)))
+
+        assertEquals(
+            listOf("CANCELLED", "COMPLETED"),
+            designAssetStates(designBranch.designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER),
+        )
+    }
+
+    private fun completeInDesign(designBranch: DesignBranch, ids: PublicationRequestIds, mergeToMain: () -> Unit) {
+        publicationTestSupportService.publish(designBranch, ids)
+        mergeToMain()
+        publicationTestSupportService.publish(LayoutBranch.main, ids)
+    }
+
+    private fun assertDeletionRejected(designBranch: DesignBranch, table: LayoutAssetTable) {
+        val designId = designBranch.designId
+        assertThrows<DesignHasCompletedItemsException> { deleteDesign(designId) }
+        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designId).designState)
+        assertEquals(listOf("COMPLETED"), designAssetStates(designId, table))
+    }
+
+    private fun designAssetStates(designId: IntId<LayoutDesign>, table: LayoutAssetTable): List<String> =
+        jdbc
+            .query(
+                "select design_asset_state from ${table.fullName} where design_id = :design_id and not draft",
+                mapOf("design_id" to designId.intValue),
+            ) { rs, _ ->
+                rs.getString("design_asset_state")
+            }
+            .sorted()
 
     private fun <T : LayoutAsset<T>> assertContainsSingleCancelledOfficialObject(
         versions: List<LayoutRowVersion<T>>,

@@ -196,7 +196,8 @@
             }
         },
         "design": {
-            "duplicate-name": "Nimi {{name}} on jo käytössä toisella suunnitelmalla"
+            "duplicate-name": "Nimi {{name}} on jo käytössä toisella suunnitelmalla",
+            "has-completed-items": "Suunnitelmaa ei voi poistaa, koska osa siitä on viety viralliseen rataverkkoon"
         },
         "entity-not-found": "Tietoa ei löydy",
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
