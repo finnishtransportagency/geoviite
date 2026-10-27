@@ -46,7 +46,8 @@ const val FI_DESIGN_ITEM_COMPLETED = "valmis"
     description =
         "Kohteen tila suunnitelmassa. Kenttä palautetaan vain suunnitelmapolun hauissa.\n\n" +
             "- avoin: kohteen muutos on suunnitelmassa, eikä sitä ole vielä viety viralliseen paikannuspohjaan.\n" +
-            "- peruttu: kohteen muutos on peruttu suunnitelmasta.\n" +
+            "- peruttu: kohteen muutos on peruttu suunnitelmasta. Kohteen tiedot palautetaan sellaisina kuin ne " +
+            "olivat suunnitelmassa ennen perumista.\n" +
             "- valmis: kohteen muutos on viety viralliseen paikannuspohjaan. Kohteen tiedot palautetaan " +
             "suunnitelman mukaisina, joten ne voivat poiketa virallisen paikannuspohjan nykyisistä tiedoista.",
     type = "string",

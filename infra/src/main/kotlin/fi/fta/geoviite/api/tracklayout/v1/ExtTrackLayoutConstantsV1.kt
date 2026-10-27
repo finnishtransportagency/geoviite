@@ -242,8 +242,7 @@ const val EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION =
         "$DESIGN_ITEM_STATE. Kohteet, joita suunnitelma ei muuta, haetaan virallisen paikannuspohjan poluista."
 
 const val EXT_OPENAPI_DESIGN_TRACK_NUMBER_GEOCODING =
-    "Suunnitelmapolussa perutun tai valmistuneen ratanumeron rataosoitteet lasketaan ratanumeron " +
-        "suunnitelmassa olevalla geometrialla ja suunnitelman tasakilometripisteillä haetussa rataverkon versiossa."
+    "Perutun tai valmistuneen ratanumeron rataosoitteet vastaavat suunnitelmaa, eivät virallista paikannuspohjaa."
 
 const val EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION =
     "$EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION $EXT_OPENAPI_DESIGN_TRACK_NUMBER_GEOCODING"
