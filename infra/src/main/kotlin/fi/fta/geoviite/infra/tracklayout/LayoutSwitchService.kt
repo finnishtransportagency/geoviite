@@ -188,8 +188,19 @@ constructor(
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 
     @Transactional(readOnly = true)
+    fun getMany(versions: List<LayoutRowVersion<LayoutSwitch>>): List<LayoutSwitch> = dao.fetchMany(versions)
+
+    @Transactional(readOnly = true)
     fun getExternalIdsByBranch(id: IntId<LayoutSwitch>): Map<LayoutBranch, Oid<LayoutSwitch>> =
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
+
+    @Transactional(readOnly = true)
+    fun getExternalIdsByBranch(
+        ids: Collection<IntId<LayoutSwitch>>
+    ): Map<IntId<LayoutSwitch>, Map<LayoutBranch, Oid<LayoutSwitch>>> =
+        dao.fetchExternalIdsByBranch(ids).mapValues { (_, externalIds) ->
+            mapNonNullValues(externalIds) { (_, externalId) -> externalId.oid }
+        }
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>): LayoutRowVersion<LayoutSwitch> =

@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.configuration.ManualCacheStatsProvider
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
@@ -62,6 +63,8 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchManyByVersionWithoutCaching(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
     fun fetchChangeTime(): Instant
+
+    fun fetchChangeTime(layoutContext: LayoutContext): Instant
 
     fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo?
 
@@ -267,6 +270,25 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     }
 
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table.dbTable)
+
+    override fun fetchChangeTime(layoutContext: LayoutContext): Instant =
+        jdbcTemplate
+            .query(
+                """
+                select max(change_time) as change_time
+                from ${table.versionTable}
+                where (design_id is null and not draft)
+                   or (design_id is not distinct from :design_id and (:include_draft::boolean or not draft))
+                """
+                    .trimIndent(),
+                mapOf(
+                    "design_id" to layoutContext.branch.designId?.intValue,
+                    "include_draft" to (layoutContext.state == DRAFT),
+                ),
+            ) { rs, _ ->
+                rs.getInstantOrNull("change_time") ?: Instant.EPOCH
+            }
+            .firstOrNull() ?: Instant.EPOCH
 
     private val layoutAssetChangeInfoSql =
         """

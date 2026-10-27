@@ -16,7 +16,9 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.ValidationContext
-import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.graph.DraftLayoutChangeTimes
+import fi.fta.geoviite.infra.tracklayout.graph.TopologyDetailLevel.NANO
+import fi.fta.geoviite.infra.tracklayout.graph.TopologyService
 import java.time.Instant
 
 @GeoviiteService
@@ -25,13 +27,18 @@ class RoutingService(
     private val alignmentDao: LayoutAlignmentDao,
     private val trackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
-    private val switchLibraryService: SwitchLibraryService,
     private val publicationDao: PublicationDao,
+    private val topologyService: TopologyService,
 ) : ManualCacheStatsProvider {
-    sealed class GraphCacheKey {
-        data class Layout(
+    private sealed class GraphCacheKey {
+        data class Draft(
             val context: LayoutContext,
-            val changeTime: Instant,
+            val draftChangeTimes: DraftLayoutChangeTimes,
+        ) : GraphCacheKey()
+
+        data class Snapshot(
+            val branch: LayoutBranch,
+            val moment: Instant,
         ) : GraphCacheKey()
 
         data class Validation(
@@ -58,18 +65,26 @@ class RoutingService(
     fun getGraph(
         branch: LayoutBranch,
         moment: Instant,
-    ): RoutingGraph = getGraph(GraphCacheKey.Layout(branch.official, moment))
+    ): RoutingGraph = getGraph(GraphCacheKey.Snapshot(branch, moment))
 
     fun getGraph(context: LayoutContext): RoutingGraph = getGraph(contextCacheKey(context))
 
-    private fun contextCacheKey(context: LayoutContext): GraphCacheKey {
-        val changeTime =
-            when (context.state) {
-                OFFICIAL -> publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH
-                DRAFT -> maxOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime())
-            }
-        return GraphCacheKey.Layout(context, changeTime)
-    }
+    private fun contextCacheKey(context: LayoutContext): GraphCacheKey =
+        when (context.state) {
+            OFFICIAL ->
+                GraphCacheKey.Snapshot(
+                    context.branch,
+                    publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH,
+                )
+            DRAFT ->
+                GraphCacheKey.Draft(
+                    context,
+                    DraftLayoutChangeTimes(
+                        locationTrackChangeTime = locationTrackDao.fetchChangeTime(context),
+                        switchChangeTime = switchDao.fetchChangeTime(context),
+                    ),
+                )
+        }
 
     fun getGraph(
         context: ValidationContext,
@@ -87,36 +102,19 @@ class RoutingService(
     private fun getGraph(key: GraphCacheKey): RoutingGraph = graphCache.get(key, ::createGraph)
 
     private fun createGraph(key: GraphCacheKey): RoutingGraph =
-        when (key) {
-            is GraphCacheKey.Layout -> {
-                val branch = key.context.branch
-                val moment = key.changeTime
-                val tracksAndGeoms =
-                    when (key.context.state) {
-                        OFFICIAL ->
-                            trackService.listOfficialWithGeometryAtMoment(branch, moment, includeDeleted = false)
-                        DRAFT -> trackService.listWithGeometries(key.context, includeDeleted = false)
-                    }
-                val switches =
-                    when (key.context.state) {
-                        OFFICIAL -> switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
-                        DRAFT -> switchDao.list(key.context, includeDeleted = false)
-                    }
-                buildGraph(
-                    tracksAndGeoms.map { (_, g) -> g },
-                    switches,
-                    switchLibraryService.getSwitchStructuresById(),
-                )
+        buildGraph(
+            when (key) {
+                is GraphCacheKey.Draft -> topologyService.getTopology(key.context, NANO)
+                is GraphCacheKey.Snapshot -> topologyService.getTopology(key.branch, key.moment, NANO)
+                is GraphCacheKey.Validation ->
+                    topologyService.getTopology(
+                        key.contextKey,
+                        key.tracks,
+                        key.switches,
+                        NANO,
+                    )
             }
-
-            is GraphCacheKey.Validation -> {
-                buildGraph(
-                    trackService.getManyWithGeometries(key.tracks.toList()).map { (_, g) -> g },
-                    switchDao.fetchMany(key.switches.toList()),
-                    switchLibraryService.getSwitchStructuresById(),
-                )
-            }
-        }
+        )
 
     fun getRoute(
         context: LayoutContext,
@@ -133,7 +131,7 @@ class RoutingService(
         trackSeekDistance: Double,
     ): RouteResult? =
         getRoute(
-            GraphCacheKey.Layout(branch.official, moment),
+            GraphCacheKey.Snapshot(branch, moment),
             startLocation,
             endLocation,
             trackSeekDistance,
@@ -169,15 +167,17 @@ class RoutingService(
         val bbox = boundingBoxAroundPoint(location, thresholdMeters)
 
         return when (key) {
-            is GraphCacheKey.Layout -> {
-                val versions =
-                    when (key.context.state) {
-                        OFFICIAL ->
-                            locationTrackDao.fetchOfficialVersionsNearAtMoment(key.context.branch, bbox, key.changeTime)
-                        DRAFT -> locationTrackDao.fetchVersionsNear(key.context, bbox)
-                    }
-                versions.mapNotNull { version -> createHit(version, location, thresholdMeters) }.minOrNull()
-            }
+            is GraphCacheKey.Draft ->
+                locationTrackDao
+                    .fetchVersionsNear(key.context, bbox)
+                    .mapNotNull { version -> createHit(version, location, thresholdMeters) }
+                    .minOrNull()
+
+            is GraphCacheKey.Snapshot ->
+                locationTrackDao
+                    .fetchOfficialVersionsNearAtMoment(key.branch, bbox, key.moment)
+                    .mapNotNull { version -> createHit(version, location, thresholdMeters) }
+                    .minOrNull()
 
             is GraphCacheKey.Validation -> {
                 trackService

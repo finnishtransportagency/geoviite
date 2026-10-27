@@ -1,9 +1,12 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.tracklayout.graph
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 
 @GeoviiteService
 class LayoutGraphService(private val locationTrackService: LocationTrackService) {

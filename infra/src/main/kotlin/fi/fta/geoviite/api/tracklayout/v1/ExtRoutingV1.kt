@@ -12,11 +12,11 @@ import java.math.BigDecimal
 @Schema(
     title = "Reitin osan päätepisteen tyyppi",
     type = "string",
-    allowableValues = [FI_TRACK_POSITION, FI_SWITCH_ENDPOINT, FI_TRACK_END],
+    allowableValues = [FI_TRACK_POSITION, FI_SWITCH, FI_TRACK_END],
 )
 enum class ExtRouteEndpointTypeV1(val value: String) {
     TRACK_POSITION(FI_TRACK_POSITION),
-    SWITCH(FI_SWITCH_ENDPOINT),
+    SWITCH(FI_SWITCH),
     TRACK_END(FI_TRACK_END);
 
     @JsonValue override fun toString() = value

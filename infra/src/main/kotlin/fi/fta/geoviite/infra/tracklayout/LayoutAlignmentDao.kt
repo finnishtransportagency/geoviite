@@ -50,6 +50,7 @@ import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import java.math.BigDecimal
 import java.sql.ResultSet
+import java.util.UUID
 import java.util.stream.Collectors
 import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
@@ -126,6 +127,7 @@ class LayoutAlignmentDao(
             """
             select
               port_a.node_id,
+              node.ext_id as node_ext_id,
               port_a.node_type,
               port_a.switch_id as a_switch_id,
               port_a.switch_joint_number as a_switch_joint_number,
@@ -139,6 +141,7 @@ class LayoutAlignmentDao(
               port_b.boundary_type as b_boundary_type
               from layout.node_port port_a
                 left join layout.node_port port_b on port_a.node_id = port_b.node_id and port_b.port = 'B'
+                inner join layout.node node on port_a.node_id = node.id
             where port_a.port = 'A'
               and (:ids::int[] is null or port_a.node_id = any(:ids))
             """
@@ -162,12 +165,17 @@ class LayoutAlignmentDao(
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
                 val dbId = rs.getIntId<LayoutNode>("node_id")
+                val extId =
+                    requireNotNull(rs.getObject("node_ext_id", UUID::class.java)) {
+                        "Database layout node has no extId: node=$dbId"
+                    }
                 val type = rs.getEnum<LayoutNodeType>("node_type")
                 dbId to
                     when (type) {
                         LayoutNodeType.TRACK_BOUNDARY ->
                             DbTrackBoundaryNode(
                                 id = dbId,
+                                extId = extId,
                                 portA =
                                     requireNotNull(getTrackBoundary(rs, "a")) { "Node must have at least one port" },
                                 portB = getTrackBoundary(rs, "b"),
@@ -175,6 +183,7 @@ class LayoutAlignmentDao(
                         LayoutNodeType.SWITCH -> {
                             DbSwitchNode(
                                 id = dbId,
+                                extId = extId,
                                 portA = requireNotNull(getSwitchLink(rs, "a")) { "Node must have at least one port" },
                                 portB = getSwitchLink(rs, "b"),
                             )
@@ -257,6 +266,7 @@ class LayoutAlignmentDao(
             """
             select
               e.id,
+              e.ext_id,
               e.start_node_id,
               e.start_node_port,
               e.end_node_id,
@@ -322,7 +332,15 @@ class LayoutAlignmentDao(
                         geometryId = geometryIds[i],
                     )
                 }
-                EdgeData(edgeId, startNodeId to startNodePort, endNodeId to endNodePort, segments)
+                EdgeData(
+                    edgeId,
+                    requireNotNull(rs.getObject("ext_id", UUID::class.java)) {
+                        "Database layout edge has no extId: edge=$edgeId"
+                    },
+                    startNodeId to startNodePort,
+                    endNodeId to endNodePort,
+                    segments,
+                )
             }
         val nodes = getNodes(edges.flatMap { d -> listOf(d.startNode.first, d.endNode.first) }.toSet())
         val geometries = fetchSegmentGeometries(edges.flatMap { d -> d.segments.map { s -> s.geometryId } }.distinct())
@@ -1371,6 +1389,7 @@ private fun createEdges(
         .map { edgeData ->
             DbLayoutEdge(
                     id = edgeData.id,
+                    extId = edgeData.extId,
                     startNode = edgeData.startNode.let { (id, port) -> getConnection(id, port) },
                     endNode = edgeData.endNode.let { (id, port) -> getConnection(id, port) },
                     segments = createSegments(edgeData.segments, geometries),
@@ -1400,6 +1419,7 @@ private fun createSegments(
 
 private data class EdgeData(
     val id: IntId<LayoutEdge>,
+    val extId: UUID,
     val startNode: Pair<IntId<LayoutNode>, NodePortType>,
     val endNode: Pair<IntId<LayoutNode>, NodePortType>,
     val segments: List<SegmentData>,

@@ -37,6 +37,10 @@ abstract class LayoutAssetService<
         return dao.getOfficialAtMoment(branch, id, moment)
     }
 
+    fun listOfficialAtMoment(branch: LayoutBranch, moment: Instant): List<ObjectType> {
+        return dao.listOfficialAtMoment(branch, moment)
+    }
+
     fun getOrThrow(context: LayoutContext, id: IntId<ObjectType>): ObjectType {
         return dao.getOrThrow(context, id)
     }
@@ -44,6 +48,8 @@ abstract class LayoutAssetService<
     fun getChangeTime(): Instant {
         return dao.fetchChangeTime()
     }
+
+    fun getChangeTime(context: LayoutContext): Instant = dao.fetchChangeTime(context)
 
     fun getLayoutAssetChangeInfo(context: LayoutContext, id: IntId<ObjectType>): LayoutAssetChangeInfo? {
         return dao.fetchLayoutAssetChangeInfo(context, id)
