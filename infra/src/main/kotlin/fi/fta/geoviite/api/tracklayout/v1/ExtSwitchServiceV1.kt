@@ -196,7 +196,8 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedSwitchesBetween(startMoment, endMoment, branch)
-            .mapNotNull { version -> fetchExtVersionAtMoment(switchDao, branch, version.id, endMoment) }
+            .map { version -> version.id }
+            .let { ids -> fetchManyExtVersionsAtMoment(switchDao, branch, ids, endMoment) }
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(switchDao::fetchMany)
             ?.let { all -> nameFilter?.let { all.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: all }

@@ -143,6 +143,16 @@ constructor(
             assertEquals(version, trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, version.id, now))
         }
         assertNull(trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, mainOnly, now))
+        assertEquals(
+            listOf(open, completed).sortedBy { it.id.intValue },
+            trackNumberDao
+                .fetchManyDesignInternalVersionsAtMoment(designBranch, listOf(open.id, completed.id, mainOnly), now)
+                .sortedBy { it.id.intValue },
+        )
+        assertEquals(
+            emptyList(),
+            trackNumberDao.fetchManyDesignInternalVersionsAtMoment(designBranch, emptyList(), now),
+        )
     }
 
     @Test

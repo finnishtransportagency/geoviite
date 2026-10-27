@@ -194,7 +194,8 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedTrackNumbersBetween(startMoment, endMoment, branch)
-            .mapNotNull { version -> fetchExtVersionAtMoment(trackNumberDao, branch, version.id, endMoment) }
+            .map { version -> version.id }
+            .let { ids -> fetchManyExtVersionsAtMoment(trackNumberDao, branch, ids, endMoment) }
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(trackNumberService::getManyWithGeometries)
             ?.let { all ->

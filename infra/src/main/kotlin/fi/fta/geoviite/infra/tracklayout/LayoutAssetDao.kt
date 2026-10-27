@@ -112,6 +112,12 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchDesignInternalVersionAtMoment(branch: DesignBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
 
+    fun fetchManyDesignInternalVersionsAtMoment(
+        branch: DesignBranch,
+        ids: List<IntId<T>>,
+        moment: Instant,
+    ): List<LayoutRowVersion<T>>
+
     fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
         ids: List<IntId<T>>,
@@ -580,6 +586,12 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         id: IntId<T>,
         moment: Instant,
     ): LayoutRowVersion<T>? = fetchDesignInternalVersions(branch, listOf(id), moment).firstOrNull()
+
+    override fun fetchManyDesignInternalVersionsAtMoment(
+        branch: DesignBranch,
+        ids: List<IntId<T>>,
+        moment: Instant,
+    ): List<LayoutRowVersion<T>> = if (ids.isEmpty()) emptyList() else fetchDesignInternalVersions(branch, ids, moment)
 
     private fun fetchDesignInternalVersions(
         branch: DesignBranch,

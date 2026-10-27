@@ -61,6 +61,18 @@ fun <T : LayoutAsset<T>> fetchExtVersionAtMoment(
         is DesignBranch -> dao.fetchDesignInternalVersionAtMoment(branch, id, moment)
     }
 
+/** Variant of [fetchExtVersionsAtMoment] limited to the given assets. */
+fun <T : LayoutAsset<T>> fetchManyExtVersionsAtMoment(
+    dao: LayoutAssetReader<T>,
+    branch: LayoutBranch,
+    ids: List<IntId<T>>,
+    moment: Instant,
+): List<LayoutRowVersion<T>> =
+    when (branch) {
+        is MainBranch -> dao.fetchManyOfficialVersionsAtMoment(branch, ids, moment)
+        is DesignBranch -> dao.fetchManyDesignInternalVersionsAtMoment(branch, ids, moment)
+    }
+
 /**
  * The geocoding context for a track number version from [fetchExtVersionAtMoment]. Km posts come from the branch's
  * context at the moment, and the track number's own row gives the reference line, so a design row that the design
