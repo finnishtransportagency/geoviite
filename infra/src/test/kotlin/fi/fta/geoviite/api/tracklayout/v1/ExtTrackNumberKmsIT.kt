@@ -3,8 +3,10 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
@@ -236,15 +238,20 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc, private val l
                 trackNumber(testDBService.getUnusedTrackNumber(), startAddress = TrackMeter.ZERO),
                 referenceLineGeometry(segment(Point(0.0, 100.0), Point(1000.0, 100.0))),
             )
-        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId, otherTnId), kmPosts = listOf(kmpId))
+        testDBService.publish(trackNumbers = listOf(tnId, otherTnId), kmPosts = listOf(kmpId))
 
         initUser()
         val designBranch = testDBService.createDesignBranch()
         val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
         val designTrackNumberOid = testDBService.generateOid(tnId, designBranch)
+        // The design serves only its own items, so give the track number a design row
+        testDBService.testContext(designBranch, PublicationState.DRAFT).mutate(tnId) { tn ->
+            tn.copy(description = TrackNumberDescription(tn.description.toString() + " design"))
+        }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
 
         val designResponse = api.trackNumberKmsInDesign(designOid).get(tnOid)
-        assertEquals(mainPublication.uuid.toString(), designResponse.rataverkon_versio)
+        assertEquals(designPublication.uuid.toString(), designResponse.rataverkon_versio)
         assertEquals(designTrackNumberOid.toString(), designResponse.ratanumeron_ratakilometrit.ratanumero_oid)
         assertEquals(tnOid.toString(), designResponse.ratanumeron_ratakilometrit.virallinen_ratanumero_oid)
         assertEquals(2, designResponse.ratanumeron_ratakilometrit.ratakilometrit.size)

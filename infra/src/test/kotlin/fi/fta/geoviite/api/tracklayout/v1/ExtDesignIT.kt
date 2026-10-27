@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
@@ -20,6 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -614,12 +616,206 @@ constructor(
     }
 
     @Test
+    fun `Design track number collection lists the design's own track numbers in every state with design content`() {
+        val openTn = insertMainTrackNumberWithOid()
+        val cancelledTn = insertMainTrackNumberWithOid()
+        val completedTn = insertMainTrackNumberWithOid()
+        val mainOnlyTn = insertMainTrackNumberWithOid()
+        val oidOnlyTn = insertMainTrackNumberWithOid()
+        testDBService.publish(
+            trackNumbers = listOf(openTn, cancelledTn, completedTn, mainOnlyTn, oidOnlyTn).map { it.id }
+        )
+
+        val design = createDesign()
+        editTrackNumberInDesign(design, openTn, "design open")
+        editTrackNumberInDesign(design, cancelledTn, "design cancelled")
+        editTrackNumberInDesign(design, completedTn, "design completed")
+        testDBService.generateOid(oidOnlyTn.id, design.branch)
+        testDBService.publish(design.branch, trackNumbers = listOf(openTn.id, cancelledTn.id, completedTn.id))
+        cancelTrackNumberInDesign(design, cancelledTn)
+        completeTrackNumberInDesign(design, completedTn)
+
+        api.trackNumberCollectionInDesign(design.oid).get().ratanumerot.also { tns ->
+            assertEquals(
+                setOf(
+                    "design open" to FI_DESIGN_ITEM_OPEN,
+                    "design cancelled" to FI_DESIGN_ITEM_CANCELLED,
+                    "design completed" to FI_DESIGN_ITEM_COMPLETED,
+                ),
+                tns.map { tn -> tn.kuvaus to tn.kohteen_tila_suunnitelmassa }.toSet(),
+            )
+        }
+    }
+
+    @Test
+    fun `Design track number in layout state DELETED is listed and served`() {
+        val tn = insertMainTrackNumberWithOid()
+        testDBService.publish(trackNumbers = listOf(tn.id))
+
+        val design = createDesign()
+        testDBService.generateOid(tn.id, design.branch)
+        design.draftContext.mutate(tn.id) { t -> t.copy(state = LayoutState.DELETED) }
+        testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+
+        api.trackNumberCollectionInDesign(design.oid).get().ratanumerot.single().also { t ->
+            assertEquals(FI_DELETED, t.tila)
+            assertEquals(FI_DESIGN_ITEM_OPEN, t.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumbersInDesign(design.oid).get(tn.oid).ratanumero.also { t -> assertEquals(FI_DELETED, t.tila) }
+    }
+
+    @Test
+    fun `Completed design track number keeps its design content after later main edits`() {
+        val tn = insertMainTrackNumberWithOid()
+        testDBService.publish(trackNumbers = listOf(tn.id))
+
+        val design = createDesign()
+        editTrackNumberInDesign(design, tn, "design")
+        val designPublication = testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+        val completionPublication = completeTrackNumberInDesign(design, tn)
+
+        mainDraftContext.mutate(tn.id) { t -> t.copy(description = TrackNumberDescription("main 2")) }
+        testDBService.publish(trackNumbers = listOf(tn.id))
+
+        val designApi = api.trackNumbersInDesign(design.oid)
+        designApi.get(tn.oid).ratanumero.also { t ->
+            assertEquals("design", t.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, t.kohteen_tila_suunnitelmassa)
+        }
+        // The completion itself is a modification of the design's track number
+        designApi.getModifiedBetween(tn.oid, designPublication.uuid, completionPublication.uuid).also { response ->
+            assertEquals("design", response.ratanumero.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, response.ratanumero.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumberCollectionInDesign(design.oid)
+            .getModifiedBetween(designPublication.uuid, completionPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_COMPLETED, response.ratanumerot.single().kohteen_tila_suunnitelmassa)
+            }
+        assertEquals("main 2", api.trackNumbers.get(tn.oid).ratanumero.kuvaus)
+    }
+
+    @Test
+    fun `Cancelled design track number modification is reported with cancelled state`() {
+        val tn = insertMainTrackNumberWithOid()
+        testDBService.publish(trackNumbers = listOf(tn.id))
+
+        val design = createDesign()
+        editTrackNumberInDesign(design, tn, "design")
+        val designPublication = testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+        val cancellationPublication = cancelTrackNumberInDesign(design, tn)
+
+        api.trackNumbersInDesign(design.oid)
+            .getModifiedBetween(tn.oid, designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals("design", response.ratanumero.kuvaus)
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.ratanumero.kohteen_tila_suunnitelmassa)
+            }
+        api.trackNumberCollectionInDesign(design.oid)
+            .getModifiedBetween(designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.ratanumerot.single().kohteen_tila_suunnitelmassa)
+            }
+    }
+
+    @Test
+    fun `Re-editing a completed design track number makes it open again with the new content`() {
+        val tn = insertMainTrackNumberWithOid()
+        testDBService.publish(trackNumbers = listOf(tn.id))
+
+        val design = createDesign()
+        editTrackNumberInDesign(design, tn, "design")
+        testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+        completeTrackNumberInDesign(design, tn)
+
+        design.draftContext.mutate(tn.id) { t -> t.copy(description = TrackNumberDescription("re-edited")) }
+        testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+
+        api.trackNumbersInDesign(design.oid).get(tn.oid).ratanumero.also { t ->
+            assertEquals("re-edited", t.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_OPEN, t.kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Cancelled design track number serves addresses and kms from its design row`() {
+        initUser()
+        val tn =
+            mainDraftContext
+                .saveWithOid(
+                    trackNumber(testDBService.getUnusedTrackNumber()),
+                    referenceLineGeometry(TRACK_NUMBER_SEGMENT),
+                )
+                .let { (id, oid) -> TrackNumberIds(id, oid) }
+        val kmPostId = mainDraftContext.save(kmPost(tn.id, KmNumber(1), gkLocation = kmPostGkLocation(100.0, 0.0))).id
+        testDBService.publish(trackNumbers = listOf(tn.id), kmPosts = listOf(kmPostId))
+
+        val design = createDesign()
+        testDBService.generateOid(tn.id, design.branch)
+        val (designTn, _) = design.draftContext.fetchTrackNumberWithGeometry(tn.id)!!
+        design.draftContext.save(designTn, referenceLineGeometry(segment(Point(0.0, 0.0), Point(150.0, 0.0))))
+        testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+        cancelTrackNumberInDesign(design, tn)
+
+        val designEndAddress = "0001+0050.000"
+        api.trackNumbersInDesign(design.oid).get(tn.oid).ratanumero.also { t ->
+            assertEquals("0000+0000.000", t.alkusijainti?.rataosoite)
+            assertEquals(designEndAddress, t.loppusijainti?.rataosoite)
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, t.kohteen_tila_suunnitelmassa)
+        }
+        api.trackNumberCollectionInDesign(design.oid).get().ratanumerot.single().also { t ->
+            assertEquals(designEndAddress, t.loppusijainti?.rataosoite)
+        }
+        api.trackNumberGeometryInDesign(design.oid).get(tn.oid).also { response ->
+            assertEquals(designEndAddress, response.osoitevali?.loppuosoite)
+        }
+        api.trackNumberKmsInDesign(design.oid).get(tn.oid).ratanumeron_ratakilometrit.ratakilometrit.also { kms ->
+            assertEquals(listOf("0000", "0001"), kms.map { km -> km.km_tunnus })
+            assertEquals(150.0, kms.last().loppupaalu.toDouble())
+        }
+        api.trackNumberKmsCollectionInDesign(design.oid).get().ratanumeroiden_ratakilometrit.single().also { tnKms ->
+            assertEquals(150.0, tnKms.ratakilometrit.last().loppupaalu.toDouble())
+        }
+
+        assertEquals("0001+0100.000", api.trackNumbers.get(tn.oid).ratanumero.loppusijainti?.rataosoite)
+        assertEquals(
+            200.0,
+            api.trackNumberKms.get(tn.oid).ratanumeron_ratakilometrit.ratakilometrit.last().loppupaalu.toDouble(),
+        )
+    }
+
+    @Test
+    fun `Cancelled design-created track number is listed without addresses or kms`() {
+        initUser()
+        val design = createDesign()
+        val tnOid = insertCancelledDesignCreatedTrackNumber(design)
+
+        api.trackNumberCollectionInDesign(design.oid).get().ratanumerot.single().also { t ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, t.kohteen_tila_suunnitelmassa)
+            assertNull(t.alkusijainti?.rataosoite)
+            assertNull(t.loppusijainti?.rataosoite)
+        }
+        api.trackNumbersInDesign(design.oid).get(tnOid).ratanumero.also { t ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, t.kohteen_tila_suunnitelmassa)
+            assertNull(t.alkusijainti?.rataosoite)
+        }
+        api.trackNumberGeometryInDesign(design.oid).get(tnOid).also { response -> assertNull(response.osoitevali) }
+        api.trackNumberKmsInDesign(design.oid).get(tnOid).also { response ->
+            assertEquals(emptyList<ExtTestTrackKmV1>(), response.ratanumeron_ratakilometrit.ratakilometrit)
+        }
+        api.trackNumberKmsCollectionInDesign(design.oid).get().ratanumeroiden_ratakilometrit.single().also { tnKms ->
+            assertEquals(tnOid.toString(), tnKms.ratanumero_oid)
+            assertEquals(emptyList<ExtTestTrackKmV1>(), tnKms.ratakilometrit)
+        }
+    }
+
+    @Test
     fun `Design item state is absent from main responses`() {
-        val tn = insertMainTrackNumber()
-        val track = insertMainTrack(tn, "main")
+        val tn = insertMainTrackNumberWithOid()
+        val track = insertMainTrack(tn.id, "main")
         val switch = insertMainSwitch("MAIN V001")
         testDBService.publish(
-            trackNumbers = listOf(tn),
+            trackNumbers = listOf(tn.id),
             locationTracks = listOf(track.id),
             switches = listOf(switch.id),
         )
@@ -629,6 +825,8 @@ constructor(
                 "/geoviite/paikannuspohja/v1/sijaintiraiteet",
                 "/geoviite/paikannuspohja/v1/vaihteet/${switch.oid}",
                 "/geoviite/paikannuspohja/v1/vaihteet",
+                "/geoviite/paikannuspohja/v1/ratanumerot/${tn.oid}",
+                "/geoviite/paikannuspohja/v1/ratanumerot",
             )
             .forEach { url ->
                 val body = api.testApiConnection.doGetWithParams(url, emptyMap(), HttpStatus.OK)
@@ -710,6 +908,45 @@ constructor(
         switchService.mergeToMainBranch(design.branch, switch.id)
         testDBService.publish(switches = listOf(switch.id))
         return latestDesignPublication()
+    }
+
+    private data class TrackNumberIds(val id: IntId<LayoutTrackNumber>, val oid: Oid<LayoutTrackNumber>)
+
+    private fun insertMainTrackNumberWithOid(): TrackNumberIds {
+        initUser()
+        return mainDraftContext
+            .saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()), referenceLineGeometry(TRACK_NUMBER_SEGMENT))
+            .let { (id, oid) -> TrackNumberIds(id, oid) }
+    }
+
+    private fun editTrackNumberInDesign(design: TestDesign, tn: TrackNumberIds, description: String) {
+        testDBService.generateOid(tn.id, design.branch)
+        design.draftContext.mutate(tn.id) { t -> t.copy(description = TrackNumberDescription(description)) }
+    }
+
+    private fun cancelTrackNumberInDesign(design: TestDesign, tn: TrackNumberIds): Publication {
+        trackNumberService.cancel(design.branch, tn.id)
+        return testDBService.publish(design.branch, trackNumbers = listOf(tn.id))
+    }
+
+    /** As [completeInDesign], for a track number. */
+    private fun completeTrackNumberInDesign(design: TestDesign, tn: TrackNumberIds): Publication {
+        trackNumberService.mergeToMainBranch(design.branch, tn.id)
+        testDBService.publish(trackNumbers = listOf(tn.id))
+        return latestDesignPublication()
+    }
+
+    private fun insertCancelledDesignCreatedTrackNumber(design: TestDesign): Oid<LayoutTrackNumber> {
+        val tnId =
+            design.draftContext
+                .save(trackNumber(testDBService.getUnusedTrackNumber()), referenceLineGeometry(TRACK_NUMBER_SEGMENT))
+                .id
+        val tnOid = testDBService.generateOid(tnId, design.branch)
+        testDBService.publish(design.branch, trackNumbers = listOf(tnId))
+
+        trackNumberService.cancel(design.branch, tnId)
+        testDBService.publish(design.branch, trackNumbers = listOf(tnId))
+        return tnOid
     }
 
     private fun insertCancelledDesignCreatedTrackOnCancelledTrackNumber(design: TestDesign): Oid<LocationTrack> {

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.geocoding.AddressFilter
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -15,6 +17,7 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
@@ -101,6 +104,11 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedTrackNumberGeomsBetween(id, startMoment, endMoment, branch)
+            ?.let { _ ->
+                fetchExtVersionAtMoment(trackNumberDao, branch, id, endMoment)?.let { newVersion ->
+                    Change(fetchExtVersionAtMoment(trackNumberDao, branch, id, startMoment), newVersion)
+                }
+            }
             ?.map(trackNumberDao::fetch)
             ?.takeIf { (oldTn, newTn) -> oldTn?.exists == true || newTn.exists }
             ?.let { (oldTn, newTn) ->
@@ -132,13 +140,12 @@ constructor(
         addressFilter: AddressFilter,
     ): ExtTrackNumberGeometryResponseV1? {
         val moment = publication.publicationTime
-        return trackNumberDao
-            .fetchOfficialVersionAtMoment(branch, trackNumberId, moment)
-            ?.let(trackNumberDao::fetch)
-            // Deleted track numbers have no geometry in API since there's no guarantee of geocodable addressing
-            ?.takeIf { it.exists }
-            ?.let { _ ->
-                val filteredAddressPoints = getAddressPoints(branch, moment, trackNumberId, resolution, addressFilter)
+        return fetchExtVersionAtMoment(trackNumberDao, branch, trackNumberId, moment)
+            // Deleted track numbers have no geometry in API since there's no guarantee of geocodable addressing. A
+            // design lists its deleted track numbers, but they have no geocoding context and hence no interval.
+            ?.takeIf { version -> branch is DesignBranch || trackNumberDao.fetch(version).exists }
+            ?.let { version ->
+                val filteredAddressPoints = getAddressPoints(branch, moment, version, resolution, addressFilter)
                 ExtTrackNumberGeometryResponseV1(
                     trackLayoutVersion = ExtLayoutVersionV1(publication),
                     trackNumberOid = ExtOidV1(oids.oid),
@@ -155,12 +162,11 @@ constructor(
     private fun getAddressPoints(
         branch: LayoutBranch,
         moment: Instant,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
         resolution: Resolution,
         addressFilter: AddressFilter,
     ): AlignmentAddresses<ReferenceLineM>? =
-        geocodingService
-            .getGeocodingContextAtMoment(branch, trackNumberId, moment)
+        getExtGeocodingContextAtMoment(geocodingService, branch, trackNumberVersion, moment)
             ?.getReferenceLineAddressesWithResolution(resolution, addressFilter, lenientExtrapolation = true)
             ?.addresses
 
@@ -173,9 +179,8 @@ constructor(
     ): Pair<IAlignment<ReferenceLineM>?, AlignmentAddresses<ReferenceLineM>?> =
         trackNumber
             ?.takeIf { it.exists }
-            ?.let { tn -> tn.id as IntId }
-            ?.let { id ->
-                geocodingService.getGeocodingContextAtMoment(branch, id, moment)?.let { ctx ->
+            ?.let { tn ->
+                getExtGeocodingContextAtMoment(geocodingService, branch, tn.getVersionOrThrow(), moment)?.let { ctx ->
                     ctx.referenceLineGeometry to
                         ctx.getReferenceLineAddressesWithResolution(
                                 resolution,

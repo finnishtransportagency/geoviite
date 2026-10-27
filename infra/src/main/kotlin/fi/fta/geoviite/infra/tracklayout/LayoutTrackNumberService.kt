@@ -168,26 +168,6 @@ class LayoutTrackNumberService(
         return dao.fetchVersion(layoutContext, id)?.let { v -> getWithGeometryInternal(v) }
     }
 
-    @Transactional(readOnly = true)
-    fun getOfficialWithGeometryAtMoment(
-        branch: LayoutBranch,
-        id: IntId<LayoutTrackNumber>,
-        moment: Instant,
-    ): Pair<LayoutTrackNumber, DbReferenceLineGeometry>? {
-        return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithGeometryInternal)
-    }
-
-    @Transactional(readOnly = true)
-    fun listOfficialWithGeometryAtMoment(
-        branch: LayoutBranch,
-        moment: Instant,
-        includeDeleted: Boolean = false,
-    ): List<Pair<LayoutTrackNumber, DbReferenceLineGeometry>> {
-        return dao.fetchAllOfficialVersionsAtMoment(branch, moment).let(::getManyWithGeometries).let { list ->
-            if (includeDeleted) list else list.filter { (track, _) -> track.exists }
-        }
-    }
-
     private fun getWithGeometryInternal(
         version: LayoutRowVersion<LayoutTrackNumber>
     ): Pair<LayoutTrackNumber, DbReferenceLineGeometry> = dao.fetch(version) to alignmentDao.fetch(version)

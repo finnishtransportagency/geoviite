@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -64,12 +65,12 @@ constructor(
         coordinateSystem: Srid,
     ): ExtTrackKmsResponseV1? {
         val moment = publication.publicationTime
-        return trackNumberDao
-            .getOfficialAtMoment(branch, trackNumberId, moment)
-            ?.takeIf { it.exists }
+        return fetchExtVersionAtMoment(trackNumberDao, branch, trackNumberId, moment)
+            ?.let(trackNumberDao::fetch)
+            ?.takeIf { trackNumber -> branch is DesignBranch || trackNumber.exists }
             ?.let { trackNumber ->
                 val geocodingContext =
-                    geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id as IntId, moment)
+                    getExtGeocodingContextAtMoment(geocodingService, branch, trackNumber.getVersionOrThrow(), moment)
                 ExtTrackKmsResponseV1(
                     trackLayoutVersion = ExtLayoutVersionV1(publication),
                     coordinateSystem = ExtSridV1(coordinateSystem),
@@ -85,19 +86,17 @@ constructor(
         coordinateSystem: Srid,
     ): ExtTrackKmsCollectionResponseV1 {
         val moment = publication.publicationTime
-        val allTrackNumbers = trackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
-        val trackNumberExtIds =
-            trackNumberDao.fetchExternalIds(branch, allTrackNumbers.map { trackNumber -> trackNumber.id as IntId })
-        // A track number with no OID in a design branch is not part of the design's externally published state and is
-        // not listed by the design's collection routes.
         val trackNumbers =
-            if (branch == LayoutBranch.main) allTrackNumbers
-            else allTrackNumbers.filter { tn -> trackNumberExtIds.containsKey(tn.id as IntId) }
+            fetchExtVersionsAtMoment(trackNumberDao, branch, moment).let(trackNumberDao::fetchMany).filter { tn ->
+                branch is DesignBranch || tn.exists
+            }
+        val trackNumberExtIds =
+            trackNumberDao.fetchExternalIds(branch, trackNumbers.map { trackNumber -> trackNumber.id as IntId })
         val officialExtIdsIfBranch =
             if (branch == LayoutBranch.main) mapOf()
             else trackNumberDao.fetchExternalIds(LayoutBranch.main, trackNumbers.map { tn -> tn.id as IntId })
         val geocodingContexts = trackNumbers.associate {
-            it.id to geocodingService.getGeocodingContextAtMoment(branch, it.id as IntId, moment)
+            it.id to getExtGeocodingContextAtMoment(geocodingService, branch, it.getVersionOrThrow(), moment)
         }
         return ExtTrackKmsCollectionResponseV1(
             trackLayoutVersion = ExtLayoutVersionV1(publication),

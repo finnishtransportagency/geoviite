@@ -119,6 +119,7 @@ data class ExtTestTrackNumberV1(
     val tila: String,
     val alkusijainti: ExtTestAddressPointV1?,
     val loppusijainti: ExtTestAddressPointV1?,
+    val kohteen_tila_suunnitelmassa: String? = null,
 )
 
 data class ExtTestTrackNumberResponseV1(
