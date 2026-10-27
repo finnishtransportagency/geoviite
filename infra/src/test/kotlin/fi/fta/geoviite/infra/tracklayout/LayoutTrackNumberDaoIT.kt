@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -244,9 +243,7 @@ constructor(
         val design1 = testDBService.createDesignBranch()
         val design2 = testDBService.createDesignBranch()
         val design1OfficialContext = testDBService.testContext(design1, OFFICIAL)
-        val design1DraftContext = testDBService.testContext(design1, PublicationState.DRAFT)
         val design2OfficialContext = testDBService.testContext(design2, OFFICIAL)
-        val design2DraftContext = testDBService.testContext(design2, PublicationState.DRAFT)
 
         // tn1 is created in main, has its name edited in both designs, then 1 is cancelled and 2 merged
         val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("tn1 original"))).id
@@ -255,16 +252,18 @@ constructor(
         val cancellation = trackNumberService.cancel(design1, tn1)!!
         trackNumberService.publish(design1, cancellation)
         trackNumberService.mergeToMainBranch(design2, tn1)
-        trackNumberService.publish(LayoutBranch.main, mainDraftContext.fetchVersion(tn1)!!)
-        trackNumberService.publish(design2, design2DraftContext.fetchVersion(tn1)!!) // finish merge
+        val tn1Completion =
+            trackNumberService.publish(LayoutBranch.main, mainDraftContext.fetchVersion(tn1)!!).completed!!
+        trackNumberService.publish(design2, tn1Completion.second) // finish merge
         // -> end result = only version edited in d1 remains live
 
         // tn2 is created in a design, then merged
         val tn2 = design1OfficialContext.save(trackNumber(TrackNumber("tn2 original"))).id
         trackNumberService.mergeToMainBranch(design1, tn2)
         mainDraftContext.save(mainDraftContext.fetch(tn2)!!.copy(number = TrackNumber("edited mid merge")))
-        trackNumberService.publish(LayoutBranch.main, mainDraftContext.fetchVersion(tn2)!!)
-        trackNumberService.publish(design1, design1DraftContext.fetchVersion(tn2)!!) // finish merge
+        val tn2Completion =
+            trackNumberService.publish(LayoutBranch.main, mainDraftContext.fetchVersion(tn2)!!).completed!!
+        trackNumberService.publish(design1, tn2Completion.second) // finish merge
         // -> end result: only merged version remains live
 
         val mainHistory = trackNumberDao.fetchTrackNumberNames(LayoutBranch.main)

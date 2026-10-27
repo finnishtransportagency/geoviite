@@ -133,7 +133,7 @@ class GeocodingDao(
                       tn as (
                         select id, design_id, version, state
                         from tn_versions
-                        where deleted = false and design_asset_state is distinct from 'CANCELLED'
+                        where deleted = false and coalesce(design_asset_state, 'OPEN') = 'OPEN'
                         order by is_design
                         limit 1
                       ),
@@ -151,7 +151,7 @@ class GeocodingDao(
                       kmp as (
                         select distinct on (id) id, design_id, false as draft, version, state
                         from kmp_versions
-                        where deleted = false and design_asset_state is distinct from 'CANCELLED'
+                        where deleted = false and coalesce(design_asset_state, 'OPEN') = 'OPEN'
                         order by id, is_design
                       )
                     select

@@ -10,7 +10,7 @@ create function layout.location_track_is_in_layout_context(publication_state_in 
   stable as
 $$
 select
-  where location_track.design_asset_state is distinct from 'CANCELLED'
+  where coalesce(location_track.design_asset_state, 'OPEN') = 'OPEN'
     and case publication_state_in
           when 'OFFICIAL' then not location_track.draft
           else location_track.draft
@@ -19,7 +19,7 @@ select
                           where overriding_draft.design_id is not distinct from design_id_in
                             and overriding_draft.draft
                             and not (location_track.design_id is null
-                                       and overriding_draft.design_asset_state is not distinct from 'CANCELLED')
+                                       and coalesce(overriding_draft.design_asset_state, 'OPEN') != 'OPEN')
                             and overriding_draft.id = location_track.id)
         end
     and case
@@ -31,14 +31,14 @@ select
                                from layout.location_track overriding_design_official
                                where overriding_design_official.design_id = design_id_in
                                  and not overriding_design_official.draft
-                                 and overriding_design_official.design_asset_state is distinct from 'CANCELLED'
+                                 and coalesce(overriding_design_official.design_asset_state, 'OPEN') = 'OPEN'
                                  and overriding_design_official.id = location_track.id
                                    and (publication_state_in = 'OFFICIAL' or not exists (
                                      select *
                                        from layout.location_track design_cancellation
                                        where design_cancellation.design_id = design_id_in
                                          and design_cancellation.draft
-                                         and design_cancellation.design_asset_state is not distinct from 'CANCELLED'
+                                         and design_cancellation.design_asset_state != 'OPEN'
                                          and design_cancellation.id = location_track.id))))
         end
 $$;

@@ -283,7 +283,7 @@ class LayoutTrackNumberDao(
             """
             select id,
                    design_id is not null as is_design,
-                   deleted or design_asset_state = 'CANCELLED' as is_gone,
+                   deleted or coalesce(design_asset_state, 'OPEN') != 'OPEN' as is_gone,
                    number,
                    change_time
             from layout.track_number_version

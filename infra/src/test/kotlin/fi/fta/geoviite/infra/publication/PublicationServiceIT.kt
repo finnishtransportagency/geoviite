@@ -1662,7 +1662,7 @@ constructor(
     }
 
     @Test
-    fun `publication in main cleans up origin object from live table`() {
+    fun `publication in main leaves a COMPLETED origin object in the live table`() {
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
@@ -1681,12 +1681,83 @@ constructor(
         publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
 
         assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-        jdbc.query(
-            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
-            mapOf("design_id" to designBranch.designId.intValue),
-        ) { rs, _ ->
-            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
+        assertEquals(1, liveDesignRowCount(designBranch), "only the COMPLETED design-official row stays live")
+        assertEquals("COMPLETED", liveDesignOfficialRow(locationTrack.id, designBranch)?.state)
+    }
+
+    @Test
+    fun `completed item can be edited again in the same design`() {
+        val (designBranch, locationTrackId) = publishLocationTrackEditInDesign()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        locationTrackService.mergeToMainBranch(designBranch, locationTrackId)
+        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrackId))
+        val completedVersion = liveDesignOfficialRow(locationTrackId, designBranch)!!.version
+        val designOid = locationTrackDao.fetchExternalId(designBranch, locationTrackId)?.oid
+
+        designDraftContext.copyFrom(mainOfficialContext.fetchVersion(locationTrackId)!!)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrackId))
+
+        liveDesignOfficialRow(locationTrackId, designBranch)!!.also { row ->
+            assertEquals("OPEN", row.state)
+            assertEquals(completedVersion + 1, row.version)
         }
+        assertEquals(designOid, locationTrackDao.fetchExternalId(designBranch, locationTrackId)?.oid)
+    }
+
+    @Test
+    fun `cancelled item can be edited again in the same design`() {
+        val (designBranch, locationTrackId) = publishLocationTrackEditInDesign()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        locationTrackService.cancel(designBranch, locationTrackId)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrackId))
+        val cancelledRow = liveDesignOfficialRow(locationTrackId, designBranch)!!
+        assertEquals("CANCELLED", cancelledRow.state)
+        val designOid = locationTrackDao.fetchExternalId(designBranch, locationTrackId)?.oid
+
+        designDraftContext.copyFrom(mainOfficialContext.fetchVersion(locationTrackId)!!)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrackId))
+
+        liveDesignOfficialRow(locationTrackId, designBranch)!!.also { row ->
+            assertEquals("OPEN", row.state)
+            assertEquals(cancelledRow.version + 1, row.version)
+        }
+        assertEquals(designOid, locationTrackDao.fetchExternalId(designBranch, locationTrackId)?.oid)
+    }
+
+    @Test
+    fun `merged and completed items are not merge-to-main candidates`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
+        val trackNumber = designDraftContext.save(trackNumber(), referenceLineGeometry).id
+        val locationTrack =
+            designDraftContext
+                .save(locationTrack(trackNumber), trackGeometryOfSegments(referenceLineGeometry.segments))
+                .id
+        val switch = designDraftContext.save(switch()).id
+        val kmPost = designDraftContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(0.0, 0.5))).id
+        val request =
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+            )
+        publicationTestSupportService.publish(designBranch, request)
+
+        trackNumberService.mergeToMainBranch(designBranch, trackNumber)
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack)
+        switchService.mergeToMainBranch(designBranch, switch)
+        kmPostService.mergeToMainBranch(designBranch, kmPost)
+        publicationTestSupportService.publish(LayoutBranch.main, request)
+
+        val candidates =
+            publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(designBranch))
+        assertEquals(emptyList<IntId<LayoutTrackNumber>>(), candidates.trackNumbers.map { it.id })
+        assertEquals(emptyList<IntId<LocationTrack>>(), candidates.locationTracks.map { it.id })
+        assertEquals(emptyList<IntId<LayoutSwitch>>(), candidates.switches.map { it.id })
+        assertEquals(emptyList<IntId<LayoutKmPost>>(), candidates.kmPosts.map { it.id })
     }
 
     @Test
@@ -1733,12 +1804,8 @@ constructor(
         // cancellation started but not finished
         publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
         assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-        jdbc.query(
-            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
-            mapOf("design_id" to designBranch.designId.intValue),
-        ) { rs, _ ->
-            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
-        }
+        assertEquals(1, liveDesignRowCount(designBranch), "only the COMPLETED design-official row stays live")
+        assertEquals("COMPLETED", liveDesignOfficialRow(locationTrack.id, designBranch)?.state)
     }
 
     @Test
@@ -2068,6 +2135,48 @@ constructor(
                 Change(old = baseVersion, new = newVersion)
             }
             .toSet()
+    }
+
+    private data class DesignRowState(val state: String, val version: Int)
+
+    private fun liveDesignOfficialRow(id: IntId<LocationTrack>, designBranch: DesignBranch): DesignRowState? =
+        jdbc
+            .query(
+                """
+                select design_asset_state, version
+                from layout.location_track
+                where id = :id and design_id = :design_id and not draft
+                """
+                    .trimIndent(),
+                mapOf("id" to id.intValue, "design_id" to designBranch.designId.intValue),
+            ) { rs, _ ->
+                DesignRowState(rs.getString("design_asset_state"), rs.getInt("version"))
+            }
+            .firstOrNull()
+
+    private fun liveDesignRowCount(designBranch: DesignBranch): Int =
+        jdbc.queryForObject(
+            "select count(*) from layout.location_track where design_id = :design_id",
+            mapOf("design_id" to designBranch.designId.intValue),
+            Int::class.java,
+        )!!
+
+    private fun publishLocationTrackEditInDesign(): Pair<DesignBranch, IntId<LocationTrack>> {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
+        val trackNumberId =
+            mainOfficialContext
+                .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
+                .id
+        val locationTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
+        testDBService.generateOid(locationTrack.id, designBranch)
+        testDBService.generateOid(locationTrack.id, MainBranch.instance)
+        designDraftContext.copyFrom(locationTrack)
+
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        return designBranch to locationTrack.id
     }
 
     private fun publishManualPublication(

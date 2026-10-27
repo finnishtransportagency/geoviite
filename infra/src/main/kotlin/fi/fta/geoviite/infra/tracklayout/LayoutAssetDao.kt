@@ -387,7 +387,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
                        t.change_time <= arg.change_time
             order by ordinality, t.id, t.design_id, t.change_time desc, version desc
             ) tn
-          where not deleted and design_asset_state is distinct from 'CANCELLED'
+          where not deleted and coalesce(design_asset_state, 'OPEN') = 'OPEN'
           order by ordinality, id, design_id is not null desc;
         """
             .trimIndent()
@@ -409,7 +409,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               and change_time <= :moment
               order by id, design_id, change_time desc, version desc
             ) tn
-          where not deleted and design_asset_state is distinct from 'CANCELLED'
+          where not deleted and coalesce(design_asset_state, 'OPEN') = 'OPEN'
           order by id, is_design desc
         """
             .trimIndent()
