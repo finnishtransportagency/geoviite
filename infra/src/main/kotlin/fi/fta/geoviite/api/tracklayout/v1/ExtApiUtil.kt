@@ -1,8 +1,10 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.Srid
@@ -14,8 +16,11 @@ import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetReader
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import java.time.Instant
 import kotlin.reflect.KClass
 
 inline fun <reified T : LayoutAsset<T>> idLookup(dao: IExternalIdDao<T>, oid: Oid<T>): IntId<T> =
@@ -25,6 +30,32 @@ fun branchByDesignOid(layoutDesignService: LayoutDesignService, oid: ExtOidV1<La
     if (oid == null) LayoutBranch.main
     else {
         LayoutBranch.design((layoutDesignService.getByOid(oid.value) ?: throwOidTargetNotFound(oid.value)).id as IntId)
+    }
+
+/**
+ * The versions of the assets an ext API response lists for the branch. The main branch lists its official assets; a
+ * design branch lists only the design's own rows, in any design asset state, with no fallback to main.
+ */
+fun <T : LayoutAsset<T>> fetchExtVersionsAtMoment(
+    dao: LayoutAssetReader<T>,
+    branch: LayoutBranch,
+    moment: Instant,
+): List<LayoutRowVersion<T>> =
+    when (branch) {
+        is MainBranch -> dao.fetchAllOfficialVersionsAtMoment(branch, moment)
+        is DesignBranch -> dao.fetchDesignInternalVersionsAtMoment(branch, moment)
+    }
+
+/** Single-asset variant of [fetchExtVersionsAtMoment]. */
+fun <T : LayoutAsset<T>> fetchExtVersionAtMoment(
+    dao: LayoutAssetReader<T>,
+    branch: LayoutBranch,
+    id: IntId<T>,
+    moment: Instant,
+): LayoutRowVersion<T>? =
+    when (branch) {
+        is MainBranch -> dao.fetchOfficialVersionAtMoment(branch, id, moment)
+        is DesignBranch -> dao.fetchDesignInternalVersionAtMoment(branch, id, moment)
     }
 
 /**

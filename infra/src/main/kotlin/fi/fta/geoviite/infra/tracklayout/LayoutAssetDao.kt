@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -102,6 +103,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     }
 
     fun fetchAllOfficialVersionsAtMoment(branch: LayoutBranch, moment: Instant): List<LayoutRowVersion<T>>
+
+    /**
+     * The design's own official rows at the moment, in any design asset state (OPEN, CANCELLED, COMPLETED). Unlike the
+     * official context of the design branch, this has no fallback to main-official rows.
+     */
+    fun fetchDesignInternalVersionsAtMoment(branch: DesignBranch, moment: Instant): List<LayoutRowVersion<T>>
+
+    fun fetchDesignInternalVersionAtMoment(branch: DesignBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
 
     fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
@@ -414,6 +423,23 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         """
             .trimIndent()
 
+    // language=SQL
+    private val designInternalVersionsAtMomentSql =
+        """
+          select id, design_id, false as draft, version
+          from (
+            select distinct on (id) id, design_id, deleted, version
+              from ${table.versionTable}
+              where design_id = :design_id
+                and not draft
+                and change_time <= :moment
+                and (:all_ids or id = any(:ids))
+              order by id, change_time desc, version desc
+          ) latest
+          where not deleted
+        """
+            .trimIndent()
+
     override fun createId(): IntId<T> {
         val sql = "insert into ${table.idTable} default values returning id"
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getIntId("id") }
@@ -542,6 +568,32 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         jdbcTemplate.query(
             allOfficialVersionsAtMomentSql,
             mapOf("design_id" to branch.designId?.intValue, "moment" to Timestamp.from(moment)),
+        ) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
+
+    override fun fetchDesignInternalVersionsAtMoment(branch: DesignBranch, moment: Instant): List<LayoutRowVersion<T>> =
+        fetchDesignInternalVersions(branch, null, moment)
+
+    override fun fetchDesignInternalVersionAtMoment(
+        branch: DesignBranch,
+        id: IntId<T>,
+        moment: Instant,
+    ): LayoutRowVersion<T>? = fetchDesignInternalVersions(branch, listOf(id), moment).firstOrNull()
+
+    private fun fetchDesignInternalVersions(
+        branch: DesignBranch,
+        ids: List<IntId<T>>?,
+        moment: Instant,
+    ): List<LayoutRowVersion<T>> =
+        jdbcTemplate.query(
+            designInternalVersionsAtMomentSql,
+            mapOf(
+                "design_id" to branch.designId.intValue,
+                "moment" to Timestamp.from(moment),
+                "all_ids" to (ids == null),
+                "ids" to (ids ?: emptyList()).map { id -> id.intValue }.toTypedArray(),
+            ),
         ) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")
         }
