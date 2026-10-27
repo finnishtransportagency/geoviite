@@ -832,16 +832,7 @@ private fun switchNanoFixture(
     val layoutSwitch = switch(id = SWITCH_A, structureId = structureId, joints = switchJoints)
     val switchRef = IdSwitchRef(SWITCH_A)
 
-    val switchNodes =
-        (structure.endJointNumbers + mainJoint).associateWith { joint ->
-            val role = if (joint == mainJoint) SwitchJointRole.MAIN else SwitchJointRole.CONNECTION
-            DbSwitchNode(
-                id = IntId(100 + joint.intValue),
-                portA = SwitchLink(SWITCH_A, role, joint),
-                portB = null,
-                extId = id("switch-joint-${joint.intValue}"),
-            )
-        }
+    val switchNodes = switchNanoNodes(structure, mainJoint)
     val trackEnds = endJoints.associateWith { joint -> id("track-end-${joint.intValue}") }
     var nextEdgeId = 1000
     val externalTracks = endJoints.mapIndexed { index, joint ->
@@ -950,6 +941,17 @@ private fun switchNanoFixture(
         nano.nodes.single { node -> node.switchReferences.any { ref -> ref.switch.jointNumber == mainJoint } }.id
     return SwitchNanoFixture(nano, mainNodeId, trackEnds)
 }
+
+private fun switchNanoNodes(structure: SwitchStructure, mainJoint: JointNumber): Map<JointNumber, DbSwitchNode> =
+    (structure.endJointNumbers + mainJoint).associateWith { joint ->
+        val role = if (joint == mainJoint) SwitchJointRole.MAIN else SwitchJointRole.CONNECTION
+        DbSwitchNode(
+            id = IntId(100 + joint.intValue),
+            portA = SwitchLink(SWITCH_A, role, joint),
+            portB = null,
+            extId = id("switch-joint-${joint.intValue}"),
+        )
+    }
 
 private fun assertSwitchSimplification(
     structure: SwitchStructureData,
