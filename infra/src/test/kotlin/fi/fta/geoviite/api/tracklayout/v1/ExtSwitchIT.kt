@@ -648,18 +648,23 @@ constructor(
     }
 
     @Test
-    fun `Design routes resolve design OIDs and serve the inherited switch`() {
+    fun `Design routes resolve design OIDs and serve the design switch`() {
         val switchSetup = extTestDataService.insertSwitchAndTracks(mainDraftContext)
-        val mainPublication = extTestDataService.publishInMain(listOf(switchSetup))
+        extTestDataService.publishInMain(listOf(switchSetup))
         val oid = switchSetup.switch.oid
 
         initUser()
         val designBranch = testDBService.createDesignBranch()
         val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
         val designSwitchOid = testDBService.generateOid(switchSetup.switch.id, designBranch)
+        // The design serves only its own items, so give the switch a design row
+        testDBService.testContext(designBranch, PublicationState.DRAFT).mutate(switchSetup.switch.id) { s ->
+            s.copy(name = SwitchName(s.name.toString() + "-DESIGN"))
+        }
+        val designPublication = testDBService.publish(designBranch, switches = listOf(switchSetup.switch.id))
 
         api.switchInDesign(designOid).get(oid).let { response ->
-            assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(designPublication.uuid.toString(), response.rataverkon_versio)
             assertEquals(designSwitchOid.toString(), response.vaihde.vaihde_oid)
             assertEquals(oid.toString(), response.vaihde.virallinen_vaihde_oid)
         }

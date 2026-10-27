@@ -233,6 +233,7 @@ data class ExtTestSwitchV1(
     val turvavaihde: String,
     val pisteet: List<ExtTestSwitchJointV1>,
     val raidelinkit: List<ExtTestSwitchTrackLinkV1>,
+    val kohteen_tila_suunnitelmassa: String? = null,
 )
 
 data class ExtTestSwitchResponseV1(

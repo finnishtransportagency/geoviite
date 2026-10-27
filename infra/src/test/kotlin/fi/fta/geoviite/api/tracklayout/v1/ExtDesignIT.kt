@@ -1,5 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -9,6 +10,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
@@ -18,6 +20,9 @@ import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -29,6 +34,7 @@ import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
@@ -60,6 +66,8 @@ constructor(
     private val publicationDao: PublicationDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
+    private val switchService: LayoutSwitchService,
+    private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
@@ -449,14 +457,178 @@ constructor(
     }
 
     @Test
-    fun `Design item state is absent from main location track responses`() {
+    fun `Design switch collection lists the design's own switches in every state with design content`() {
+        val openSwitch = insertMainSwitch("MAIN V001")
+        val cancelledSwitch = insertMainSwitch("MAIN V002")
+        val completedSwitch = insertMainSwitch("MAIN V003")
+        val mainOnlySwitch = insertMainSwitch("MAIN V004")
+        val oidOnlySwitch = insertMainSwitch("MAIN V005")
+        testDBService.publish(
+            switches = listOf(openSwitch, cancelledSwitch, completedSwitch, mainOnlySwitch, oidOnlySwitch).map { it.id }
+        )
+
+        val design = createDesign()
+        editSwitchInDesign(design, openSwitch, "DSGN V001")
+        editSwitchInDesign(design, cancelledSwitch, "DSGN V002")
+        editSwitchInDesign(design, completedSwitch, "DSGN V003")
+        testDBService.generateOid(oidOnlySwitch.id, design.branch)
+        testDBService.publish(design.branch, switches = listOf(openSwitch.id, cancelledSwitch.id, completedSwitch.id))
+        cancelSwitchInDesign(design, cancelledSwitch)
+        completeSwitchInDesign(design, completedSwitch)
+
+        api.switchCollectionInDesign(design.oid).get().vaihteet.also { switches ->
+            assertEquals(
+                setOf(
+                    "DSGN V001" to FI_DESIGN_ITEM_OPEN,
+                    "DSGN V002" to FI_DESIGN_ITEM_CANCELLED,
+                    "DSGN V003" to FI_DESIGN_ITEM_COMPLETED,
+                ),
+                switches.map { switch -> switch.vaihdetunnus to switch.kohteen_tila_suunnitelmassa }.toSet(),
+            )
+        }
+    }
+
+    @Test
+    fun `Design switch in layout state NOT_EXISTING is listed and served`() {
+        val switch = insertMainSwitch("MAIN V001")
+        testDBService.publish(switches = listOf(switch.id))
+
+        val design = createDesign()
+        testDBService.generateOid(switch.id, design.branch)
+        design.draftContext.mutate(switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
+        testDBService.publish(design.branch, switches = listOf(switch.id))
+
+        api.switchCollectionInDesign(design.oid).get().vaihteet.single().also { s ->
+            assertEquals(FI_NOT_EXISTING, s.tilakategoria)
+            assertEquals(FI_DESIGN_ITEM_OPEN, s.kohteen_tila_suunnitelmassa)
+        }
+        api.switchInDesign(design.oid).get(switch.oid).vaihde.also { s ->
+            assertEquals(FI_NOT_EXISTING, s.tilakategoria)
+        }
+    }
+
+    @Test
+    fun `Completed design switch keeps its design content after later main edits`() {
+        val switch = insertMainSwitch("MAIN V001")
+        testDBService.publish(switches = listOf(switch.id))
+
+        val design = createDesign()
+        editSwitchInDesign(design, switch, "DSGN V001")
+        val designPublication = testDBService.publish(design.branch, switches = listOf(switch.id))
+        val completionPublication = completeSwitchInDesign(design, switch)
+
+        mainDraftContext.mutate(switch.id) { s -> s.copy(name = SwitchName("MAIN V002")) }
+        testDBService.publish(switches = listOf(switch.id))
+
+        val designApi = api.switchInDesign(design.oid)
+        designApi.get(switch.oid).vaihde.also { s ->
+            assertEquals("DSGN V001", s.vaihdetunnus)
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, s.kohteen_tila_suunnitelmassa)
+        }
+        // The completion itself is a modification of the design's switch
+        designApi.getModifiedBetween(switch.oid, designPublication.uuid, completionPublication.uuid).also { response ->
+            assertEquals("DSGN V001", response.vaihde.vaihdetunnus)
+            assertEquals(FI_DESIGN_ITEM_COMPLETED, response.vaihde.kohteen_tila_suunnitelmassa)
+        }
+        api.switchCollectionInDesign(design.oid)
+            .getModifiedBetween(designPublication.uuid, completionPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_COMPLETED, response.vaihteet.single().kohteen_tila_suunnitelmassa)
+            }
+        assertEquals("MAIN V002", api.switch.get(switch.oid).vaihde.vaihdetunnus)
+    }
+
+    @Test
+    fun `Cancelled design switch modification is reported with cancelled state`() {
+        val switch = insertMainSwitch("MAIN V001")
+        testDBService.publish(switches = listOf(switch.id))
+
+        val design = createDesign()
+        editSwitchInDesign(design, switch, "DSGN V001")
+        val designPublication = testDBService.publish(design.branch, switches = listOf(switch.id))
+        val cancellationPublication = cancelSwitchInDesign(design, switch)
+
+        api.switchInDesign(design.oid)
+            .getModifiedBetween(switch.oid, designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals("DSGN V001", response.vaihde.vaihdetunnus)
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.vaihde.kohteen_tila_suunnitelmassa)
+            }
+        api.switchCollectionInDesign(design.oid)
+            .getModifiedBetween(designPublication.uuid, cancellationPublication.uuid)
+            .also { response ->
+                assertEquals(FI_DESIGN_ITEM_CANCELLED, response.vaihteet.single().kohteen_tila_suunnitelmassa)
+            }
+    }
+
+    @Test
+    fun `Re-editing a completed design switch makes it open again with the new content`() {
+        val switch = insertMainSwitch("MAIN V001")
+        testDBService.publish(switches = listOf(switch.id))
+
+        val design = createDesign()
+        editSwitchInDesign(design, switch, "DSGN V001")
+        testDBService.publish(design.branch, switches = listOf(switch.id))
+        completeSwitchInDesign(design, switch)
+
+        design.draftContext.mutate(switch.id) { s -> s.copy(name = SwitchName("DSGN V002")) }
+        testDBService.publish(design.branch, switches = listOf(switch.id))
+
+        api.switchInDesign(design.oid).get(switch.oid).vaihde.also { s ->
+            assertEquals("DSGN V002", s.vaihdetunnus)
+            assertEquals(FI_DESIGN_ITEM_OPEN, s.kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Cancelled design-created switch on cancelled design-created tracks is listed without track links`() {
+        initUser()
+        val design = createDesign()
+        val setup = extTestDataService.insertSwitchAndTracks(design.draftContext)
+        val trackIds = setup.tracks.map { track -> track.id }
+        testDBService.publish(
+            design.branch,
+            trackNumbers = listOf(setup.trackNumber.id),
+            locationTracks = trackIds,
+            switches = listOf(setup.switch.id),
+        )
+
+        trackNumberService.cancel(design.branch, setup.trackNumber.id)
+        trackIds.forEach { id -> locationTrackService.cancel(design.branch, id) }
+        switchService.cancel(design.branch, setup.switch.id)
+        testDBService.publish(
+            design.branch,
+            trackNumbers = listOf(setup.trackNumber.id),
+            locationTracks = trackIds,
+            switches = listOf(setup.switch.id),
+        )
+
+        // The design context no longer shows the cancelled tracks, so they give the switch no track links
+        api.switchCollectionInDesign(design.oid).get().vaihteet.single().also { s ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, s.kohteen_tila_suunnitelmassa)
+            assertEquals(emptyList<ExtTestSwitchTrackLinkV1>(), s.raidelinkit)
+        }
+        api.switchInDesign(design.oid).get(setup.switch.oid).vaihde.also { s ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, s.kohteen_tila_suunnitelmassa)
+        }
+    }
+
+    @Test
+    fun `Design item state is absent from main responses`() {
         val tn = insertMainTrackNumber()
         val track = insertMainTrack(tn, "main")
-        testDBService.publish(trackNumbers = listOf(tn), locationTracks = listOf(track.id))
+        val switch = insertMainSwitch("MAIN V001")
+        testDBService.publish(
+            trackNumbers = listOf(tn),
+            locationTracks = listOf(track.id),
+            switches = listOf(switch.id),
+        )
 
         listOf(
                 "/geoviite/paikannuspohja/v1/sijaintiraiteet/${track.oid}",
                 "/geoviite/paikannuspohja/v1/sijaintiraiteet",
+                "/geoviite/paikannuspohja/v1/vaihteet/${switch.oid}",
+                "/geoviite/paikannuspohja/v1/vaihteet",
             )
             .forEach { url ->
                 val body = api.testApiConnection.doGetWithParams(url, emptyMap(), HttpStatus.OK)
@@ -513,6 +685,30 @@ constructor(
     private fun completeInDesign(design: TestDesign, track: TrackIds): Publication {
         locationTrackService.mergeToMainBranch(design.branch, track.id)
         testDBService.publish(locationTracks = listOf(track.id))
+        return latestDesignPublication()
+    }
+
+    private data class SwitchIds(val id: IntId<LayoutSwitch>, val oid: Oid<LayoutSwitch>)
+
+    private fun insertMainSwitch(name: String): SwitchIds {
+        initUser()
+        return mainDraftContext.saveWithOid(switch(name = name)).let { (id, oid) -> SwitchIds(id, oid) }
+    }
+
+    private fun editSwitchInDesign(design: TestDesign, switch: SwitchIds, name: String) {
+        testDBService.generateOid(switch.id, design.branch)
+        design.draftContext.mutate(switch.id) { s -> s.copy(name = SwitchName(name)) }
+    }
+
+    private fun cancelSwitchInDesign(design: TestDesign, switch: SwitchIds): Publication {
+        switchService.cancel(design.branch, switch.id)
+        return testDBService.publish(design.branch, switches = listOf(switch.id))
+    }
+
+    /** As [completeInDesign], for a switch. */
+    private fun completeSwitchInDesign(design: TestDesign, switch: SwitchIds): Publication {
+        switchService.mergeToMainBranch(design.branch, switch.id)
+        testDBService.publish(switches = listOf(switch.id))
         return latestDesignPublication()
     }
 

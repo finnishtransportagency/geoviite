@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -134,7 +135,7 @@ constructor(
         coordinateSystem: Srid,
     ): ExtSwitchResponseV1? {
         val moment = publication.publicationTime
-        return switchDao.getOfficialAtMoment(branch, id, moment)?.let { switch ->
+        return fetchExtVersionAtMoment(switchDao, branch, id, moment)?.let(switchDao::fetch)?.let { switch ->
             ExtSwitchResponseV1(
                 layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
@@ -154,6 +155,7 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedSwitchBetween(id, startMoment, endMoment, branch)
+            ?.let { version -> fetchExtVersionAtMoment(switchDao, branch, version.id, endMoment) }
             ?.let(switchDao::fetch)
             ?.let { switch ->
                 ExtModifiedSwitchResponseV1(
@@ -172,11 +174,11 @@ constructor(
         nameFilter: String?,
     ): ExtSwitchCollectionResponseV1 {
         val moment = publication.publicationTime
-        val switches =
-            switchDao.listOfficialAtMoment(branch, moment).filter {
-                it.exists && (nameFilter == null || it.name.contains(nameFilter, ignoreCase = true))
+        val filteredSwitches =
+            fetchExtVersionsAtMoment(switchDao, branch, moment).let(switchDao::fetchMany).filter { switch ->
+                (branch is DesignBranch || switch.exists) &&
+                    (nameFilter == null || switch.name.contains(nameFilter, ignoreCase = true))
             }
-        val filteredSwitches = filterToDesignBranchSwitches(branch, switches)
         return ExtSwitchCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
@@ -194,10 +196,10 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedSwitchesBetween(startMoment, endMoment, branch)
+            .mapNotNull { version -> fetchExtVersionAtMoment(switchDao, branch, version.id, endMoment) }
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(switchDao::fetchMany)
             ?.let { all -> nameFilter?.let { all.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: all }
-            ?.let { all -> filterToDesignBranchSwitches(branch, all) }
             ?.takeIf { it.isNotEmpty() }
             ?.let { modifiedSwitches ->
                 ExtModifiedSwitchCollectionResponseV1(
@@ -208,17 +210,6 @@ constructor(
                 )
             }
     }
-
-    /**
-     * A switch with no OID in a design branch is not part of the design's externally published state and is not listed
-     * by the design's collection routes.
-     */
-    private fun filterToDesignBranchSwitches(branch: LayoutBranch, switches: List<LayoutSwitch>): List<LayoutSwitch> =
-        if (branch == LayoutBranch.main) switches
-        else {
-            val branchSwitchIds = switchDao.fetchExternalIds(branch, switches.map { it.id as IntId }).keys
-            switches.filter { switch -> switch.id in branchSwitchIds }
-        }
 
     private fun createExtSwitches(
         branch: LayoutBranch,
@@ -271,6 +262,7 @@ constructor(
                             },
                     )
                 },
+            designItemState = data.switch.contextData.designAssetState?.let(ExtDesignItemStateV1::of),
         )
     }
 
