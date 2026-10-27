@@ -61,8 +61,7 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackElementListingResponseV1? {
         val moment = publication.publicationTime
-        return locationTrackDao
-            .fetchOfficialVersionAtMoment(branch, id, moment)
+        return fetchExtVersionAtMoment(locationTrackDao, branch, id, moment)
             ?.let(locationTrackDao::fetch)
             ?.takeIf { it.exists }
             ?.let { track ->
@@ -102,10 +101,8 @@ constructor(
         val changeTime =
             publicationDao.fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
-        val newTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
-        val oldTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        val newTrack = fetchExtVersionAtMoment(locationTrackDao, branch, id, changeTime)?.let(locationTrackDao::fetch)
+        val oldTrack = fetchExtVersionAtMoment(locationTrackDao, branch, id, startMoment)?.let(locationTrackDao::fetch)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldListings =

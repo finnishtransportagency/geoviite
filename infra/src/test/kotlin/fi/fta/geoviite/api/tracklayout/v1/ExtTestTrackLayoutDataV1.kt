@@ -41,6 +41,7 @@ data class ExtTestLocationTrackV1(
     val omistaja: String,
     val alkusijainti: ExtTestAddressPointV1?,
     val loppusijainti: ExtTestAddressPointV1?,
+    val kohteen_tila_suunnitelmassa: String? = null,
 )
 
 data class ExtTestLocationTrackResponseV1(

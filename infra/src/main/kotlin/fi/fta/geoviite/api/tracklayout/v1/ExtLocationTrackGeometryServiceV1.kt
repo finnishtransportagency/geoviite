@@ -106,10 +106,8 @@ constructor(
         val changeTime =
             publicationDao.fetchLatestLocationTrackGeometryPublicationTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
-        val newTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
-        val oldTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        val newTrack = fetchExtVersionAtMoment(locationTrackDao, branch, id, changeTime)?.let(locationTrackDao::fetch)
+        val oldTrack = fetchExtVersionAtMoment(locationTrackDao, branch, id, startMoment)?.let(locationTrackDao::fetch)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldPoints =
@@ -147,8 +145,7 @@ constructor(
         addressFilter: AddressFilter,
     ): ExtLocationTrackGeometryResponseV1? {
         val moment = publication.publicationTime
-        return locationTrackDao
-            .fetchOfficialVersionAtMoment(branch, id, moment)
+        return fetchExtVersionAtMoment(locationTrackDao, branch, id, moment)
             ?.let(locationTrackDao::fetch)
             // Deleted tracks have no geometry in API since there's no guarantee of geocodable addressing
             ?.takeIf { it.exists }
@@ -180,8 +177,7 @@ constructor(
         } else if (addressFilter.start == null && addressFilter.end == null) {
             // Prefer using cached (full) address list when address filter is unassigned
             val contextKey =
-                geocodingService.getGeocodingContextCacheKey(branch, track.trackNumberId, moment)
-                    ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
+                geocodingService.getGeocodingContextCacheKey(branch, track.trackNumberId, moment) ?: return null
 
             addressPointsCache
                 .getAddressPoints(
@@ -196,8 +192,7 @@ constructor(
         } else {
             val geometry = alignmentDao.fetch(track.getVersionOrThrow())
             val context =
-                geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
-                    ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
+                geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment) ?: return null
             context.getAddressPoints(geometry, resolution, addressFilter, lenientExtrapolation = true).addresses
         }
 }

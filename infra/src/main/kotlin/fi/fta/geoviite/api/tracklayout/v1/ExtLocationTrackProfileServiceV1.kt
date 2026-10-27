@@ -103,8 +103,7 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackProfileResponseV1? {
         val moment = publication.publicationTime
-        return locationTrackDao
-            .fetchOfficialVersionAtMoment(branch, id, moment)
+        return fetchExtVersionAtMoment(locationTrackDao, branch, id, moment)
             ?.let(locationTrackDao::fetch)
             // Deleted tracks have no geometry in API since there's no guarantee of geocodable addressing
             ?.takeIf { it.exists }
@@ -138,10 +137,8 @@ constructor(
         val changeTime =
             publicationDao.fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
                 ?: return null
-        val newTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime)?.let(locationTrackDao::fetch)
-        val oldTrack =
-            locationTrackDao.fetchOfficialVersionAtMoment(branch, id, startMoment)?.let(locationTrackDao::fetch)
+        val newTrack = fetchExtVersionAtMoment(locationTrackDao, branch, id, changeTime)?.let(locationTrackDao::fetch)
+        val oldTrack = fetchExtVersionAtMoment(locationTrackDao, branch, id, startMoment)?.let(locationTrackDao::fetch)
         if (newTrack == null || (!newTrack.exists && oldTrack?.exists == false)) return null
 
         val oldListings = oldTrack?.let { getVerticalGeometryListings(it, branch, startMoment) } ?: emptyList()

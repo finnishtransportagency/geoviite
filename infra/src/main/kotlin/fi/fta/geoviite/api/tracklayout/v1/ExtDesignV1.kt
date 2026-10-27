@@ -3,6 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
@@ -33,6 +34,32 @@ enum class ExtDesignStateV1(val value: String) {
                 DesignState.COMPLETED -> COMPLETED
             }
         }
+    }
+}
+
+const val FI_DESIGN_ITEM_OPEN = "avoin"
+const val FI_DESIGN_ITEM_CANCELLED = "peruttu"
+const val FI_DESIGN_ITEM_COMPLETED = "valmis"
+
+@Schema(
+    title = "Kohteen tila suunnitelmassa",
+    type = "string",
+    allowableValues = [FI_DESIGN_ITEM_OPEN, FI_DESIGN_ITEM_CANCELLED, FI_DESIGN_ITEM_COMPLETED],
+)
+enum class ExtDesignItemStateV1(val value: String) {
+    OPEN(FI_DESIGN_ITEM_OPEN),
+    CANCELLED(FI_DESIGN_ITEM_CANCELLED),
+    COMPLETED(FI_DESIGN_ITEM_COMPLETED);
+
+    @JsonValue fun jsonValue() = value
+
+    companion object {
+        fun of(state: DesignAssetState): ExtDesignItemStateV1 =
+            when (state) {
+                DesignAssetState.OPEN -> OPEN
+                DesignAssetState.CANCELLED -> CANCELLED
+                DesignAssetState.COMPLETED -> COMPLETED
+            }
     }
 }
 
