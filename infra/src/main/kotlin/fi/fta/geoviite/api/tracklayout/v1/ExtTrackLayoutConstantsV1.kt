@@ -236,6 +236,18 @@ const val DESIGN_ITEM_STATE = "kohteen_tila_suunnitelmassa"
 const val EXT_OPENAPI_DESIGN_OID_DESCRIPTION = "Suunnitelman OID-tunnus."
 const val EXT_OPENAPI_DESIGN_NOT_FOUND = "Annettua suunnitelmaa ei ole olemassa."
 
+const val EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION =
+    "Suunnitelman OID-tunnus. Suunnitelmapolussa palautetaan vain kohteet, joihin suunnitelmassa on julkaistu " +
+        "muutoksia, myös perutut ja valmistuneet. Kohteen tila suunnitelmassa kerrotaan kentässä " +
+        "$DESIGN_ITEM_STATE. Kohteet, joita suunnitelma ei muuta, haetaan virallisen paikannuspohjan poluista."
+
+const val EXT_OPENAPI_DESIGN_TRACK_NUMBER_GEOCODING =
+    "Suunnitelmapolussa perutun tai valmistuneen ratanumeron rataosoitteet lasketaan ratanumeron " +
+        "suunnitelmassa olevalla geometrialla ja suunnitelman tasakilometripisteillä haetussa rataverkon versiossa."
+
+const val EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION =
+    "$EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION $EXT_OPENAPI_DESIGN_TRACK_NUMBER_GEOCODING"
+
 const val EXT_OPENAPI_INCLUDE_DESIGNS =
     "Otetaanko myös suunnitelmien julkaisut mukaan rataverkon versioihin. Oletusarvoisesti mukana ovat vain " +
         "virallisen paikannuspohjan versiot."

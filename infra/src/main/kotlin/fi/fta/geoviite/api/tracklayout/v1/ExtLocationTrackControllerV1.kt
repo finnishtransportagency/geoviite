@@ -66,7 +66,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackCollection(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         layoutVersion: ExtLayoutVersionV1?,
@@ -122,7 +124,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackCollectionModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
         layoutVersionFrom: ExtLayoutVersionV1,
@@ -184,7 +188,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrack(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -245,7 +251,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -297,7 +305,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackGeometry(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -363,7 +373,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackGeometryModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -433,7 +445,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackProfile(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -484,7 +498,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackProfileModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -542,7 +558,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackElementListing(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,
@@ -593,7 +611,9 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun getExtLocationTrackElementListingModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: ExtOidV1<LocationTrack>,

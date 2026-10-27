@@ -61,7 +61,9 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             ]
     )
     fun getExtSwitchCollection(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         layoutVersion: ExtLayoutVersionV1?,
@@ -107,7 +109,9 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             ]
     )
     fun getExtSwitchCollectionModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
         layoutVersionFrom: ExtLayoutVersionV1,
@@ -162,7 +166,9 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             ]
     )
     fun getExtSwitch(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_SWITCH_OID_DESCRIPTION)
         @PathVariable(SWITCH_OID_PARAM)
         oid: ExtOidV1<LayoutSwitch>,
@@ -223,7 +229,9 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             ]
     )
     fun getExtSwitchModifications(
-        @PathVariable(DESIGN_OID) designOid: ExtOidV1<LayoutDesign>?,
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
+        @PathVariable(DESIGN_OID)
+        designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_SWITCH_OID_DESCRIPTION)
         @PathVariable(SWITCH_OID_PARAM)
         oid: ExtOidV1<LayoutSwitch>,
