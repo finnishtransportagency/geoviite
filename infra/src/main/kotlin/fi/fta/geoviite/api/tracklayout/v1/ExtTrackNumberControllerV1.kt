@@ -64,7 +64,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberCollection(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
@@ -113,7 +113,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberCollectionModifications(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
@@ -170,7 +170,7 @@ constructor(
             ]
     )
     fun getExtTrackNumber(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
@@ -233,7 +233,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberModifications(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
@@ -287,7 +287,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberGeometry(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
@@ -355,7 +355,7 @@ constructor(
             ]
     )
     fun getExtTrackNumberGeometryModifications(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)

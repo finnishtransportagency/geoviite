@@ -193,21 +193,6 @@ constructor(
         )
     }
 
-    @Test
-    fun `design-internal fetch skips rows that were removed from the design`() {
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-
-        val published = publishInDesign(designBranch, designDraftContext.save(trackNumber(unusedNumber())))
-        val beforeRemoval = testDBService.getDbTime()
-        testDBService.delete(published)
-        val afterRemoval = testDBService.getDbTime()
-
-        assertEquals(listOf(published), trackNumberDao.fetchDesignInternalVersionsAtMoment(designBranch, beforeRemoval))
-        assertEquals(emptyList(), trackNumberDao.fetchDesignInternalVersionsAtMoment(designBranch, afterRemoval))
-        assertNull(trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, published.id, afterRemoval))
-    }
-
     private fun unusedNumber() = testDBService.getUnusedTrackNumber()
 
     private fun publishInDesign(

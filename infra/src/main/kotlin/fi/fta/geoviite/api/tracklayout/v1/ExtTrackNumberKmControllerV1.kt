@@ -59,7 +59,7 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
             ]
     )
     fun getExtTrackNumberKmsCollection(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
@@ -105,7 +105,7 @@ constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
             ]
     )
     fun getExtTrackNumberKms(
-        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_DESIGN_PATH_OID_DESCRIPTION)
         @PathVariable(DESIGN_OID)
         designOid: ExtOidV1<LayoutDesign>?,
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
