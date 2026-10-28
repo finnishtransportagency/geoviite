@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -319,7 +320,7 @@ constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DB
     }
 
     @Test
-    fun `Design route resolves design OIDs and serves the inherited element listing`() {
+    fun `Design route resolves design OIDs and serves the design track's element listing`() {
         val start = Point(0.0, 0.0)
         val end = Point(0.0, 500.0)
         val plan = insertPlan(listOf(line(start, end)))
@@ -327,15 +328,19 @@ constructor(mockMvc: MockMvc, private val layoutDesignDao: LayoutDesignDao) : DB
         val trackNumberId = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        val mainPublication =
-            testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), locationTracks = listOf(trackId))
 
         val designBranch = testDBService.createDesignBranch()
         val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
         val designTrackOid = testDBService.generateOid(trackId, designBranch)
+        // The design serves only its own items, so give the track a design row
+        testDBService.testContext(designBranch, PublicationState.DRAFT).mutate(trackId) { track ->
+            track.copy(description = FreeText("design description"))
+        }
+        val designPublication = testDBService.publish(designBranch, locationTracks = listOf(trackId))
 
         val response = api.locationTrackElementListingInDesign(designOid).get(oid)
-        assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(designPublication.uuid.toString(), response.rataverkon_versio)
         assertEquals(designTrackOid.toString(), response.sijaintiraide_oid)
         assertEquals(oid.toString(), response.virallinen_sijaintiraide_oid)
         response.osoitevalit.single().geometriaelementit.single().also { element ->

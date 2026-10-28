@@ -411,7 +411,7 @@ constructor(
     }
 
     @Test
-    fun `Design collection route lists only track numbers with an OID in the design`() {
+    fun `Design collection route lists only track numbers with a design row`() {
         val (inDesignId, inDesignOid) =
             mainDraftContext.saveWithOid(
                 trackNumber(testDBService.getUnusedTrackNumber()),
@@ -428,6 +428,11 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
         val designTrackNumberOid = testDBService.generateOid(inDesignId, designBranch)
+        // The design serves only its own items, so give the track number a design row
+        testDBService.testContext(designBranch, PublicationState.DRAFT).mutate(inDesignId) { tn ->
+            tn.copy(description = TrackNumberDescription(tn.description.toString() + " design"))
+        }
+        testDBService.publish(designBranch, trackNumbers = listOf(inDesignId))
 
         api.trackNumberCollectionInDesign(designOid).get().ratanumerot.let { trackNumbers ->
             assertEquals(listOf(designTrackNumberOid.toString()), trackNumbers.map { it.ratanumero_oid })

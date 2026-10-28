@@ -756,10 +756,8 @@ constructor(
             assertEquals(designTrackOid.toString(), response.sijaintiraide.sijaintiraide_oid)
         }
 
-        // Design side at a main layout version from before the design publication: main data at that moment
-        designApi.get(oid, TRACK_LAYOUT_VERSION to publication1.uuid.toString()).let { response ->
-            assertEquals("main description 1", response.sijaintiraide.kuvaus)
-        }
+        // Design side at a main layout version from before the design publication: the design has no row yet
+        designApi.assertDoesntExist(oid, TRACK_LAYOUT_VERSION to publication1.uuid.toString())
     }
 
     @Test
@@ -805,7 +803,7 @@ constructor(
     }
 
     @Test
-    fun `Cancelled design modification reports main branch state for single track`() {
+    fun `Cancelled design modification reports the cancelled design row for single track`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -836,12 +834,13 @@ constructor(
         }
 
         designApi.getModifiedBetween(oid, publication1.uuid, cancellationPublication.uuid).let { response ->
-            assertEquals("main description", response.sijaintiraide.kuvaus)
+            assertEquals("design description", response.sijaintiraide.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
         }
     }
 
     @Test
-    fun `Cancelled design modification reports no collection modification`() {
+    fun `Cancelled design modification reports the cancelled design row in collection`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -871,14 +870,15 @@ constructor(
             assertEquals(listOf("design description"), response.sijaintiraiteet.map { track -> track.kuvaus })
         }
 
-        // After cancellation, the track reverts to main branch state ("main description")
+        // After cancellation, the design keeps listing its own row, now cancelled
         designCollectionApi.getModifiedBetween(publication1.uuid, cancellationPublication.uuid).let { response ->
-            assertEquals(listOf("main description"), response.sijaintiraiteet.map { track -> track.kuvaus })
+            assertEquals(listOf("design description"), response.sijaintiraiteet.map { track -> track.kuvaus })
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraiteet.single().kohteen_tila_suunnitelmassa)
         }
     }
 
     @Test
-    fun `Track with design OID appears in design collection even if not directly edited`() {
+    fun `Track with only a design OID does not appear in design collection`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -908,10 +908,10 @@ constructor(
         designDraftContext.mutate(otherTrackId) { track -> track.copy(description = FreeText("edited other")) }
         testDBService.publish(designBranch, locationTracks = listOf(otherTrackId))
 
+        // An indirectly changed track has no design row, so it is not listed by the design
         val designCollectionApi = api.locationTrackCollectionInDesign(designOid)
         val response = designCollectionApi.get()
-        val descriptions = response.sijaintiraiteet.map { it.kuvaus }.sorted()
-        assertEquals(listOf("edited other", "main description"), descriptions)
+        assertEquals(listOf("edited other"), response.sijaintiraiteet.map { it.kuvaus })
     }
 
     @Test
@@ -955,8 +955,9 @@ constructor(
             insertTrackWithCancelledDesignAddressChange()
         val designApi = api.locationTracksInDesign(designOid)
 
-        // Versioned state: the design's moved km post shifts the addresses, and cancelling it brings them back
-        assertAddressRange(designApi.getAtVersion(trackOid, mainPublication.uuid).sijaintiraide, MAIN_ADDRESSES)
+        // Versioned state: the design's moved km post shifts the addresses, and cancelling it brings them back.
+        // Before the design publication, the track is not part of the design.
+        designApi.assertDoesntExistAtVersion(trackOid, mainPublication.uuid)
         assertAddressRange(designApi.getAtVersion(trackOid, designPublication.uuid).sijaintiraide, DESIGN_ADDRESSES)
         assertAddressRange(designApi.getAtVersion(trackOid, cancellationPublication.uuid).sijaintiraide, MAIN_ADDRESSES)
         assertAddressRange(designApi.get(trackOid).sijaintiraide, MAIN_ADDRESSES)
@@ -1078,7 +1079,7 @@ constructor(
     }
 
     @Test
-    fun `Cancelled design-created track reports no modification and does not exist at the latest version`() {
+    fun `Cancelled design-created track is reported as cancelled in modifications and at the latest version`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, _) =
             mainDraftContext.saveWithOid(
@@ -1101,9 +1102,14 @@ constructor(
         val cancellationPublication = testDBService.publish(designBranch, locationTracks = listOf(trackId))
 
         val designApi = api.locationTracksInDesign(designOid)
-        // The creation was reverted before it ever reached main: there is no track state to report
-        designApi.assertNoModificationBetween(designTrackOid, mainPublication.uuid, cancellationPublication.uuid)
-        designApi.assertDoesntExist(designTrackOid)
+        designApi.getModifiedBetween(designTrackOid, mainPublication.uuid, cancellationPublication.uuid).let { response
+            ->
+            assertEquals("created in design", response.sijaintiraide.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+        }
+        designApi.get(designTrackOid).let { response ->
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
+        }
     }
 
     @Test
@@ -1138,15 +1144,15 @@ constructor(
             layoutDesign(name = designName, designState = DesignState.DELETED),
         )
 
-        // Deleting the design cancelled its changes: the track reverts to its main state, but remains served by
-        // the design routes with its design OID
+        // Deleting the design cancelled its changes: the design routes keep serving the cancelled design row
         api.locationTracksInDesign(designOid).get(oid).let { response ->
-            assertEquals("main description 2", response.sijaintiraide.kuvaus)
+            assertEquals("design description", response.sijaintiraide.kuvaus)
+            assertEquals(FI_DESIGN_ITEM_CANCELLED, response.sijaintiraide.kohteen_tila_suunnitelmassa)
             assertEquals(designTrackOid.toString(), response.sijaintiraide.sijaintiraide_oid)
             assertEquals(oid.toString(), response.sijaintiraide.virallinen_sijaintiraide_oid)
         }
         api.locationTrackCollectionInDesign(designOid).get().let { response ->
-            assertEquals(listOf("main description 2"), response.sijaintiraiteet.map { track -> track.kuvaus })
+            assertEquals(listOf("design description"), response.sijaintiraiteet.map { track -> track.kuvaus })
         }
     }
 
@@ -1187,8 +1193,8 @@ constructor(
 
     /**
      * Creates a track number with a km post and a location track in main, then a design in which the km post is moved
-     * and, in a later publication, that move is cancelled. The location track is never edited itself: it only inherits
-     * the addressing changes that the km post implies.
+     * and, in a later publication, that move is cancelled. The location track gets a description edit in the design, so
+     * that it is part of the design's own items; its addresses follow the km post.
      */
     private data class TrackWithCancelledDesignAddressChange(
         val trackOid: Oid<LocationTrack>,
@@ -1225,8 +1231,9 @@ constructor(
 
         initUser()
         designDraftContext.mutate(kmPostId) { post -> post.copy(gkLocation = kmPostGkLocation(120.0, 0.0)) }
-        val designPublication = testDBService.publish(designBranch, kmPosts = listOf(kmPostId))
-        // The track gets its design OID from the inherited change, as the Ratko push would give it
+        designDraftContext.mutate(trackId) { track -> track.copy(description = FreeText("design description")) }
+        val designPublication =
+            testDBService.publish(designBranch, kmPosts = listOf(kmPostId), locationTracks = listOf(trackId))
         val designTrackOid = testDBService.generateOid(trackId, designBranch)
 
         initUser()

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -9,6 +10,7 @@ import fi.fta.geoviite.infra.util.getIntId
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -107,6 +109,96 @@ constructor(
         mainOfficialContext.save(trackNumber(number = TrackNumber("main official update")))
         assertNotEquals(designDraftChangeTime, trackNumberService.getChangeTime(designDraftContext.context))
     }
+
+    @Test
+    fun `design-internal fetch returns the design's own rows in any design asset state and no main rows`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val mainOnly = mainOfficialContext.save(trackNumber(unusedNumber())).id
+        val toComplete = mainOfficialContext.save(trackNumber(unusedNumber())).id
+        // A design draft that was never published is not part of the design's official state
+        designDraftContext.save(trackNumber(unusedNumber()))
+
+        val open = publishInDesign(designBranch, designDraftContext.save(trackNumber(unusedNumber())))
+        val cancelled =
+            publishInDesign(designBranch, designDraftContext.save(trackNumber(unusedNumber()))).let { version ->
+                publishInDesign(designBranch, trackNumberService.cancel(designBranch, version.id)!!)
+            }
+        publishInDesign(
+            designBranch,
+            designDraftContext.save(mainOfficialContext.fetch(toComplete)!!.copy(number = unusedNumber())),
+        )
+        val mainDraft = trackNumberService.mergeToMainBranch(designBranch, toComplete)
+        val completed =
+            publishInDesign(designBranch, trackNumberService.publish(LayoutBranch.main, mainDraft).completed!!.second)
+
+        val now = testDBService.getDbTime()
+        val expected = listOf(open, cancelled, completed)
+        assertEquals(
+            expected.sortedBy { it.id.intValue },
+            trackNumberDao.fetchDesignInternalVersionsAtMoment(designBranch, now).sortedBy { it.id.intValue },
+        )
+        expected.forEach { version ->
+            assertEquals(version, trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, version.id, now))
+        }
+        assertNull(trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, mainOnly, now))
+        assertEquals(
+            listOf(open, completed).sortedBy { it.id.intValue },
+            trackNumberDao
+                .fetchManyDesignInternalVersionsAtMoment(designBranch, listOf(open.id, completed.id, mainOnly), now)
+                .sortedBy { it.id.intValue },
+        )
+        assertEquals(
+            emptyList(),
+            trackNumberDao.fetchManyDesignInternalVersionsAtMoment(designBranch, emptyList(), now),
+        )
+    }
+
+    @Test
+    fun `design-internal fetch at an earlier moment returns the row as it was at that moment`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val draft = designDraftContext.save(trackNumber(unusedNumber()))
+        val beforePublication = testDBService.getDbTime()
+        val open = publishInDesign(designBranch, draft)
+        val afterPublication = testDBService.getDbTime()
+        val cancelled = publishInDesign(designBranch, trackNumberService.cancel(designBranch, draft.id)!!)
+        val afterCancellation = testDBService.getDbTime()
+
+        assertNull(trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, draft.id, beforePublication))
+        assertEquals(open, trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, draft.id, afterPublication))
+        assertEquals(
+            cancelled,
+            trackNumberDao.fetchDesignInternalVersionAtMoment(designBranch, draft.id, afterCancellation),
+        )
+        assertEquals(listOf(open), trackNumberDao.fetchDesignInternalVersionsAtMoment(designBranch, afterPublication))
+    }
+
+    @Test
+    fun `design-internal fetch includes design rows in layout state DELETED`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val deletedInDesign =
+            publishInDesign(
+                designBranch,
+                designDraftContext.save(trackNumber(unusedNumber(), state = LayoutState.DELETED)),
+            )
+
+        assertEquals(
+            listOf(deletedInDesign),
+            trackNumberDao.fetchDesignInternalVersionsAtMoment(designBranch, testDBService.getDbTime()),
+        )
+    }
+
+    private fun unusedNumber() = testDBService.getUnusedTrackNumber()
+
+    private fun publishInDesign(
+        designBranch: DesignBranch,
+        draft: LayoutRowVersion<LayoutTrackNumber>,
+    ): LayoutRowVersion<LayoutTrackNumber> = trackNumberService.publish(designBranch, draft).published
 
     private fun expectAllVersions(
         expectedVersions: List<LayoutRowVersion<LayoutTrackNumber>>,

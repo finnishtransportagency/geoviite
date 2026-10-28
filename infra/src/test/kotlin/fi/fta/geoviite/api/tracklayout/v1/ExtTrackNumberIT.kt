@@ -641,26 +641,31 @@ constructor(
     }
 
     @Test
-    fun `Design routes resolve design OIDs and serve the inherited track number`() {
+    fun `Design routes resolve design OIDs and serve the design track number`() {
         val (tnId, oid) =
             mainDraftContext.saveWithOid(
                 trackNumber(testDBService.getUnusedTrackNumber()),
                 referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
             )
-        val mainPublication = testDBService.publish(trackNumbers = listOf(tnId))
+        testDBService.publish(trackNumbers = listOf(tnId))
 
         initUser()
         val designBranch = testDBService.createDesignBranch()
         val designOid = layoutDesignDao.fetch(designBranch.designId).externalId
         val designTrackNumberOid = testDBService.generateOid(tnId, designBranch)
+        // The design serves only its own items, so give the track number a design row
+        testDBService.testContext(designBranch, PublicationState.DRAFT).mutate(tnId) { tn ->
+            tn.copy(description = TrackNumberDescription(tn.description.toString() + " design"))
+        }
+        val designPublication = testDBService.publish(designBranch, trackNumbers = listOf(tnId))
 
         api.trackNumbersInDesign(designOid).get(oid).let { response ->
-            assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(designPublication.uuid.toString(), response.rataverkon_versio)
             assertEquals(designTrackNumberOid.toString(), response.ratanumero.ratanumero_oid)
             assertEquals(oid.toString(), response.ratanumero.virallinen_ratanumero_oid)
         }
         api.trackNumberGeometryInDesign(designOid).get(oid).let { response ->
-            assertEquals(mainPublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(designPublication.uuid.toString(), response.rataverkon_versio)
             assertEquals(designTrackNumberOid.toString(), response.ratanumero_oid)
             assertEquals(oid.toString(), response.virallinen_ratanumero_oid)
             assertNotNull(response.osoitevali)

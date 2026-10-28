@@ -1,21 +1,29 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetReader
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignService
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import java.time.Instant
 import kotlin.reflect.KClass
 
 inline fun <reified T : LayoutAsset<T>> idLookup(dao: IExternalIdDao<T>, oid: Oid<T>): IntId<T> =
@@ -26,6 +34,61 @@ fun branchByDesignOid(layoutDesignService: LayoutDesignService, oid: ExtOidV1<La
     else {
         LayoutBranch.design((layoutDesignService.getByOid(oid.value) ?: throwOidTargetNotFound(oid.value)).id as IntId)
     }
+
+/**
+ * The versions of the assets an ext API response lists for the branch. The main branch lists its official assets; a
+ * design branch lists only the design's own rows, in any design asset state, with no fallback to main.
+ */
+fun <T : LayoutAsset<T>> fetchExtVersionsAtMoment(
+    dao: LayoutAssetReader<T>,
+    branch: LayoutBranch,
+    moment: Instant,
+): List<LayoutRowVersion<T>> =
+    when (branch) {
+        is MainBranch -> dao.fetchAllOfficialVersionsAtMoment(branch, moment)
+        is DesignBranch -> dao.fetchDesignInternalVersionsAtMoment(branch, moment)
+    }
+
+/** Single-asset variant of [fetchExtVersionsAtMoment]. */
+fun <T : LayoutAsset<T>> fetchExtVersionAtMoment(
+    dao: LayoutAssetReader<T>,
+    branch: LayoutBranch,
+    id: IntId<T>,
+    moment: Instant,
+): LayoutRowVersion<T>? =
+    when (branch) {
+        is MainBranch -> dao.fetchOfficialVersionAtMoment(branch, id, moment)
+        is DesignBranch -> dao.fetchDesignInternalVersionAtMoment(branch, id, moment)
+    }
+
+/** Variant of [fetchExtVersionsAtMoment] limited to the given assets. */
+fun <T : LayoutAsset<T>> fetchManyExtVersionsAtMoment(
+    dao: LayoutAssetReader<T>,
+    branch: LayoutBranch,
+    ids: List<IntId<T>>,
+    moment: Instant,
+): List<LayoutRowVersion<T>> =
+    when (branch) {
+        is MainBranch -> dao.fetchManyOfficialVersionsAtMoment(branch, ids, moment)
+        is DesignBranch -> dao.fetchManyDesignInternalVersionsAtMoment(branch, ids, moment)
+    }
+
+/**
+ * The geocoding context for a track number version from [fetchExtVersionAtMoment]. Km posts come from the branch's
+ * context at the moment, and the track number's own row gives the reference line, so a design row that the design
+ * context hides (cancelled or completed) still geocodes with its own geometry. Null when the branch's context has no
+ * geocoding context for the track number.
+ */
+fun getExtGeocodingContextAtMoment(
+    geocodingService: GeocodingService,
+    branch: LayoutBranch,
+    trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+    moment: Instant,
+): GeocodingContext<ReferenceLineM>? =
+    geocodingService
+        .getGeocodingContextCacheKey(branch, trackNumberVersion.id, moment)
+        ?.copy(trackNumberVersion = trackNumberVersion)
+        ?.let(geocodingService::getGeocodingContext)
 
 /**
  * The OIDs to report for an asset: its OID in the requested branch, plus its main-branch OID separately when the

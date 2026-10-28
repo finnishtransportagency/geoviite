@@ -332,15 +332,6 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getOfficialWithGeometryAtMoment(
-        branch: LayoutBranch,
-        id: IntId<LocationTrack>,
-        moment: Instant,
-    ): Pair<LocationTrack, DbLocationTrackGeometry>? {
-        return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithGeometryInternal)
-    }
-
-    @Transactional(readOnly = true)
     fun listOfficialWithGeometryAtMoment(
         branch: LayoutBranch,
         moment: Instant,

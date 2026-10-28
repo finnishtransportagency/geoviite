@@ -1,6 +1,8 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -138,15 +140,17 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1? {
         val moment = publication.publicationTime
-        return locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)?.let { (track, geometry) ->
-            val (oid, officialOid) = oids
-            val data = getLocationTrackData(branch, moment, oid, officialOid, track, geometry)
-            ExtLocationTrackResponseV1(
-                layoutVersion = ExtLayoutVersionV1(publication),
-                coordinateSystem = ExtSridV1(coordinateSystem),
-                locationTrack = createExtLocationTrack(data, coordinateSystem),
-            )
-        }
+        return fetchExtVersionAtMoment(locationTrackDao, branch, id, moment)
+            ?.let(locationTrackService::getWithGeometry)
+            ?.let { (track, geometry) ->
+                val (oid, officialOid) = oids
+                val data = getLocationTrackData(branch, moment, oid, officialOid, track, geometry)
+                ExtLocationTrackResponseV1(
+                    layoutVersion = ExtLayoutVersionV1(publication),
+                    coordinateSystem = ExtSridV1(coordinateSystem),
+                    locationTrack = createExtLocationTrack(data, coordinateSystem),
+                )
+            }
     }
 
     private fun createLocationTrackModificationResponse(
@@ -160,7 +164,7 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchLatestPublishedLocationTrackChangeTimeBetween(id, startMoment, endMoment, branch)
-            ?.let { changeTime -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
+            ?.let { changeTime -> fetchExtVersionAtMoment(locationTrackDao, branch, id, changeTime) }
             ?.let(locationTrackService::getWithGeometry)
             ?.let { (track, geometry) ->
                 val (oid, officialOid) = oids
@@ -182,9 +186,11 @@ constructor(
         trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtLocationTrackCollectionResponseV1 {
         val moment = publication.publicationTime
-        val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
-        val branchTrackIds = designBranchTrackIds(branch, tracksAndGeoms)
-        val filteredTracksAndGeoms = tracksAndGeoms.filter(filterTracks(nameFilter, branchTrackIds))
+        val filteredTracksAndGeoms =
+            fetchExtVersionsAtMoment(locationTrackDao, branch, moment)
+                .let(locationTrackService::getManyWithGeometries)
+                .filter { (track, _) -> branch is DesignBranch || track.exists }
+                .filter(filterTracks(nameFilter))
         return ExtLocationTrackCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
@@ -204,13 +210,10 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchLatestPublishedLocationTrackChangeTimesBetween(startMoment, endMoment, branch)
-            .mapNotNull { (id, changeTime) -> locationTrackDao.fetchOfficialVersionAtMoment(branch, id, changeTime) }
+            .mapNotNull { (id, changeTime) -> fetchExtVersionAtMoment(locationTrackDao, branch, id, changeTime) }
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(locationTrackService::getManyWithGeometries)
-            ?.let { tracksAndGeoms ->
-                val branchTrackIds = designBranchTrackIds(branch, tracksAndGeoms)
-                tracksAndGeoms.filter(filterTracks(nameFilter, branchTrackIds))
-            }
+            ?.filter(filterTracks(nameFilter))
             ?.let { tracksAndGeoms ->
                 createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms, trackNumberOidFilter)
             }
@@ -253,6 +256,7 @@ constructor(
             endLocation = data.geometry.end?.let(toEndPoint),
             trackNumberName = data.trackNumber.number,
             trackNumberOid = ExtOidV1(data.trackNumberOid),
+            designItemState = data.track.contextData.designAssetState?.let(ExtDesignItemStateV1::of),
         )
     }
 
@@ -281,7 +285,7 @@ constructor(
             geometry = geometry,
             trackNumberOid = oidReference(trackNumberDao, branch, track.trackNumberId),
             trackNumber =
-                trackNumberDao.getOfficialAtMoment(branch, track.trackNumberId, moment)
+                getTrackNumbersAtMoment(branch, listOf(track.trackNumberId), moment)[track.trackNumberId]
                     ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
             geocodingContext =
                 produceIf(track.exists) {
@@ -298,10 +302,7 @@ constructor(
         val distinctTrackNumberIds = tracksAndGeoms.map { (track, _) -> track.trackNumberId }.distinct()
 
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-        val trackNumbers =
-            trackNumberDao.getManyOfficialAtMoment(branch, distinctTrackNumberIds, moment).associateBy { trackNumber ->
-                trackNumber.id
-            }
+        val trackNumbers = getTrackNumbersAtMoment(branch, distinctTrackNumberIds, moment)
 
         val locationTrackExtIds = locationTrackDao.fetchExternalIds(branch, locationTrackIds)
         val officialExtIdsIfBranch =
@@ -322,21 +323,31 @@ constructor(
         }
     }
 
+    /**
+     * Track numbers referenced by the listed tracks, resolved through the branch context, with a fallback to the
+     * design's own rows in any state: a cancelled design-created track can be on a cancelled design-created track
+     * number that the design context no longer shows.
+     */
+    private fun getTrackNumbersAtMoment(
+        branch: LayoutBranch,
+        ids: List<IntId<LayoutTrackNumber>>,
+        moment: Instant,
+    ): Map<DomainId<LayoutTrackNumber>, LayoutTrackNumber> {
+        val inContext = trackNumberDao.getManyOfficialAtMoment(branch, ids, moment)
+        val missingIds = ids - inContext.map { trackNumber -> trackNumber.id as IntId }.toSet()
+        val designInternal =
+            missingIds
+                .mapNotNull { id -> fetchExtVersionAtMoment(trackNumberDao, branch, id, moment) }
+                .let(trackNumberDao::fetchMany)
+        return (inContext + designInternal).associateBy { trackNumber -> trackNumber.id }
+    }
+
     private fun branchByDesignOid(designOid: ExtOidV1<LayoutDesign>?) =
         branchByDesignOid(layoutDesignService, designOid)
-
-    private fun designBranchTrackIds(
-        branch: LayoutBranch,
-        tracksAndGeoms: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    ): Set<IntId<LocationTrack>>? =
-        if (branch == LayoutBranch.main) null
-        else locationTrackDao.fetchExternalIds(branch, tracksAndGeoms.map { (track, _) -> track.id as IntId }).keys
 }
 
 private fun filterTracks(
-    nameFilter: String?,
-    designBranchTrackIds: Set<IntId<LocationTrack>>?,
+    nameFilter: String?
 ): (trackAndGeometry: Pair<LocationTrack, LocationTrackGeometry>) -> Boolean = { (track) ->
-    (nameFilter == null || track.name.contains(nameFilter, ignoreCase = true)) &&
-        (designBranchTrackIds == null || track.id in designBranchTrackIds)
+    nameFilter == null || track.name.contains(nameFilter, ignoreCase = true)
 }
