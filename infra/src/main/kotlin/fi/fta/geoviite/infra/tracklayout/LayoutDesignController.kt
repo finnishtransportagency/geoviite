@@ -30,6 +30,12 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
         return layoutDesignService.getOrThrow(id)
     }
 
+    @PreAuthorize(AUTH_VIEW_DESIGN)
+    @GetMapping("/{id}/completed-items-exist")
+    fun getLayoutDesignCompletedItemsExist(@PathVariable id: IntId<LayoutDesign>): Boolean {
+        return layoutDesignService.hasCompletedItems(id)
+    }
+
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/")
     fun insertLayoutDesign(@RequestBody request: LayoutDesignSaveRequest): IntId<LayoutDesign> {

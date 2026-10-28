@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -361,6 +362,23 @@ constructor(
             listOf("CANCELLED", "COMPLETED"),
             designAssetStates(designBranch.designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER),
         )
+    }
+
+    @Test
+    fun `hasCompletedItems is true only after an item is merged to main`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val open = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val completed = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(open)))
+
+        assertFalse(layoutDesignService.hasCompletedItems(designBranch.designId))
+
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(completed))) {
+            trackNumberService.mergeToMainBranch(designBranch, completed)
+        }
+
+        assertTrue(layoutDesignService.hasCompletedItems(designBranch.designId))
     }
 
     private fun completeInDesign(designBranch: DesignBranch, ids: PublicationRequestIds, mergeToMain: () -> Unit) {

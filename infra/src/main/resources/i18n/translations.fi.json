@@ -2335,7 +2335,8 @@
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
         "choose-workspace": "Valitse työtila",
-        "search-design": "Hae suunnitelma"
+        "search-design": "Hae suunnitelma",
+        "delete-design-has-completed-items": "Suunnitelmaa ei voi poistaa, koska osa siitä on viety viralliseen rataverkkoon"
     },
     "user-card": {
         "my-details": "Omat tiedot",

@@ -40,6 +40,8 @@ class LayoutDesignService(
 
     fun getByOid(oid: Oid<LayoutDesign>): LayoutDesign? = dao.fetchByExternalId(oid)
 
+    fun hasCompletedItems(id: IntId<LayoutDesign>): Boolean = dao.designHasCompletedItems(id)
+
     /** @return The publication ID reporting this design change, if one was made */
     @Transactional
     fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<Publication>? {
