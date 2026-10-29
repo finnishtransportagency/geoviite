@@ -83,7 +83,7 @@ class DesignModeTestUI : SeleniumTest() {
     }
 
     @Test
-    fun `Design mode location track edit can be published`() {
+    fun `Design mode location track edit can be published and merged to main`() {
         val trackNumberVersion =
             mainOfficialContext.createLayoutTrackNumber(
                 trackNumber = HKI_TRACK_NUMBER_1,
@@ -129,5 +129,8 @@ class DesignModeTestUI : SeleniumTest() {
 
         mapPage.switchToDraftMode()
         mapPage.selectionPanel.waitUntilLocationTrackVisible("Design Name")
+
+        // The merge is not yet published in main, but the design can no longer be deleted
+        mapPage.switchToDesignMode().waitUntilDesignDeleteDisabled()
     }
 }
