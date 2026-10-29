@@ -3,7 +3,7 @@ import OlView from 'ol/View';
 import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
-import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
+import { getKmPosts, getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -34,16 +34,24 @@ export function createKmPostLayer(
 
     const resolution = olView.getResolution() || 0;
     const getKmPostsFromApi = (step: number) =>
-        // Fetch every nth
-        step === 0
-            ? Promise.resolve([])
-            : Promise.all(
-                  mapTiles.map(({ area }) =>
-                      getKmPostsByTile(layoutContext, changeTimes.layoutKmPost, area, step),
+        Promise.all([
+            step === 0
+                ? Promise.resolve([])
+                : Promise.all(
+                      mapTiles.map(({ area }) =>
+                          getKmPostsByTile(layoutContext, changeTimes.layoutKmPost, area, step),
+                      ),
+                  ).then((kmPostGroups) =>
+                      kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
                   ),
-              ).then((kmPostGroups) =>
-                  kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
-              );
+            selection.selectedItems.kmPosts.length > 0
+                ? getKmPosts(
+                      selection.selectedItems.kmPosts,
+                      layoutContext,
+                      changeTimes.layoutKmPost,
+                  )
+                : Promise.resolve([]),
+        ]).then(([shownKmPosts, selectedKmPosts]) => ({ shownKmPosts, selectedKmPosts }));
 
     function updateShownKmPosts(kmPostIds: LayoutKmPostId[]) {
         const compare = kmPostIds.sort().join();
@@ -55,21 +63,36 @@ export function createKmPostLayer(
     }
 
     const step = getKmPostStepByResolution(resolution);
-    const dataPromise: Promise<LayoutKmPost[]> = getKmPostsFromApi(step);
+    const dataPromise = getKmPostsFromApi(step);
 
-    const createFeatures = (kmPosts: LayoutKmPost[]) => {
+    const createFeatures = ({
+        shownKmPosts,
+        selectedKmPosts,
+    }: {
+        shownKmPosts: LayoutKmPost[];
+        selectedKmPosts: LayoutKmPost[];
+    }) => {
         const isSelected = (kmPost: LayoutKmPost) => {
             return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
         };
         const isHighlighted = (kmPost: LayoutKmPost) => {
             return selection.highlightedItems.kmPosts.some((k) => k === kmPost.id);
         };
-        return createKmPostFeatures(kmPosts, isSelected, isHighlighted, 'layoutKmPost', resolution);
+        return createKmPostFeatures(
+            [...shownKmPosts, ...selectedKmPosts].filter(filterUniqueById((kmPost) => kmPost.id)),
+            isSelected,
+            isHighlighted,
+            'layoutKmPost',
+            resolution,
+        );
     };
 
-    const onLoadingChange = (loading: boolean, kmPosts: LayoutKmPost[] | undefined) => {
+    const onLoadingChange = (
+        loading: boolean,
+        kmPosts: { shownKmPosts: LayoutKmPost[]; selectedKmPosts: LayoutKmPost[] } | undefined,
+    ) => {
         if (!loading) {
-            updateShownKmPosts(kmPosts?.map((kmp) => kmp.id) ?? []);
+            updateShownKmPosts(kmPosts?.shownKmPosts.map((kmp) => kmp.id) ?? []);
         }
         onLoadingData(loading);
     };
