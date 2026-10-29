@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
+import fi.fta.geoviite.infra.error.DesignItemMergeInProgressException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
@@ -378,7 +379,7 @@ constructor(
     }
 
     @Test
-    fun `Publishing a new track number from design with a draft leaves the correct rows and references`() {
+    fun `Publishing a new track number from design with a rejected design edit leaves the correct rows and references`() {
         val designBranch = testDBService.createDesignBranch()
         val trackNumber = testDBService.getUnusedTrackNumber()
 
@@ -393,15 +394,10 @@ constructor(
         val mainDraft = trackNumberService.mergeToMainBranch(designBranch, tnId)
         assertVersionReferences(designBranch, tnId, mainDraft = mainDraft, designOfficial = designOfficial)
 
-        val designDraft2 =
+        assertThrows<DesignItemMergeInProgressException> {
             trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v2"))
-        assertVersionReferences(
-            designBranch,
-            tnId,
-            mainDraft = mainDraft,
-            designOfficial = designOfficial,
-            designDraft = designDraft2,
-        )
+        }
+        assertVersionReferences(designBranch, tnId, mainDraft = mainDraft, designOfficial = designOfficial)
 
         val mainPublication = trackNumberService.publish(LayoutBranch.main, mainDraft)
         val mainOfficial = mainPublication.published
@@ -415,7 +411,7 @@ constructor(
     }
 
     @Test
-    fun `Publishing an edited track number from design with a draft leaves the correct rows and references`() {
+    fun `Publishing an edited track number from design with a rejected design edit leaves the correct rows and references`() {
         val designBranch = testDBService.createDesignBranch()
         val trackNumber = testDBService.getUnusedTrackNumber()
 
@@ -443,15 +439,15 @@ constructor(
             designOfficial = designOfficial,
         )
 
-        val designDraft2 =
+        assertThrows<DesignItemMergeInProgressException> {
             trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v3"))
+        }
         assertVersionReferences(
             designBranch,
             tnId,
             mainOfficial = mainOfficial1,
             mainDraft = mainDraft2,
             designOfficial = designOfficial,
-            designDraft = designDraft2,
         )
 
         val afterMainPublication2 = trackNumberService.publish(LayoutBranch.main, mainDraft2)
