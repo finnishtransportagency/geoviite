@@ -130,6 +130,15 @@ class RoutingTest {
     }
 
     @Test
+    fun `SwitchEdge toEdgeM keeps converted range ordered in DOWN direction`() {
+        val edge =
+            SwitchEdge(id = IntId(1), direction = DOWN, mRange = Range(LineM(0.0), LineM(20.0)), edgeLength = 20.0)
+        val switchMRange = Range(LineM<SwitchStructureAlignmentM>(5.0), LineM(20.0))
+
+        assertEquals(Range(LineM<EdgeM>(0.0), LineM(15.0)), edge.toEdgeM(switchMRange))
+    }
+
+    @Test
     fun `SwitchEdge toSwitchM and toEdgeM are inverse operations in UP direction`() {
         val edge = SwitchEdge(id = IntId(1), direction = UP, mRange = Range(LineM(5.0), LineM(25.0)), edgeLength = 20.0)
         listOf(0.0, 7.5, 10.0, 15.0, 20.0).forEach { distanceOnEdge ->
