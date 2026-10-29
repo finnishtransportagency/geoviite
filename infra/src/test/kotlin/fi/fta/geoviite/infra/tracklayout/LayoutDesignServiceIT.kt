@@ -381,6 +381,85 @@ constructor(
         assertTrue(layoutDesignService.hasCompletedItems(designBranch.designId))
     }
 
+    @Test
+    fun `design becomes COMPLETED when the last open item is merged to main`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val first = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val second = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(second)))
+
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(first))) {
+            trackNumberService.mergeToMainBranch(designBranch, first)
+        }
+        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designBranch.designId).designState)
+
+        trackNumberService.mergeToMainBranch(designBranch, second)
+        publicationTestSupportService.publish(LayoutBranch.main, publicationRequestIds(trackNumbers = listOf(second)))
+        assertEquals(DesignState.COMPLETED, layoutDesignDao.fetch(designBranch.designId).designState)
+    }
+
+    @Test
+    fun `design becomes COMPLETED when the last open item is cancelled and something was completed`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val completed = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val toCancel = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(toCancel)))
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(completed))) {
+            trackNumberService.mergeToMainBranch(designBranch, completed)
+        }
+        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designBranch.designId).designState)
+
+        trackNumberService.cancel(designBranch, toCancel)
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(toCancel)))
+
+        assertEquals(DesignState.COMPLETED, layoutDesignDao.fetch(designBranch.designId).designState)
+    }
+
+    @Test
+    fun `design with only cancelled items stays ACTIVE`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = testDBService.testContext(designBranch, PublicationState.DRAFT).save(trackNumber()).id
+        val ids = publicationRequestIds(trackNumbers = listOf(trackNumber))
+        publicationTestSupportService.publish(designBranch, ids)
+        trackNumberService.cancel(designBranch, trackNumber)
+        publicationTestSupportService.publish(designBranch, ids)
+
+        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designBranch.designId).designState)
+    }
+
+    @Test
+    fun `design with an unpublished draft stays ACTIVE after its published items are merged`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val completed = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber()))
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(completed))) {
+            trackNumberService.mergeToMainBranch(designBranch, completed)
+        }
+
+        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designBranch.designId).designState)
+    }
+
+    @Test
+    fun `completing a design creates a design change publication referring to the completed design version`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designId = designBranch.designId
+        val trackNumber = testDBService.testContext(designBranch, PublicationState.DRAFT).save(trackNumber()).id
+        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber))) {
+            trackNumberService.mergeToMainBranch(designBranch, trackNumber)
+        }
+
+        val publication = publicationDao.fetchLatestPublications(onlyBranchType = LayoutBranchType.DESIGN, count = 1)[0]
+        val publishedIn = publication.layoutBranch as PublishedInDesign
+        assertEquals(PublicationCause.LAYOUT_DESIGN_CHANGE, publication.cause)
+        assertEquals(
+            DesignState.COMPLETED,
+            layoutDesignDao.fetchVersion(RowVersion(designId, publishedIn.designVersion)).designState,
+        )
+    }
+
     private fun completeInDesign(designBranch: DesignBranch, ids: PublicationRequestIds, mergeToMain: () -> Unit) {
         publicationTestSupportService.publish(designBranch, ids)
         mergeToMain()
@@ -389,8 +468,9 @@ constructor(
 
     private fun assertDeletionRejected(designBranch: DesignBranch, table: LayoutAssetTable) {
         val designId = designBranch.designId
+        val stateBefore = layoutDesignDao.fetch(designId).designState
         assertThrows<DesignHasCompletedItemsException> { deleteDesign(designId) }
-        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designId).designState)
+        assertEquals(stateBefore, layoutDesignDao.fetch(designId).designState)
         assertEquals(listOf("COMPLETED"), designAssetStates(designId, table))
     }
 

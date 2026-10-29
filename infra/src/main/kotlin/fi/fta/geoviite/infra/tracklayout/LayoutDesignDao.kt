@@ -217,6 +217,31 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             rs.getBoolean("has_completed_items")
         }
     }
+
+    // Drafts count as open too, so a design with unpublished work is never completed under it
+    @Transactional(readOnly = true)
+    fun designHasOpenItems(designId: IntId<LayoutDesign>): Boolean {
+        // language="sql"
+        val sql =
+            """
+            select exists(
+              select 1 from layout.track_number where design_id = :design_id and design_asset_state = 'OPEN'
+              union all
+              select 1 from layout.location_track where design_id = :design_id and design_asset_state = 'OPEN'
+              union all
+              select 1 from layout.switch where design_id = :design_id and design_asset_state = 'OPEN'
+              union all
+              select 1 from layout.km_post where design_id = :design_id and design_asset_state = 'OPEN'
+              union all
+              select 1 from layout.operational_point where design_id = :design_id and design_asset_state = 'OPEN'
+            ) as has_open_items
+            """
+                .trimIndent()
+
+        return jdbcTemplate.queryOne(sql, mapOf("design_id" to designId.intValue)) { rs, _ ->
+            rs.getBoolean("has_open_items")
+        }
+    }
 }
 
 private val duplicateNameErrorRegex = Regex("""Key \(lower\(name::text\)\)=\(([^,]+)\) conflicts with existing key""")
