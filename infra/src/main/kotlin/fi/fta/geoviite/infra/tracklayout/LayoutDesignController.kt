@@ -31,9 +31,9 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
     }
 
     @PreAuthorize(AUTH_VIEW_DESIGN)
-    @GetMapping("/{id}/completed-items-exist")
-    fun getLayoutDesignCompletedItemsExist(@PathVariable id: IntId<LayoutDesign>): Boolean {
-        return layoutDesignService.hasCompletedItems(id)
+    @GetMapping("/{id}/merged-items-exist")
+    fun getLayoutDesignMergedItemsExist(@PathVariable id: IntId<LayoutDesign>): Boolean {
+        return layoutDesignService.hasMergedItems(id)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

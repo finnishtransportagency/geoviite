@@ -74,7 +74,8 @@ class LocationTrackService(
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
     private val trackNumberDao: LayoutTrackNumberDao,
-) : LayoutAssetService<LocationTrack, LocationTrackGeometry, LocationTrackDao>(locationTrackDao) {
+    layoutDesignDao: LayoutDesignDao,
+) : LayoutAssetService<LocationTrack, LocationTrackGeometry, LocationTrackDao>(locationTrackDao, layoutDesignDao) {
     val descriptionTranslation = localizationService.getLocalization(LocalizationLanguage.FI)
 
     @Transactional

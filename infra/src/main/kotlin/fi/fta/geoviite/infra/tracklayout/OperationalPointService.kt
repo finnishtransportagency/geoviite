@@ -27,7 +27,8 @@ class OperationalPointService(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val switchDao: LayoutSwitchDao,
-) : LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao) {
+    layoutDesignDao: LayoutDesignDao,
+) : LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao, layoutDesignDao) {
 
     fun list(
         context: LayoutContext,
@@ -229,7 +230,8 @@ class OperationalPointService(
         }
     }
 
-    private fun saveDraft(branch: LayoutBranch, point: OperationalPoint) = dao.save(asDraft(branch, point))
+    private fun saveDraft(branch: LayoutBranch, point: OperationalPoint) =
+        saveDraftInternal(branch, point, NoParams.instance)
 
     fun idMatches(
         layoutContext: LayoutContext,

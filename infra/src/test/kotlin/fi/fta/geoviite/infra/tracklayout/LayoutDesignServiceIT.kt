@@ -9,7 +9,9 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.error.DesignHasCompletedItemsException
+import fi.fta.geoviite.infra.error.DesignCompletedException
+import fi.fta.geoviite.infra.error.DesignHasMergedItemsException
+import fi.fta.geoviite.infra.error.DesignItemMergeInProgressException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -23,6 +25,7 @@ import fi.fta.geoviite.infra.util.queryOne
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -365,20 +368,153 @@ constructor(
     }
 
     @Test
-    fun `hasCompletedItems is true only after an item is merged to main`() {
+    fun `hasMergedItems is true once an item is merged to main, before and after the main publication`() {
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val open = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
-        val completed = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
-        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(open)))
+        val merged = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val ids = publicationRequestIds(trackNumbers = listOf(open, merged))
+        publicationTestSupportService.publish(designBranch, ids)
 
-        assertFalse(layoutDesignService.hasCompletedItems(designBranch.designId))
+        assertFalse(layoutDesignService.hasMergedItems(designBranch.designId))
 
-        completeInDesign(designBranch, publicationRequestIds(trackNumbers = listOf(completed))) {
-            trackNumberService.mergeToMainBranch(designBranch, completed)
+        trackNumberService.mergeToMainBranch(designBranch, merged)
+        assertTrue(layoutDesignService.hasMergedItems(designBranch.designId))
+
+        publicationTestSupportService.publish(LayoutBranch.main, publicationRequestIds(trackNumbers = listOf(merged)))
+        assertTrue(layoutDesignService.hasMergedItems(designBranch.designId))
+    }
+
+    @Test
+    fun `deleting a design is rejected while a merge to main is pending`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = testDBService.testContext(designBranch, PublicationState.DRAFT).save(trackNumber()).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(trackNumbers = listOf(trackNumber)))
+        trackNumberService.mergeToMainBranch(designBranch, trackNumber)
+
+        assertThrows<DesignHasMergedItemsException> { deleteDesign(designBranch.designId) }
+        assertEquals(DesignState.ACTIVE, layoutDesignDao.fetch(designBranch.designId).designState)
+        assertEquals(
+            listOf("OPEN"),
+            designAssetStates(designBranch.designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER),
+        )
+    }
+
+    @Test
+    fun `editing items in a design is rejected while their merge to main is pending`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val mainTrackNumber = mainOfficialContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val trackNumber = designDraftContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val locationTrack =
+            designDraftContext
+                .save(
+                    locationTrack(mainTrackNumber),
+                    trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                )
+                .id
+        val switch = designDraftContext.save(switch()).id
+        val kmPost = designDraftContext.save(kmPost(mainTrackNumber, KmNumber(1))).id
+        val operationalPoint = designDraftContext.save(operationalPoint()).id
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumber),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
+                operationalPoints = listOf(operationalPoint),
+            ),
+        )
+        trackNumberService.mergeToMainBranch(designBranch, trackNumber)
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack)
+        switchService.mergeToMainBranch(designBranch, switch)
+        kmPostService.mergeToMainBranch(designBranch, kmPost)
+        operationalPointService.mergeToMainBranch(designBranch, operationalPoint)
+
+        assertThrows<DesignItemMergeInProgressException> { trackNumberService.cancel(designBranch, trackNumber) }
+        assertThrows<DesignItemMergeInProgressException> { locationTrackService.cancel(designBranch, locationTrack) }
+        assertThrows<DesignItemMergeInProgressException> { switchService.cancel(designBranch, switch) }
+        assertThrows<DesignItemMergeInProgressException> {
+            kmPostService.saveDraft(
+                designBranch,
+                kmPostService.getOrThrow(designBranch.draft, kmPost).copy(kmNumber = KmNumber(2)),
+            )
         }
+        assertThrows<DesignItemMergeInProgressException> {
+            operationalPointService.updateLocation(designBranch, operationalPoint, Point(10.0, 10.0))
+        }
+    }
 
-        assertTrue(layoutDesignService.hasCompletedItems(designBranch.designId))
+    @Test
+    fun `an operation indirectly editing an item with a pending merge fails as a whole`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val operationalPoint = designDraftContext.save(operationalPoint()).id
+        val switch = designDraftContext.save(switch(operationalPointId = operationalPoint)).id
+        publicationTestSupportService.publish(designBranch, publicationRequestIds(switches = listOf(switch)))
+        switchService.mergeToMainBranch(designBranch, switch)
+
+        // Deleting a never-published operational point clears its switch references, which saves the switch
+        assertThrows<DesignItemMergeInProgressException> {
+            operationalPointService.deleteDraft(designBranch, operationalPoint)
+        }
+        assertNotNull(operationalPointService.get(designBranch.draft, operationalPoint))
+        assertEquals(operationalPoint, switchService.getOrThrow(designBranch.draft, switch).operationalPointId)
+    }
+
+    @Test
+    fun `editing an item in a design is allowed again once its main draft is published or reverted`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        val trackNumber = mainOfficialContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val published = designDraftContext.save(kmPost(trackNumber, KmNumber(1))).id
+        val reverted = designDraftContext.save(kmPost(trackNumber, KmNumber(2))).id
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(kmPosts = listOf(published, reverted)),
+        )
+        kmPostService.mergeToMainBranch(designBranch, published)
+        kmPostService.mergeToMainBranch(designBranch, reverted)
+
+        publicationTestSupportService.publish(LayoutBranch.main, publicationRequestIds(kmPosts = listOf(published)))
+        kmPostService.deleteDraft(LayoutBranch.main, reverted)
+
+        kmPostService.saveDraft(
+            designBranch,
+            kmPostService.getOrThrow(designBranch.draft, published).copy(kmNumber = KmNumber(3)),
+        )
+        kmPostService.saveDraft(
+            designBranch,
+            kmPostService.getOrThrow(designBranch.draft, reverted).copy(kmNumber = KmNumber(4)),
+        )
+        assertEquals(KmNumber(3), kmPostService.getOrThrow(designBranch.draft, published).kmNumber)
+        assertEquals(KmNumber(4), kmPostService.getOrThrow(designBranch.draft, reverted).kmNumber)
+    }
+
+    @Test
+    fun `saving into a COMPLETED design is rejected`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = mainOfficialContext.save(trackNumber(testDBService.getUnusedTrackNumber())).id
+        val kmPost =
+            testDBService.testContext(designBranch, PublicationState.DRAFT).save(kmPost(trackNumber, KmNumber(1))).id
+        completeInDesign(designBranch, publicationRequestIds(kmPosts = listOf(kmPost))) {
+            kmPostService.mergeToMainBranch(designBranch, kmPost)
+        }
+        assertEquals(DesignState.COMPLETED, layoutDesignDao.fetch(designBranch.designId).designState)
+
+        assertThrows<DesignCompletedException> {
+            kmPostService.saveDraft(
+                designBranch,
+                kmPost(trackNumber, KmNumber(2), contextData = LayoutContextData.newDraft(designBranch, id = null)),
+            )
+        }
+        assertThrows<DesignCompletedException> {
+            kmPostService.saveDraft(
+                designBranch,
+                kmPostService.getOrThrow(designBranch.draft, kmPost).copy(kmNumber = KmNumber(3)),
+            )
+        }
     }
 
     @Test
@@ -469,7 +605,7 @@ constructor(
     private fun assertDeletionRejected(designBranch: DesignBranch, table: LayoutAssetTable) {
         val designId = designBranch.designId
         val stateBefore = layoutDesignDao.fetch(designId).designState
-        assertThrows<DesignHasCompletedItemsException> { deleteDesign(designId) }
+        assertThrows<DesignHasMergedItemsException> { deleteDesign(designId) }
         assertEquals(stateBefore, layoutDesignDao.fetch(designId).designState)
         assertEquals(listOf("COMPLETED"), designAssetStates(designId, table))
     }

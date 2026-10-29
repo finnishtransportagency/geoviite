@@ -20,7 +20,8 @@ class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val geometryDao: GeometryDao,
-) : LayoutAssetService<LayoutKmPost, NoParams, LayoutKmPostDao>(dao) {
+    layoutDesignDao: LayoutDesignDao,
+) : LayoutAssetService<LayoutKmPost, NoParams, LayoutKmPostDao>(dao, layoutDesignDao) {
 
     @Transactional
     fun insertKmPost(branch: LayoutBranch, request: LayoutKmPostSaveRequest): IntId<LayoutKmPost> {
