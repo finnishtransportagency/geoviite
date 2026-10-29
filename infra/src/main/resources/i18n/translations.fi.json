@@ -2338,7 +2338,7 @@
         "linking-in-progress": "Linkitys on kesken",
         "choose-workspace": "Valitse työtila",
         "search-design": "Hae suunnitelma",
-        "delete-design-has-completed-items": "Suunnitelmaa ei voi poistaa, koska osa siitä on viety viralliseen rataverkkoon"
+        "delete-design-has-merged-items": "Suunnitelmaa ei voi poistaa, koska osa siitä on viety tai viedään viralliseen rataverkkoon. Keskeneräisen viennin voi perua hylkäämällä kohteen luonnoksen virallisen rataverkon luonnostilassa."
     },
     "user-card": {
         "my-details": "Omat tiedot",

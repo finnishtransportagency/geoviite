@@ -4,7 +4,7 @@ import { designBranch, DesignBranch, LayoutDesignId, Oid, TimeStamp } from 'comm
 import { asyncCache } from 'cache/cache';
 
 const designCache = asyncCache<string, LayoutDesign[]>();
-const designCompletedItemsExistCache = asyncCache<LayoutDesignId, boolean>();
+const designMergedItemsExistCache = asyncCache<LayoutDesignId, boolean>();
 
 const baseUri = `${TRACK_LAYOUT_URI}/layout-design`;
 
@@ -54,12 +54,12 @@ export const getLayoutDesignOrUndefined = async (changeTime: TimeStamp, id: Layo
         designs.find((design) => design.id === id),
     );
 
-export const getLayoutDesignCompletedItemsExist = async (
+export const getLayoutDesignMergedItemsExist = async (
     changeTime: TimeStamp,
     id: LayoutDesignId,
 ): Promise<boolean> =>
-    designCompletedItemsExistCache.get(changeTime, id, () =>
-        getNonNull<boolean>(`${baseUri}/${id}/completed-items-exist`),
+    designMergedItemsExistCache.get(changeTime, id, () =>
+        getNonNull<boolean>(`${baseUri}/${id}/merged-items-exist`),
     );
 
 export const updateLayoutDesign = async (
