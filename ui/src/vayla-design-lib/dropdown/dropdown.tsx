@@ -51,8 +51,7 @@ export type Item<TItemValue> = {
 };
 
 export type DropdownOptions<TItemValue> =
-    | Item<TItemValue>[]
-    | ((searchTerm: string) => Promise<Item<TItemValue>[]>);
+    Item<TItemValue>[] | ((searchTerm: string) => Promise<Item<TItemValue>[]>);
 
 export enum DropdownPopupMode {
     Modal,

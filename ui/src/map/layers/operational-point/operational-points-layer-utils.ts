@@ -3,7 +3,11 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { isValidPolygon, Point, Polygon, Rectangle } from 'model/geometry';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
-import { findMatchingEntities, getFeatureCoords, pointToCoords, } from 'map/layers/utils/layer-utils';
+import {
+    findMatchingEntities,
+    getFeatureCoords,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import Style from 'ol/style/Style';

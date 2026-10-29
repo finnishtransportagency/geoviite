@@ -118,11 +118,7 @@ export type TrackMeter = {
 };
 
 export type AssetId =
-    | LayoutTrackNumberId
-    | LocationTrackId
-    | LayoutSwitchId
-    | LayoutKmPostId
-    | OperationalPointId;
+    LayoutTrackNumberId | LocationTrackId | LayoutSwitchId | LayoutKmPostId | OperationalPointId;
 
 const TRACK_METER_REGEX = /^([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4}(?:.[0-9]{1,4})?)$/;
 const KM_NUMBER_REGEX = /^([0-9]{4})([a-zA-Z]{0,2})$/;
@@ -191,16 +187,7 @@ export type Message = string;
 
 export type SwitchHand = 'RIGHT' | 'LEFT' | 'NONE';
 export type SwitchBaseType =
-    | 'YV'
-    | 'KV'
-    | 'KRV'
-    | 'YRV'
-    | 'RR'
-    | 'SRR'
-    | 'TYV'
-    | 'UKV'
-    | 'SKV'
-    | 'EV';
+    'YV' | 'KV' | 'KRV' | 'YRV' | 'RR' | 'SRR' | 'TYV' | 'UKV' | 'SKV' | 'EV';
 export type JointNumber = string;
 
 export type Oid = string;

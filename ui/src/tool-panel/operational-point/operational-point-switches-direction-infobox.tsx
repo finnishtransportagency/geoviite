@@ -172,9 +172,7 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
                 <SwitchBadge
                     switchItem={switchItem}
                     status={
-                        isLinkingOrSplitting && !isEditing
-                            ? SwitchBadgeStatus.DISABLED
-                            : undefined
+                        isLinkingOrSplitting && !isEditing ? SwitchBadgeStatus.DISABLED : undefined
                     }
                     onClick={() => {
                         const delegates = createDelegates(TrackLayoutActions);

@@ -34,5 +34,4 @@ export type VerticalGeometryDiagramLayoutAlignmentId = {
 };
 
 export type VerticalGeometryDiagramAlignmentId =
-    | VerticalGeometryDiagramGeometryAlignmentId
-    | VerticalGeometryDiagramLayoutAlignmentId;
+    VerticalGeometryDiagramGeometryAlignmentId | VerticalGeometryDiagramLayoutAlignmentId;

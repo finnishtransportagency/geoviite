@@ -13,10 +13,7 @@ import { approximateHeightAt } from 'vertical-geometry/util';
 import { expectDefined } from 'utils/type-utils';
 
 export type SnapTarget =
-    | 'trackMeterRulerTick'
-    | 'segmentBoundary'
-    | 'geometryElement'
-    | 'didNotSnap';
+    'trackMeterRulerTick' | 'segmentBoundary' | 'geometryElement' | 'didNotSnap';
 
 export interface SnappedPoint {
     snapTarget: SnapTarget;

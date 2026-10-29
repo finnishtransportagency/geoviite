@@ -94,9 +94,7 @@ function validateInternalOperationalPoint(
             },
         ),
     ].filter(filterNotEmpty);
-    const rinfIdErrors = editingRinfId
-        ? validateRinfIdOverride(saveRequest.rinfIdOverride)
-        : [];
+    const rinfIdErrors = editingRinfId ? validateRinfIdOverride(saveRequest.rinfIdOverride) : [];
 
     return [...mandatoryFieldErrors, ...regexAndLengthErrors, ...rinfIdErrors].filter(
         filterNotEmpty,

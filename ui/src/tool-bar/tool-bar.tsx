@@ -151,11 +151,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const canSearch = layoutContextMode !== 'DESIGN' || currentDesignExists;
 
     enum NewMenuItems {
-        'trackNumber' = 1,
-        'locationTrack' = 2,
-        'switch' = 3,
-        'kmPost' = 4,
-        'operationalPoint' = 5,
+        trackNumber = 1,
+        locationTrack = 2,
+        switch = 3,
+        kmPost = 4,
+        operationalPoint = 5,
     }
 
     const newMenuItems: MenuOption[] = [

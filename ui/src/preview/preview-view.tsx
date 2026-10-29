@@ -552,90 +552,84 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         !showCalculatedChanges &&
                             styles['preview-view__changes--no-calculated-changes'],
                     )}>
-                    <section
-                        qa-id={'unstaged-changes'}
-                        className={styles['preview-section']}>
-                                {hasDesignDraftsInDesign && (
-                                    <DesignDraftsExistError
-                                        goToPublishChangesMode={() =>
-                                            setDesignPublicationMode('PUBLISH_CHANGES')
-                                        }
-                                    />
+                    <section qa-id={'unstaged-changes'} className={styles['preview-section']}>
+                        {hasDesignDraftsInDesign && (
+                            <DesignDraftsExistError
+                                goToPublishChangesMode={() =>
+                                    setDesignPublicationMode('PUBLISH_CHANGES')
+                                }
+                            />
+                        )}
+                        <div className={styles['preview-view__changes-title']}>
+                            <h3>
+                                {t('preview-view.unstaged-changes-title', {
+                                    amount: publicationAssetChangeAmounts.unstaged,
+                                })}
+                            </h3>
+                            <Checkbox
+                                checked={props.showOnlyOwnUnstagedChanges}
+                                onChange={(e) => {
+                                    props.setShowOnlyOwnUnstagedChanges(e.target.checked);
+                                }}>
+                                {t('preview-view.show-only-mine', {
+                                    amount: publicationAssetChangeAmounts.ownUnstaged,
+                                })}
+                            </Checkbox>
+                        </div>
+                        <PreviewTable
+                            layoutContext={props.layoutContext}
+                            changesBeingReverted={changesBeingReverted}
+                            publicationCandidates={displayedUnstagedPublicationCandidates}
+                            staged={false}
+                            onShowOnMap={props.onShowOnMap}
+                            changeTimes={props.changeTimes}
+                            publicationGroupAmounts={publicationAssetChangeAmounts.groupAmounts}
+                            displayedTotalPublicationAssetAmount={
+                                props.showOnlyOwnUnstagedChanges
+                                    ? publicationAssetChangeAmounts.ownUnstaged
+                                    : publicationAssetChangeAmounts.unstaged
+                            }
+                            previewOperations={previewOperations}
+                            tableValidationState={publicationValidationState}
+                            tableEntryValidationState={(item) => {
+                                return publicationValidationState === 'API_CALL_ERROR'
+                                    ? 'API_CALL_ERROR'
+                                    : item.validationState;
+                            }}
+                            canRevertChanges={canRevertChanges}
+                            canCancelChanges={canCancelChanges}
+                        />
+                    </section>
+                    <section qa-id={'staged-changes'} className={styles['preview-section']}>
+                        <div className={styles['preview-view__changes-title']}>
+                            <h3>
+                                {t(
+                                    designPublicationMode === 'PUBLISH_CHANGES'
+                                        ? 'preview-view.staged-changes-title'
+                                        : 'preview-view.merging-to-main-changes-title',
+                                    {
+                                        amount: publicationAssetChangeAmounts.staged,
+                                    },
                                 )}
-                                <div className={styles['preview-view__changes-title']}>
-                                    <h3>
-                                        {t('preview-view.unstaged-changes-title', {
-                                            amount: publicationAssetChangeAmounts.unstaged,
-                                        })}
-                                    </h3>
-                                    <Checkbox
-                                        checked={props.showOnlyOwnUnstagedChanges}
-                                        onChange={(e) => {
-                                            props.setShowOnlyOwnUnstagedChanges(e.target.checked);
-                                        }}>
-                                        {t('preview-view.show-only-mine', {
-                                            amount: publicationAssetChangeAmounts.ownUnstaged,
-                                        })}
-                                    </Checkbox>
-                                </div>
-                                <PreviewTable
-                                    layoutContext={props.layoutContext}
-                                    changesBeingReverted={changesBeingReverted}
-                                    publicationCandidates={displayedUnstagedPublicationCandidates}
-                                    staged={false}
-                                    onShowOnMap={props.onShowOnMap}
-                                    changeTimes={props.changeTimes}
-                                    publicationGroupAmounts={
-                                        publicationAssetChangeAmounts.groupAmounts
-                                    }
-                                    displayedTotalPublicationAssetAmount={
-                                        props.showOnlyOwnUnstagedChanges
-                                            ? publicationAssetChangeAmounts.ownUnstaged
-                                            : publicationAssetChangeAmounts.unstaged
-                                    }
-                                    previewOperations={previewOperations}
-                                    tableValidationState={publicationValidationState}
-                                    tableEntryValidationState={(item) => {
-                                        return publicationValidationState === 'API_CALL_ERROR'
-                                            ? 'API_CALL_ERROR'
-                                            : item.validationState;
-                                    }}
-                                    canRevertChanges={canRevertChanges}
-                                    canCancelChanges={canCancelChanges}
-                                />
-                            </section>
-                            <section qa-id={'staged-changes'} className={styles['preview-section']}>
-                                <div className={styles['preview-view__changes-title']}>
-                                    <h3>
-                                        {t(
-                                            designPublicationMode === 'PUBLISH_CHANGES'
-                                                ? 'preview-view.staged-changes-title'
-                                                : 'preview-view.merging-to-main-changes-title',
-                                            {
-                                                amount: publicationAssetChangeAmounts.staged,
-                                            },
-                                        )}
-                                    </h3>
-                                </div>
-                                <PreviewTable
-                                    layoutContext={props.layoutContext}
-                                    changesBeingReverted={changesBeingReverted}
-                                    publicationCandidates={stagedPublicationCandidates}
-                                    staged={true}
-                                    onShowOnMap={props.onShowOnMap}
-                                    changeTimes={props.changeTimes}
-                                    publicationGroupAmounts={
-                                        publicationAssetChangeAmounts.groupAmounts
-                                    }
-                                    displayedTotalPublicationAssetAmount={
-                                        publicationAssetChangeAmounts.staged
-                                    }
-                                    previewOperations={previewOperations}
-                                    tableValidationState={publicationValidationState}
-                                    tableEntryValidationState={() => publicationValidationState}
-                                    canRevertChanges={canRevertChanges}
-                                    canCancelChanges={canCancelChanges}
-                                />
+                            </h3>
+                        </div>
+                        <PreviewTable
+                            layoutContext={props.layoutContext}
+                            changesBeingReverted={changesBeingReverted}
+                            publicationCandidates={stagedPublicationCandidates}
+                            staged={true}
+                            onShowOnMap={props.onShowOnMap}
+                            changeTimes={props.changeTimes}
+                            publicationGroupAmounts={publicationAssetChangeAmounts.groupAmounts}
+                            displayedTotalPublicationAssetAmount={
+                                publicationAssetChangeAmounts.staged
+                            }
+                            previewOperations={previewOperations}
+                            tableValidationState={publicationValidationState}
+                            tableEntryValidationState={() => publicationValidationState}
+                            canRevertChanges={canRevertChanges}
+                            canCancelChanges={canCancelChanges}
+                        />
                     </section>
                     <div className={styles['preview-section']}>
                         {showCalculatedChanges &&

@@ -113,4 +113,3 @@ export const LocationTrackOperationalPointRow: React.FC<LocationTrackOperational
         </>
     );
 };
-

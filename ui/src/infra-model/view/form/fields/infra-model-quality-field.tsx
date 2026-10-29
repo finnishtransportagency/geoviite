@@ -33,9 +33,7 @@ export const InfraModelQualityField: React.FC<InfraModelExtraParameterFieldProps
                             wide
                             value={extraInframodelParameters.quality}
                             options={planQualities}
-                            onChange={(quality) =>
-                                changeInExtraParametersField(quality, 'quality')
-                            }
+                            onChange={(quality) => changeInExtraParametersField(quality, 'quality')}
                         />
                     }
                 />

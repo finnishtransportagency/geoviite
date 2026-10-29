@@ -95,7 +95,6 @@ const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
     );
 };
 
-
 function getSearchableItemName(
     item: SearchItemValue<SearchItemType>,
     trackNumbers: LayoutTrackNumber[],
@@ -249,13 +248,13 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
         specificItemRef
             ? parseISOOrUndefined(searchParams.get(PARAM_SPECIFIC_START_DATE) ?? undefined)
             : (parseISOOrUndefined(searchParams.get(PARAM_START_DATE) ?? undefined) ??
-              defaultGlobalStartDate),
+                  defaultGlobalStartDate),
     );
     const endDate = useMemoizedDate(
         specificItemRef
             ? parseISOOrUndefined(searchParams.get(PARAM_SPECIFIC_END_DATE) ?? undefined)
             : (parseISOOrUndefined(searchParams.get(PARAM_END_DATE) ?? undefined) ??
-              defaultGlobalEndDate),
+                  defaultGlobalEndDate),
     );
 
     const [sortInfo, setSortInfo] =
@@ -454,7 +453,9 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}
                     displaySingleItemHistory={(item) => {
-                        setSearchParams(item ? itemToSpecificItemParams(item) : new URLSearchParams());
+                        setSearchParams(
+                            item ? itemToSpecificItemParams(item) : new URLSearchParams(),
+                        );
                     }}
                     publicationDisplayMode={specificItem ? 'SINGLE_ASSET' : 'PUBLICATION_LOG'}
                 />

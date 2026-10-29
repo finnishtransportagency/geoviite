@@ -216,7 +216,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         layoutContext={layoutContext}
                         operationalPoint={operationalPoint}
                         changeTimes={changeTimes}
-
                     />
                     <OperationalPointSwitchesInfobox
                         contentVisible={visibilities.switches}
@@ -232,7 +231,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         layoutContext={layoutContext}
                         operationalPoint={operationalPoint}
                         changeTimes={changeTimes}
-
                     />
                 </React.Fragment>
             )}
