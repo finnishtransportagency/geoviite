@@ -308,6 +308,12 @@ data class SwitchEdge(
                 DOWN -> (mRange.max.distance - switchM.distance) * edgeLength / mRange.length().distance
             }
         )
+
+    fun toEdgeM(switchMRange: Range<LineM<SwitchStructureAlignmentM>>): Range<LineM<EdgeM>> {
+        val first = toEdgeM(switchMRange.min)
+        val second = toEdgeM(switchMRange.max)
+        return Range(minOf(first, second), maxOf(first, second))
+    }
 }
 
 private data class SwitchRouteCandidate(
@@ -454,12 +460,7 @@ internal constructor(
     ): RouteSection? {
         if (switchMRange.length().distance < LAYOUT_M_DELTA) return null
         val direction = if (edgeDirection == UP) switchEdge.direction else switchEdge.direction.reverse()
-        val edgeMRange =
-            Range(
-                    switchEdge.toEdgeM(switchMRange.min),
-                    switchEdge.toEdgeM(switchMRange.max),
-                )
-                .let { range -> Range(minOf(range.min, range.max), maxOf(range.min, range.max)) }
+        val edgeMRange = switchEdge.toEdgeM(switchMRange)
         val routeSection = findRouteSection(switchEdge.id, direction, favoredTrackIds) ?: return null
         val edgeLength = edgeData.getValue(switchEdge.id).edge.length.distance
         val trackLength = routeSection.mRange.length().distance
