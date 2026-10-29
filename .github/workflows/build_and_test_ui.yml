@@ -6,6 +6,7 @@ on:
       - main
       - release/**
     paths:
+      - '.prettierrc.json'
       - 'ui/**'
 
 jobs:
@@ -24,6 +25,10 @@ jobs:
       - name: Install dependencies
         working-directory: ./ui
         run: npm ci
+
+      - name: Check formatting
+        working-directory: ./ui
+        run: npm run format:check
 
       - name: Build UI
         working-directory: ./ui

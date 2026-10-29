@@ -7,6 +7,8 @@
         "start": "webpack serve --mode development --env development",
         "build": "webpack --mode production",
         "test": "jest",
+        "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,scss,html,json}\"",
+        "format:fix": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss,html,json}\"",
         "lint": "eslint src/**/*.{ts,tsx} --quiet --fix",
         "scss": "typed-scss-modules --implementation sass src --nameFormat none --exportType default --updateStaleOnly --logLevel error"
     },
