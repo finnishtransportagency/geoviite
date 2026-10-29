@@ -114,10 +114,7 @@ export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
 export type LocationTrackDescriptionSuffixMode =
-    | 'NONE'
-    | 'SWITCH_TO_SWITCH'
-    | 'SWITCH_TO_BUFFER'
-    | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
+    'NONE' | 'SWITCH_TO_SWITCH' | 'SWITCH_TO_BUFFER' | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
 
 export enum MapAlignmentType {
     LocationTrack = 'LOCATION_TRACK',
@@ -131,11 +128,7 @@ export type LayoutAssetFields = {
 };
 
 export type LayoutAsset =
-    | LayoutLocationTrack
-    | LayoutSwitch
-    | LayoutTrackNumber
-    | LayoutKmPost
-    | OperationalPoint;
+    LayoutLocationTrack | LayoutSwitch | LayoutTrackNumber | LayoutKmPost | OperationalPoint;
 
 export enum LocationTrackNamingScheme {
     FREE_TEXT = 'FREE_TEXT',
@@ -339,10 +332,7 @@ export type LocationTrackDuplicate = {
 };
 
 export type PartOfSplit =
-    | 'FINISHED_SOURCE_TRACK'
-    | 'UNFINISHED_SOURCE_TRACK'
-    | 'UNFINISHED_TARGET_TRACK'
-    | 'NONE';
+    'FINISHED_SOURCE_TRACK' | 'UNFINISHED_SOURCE_TRACK' | 'UNFINISHED_TARGET_TRACK' | 'NONE';
 
 export function isPartOfUnfinishedSplit(partOfSplit: PartOfSplit | undefined): boolean {
     return partOfSplit === 'UNFINISHED_SOURCE_TRACK' || partOfSplit === 'UNFINISHED_TARGET_TRACK';
@@ -384,8 +374,7 @@ export type LocationTrackInfoboxOperationalPoint = {
 };
 
 export type LocationTrackOperationalPointIssue =
-    | 'DOES_NOT_OVERLAP_OP_AREA'
-    | 'DOES_NOT_REACH_OP_LOCATION';
+    'DOES_NOT_OVERLAP_OP_AREA' | 'DOES_NOT_REACH_OP_LOCATION';
 
 export type LocationTrackSwitchJoint = {
     switchId: LayoutSwitchId;

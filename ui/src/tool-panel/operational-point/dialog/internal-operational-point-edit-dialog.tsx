@@ -51,10 +51,7 @@ import {
     findOperationalPointLocationTracks,
     getLocationTracks,
 } from 'track-layout/layout-location-track-api';
-import {
-    findOperationalPointSwitches,
-    getSwitches,
-} from 'track-layout/layout-switch-api';
+import { findOperationalPointSwitches, getSwitches } from 'track-layout/layout-switch-api';
 import { OperationalPointDeleteConfirmationDialog } from 'tool-panel/operational-point/dialog/operational-point-delete-confirmation-dialog';
 
 type InternalOperationalPointEditDialogProps = {
@@ -104,20 +101,13 @@ export const InternalOperationalPointEditDialog: React.FC<
     const [linkedAssets, linkedAssetsLoaderStatus] = useLoaderWithStatus(async () => {
         if (!operationalPoint) return { tracks: [], switches: [] };
         const [tracks, switches] = await Promise.all([
-            findOperationalPointLocationTracks(layoutContext, operationalPoint.id).then(
-                (result) =>
-                    result ? getLocationTracks(result.assigned, layoutContext) : [],
+            findOperationalPointLocationTracks(layoutContext, operationalPoint.id).then((result) =>
+                result ? getLocationTracks(result.assigned, layoutContext) : [],
             ),
-            findOperationalPointSwitches(layoutContext, operationalPoint.id).then(
-                (swOps) => {
-                    const linkedIds = swOps
-                        .filter((s) => s.isLinked)
-                        .map((s) => s.switchId);
-                    return linkedIds.length > 0
-                        ? getSwitches(linkedIds, layoutContext)
-                        : [];
-                },
-            ),
+            findOperationalPointSwitches(layoutContext, operationalPoint.id).then((swOps) => {
+                const linkedIds = swOps.filter((s) => s.isLinked).map((s) => s.switchId);
+                return linkedIds.length > 0 ? getSwitches(linkedIds, layoutContext) : [];
+            }),
         ]);
         return { tracks, switches };
     }, [layoutContext.branch, layoutContext.publicationState, operationalPoint?.id]);

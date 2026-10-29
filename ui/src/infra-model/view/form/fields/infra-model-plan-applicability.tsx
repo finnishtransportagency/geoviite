@@ -13,7 +13,9 @@ export const InfraModelPlanApplicabilityField: React.FC<InfraModelPlanApplicabil
     const { t } = useTranslation();
 
     return (
-        <FormgroupField label={t('im-form.plan-applicability-field')} qaId="plan-applicability-im-field">
+        <FormgroupField
+            label={t('im-form.plan-applicability-field')}
+            qaId="plan-applicability-im-field">
             {planApplicability
                 ? t(`enum.PlanApplicability.${planApplicability}`)
                 : t('im-form.information-missing')}

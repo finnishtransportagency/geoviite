@@ -44,11 +44,7 @@ import { PreviewTableItem } from 'preview/preview-table-item';
 import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 
 export type PublishableObjectId =
-    | LayoutTrackNumberId
-    | LocationTrackId
-    | LayoutSwitchId
-    | LayoutKmPostId
-    | OperationalPointId;
+    LayoutTrackNumberId | LocationTrackId | LayoutSwitchId | LayoutKmPostId | OperationalPointId;
 
 export type PreviewTableEntry = {
     publishCandidate: PublicationCandidate;

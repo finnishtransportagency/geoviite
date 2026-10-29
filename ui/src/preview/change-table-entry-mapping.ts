@@ -19,11 +19,7 @@ import { KmNumber, TrackNumber } from 'common/common-model';
 import i18n from 'i18next';
 
 type PublicationId =
-    | LayoutTrackNumberId
-    | LocationTrackId
-    | LayoutSwitchId
-    | LayoutKmPostId
-    | OperationalPointId;
+    LayoutTrackNumberId | LocationTrackId | LayoutSwitchId | LayoutKmPostId | OperationalPointId;
 
 export type ChangeTableEntry = {
     id: PublicationId;

@@ -59,9 +59,7 @@ export const LocationTrackDetachOperationalPointDialog: React.FC<
 
     return (
         <Dialog
-            title={t(
-                'tool-panel.location-track.detach-operational-point-links-dialog.title',
-            )}
+            title={t('tool-panel.location-track.detach-operational-point-links-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={true}
             onClose={onClose}
@@ -87,13 +85,10 @@ export const LocationTrackDetachOperationalPointDialog: React.FC<
                 </>
             }>
             <div className={'dialog__text'}>
-                {t(
-                    'tool-panel.location-track.detach-operational-point-links-dialog.message',
-                    {
-                        operationalPointName: operationalPointName,
-                        trackName: locationTrackName,
-                    },
-                )}
+                {t('tool-panel.location-track.detach-operational-point-links-dialog.message', {
+                    operationalPointName: operationalPointName,
+                    trackName: locationTrackName,
+                })}
             </div>
         </Dialog>
     );

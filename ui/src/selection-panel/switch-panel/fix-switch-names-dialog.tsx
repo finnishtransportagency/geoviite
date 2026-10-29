@@ -1,5 +1,9 @@
 import * as React from 'react';
-import { Dialog, DialogContentPadding, DialogContentSpread, } from 'geoviite-design-lib/dialog/dialog';
+import {
+    Dialog,
+    DialogContentPadding,
+    DialogContentSpread,
+} from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';

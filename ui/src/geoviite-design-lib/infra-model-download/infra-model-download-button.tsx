@@ -27,8 +27,8 @@ export const InfraModelDownloadButton = React.forwardRef<
             preLoadedPlanHeader
                 ? Promise.resolve(preLoadedPlanHeader)
                 : planId
-                ? getGeometryPlanHeader(planId)
-                : undefined,
+                  ? getGeometryPlanHeader(planId)
+                  : undefined,
         [planId, preLoadedPlanHeader],
     );
 

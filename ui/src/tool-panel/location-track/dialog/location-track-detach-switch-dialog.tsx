@@ -19,9 +19,7 @@ type LocationTrackDetachSwitchDialogProps = {
     onDetached: () => void;
 };
 
-export const LocationTrackDetachSwitchDialog: React.FC<
-    LocationTrackDetachSwitchDialogProps
-> = ({
+export const LocationTrackDetachSwitchDialog: React.FC<LocationTrackDetachSwitchDialogProps> = ({
     layoutContext,
     locationTrackId,
     locationTrackName,

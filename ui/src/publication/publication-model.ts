@@ -71,11 +71,7 @@ export enum PublicationStage {
 export type PublicationId = string;
 
 export type PublicationCandidateId =
-    | LayoutTrackNumberId
-    | LocationTrackId
-    | LayoutSwitchId
-    | LayoutKmPostId
-    | OperationalPointId;
+    LayoutTrackNumberId | LocationTrackId | LayoutSwitchId | LayoutKmPostId | OperationalPointId;
 
 export type BasePublicationCandidate = {
     type: DraftChangeType;

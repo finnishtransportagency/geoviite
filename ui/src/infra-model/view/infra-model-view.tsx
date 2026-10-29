@@ -112,10 +112,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const showMap = props.validationResponse?.planLayout !== undefined;
 
     const mapTools = React.useMemo(
-        () =>
-            [selectOrHighlightComboTool, measurementTool].map(
-                alwaysSelectableMapToolMenuItem,
-            ),
+        () => [selectOrHighlightComboTool, measurementTool].map(alwaysSelectableMapToolMenuItem),
         [],
     );
 

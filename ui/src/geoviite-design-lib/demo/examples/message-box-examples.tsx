@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { Button } from 'vayla-design-lib/button/button';
-import styles from '../demo.scss'
+import styles from '../demo.scss';
 
 export const MessageBoxExamples: React.FC = () => {
     const [pop, setPop] = React.useState<boolean>(false);

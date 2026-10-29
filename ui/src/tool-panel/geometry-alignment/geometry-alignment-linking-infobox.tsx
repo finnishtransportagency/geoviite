@@ -151,8 +151,7 @@ const geometryLinkingSuccessMessageKeys: Record<
 type GeometryLinkingFunction = (
     layoutBranch: LayoutBranch,
     parameters:
-        | LinkingGeometryWithAlignmentParameters
-        | LinkingGeometryWithEmptyAlignmentParameters,
+        LinkingGeometryWithAlignmentParameters | LinkingGeometryWithEmptyAlignmentParameters,
 ) => Promise<LocationTrackId | LayoutTrackNumberId>;
 
 const geometryLinkingFunctions: Record<

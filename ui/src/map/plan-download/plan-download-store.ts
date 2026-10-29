@@ -79,8 +79,7 @@ export type LocationTrackAsset = {
 export type LocationTrackAssetAndExtremities = LocationTrackAsset & WithExtremities;
 
 export type PlanDownloadAssetAndExtremities =
-    | TrackNumberAssetAndExtremities
-    | LocationTrackAssetAndExtremities;
+    TrackNumberAssetAndExtremities | LocationTrackAssetAndExtremities;
 export type PlanDownloadAsset = TrackNumberAsset | LocationTrackAsset;
 
 export const initialPlanDownloadStateFromSelection = (

@@ -2,9 +2,7 @@ import React from 'react';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
 import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
-import {
-    elevationMeasurementMethodText
-} from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
+import { elevationMeasurementMethodText } from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 

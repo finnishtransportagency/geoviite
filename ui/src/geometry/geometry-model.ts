@@ -59,7 +59,8 @@ export type KmNumberRange = {
     max: KmNumber;
 };
 
-export type PlanDecisionPhase = 'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE' | 'OUTDATED' | 'UNKNOWN';
+export type PlanDecisionPhase =
+    'APPROVED_PLAN' | 'UNDER_CONSTRUCTION' | 'IN_USE' | 'OUTDATED' | 'UNKNOWN';
 
 export type PlanQuality = 'PLAN' | 'UNRELIABLE_PLAN' | 'UNKNOWN';
 
@@ -286,10 +287,7 @@ export type GeometryClothoid = {
 } & GeometrySpiral;
 
 export type GeometryElement =
-    | GeometryLine
-    | GeometryCurve
-    | GeometryBiquadraticParabola
-    | GeometryClothoid;
+    GeometryLine | GeometryCurve | GeometryBiquadraticParabola | GeometryClothoid;
 
 export type ElementItem = {
     id: string;
