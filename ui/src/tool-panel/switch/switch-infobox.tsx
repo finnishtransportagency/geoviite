@@ -51,7 +51,7 @@ import {
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
 import { refreshSwitchSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { calculateSwitchBoundingBox } from 'map/map-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { SwitchOid } from 'track-layout/oid';
@@ -211,6 +211,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         structure &&
         layoutSwitch &&
         getSwitchPresentationJoint(layoutSwitch, structure.presentationJointNumber)?.location;
+    const switchBoundingBox = layoutSwitch
+        ? calculateSwitchBoundingBox(
+              switchLocation,
+              layoutSwitch.joints.map((joint) => joint.location),
+          )
+        : undefined;
     const [operationalPoint, operationalPointFetchStatus] = useLoaderWithStatus(
         () =>
             layoutSwitch?.operationalPointId
@@ -356,17 +362,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 title={
-                                    !switchLocation ? t('tool-panel.switch.layout.no-location') : ''
+                                    !switchBoundingBox
+                                        ? t('tool-panel.switch.layout.no-location')
+                                        : ''
                                 }
-                                disabled={!switchLocation}
+                                disabled={!switchBoundingBox}
                                 variant={ButtonVariant.SECONDARY}
                                 qa-id="zoom-to-switch"
-                                onClick={() =>
-                                    switchLocation &&
-                                    showArea(
-                                        calculateBoundingBoxToShowAroundLocation(switchLocation),
-                                    )
-                                }>
+                                onClick={() => switchBoundingBox && showArea(switchBoundingBox)}>
                                 {t('tool-panel.switch.layout.show-on-map')}
                             </Button>
                         </InfoboxButtons>
