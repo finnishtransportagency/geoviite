@@ -9,6 +9,8 @@ import {
     OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { getSwitches } from 'track-layout/layout-switch-api';
+import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 import { negComparator } from 'utils/array-utils';
 import {
@@ -32,7 +34,11 @@ import {
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    calculateOperationalPointBoundingBox,
+    calculateSwitchBoundingBox,
+} from 'map/map-utils';
 import { SortDirection, TableSorting } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -86,6 +92,19 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     canCancelChanges,
 }) => {
     const { t } = useTranslation();
+    const switchCandidates = publicationCandidates.filter(
+        (candidate) => candidate.type === DraftChangeType.SWITCH,
+    );
+    const operationalPointCandidates = publicationCandidates.filter(
+        (candidate) => candidate.type === DraftChangeType.OPERATIONAL_POINT,
+    );
+    const previewGeometryCandidatesKey = JSON.stringify(
+        [...switchCandidates, ...operationalPointCandidates].map(({ id, type, operation }) => [
+            id,
+            type,
+            operation,
+        ]),
+    );
     const trackNumbers =
         useLoader(
             () =>
@@ -96,6 +115,44 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 ),
             [changeTimes.layoutTrackNumber],
         ) || [];
+    const previewGeometry = useLoader(
+        () =>
+            Promise.all([
+                getSwitches(
+                    switchCandidates.map((candidate) => candidate.id),
+                    draftLayoutContext(layoutContext),
+                    changeTimes.layoutSwitch,
+                ),
+                getManyOperationalPoints(
+                    operationalPointCandidates.map((candidate) => candidate.id),
+                    draftLayoutContext(layoutContext),
+                    changeTimes.operationalPoints,
+                ),
+            ]),
+        [
+            previewGeometryCandidatesKey,
+            layoutContext.branch,
+            layoutContext.publicationState,
+            changeTimes.layoutSwitch,
+            changeTimes.operationalPoints,
+        ],
+    );
+    const switches = previewGeometry?.[0] ?? [];
+    const operationalPoints = previewGeometry?.[1] ?? [];
+    const switchesById = React.useMemo(
+        () => new Map(switches.map((layoutSwitch) => [layoutSwitch.id, layoutSwitch])),
+        [switches],
+    );
+    const operationalPointsById = React.useMemo(
+        () =>
+            new Map(
+                operationalPoints.map((operationalPoint) => [
+                    operationalPoint.id,
+                    operationalPoint,
+                ]),
+            ),
+        [operationalPoints],
+    );
 
     const [sortInfo, setSortInfo] =
         React.useState<TableSorting<SortablePreviewProps>>(SortedByTimeDesc);
@@ -124,12 +181,24 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             case DraftChangeType.TRACK_NUMBER:
             case DraftChangeType.LOCATION_TRACK:
                 return candidate.boundingBox;
-            case DraftChangeType.SWITCH:
+            case DraftChangeType.SWITCH: {
+                const layoutSwitch = switchesById.get(candidate.id);
+                return calculateSwitchBoundingBox(
+                    candidate.location,
+                    layoutSwitch?.joints.map((joint) => joint.location),
+                );
+            }
             case DraftChangeType.KM_POST:
-            case DraftChangeType.OPERATIONAL_POINT:
                 return candidate.location
                     ? calculateBoundingBoxToShowAroundLocation(candidate.location)
                     : undefined;
+            case DraftChangeType.OPERATIONAL_POINT: {
+                const operationalPoint = operationalPointsById.get(candidate.id);
+                return calculateOperationalPointBoundingBox(
+                    candidate.location,
+                    operationalPoint?.polygon,
+                );
+            }
 
             default:
                 return exhaustiveMatchingGuard(candidateType);

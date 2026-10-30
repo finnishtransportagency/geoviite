@@ -1,7 +1,14 @@
 import { MapTile } from 'map/map-model';
 import OlView from 'ol/View';
 import TileGrid from 'ol/tilegrid/TileGrid';
-import { BoundingBox, Point } from 'model/geometry';
+import {
+    BoundingBox,
+    boundingBoxAroundPoints,
+    centerForBoundingBox,
+    combineBoundingBoxes,
+    Point,
+    Polygon,
+} from 'model/geometry';
 import { expectDefined } from 'utils/type-utils';
 import { first } from 'utils/array-utils';
 
@@ -82,6 +89,35 @@ export function calculateBoundingBoxToShowAroundLocation(
             min: location.y - offset,
         },
     };
+}
+
+export function calculateOperationalPointBoundingBox(
+    location?: Point,
+    polygon?: Polygon,
+): BoundingBox | undefined {
+    const locationBoundingBox = location
+        ? calculateBoundingBoxToShowAroundLocation(
+              location,
+              MAP_POINT_OPERATIONAL_POINT_BBOX_OFFSET,
+          )
+        : undefined;
+    const polygonBoundingBox =
+        polygon && polygon.points.length > 0 ? boundingBoxAroundPoints(polygon.points) : undefined;
+
+    return locationBoundingBox && polygonBoundingBox
+        ? combineBoundingBoxes([locationBoundingBox, polygonBoundingBox])
+        : locationBoundingBox || polygonBoundingBox;
+}
+
+export function calculateSwitchBoundingBox(
+    location?: Point,
+    jointLocations?: Point[],
+): BoundingBox | undefined {
+    const center =
+        jointLocations === undefined || jointLocations.length === 0
+            ? location
+            : centerForBoundingBox(boundingBoxAroundPoints(jointLocations));
+    return center ? calculateBoundingBoxToShowAroundLocation(center) : undefined;
 }
 
 export function pixelsToMeters(resolution: number, pixelCount: number): number {

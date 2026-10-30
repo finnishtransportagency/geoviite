@@ -9,7 +9,7 @@ import { OperationalPointInfobox } from 'tool-panel/operational-point/operationa
 import { OperationalPointId } from 'track-layout/track-layout-model';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { calculateOperationalPointBoundingBox } from 'map/map-utils';
 
 type OperationalPointInfoboxContainerProps = {
     operationalPointId: OperationalPointId;
@@ -39,8 +39,13 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
     );
 
     const showOnMap = () => {
-        operationalPoint?.location &&
-            delegates.showArea(calculateBoundingBoxToShowAroundLocation(operationalPoint.location));
+        if (operationalPoint) {
+            const boundingBox = calculateOperationalPointBoundingBox(
+                operationalPoint.location,
+                operationalPoint.polygon,
+            );
+            boundingBox && delegates.showArea(boundingBox);
+        }
     };
 
     const startPlacingOperationalPoint = () => {

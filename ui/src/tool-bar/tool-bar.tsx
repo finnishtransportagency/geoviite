@@ -8,12 +8,7 @@ import {
     ButtonSize,
     ButtonVariant,
 } from 'vayla-design-lib/button/button';
-import {
-    BoundingBox,
-    boundingBoxAroundPoints,
-    centerForBoundingBox,
-    expandBoundingBox,
-} from 'model/geometry';
+import { BoundingBox } from 'model/geometry';
 import { useTranslation } from 'react-i18next';
 import styles from './tool-bar.scss';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
@@ -33,6 +28,7 @@ import {
 import { getExternallyChangedOperationalPointIds } from 'track-layout/layout-operational-point-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
+import { getSwitchLocation } from 'track-layout/track-layout-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_DESIGN, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import {
@@ -43,10 +39,7 @@ import {
 } from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
-import {
-    calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_OPERATIONAL_POINT_BBOX_OFFSET,
-} from 'map/map-utils';
+import { calculateOperationalPointBoundingBox, calculateSwitchBoundingBox } from 'map/map-utils';
 import { DesignSelectionContainer } from 'tool-bar/workspace-selection';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
@@ -202,12 +195,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
         switch (item.type) {
             case SearchItemType.OPERATIONAL_POINT: {
-                const operationalPointArea = item.operationalPoint.location
-                    ? calculateBoundingBoxToShowAroundLocation(
-                          item.operationalPoint.location,
-                          MAP_POINT_OPERATIONAL_POINT_BBOX_OFFSET,
-                      )
-                    : undefined;
+                const operationalPointArea = calculateOperationalPointBoundingBox(
+                    item.operationalPoint.location,
+                    item.operationalPoint.polygon,
+                );
 
                 if (operationalPointArea) {
                     showArea(operationalPointArea);
@@ -231,16 +222,15 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 setToolPanelTab({ id: item.locationTrack.id, type: 'LOCATION_TRACK' });
                 break;
 
-            case SearchItemType.SWITCH:
-                if (item.layoutSwitch.joints.length > 0) {
-                    const center = centerForBoundingBox(
-                        boundingBoxAroundPoints(
-                            item.layoutSwitch.joints.map((joint) => joint.location),
-                        ),
-                    );
-                    const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
-                    showArea(bbox);
+            case SearchItemType.SWITCH: {
+                const searchArea = calculateSwitchBoundingBox(
+                    getSwitchLocation(item.layoutSwitch),
+                    item.layoutSwitch.joints.map((joint) => joint.location),
+                );
+                if (searchArea) {
+                    showArea(searchArea);
                 }
+
                 if (!splittingState) {
                     onSelect({
                         switches: [item.layoutSwitch.id],
@@ -250,6 +240,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 }
                 setToolPanelTab({ id: item.layoutSwitch.id, type: 'SWITCH' });
                 break;
+            }
 
             case SearchItemType.TRACK_NUMBER:
                 if (item.trackNumber?.boundingBox) {
