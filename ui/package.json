@@ -10,6 +10,7 @@
         "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,scss,html,json}\"",
         "format:fix": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss,html,json}\"",
         "lint": "eslint src/**/*.{ts,tsx} --quiet --fix",
+        "lint:check": "eslint src/**/*.{ts,tsx} --quiet",
         "scss": "typed-scss-modules --implementation sass src --nameFormat none --exportType default --updateStaleOnly --logLevel error"
     },
     "license": "EUPL-1.2",
