@@ -14,6 +14,7 @@ import {
     findMatchingKmPosts,
     getKmPostStepByResolution,
 } from '../utils/km-post-layer-utils';
+import { shouldShowKmPostAtStep } from '../utils/km-post-layer-visibility';
 import { Rectangle } from 'model/geometry';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -35,17 +36,22 @@ export function createGeometryKmPostLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, false);
 
     const step = getKmPostStepByResolution(resolution);
+    const selectedGeometryKmPosts = selection.selectedItems.geometryKmPostIds;
+    const selectedKmPostIds = selectedGeometryKmPosts.map(({ geometryId }) => geometryId);
+    const selectedPlanIds = new Set(selectedGeometryKmPosts.map(({ planId }) => planId));
+    const visiblePlans =
+        step === 0
+            ? selection.visiblePlans.filter(({ id }) => selectedPlanIds.has(id))
+            : selection.visiblePlans;
+    const shouldSkipPlanFetch =
+        step === 0 &&
+        (selectedGeometryKmPosts.length === 0 || (!manuallySetPlan && visiblePlans.length === 0));
 
-    const dataPromise = step
-        ? manuallySetPlan
-            ? getManualPlanWithStatus(manuallySetPlan, layoutContext)
-            : getVisiblePlansWithStatus(
-                  selection.visiblePlans,
-                  mapTiles,
-                  layoutContext,
-                  changeTimes,
-              )
-        : Promise.resolve([]);
+    const dataPromise: Promise<PlanAndStatus[]> = shouldSkipPlanFetch
+        ? Promise.resolve([])
+        : manuallySetPlan
+          ? getManualPlanWithStatus(manuallySetPlan, layoutContext)
+          : getVisiblePlansWithStatus(visiblePlans, mapTiles, layoutContext, changeTimes);
 
     const createFeatures = (planStatuses: PlanAndStatus[]) => {
         const isSelected = (kmPost: LayoutKmPost) => {
@@ -59,16 +65,19 @@ export function createGeometryKmPostLayer(
             );
         };
 
-        const visibleKmPosts = manuallySetPlan
-            ? manuallySetPlan.kmPosts.map((p) => p.sourceId)
-            : selection.visiblePlans.flatMap((p) => p.kmPosts);
+        const visibleKmPosts =
+            step === 0
+                ? selectedKmPostIds
+                : manuallySetPlan
+                  ? manuallySetPlan.kmPosts.map((p) => p.sourceId)
+                  : selection.visiblePlans.flatMap((p) => p.kmPosts);
 
         return planStatuses.flatMap(({ plan, status }) => {
             const kmPosts: LayoutKmPost[] = plan.kmPosts.filter(
                 ({ sourceId, kmNumber }) =>
                     sourceId &&
                     visibleKmPosts.includes(sourceId) &&
-                    Number.parseInt(kmNumber) % step === 0,
+                    shouldShowKmPostAtStep(kmNumber, step, selectedKmPostIds.includes(sourceId)),
             );
 
             const kmPostLinkedStatus = status

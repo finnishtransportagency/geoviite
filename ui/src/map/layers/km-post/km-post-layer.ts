@@ -3,7 +3,7 @@ import OlView from 'ol/View';
 import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
-import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
+import { getKmPosts, getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -34,16 +34,24 @@ export function createKmPostLayer(
 
     const resolution = olView.getResolution() || 0;
     const getKmPostsFromApi = (step: number) =>
-        // Fetch every nth
-        step === 0
-            ? Promise.resolve([])
-            : Promise.all(
-                  mapTiles.map(({ area }) =>
-                      getKmPostsByTile(layoutContext, changeTimes.layoutKmPost, area, step),
-                  ),
-              ).then((kmPostGroups) =>
-                  kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
-              );
+        Promise.all([
+            step === 0
+                ? Promise.resolve([])
+                : Promise.all(
+                      mapTiles.map(({ area }) =>
+                          getKmPostsByTile(layoutContext, changeTimes.layoutKmPost, area, step),
+                      ),
+                  ).then((kmPostGroups) => kmPostGroups.flat()),
+            selection.selectedItems.kmPosts.length > 0
+                ? getKmPosts(
+                      selection.selectedItems.kmPosts,
+                      layoutContext,
+                      changeTimes.layoutKmPost,
+                  )
+                : Promise.resolve([]),
+        ]).then((kmPostGroups) =>
+            kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),
+        );
 
     function updateShownKmPosts(kmPostIds: LayoutKmPostId[]) {
         const compare = kmPostIds.sort().join();
