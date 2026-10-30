@@ -1,4 +1,5 @@
 @use 'vayla-design-lib' as vayla-design;
+@use 'vayla-design-lib/colors' as colors;
 
 .track-number-panel {
     &__subtitle {
@@ -9,6 +10,10 @@
         list-style: none;
         margin: 0;
         padding: 0;
+        > :hover,
+        > :focus {
+            background: colors.$color-blue-lighter;
+        }
     }
 
     &__track-number {
@@ -16,8 +21,7 @@
 
         font-weight: normal;
         white-space: pre-wrap;
-        margin: 8px 0;
-
+        padding: 8px 16px;
         > div {
             display: flex;
             align-items: center;
@@ -29,7 +33,7 @@
             }
         }
 
-        .radio {
+        .checkbox {
             margin-right: 8px;
         }
     }
