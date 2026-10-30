@@ -52,10 +52,12 @@ import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import {
     getLayoutDesign,
+    getLayoutDesignMergedItemsExist,
     LayoutDesignSaveRequest,
     updateLayoutDesign,
 } from 'track-layout/layout-design-api';
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
+import { getMaxTimestamp } from 'utils/date-utils';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
@@ -116,6 +118,23 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [currentDesign, designLoadStatus] = useLoaderWithStatus(
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
+    );
+    // Merging to main writes main drafts without a publication, and items become completed in a main
+    // publication, so the design's own change time doesn't cover this
+    const mergeChangeTime = getMaxTimestamp(
+        getChangeTimes().publication,
+        getChangeTimes().layoutTrackNumber,
+        getChangeTimes().layoutLocationTrack,
+        getChangeTimes().layoutSwitch,
+        getChangeTimes().layoutKmPost,
+        getChangeTimes().operationalPoints,
+    );
+    const designHasMergedItems = useLoader(
+        () =>
+            designId
+                ? getLayoutDesignMergedItemsExist(mergeChangeTime, designId)
+                : Promise.resolve(false),
+        [mergeChangeTime, designId],
     );
     const hasRatkoChanges = useLoader(
         () =>
@@ -442,6 +461,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                         variant={ButtonVariant.GHOST}
                                                         size={ButtonSize.SMALL}
                                                         icon={Icons.Delete}
+                                                        disabled={designHasMergedItems}
+                                                        title={
+                                                            designHasMergedItems
+                                                                ? t(
+                                                                      'tool-bar.delete-design-has-merged-items',
+                                                                  )
+                                                                : undefined
+                                                        }
                                                         onClick={() =>
                                                             setShowDeleteWorkspaceDialog(true)
                                                         }

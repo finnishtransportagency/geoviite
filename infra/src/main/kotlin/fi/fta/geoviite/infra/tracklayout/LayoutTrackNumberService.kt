@@ -50,7 +50,8 @@ class LayoutTrackNumberService(
     private val geographyService: GeographyService,
     private val locationTrackService: LocationTrackService,
     private val alignmentDao: LayoutAlignmentDao,
-) : LayoutAssetService<LayoutTrackNumber, ReferenceLineGeometry, LayoutTrackNumberDao>(dao) {
+    layoutDesignDao: LayoutDesignDao,
+) : LayoutAssetService<LayoutTrackNumber, ReferenceLineGeometry, LayoutTrackNumberDao>(dao, layoutDesignDao) {
 
     @Transactional
     fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutRowVersion<LayoutTrackNumber> =

@@ -196,7 +196,10 @@
             }
         },
         "design": {
-            "duplicate-name": "Nimi {{name}} on jo käytössä toisella suunnitelmalla"
+            "duplicate-name": "Nimi {{name}} on jo käytössä toisella suunnitelmalla",
+            "has-merged-items": "Suunnitelmaa ei voi poistaa, koska osa siitä on viety tai viedään viralliseen rataverkkoon. Keskeneräisen viennin voi perua hylkäämällä kohteen luonnoksen virallisen rataverkon luonnostilassa.",
+            "completed": "Valmista suunnitelmaa ei voi muokata",
+            "item-merge-in-progress": "Kohdetta ei voi muokata suunnitelmassa, koska sen vienti viralliseen rataverkkoon on kesken"
         },
         "entity-not-found": "Tietoa ei löydy",
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
@@ -2334,7 +2337,8 @@
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
         "choose-workspace": "Valitse työtila",
-        "search-design": "Hae suunnitelma"
+        "search-design": "Hae suunnitelma",
+        "delete-design-has-merged-items": "Suunnitelmaa ei voi poistaa, koska osa siitä on viety tai viedään viralliseen rataverkkoon. Keskeneräisen viennin voi perua hylkäämällä kohteen luonnoksen virallisen rataverkon luonnostilassa."
     },
     "user-card": {
         "my-details": "Omat tiedot",

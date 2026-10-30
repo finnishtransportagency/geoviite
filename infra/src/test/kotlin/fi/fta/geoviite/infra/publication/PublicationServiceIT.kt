@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.error.DesignItemMergeInProgressException
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PartialSplitRevertException
@@ -1761,77 +1762,7 @@ constructor(
     }
 
     @Test
-    fun `publication in main succeeds even if origin object has been cancelled`() {
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
-
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumberId =
-            mainOfficialContext
-                .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
-                .id
-        val locationTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
-        testDBService.generateOid(locationTrack.id, designBranch)
-        testDBService.generateOid(locationTrack.id, MainBranch.instance)
-        designDraftContext.copyFrom(locationTrack)
-
-        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
-        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
-        locationTrackService.cancel(designBranch, locationTrack.id)
-        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
-        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
-        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-    }
-
-    @Test
-    fun `publication in main succeeds even if origin object has been partially cancelled`() {
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
-
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumberId =
-            mainOfficialContext
-                .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
-                .id
-        val locationTrack = mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
-        testDBService.generateOid(locationTrack.id, designBranch)
-        testDBService.generateOid(locationTrack.id, MainBranch.instance)
-        designDraftContext.copyFrom(locationTrack)
-
-        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
-        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
-        locationTrackService.cancel(designBranch, locationTrack.id)
-        // cancellation started but not finished
-        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
-        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-        assertEquals(1, liveDesignRowCount(designBranch), "only the COMPLETED design-official row stays live")
-        assertEquals("COMPLETED", liveDesignOfficialRow(locationTrack.id, designBranch)?.state)
-    }
-
-    @Test
-    fun `publication in main of object created in design succeeds even if origin object has been cancelled`() {
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
-
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
-        val trackNumberId =
-            mainOfficialContext
-                .save(trackNumber(startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
-                .id
-        val locationTrack = designDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
-        testDBService.generateOid(locationTrack.id, designBranch)
-        testDBService.generateOid(locationTrack.id, MainBranch.instance)
-
-        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
-        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
-        locationTrackService.cancel(designBranch, locationTrack.id)
-        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
-        publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
-        assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-    }
-
-    @Test
-    fun `merge to main can also be cancelled by first cancelling design version and then main-draft`() {
+    fun `merge to main can be cancelled by first reverting the main-draft and then cancelling the design version`() {
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
@@ -1845,9 +1776,10 @@ constructor(
 
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
         locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
-        locationTrackService.cancel(designBranch, locationTrack.id)
-        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        assertThrows<DesignItemMergeInProgressException> { locationTrackService.cancel(designBranch, locationTrack.id) }
         locationTrackService.deleteDraft(LayoutBranch.main, locationTrack.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
         assertNull(locationTrackService.get(MainLayoutContext.draft, locationTrack.id))
         assertNull(locationTrackService.get(designBranch.official, locationTrack.id))
         assertNull(locationTrackService.get(designBranch.draft, locationTrack.id))
