@@ -968,7 +968,11 @@ constructor(
         return ltOid
     }
 
-    private fun latestDesignPublication(): Publication = publicationDao.list(LayoutBranchType.DESIGN).first()
+    // Skips the design change publication made when the last item's completion completes the whole design
+    private fun latestDesignPublication(): Publication =
+        publicationDao.list(LayoutBranchType.DESIGN).first { publication ->
+            publication.cause != PublicationCause.LAYOUT_DESIGN_CHANGE
+        }
 
     private data class DesignSetup(
         val designBranch: DesignBranch,

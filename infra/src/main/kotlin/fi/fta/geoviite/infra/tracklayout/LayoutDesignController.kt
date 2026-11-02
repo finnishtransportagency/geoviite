@@ -4,6 +4,10 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DESIGN
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.error.PublicationFailureException
+import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
+import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.publication.publicationMaxDuration
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -13,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/track-layout/layout-design")
-class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
+class LayoutDesignController(val layoutDesignService: LayoutDesignService, val lockDao: LockDao) {
 
     @PreAuthorize(AUTH_VIEW_DESIGN)
     @GetMapping("/")
@@ -30,6 +34,12 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
         return layoutDesignService.getOrThrow(id)
     }
 
+    @PreAuthorize(AUTH_VIEW_DESIGN)
+    @GetMapping("/{id}/completed-items-exist")
+    fun getLayoutDesignCompletedItemsExist(@PathVariable id: IntId<LayoutDesign>): Boolean {
+        return layoutDesignService.hasCompletedItems(id)
+    }
+
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/")
     fun insertLayoutDesign(@RequestBody request: LayoutDesignSaveRequest): IntId<LayoutDesign> {
@@ -42,7 +52,14 @@ class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
         @PathVariable id: IntId<LayoutDesign>,
         @RequestBody request: LayoutDesignSaveRequest,
     ): IntId<LayoutDesign> {
-        layoutDesignService.update(id, request)
-        return id
+        // Design updates create publications and must not interleave with a running one
+        return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
+            layoutDesignService.update(id, request)
+            id
+        }
+            ?: throw PublicationFailureException(
+                message = "Could not reserve publication lock",
+                localizedMessageKey = "lock-obtain-failed",
+            )
     }
 }

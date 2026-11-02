@@ -52,6 +52,7 @@ import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import {
     getLayoutDesign,
+    getLayoutDesignCompletedItemsExist,
     LayoutDesignSaveRequest,
     updateLayoutDesign,
 } from 'track-layout/layout-design-api';
@@ -116,6 +117,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [currentDesign, designLoadStatus] = useLoaderWithStatus(
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
+    );
+    // Items become completed in a main publication, so the design's own change time doesn't cover this
+    const designHasCompletedItems = useLoader(
+        () =>
+            designId
+                ? getLayoutDesignCompletedItemsExist(getChangeTimes().publication, designId)
+                : Promise.resolve(false),
+        [getChangeTimes().publication, designId],
     );
     const hasRatkoChanges = useLoader(
         () =>
@@ -442,6 +451,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                         variant={ButtonVariant.GHOST}
                                                         size={ButtonSize.SMALL}
                                                         icon={Icons.Delete}
+                                                        disabled={designHasCompletedItems}
+                                                        title={
+                                                            designHasCompletedItems
+                                                                ? t(
+                                                                      'tool-bar.delete-design-has-completed-items',
+                                                                  )
+                                                                : undefined
+                                                        }
                                                         onClick={() =>
                                                             setShowDeleteWorkspaceDialog(true)
                                                         }

@@ -30,10 +30,12 @@ import fi.fta.geoviite.infra.ratko.TRACK_NUMBER_FAKE_OID_CONTEXT
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.trackBoundaryMove.TrackBoundaryMoveService
+import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetReader
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -435,14 +437,17 @@ constructor(
                 requireNotNull(
                     transactionTemplate.execute {
                         val mainResults = publishChangesTransaction(mainPublication)
-                        val inheritedResults =
-                            calculatedChangesService
-                                .combineInheritedChangesAndFinishedMerges(
-                                    mainPublication,
-                                    inheritedChanges,
-                                    mainResults,
-                                )
-                                .map(::publishChangesTransaction)
+                        val inheritedRequests =
+                            calculatedChangesService.combineInheritedChangesAndFinishedMerges(
+                                mainPublication,
+                                inheritedChanges,
+                                mainResults,
+                            )
+                        val inheritedResults = inheritedRequests.map(::publishChangesTransaction)
+                        (listOf(mainPublication) + inheritedRequests)
+                            .map { request -> request.branch }
+                            .filterIsInstance<DesignBranch>()
+                            .forEach(::completeDesignIfNothingOpen)
                         listOf(mainResults) + inheritedResults
                     }
                 )
@@ -459,7 +464,7 @@ constructor(
         versions: ValidationVersions
     ): Map<DesignBranch, IndirectChanges> =
         layoutDesignDao
-            .list()
+            .list(includeCompleted = true)
             .mapNotNull { design ->
                 val inheritorBranch = DesignBranch.of(design.id as IntId)
                 val changesInheritedToDesign =
@@ -521,6 +526,34 @@ constructor(
             kmPosts = request.kmPosts.size,
             operationalPoints = request.operationalPoints.size,
         )
+    }
+
+    private fun completeDesignIfNothingOpen(branch: DesignBranch) {
+        val design = layoutDesignDao.fetch(branch.designId)
+        if (
+            design.designState == DesignState.ACTIVE &&
+                !layoutDesignDao.designHasOpenItems(branch.designId) &&
+                layoutDesignDao.designHasCompletedItems(branch.designId)
+        ) {
+            layoutDesignDao.update(
+                branch.designId,
+                LayoutDesignSaveRequest(
+                    name = design.name,
+                    estimatedCompletion = design.estimatedCompletion,
+                    designState = DesignState.COMPLETED,
+                ),
+            )
+            publishChangesTransaction(
+                PreparedPublicationRequest(
+                    branch,
+                    ValidationVersions.emptyWithTarget(LayoutContextTransition.publicationIn(branch)),
+                    CalculatedChanges.empty,
+                    PublicationMessage.of(""),
+                    PublicationCause.LAYOUT_DESIGN_CHANGE,
+                    parentId = null,
+                )
+            )
+        }
     }
 
     private fun publishChangesTransaction(request: PreparedPublicationRequest): PublicationResult {

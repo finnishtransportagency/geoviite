@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.error
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.util.formatForException
 import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
@@ -296,6 +298,14 @@ class DuplicateDesignNameException(name: String, cause: Throwable? = null) :
         cause = cause,
         localizedMessageKey = "error.design.duplicate-name",
         localizedMessageParams = localizationParams("name" to name),
+    )
+
+class DesignHasCompletedItemsException(designId: IntId<LayoutDesign>) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Design has items completed in main and cannot be deleted: designId=$designId",
+        cause = null,
+        localizedMessageKey = "error.design.has-completed-items",
     )
 
 class InvalidUiVersionException(cause: Throwable? = null) :
