@@ -1,4 +1,5 @@
 @use 'vayla-design-lib' as vayla-design;
+@use 'selection-panel-mixins';
 
 .selection-panel {
     overflow: hidden auto;
@@ -30,9 +31,7 @@
     }
 
     &__subtitle {
-        color: vayla-design.$color-black-lighter;
-        font-size: 14px;
-        margin: 0 0 0 15px;
+        @include selection-panel-mixins.subtitle;
     }
 
     &__content {

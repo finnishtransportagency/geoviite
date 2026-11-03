@@ -1,9 +1,10 @@
 @use 'vayla-design-lib' as vayla-design;
+@use '../selection-panel-mixins';
 @use 'vayla-design-lib/colors' as colors;
 
 .track-number-panel {
     &__subtitle {
-        color: vayla-design.$color-black-lighter;
+        @include selection-panel-mixins.subtitle;
     }
 
     &__track-numbers {

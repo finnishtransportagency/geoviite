@@ -1,0 +1,9 @@
+@use 'vayla-design-lib' as vayla-design;
+
+@mixin subtitle {
+    display: inline-block;
+    color: vayla-design.$color-black-lighter;
+    font-size: 14px;
+    margin: 16px 0;
+    padding-left: 16px;
+}
