@@ -218,9 +218,8 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         }
     }
 
-    // Drafts count as open too, so a design with unpublished work is never completed under it
-    @Transactional(readOnly = true)
     /** Completed in main, or merged to a main draft that is not yet published */
+    @Transactional(readOnly = true)
     fun designHasMergedItems(designId: IntId<LayoutDesign>): Boolean {
         // language="sql"
         val sql =
@@ -254,6 +253,8 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         }
     }
 
+    // Drafts count as open too, so a design with unpublished work is never completed under it
+    @Transactional(readOnly = true)
     fun designHasOpenItems(designId: IntId<LayoutDesign>): Boolean {
         // language="sql"
         val sql =
