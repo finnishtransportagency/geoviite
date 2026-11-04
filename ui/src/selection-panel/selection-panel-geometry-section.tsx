@@ -1,6 +1,5 @@
 import styles from 'selection-panel/selection-panel.scss';
 import { Eye, VisibilityState } from 'geoviite-design-lib/eye/eye';
-import { createClassName } from 'vayla-design-lib/utils';
 import { GeometryPlanPanel } from 'selection-panel/geometry-plan-panel/geometry-plan-panel';
 import {
     aggregateVisibility,
@@ -306,11 +305,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                     disabled={!plansListShown || planHeadersDisplayableInPanel.length === 0}
                 />
             </h3>
-            <div
-                className={createClassName(
-                    styles['selection-panel__content'],
-                    styles['selection-panel__content--unpadded'],
-                )}>
+            <div className={styles['selection-panel__content']}>
                 {plansListShown &&
                     planHeadersDisplayableInPanel.map((h, index, allPlans) => {
                         const isSameAsPrevProject =
