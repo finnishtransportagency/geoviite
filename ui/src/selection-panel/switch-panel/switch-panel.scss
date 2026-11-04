@@ -1,4 +1,3 @@
-@use 'vayla-design-lib' as vayla-design;
 @use '../selection-panel-mixins';
 .switch-panel {
     &__subtitle {
@@ -6,13 +5,11 @@
     }
 
     &__switches {
+        @include selection-panel-mixins.list;
+
         display: grid;
         grid-template-columns: max-content max-content;
         grid-gap: 10px;
         row-gap: 10px;
-
-        list-style: none;
-        margin: 0;
-        padding: 0;
     }
 }
