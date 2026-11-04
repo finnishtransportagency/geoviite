@@ -26,7 +26,7 @@ Tarkempi kuvaus konteksteista löytyy dokumentista [Paikannuspohjan kontekstit](
 | Tila          | Kuvaus                                                                                                                                                                                                                                                                                                                                |
 |---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **ACTIVE**    | Työn alla oleva suunnitelma. Voi sisältää luonnoksia ja julkaistuja muutoksia. Yksittäisiä käsitteitä voidaan peruuttaa tai valmistaa itsenäisesti, joten aktiivinen suunnitelma voi sisältää sekä peruttuja että valmistuneita osia samanaikaisesti. Aktiivisesta suunnitelmasta voidaan siirtyä joko COMPLETED- tai DELETED-tilaan. |
-| **COMPLETED** | Suunnitelma on merkitty valmiiksi. *Huom: COMPLETED-tilaa ei ole vielä toteutettu loppuun.*                                                                                                                                                                                                                                           |
+| **COMPLETED** | Suunnitelma on valmistunut: siinä ei ole avoimia kohteita ja vähintään yksi kohde on valmistunut. Tila asetetaan automaattisesti julkaisun yhteydessä. Valmista suunnitelmaa ei voi muokata eikä poistaa.                                                                                                                             |
 | **DELETED**   | Suunnitelma on poistettu kokonaan. Julkaistut kohteet, joita ei ole vielä viety luonnostilaan, peruutetaan.                                                                                                                                                                                                                           |
 
 ## Kontekstisiirtymät
@@ -189,6 +189,11 @@ Jokaisella suunnitelmaan kuuluvalla paikannuspohjan kohteella (raide, vaihde, jn
 | **OPEN**      | Aktiivinen kohde suunnitelmassa, ei vielä viety main-paikannuspohjaan |
 | **COMPLETED** | Valmistunut kohde, siirretty main-draft -tilaan                       |
 | **CANCELLED** | Peruutettu kohde, ei viedä main-paikannuspohjaan                      |
+
+**Huom: uudelleen avattu kohde.** Valmistuneen (COMPLETED) kohteen muokkaaminen suunnitelmassa avaa sen uudelleen
+(OPEN). Kohteen tila kertoo vain viimeisimmän tilan, eikä se muista aiempaa valmistumista. Jos uudelleen avattu kohde
+perutaan tai suunnitelma poistetaan, kohteen tilaksi tulee CANCELLED, vaikka sen aiempi versio on jo viety viralliseen
+paikannuspohjaan. Virallinen paikannuspohja ei muutu, ja aiemmin viety versio näkyy sen julkaisuhistoriassa.
 
 Huomaa: DesignAssetState kuvaa eri asiaa kuin paikannuspohjan kohteiden tilaa kuvaavat LayoutState, LayoutStateCategory
 jne. Ne kuvaavat kohteiden tilaa paikannuspohjan käsitteinä (Käytössä, poistettu käytöstä, poistettu jne.), kun taas
