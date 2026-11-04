@@ -44,44 +44,48 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
     }, [trackNumbers]);
 
     return (
-        <div>
-            <ol
-                className={styles['reference-lines-panel__reference-lines']}
-                qa-id="reference-lines-list">
-                {visibleTrackNumbers.map((tn) => {
-                    const isSelected = selectedTrackNumbers?.some(
-                        (selectedId) => selectedId === tn.id,
-                    );
-                    const itemClassName = createClassName(
-                        'reference-lines-panel__reference-line',
-                        canSelectReferenceLine &&
-                            'reference-lines-panel__reference-line--can-select',
-                    );
-                    const status = () => {
-                        if (disabled) return TrackNumberBadgeStatus.DISABLED;
-                        else if (isSelected) return TrackNumberBadgeStatus.SELECTED;
-                        else return undefined;
-                    };
-                    return (
-                        <li
-                            key={tn.id}
-                            className={itemClassName}
-                            onClick={() =>
-                                canSelectReferenceLine && onToggleTrackNumberSelection(tn.id)
-                            }>
-                            <TrackNumberBadge trackNumber={tn} status={status()} />
-                            <span
-                                className={
-                                    disabled
-                                        ? styles['reference-lines-panel__reference-line--disabled']
-                                        : undefined
+        <>
+            {0 < visibleTrackNumbers.length && visibleTrackNumbers.length <= max && (
+                <ol
+                    className={styles['reference-lines-panel__reference-lines']}
+                    qa-id="reference-lines-list">
+                    {visibleTrackNumbers.map((tn) => {
+                        const isSelected = selectedTrackNumbers?.some(
+                            (selectedId) => selectedId === tn.id,
+                        );
+                        const itemClassName = createClassName(
+                            'reference-lines-panel__reference-line',
+                            canSelectReferenceLine &&
+                                'reference-lines-panel__reference-line--can-select',
+                        );
+                        const status = () => {
+                            if (disabled) return TrackNumberBadgeStatus.DISABLED;
+                            else if (isSelected) return TrackNumberBadgeStatus.SELECTED;
+                            else return undefined;
+                        };
+                        return (
+                            <li
+                                key={tn.id}
+                                className={itemClassName}
+                                onClick={() =>
+                                    canSelectReferenceLine && onToggleTrackNumberSelection(tn.id)
                                 }>
-                                {t('reference-line')}
-                            </span>
-                        </li>
-                    );
-                })}
-            </ol>
+                                <TrackNumberBadge trackNumber={tn} status={status()} />
+                                <span
+                                    className={
+                                        disabled
+                                            ? styles[
+                                                  'reference-lines-panel__reference-line--disabled'
+                                              ]
+                                            : undefined
+                                    }>
+                                    {t('reference-line')}
+                                </span>
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
             {trackNumberCount > max && (
                 <span className={styles['reference-lines-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
@@ -93,7 +97,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                     'selection-panel.no-results',
                 )}`}</span>
             )}
-        </div>
+        </>
     );
 };
 
