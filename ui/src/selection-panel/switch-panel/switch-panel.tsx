@@ -34,36 +34,38 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
     const shouldShowNoResults = switchCount === 0;
 
     return (
-        <div>
-            <ol className={styles['switch-panel__switches']}>
-                {sortedSwitches.map((switchItem) => {
-                    const isSelected = selectedSwitches?.some((p) => p === switchItem.id);
+        <>
+            {0 < switchCount && !shouldShowZoomMessage && (
+                <ol className={styles['switch-panel__switches']}>
+                    {sortedSwitches.map((switchItem) => {
+                        const isSelected = selectedSwitches?.some((p) => p === switchItem.id);
 
-                    const status = () => {
-                        if (disabled) {
-                            return SwitchBadgeStatus.DISABLED;
-                        } else if (isSelected) {
-                            return SwitchBadgeStatus.SELECTED;
-                        } else {
-                            return undefined;
-                        }
-                    };
+                        const status = () => {
+                            if (disabled) {
+                                return SwitchBadgeStatus.DISABLED;
+                            } else if (isSelected) {
+                                return SwitchBadgeStatus.SELECTED;
+                            } else {
+                                return undefined;
+                            }
+                        };
 
-                    return (
-                        <li key={switchItem.id}>
-                            <SwitchBadge
-                                switchItem={switchItem}
-                                onClick={
-                                    disabled
-                                        ? undefined
-                                        : () => onToggleSwitchSelection(switchItem.id)
-                                }
-                                status={status()}
-                            />
-                        </li>
-                    );
-                })}
-            </ol>
+                        return (
+                            <li key={switchItem.id}>
+                                <SwitchBadge
+                                    switchItem={switchItem}
+                                    onClick={
+                                        disabled
+                                            ? undefined
+                                            : () => onToggleSwitchSelection(switchItem.id)
+                                    }
+                                    status={status()}
+                                />
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
             {shouldShowZoomMessage && (
                 <span className={styles['switch-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
@@ -75,7 +77,7 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
                     'selection-panel.no-results',
                 )}`}</span>
             )}
-        </div>
+        </>
     );
 };
 

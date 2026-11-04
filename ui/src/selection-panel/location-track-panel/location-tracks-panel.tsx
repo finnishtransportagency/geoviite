@@ -71,46 +71,48 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     }, [locationTracks, showMore]);
 
     return (
-        <div>
-            <ol
-                className={styles['location-tracks-panel__location-tracks']}
-                qa-id="location-tracks-list">
-                {visibleTracks.map((track) => {
-                    const isSelected = selectedLocationTracks?.some(
-                        (selectedId) => selectedId === track.id,
-                    );
-                    const itemClassName = createClassName(
-                        'location-tracks-panel__location-track',
-                        canSelectLocationTrack &&
-                            'location-tracks-panel__location-track--can-select',
-                    );
-                    const status = () => {
-                        if (disabled) {
-                            return LocationTrackBadgeStatus.DISABLED;
-                        } else if (isSelected) {
-                            return LocationTrackBadgeStatus.SELECTED;
-                        } else {
-                            return undefined;
-                        }
-                    };
+        <>
+            {0 < locationTrackCount && locationTrackCount <= showMoreMax && (
+                <ol
+                    className={styles['location-tracks-panel__location-tracks']}
+                    qa-id="location-tracks-list">
+                    {visibleTracks.map((track) => {
+                        const isSelected = selectedLocationTracks?.some(
+                            (selectedId) => selectedId === track.id,
+                        );
+                        const itemClassName = createClassName(
+                            'location-tracks-panel__location-track',
+                            canSelectLocationTrack &&
+                                'location-tracks-panel__location-track--can-select',
+                        );
+                        const status = () => {
+                            if (disabled) {
+                                return LocationTrackBadgeStatus.DISABLED;
+                            } else if (isSelected) {
+                                return LocationTrackBadgeStatus.SELECTED;
+                            } else {
+                                return undefined;
+                            }
+                        };
 
-                    return (
-                        <li
-                            key={track.id}
-                            className={itemClassName}
-                            onClick={() =>
-                                canSelectLocationTrack &&
-                                !disabled &&
-                                onToggleLocationTrackSelection(track.id)
-                            }>
-                            <LocationTrackBadge locationTrack={track} status={status()} />
-                            <span>
-                                <LocationTrackTypeLabel type={track.type} />
-                            </span>
-                        </li>
-                    );
-                })}
-            </ol>
+                        return (
+                            <li
+                                key={track.id}
+                                className={itemClassName}
+                                onClick={() =>
+                                    canSelectLocationTrack &&
+                                    !disabled &&
+                                    onToggleLocationTrackSelection(track.id)
+                                }>
+                                <LocationTrackBadge locationTrack={track} status={status()} />
+                                <span>
+                                    <LocationTrackTypeLabel type={track.type} />
+                                </span>
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
 
             {locationTrackCount > showMoreMax && (
                 <span className={styles['location-tracks-panel__subtitle']}>{`${t(
@@ -129,6 +131,6 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                     <ShowMoreButton onShowMore={() => setShowMore(!showMore)} expanded={showMore} />
                 </div>
             )}
-        </div>
+        </>
     );
 };
