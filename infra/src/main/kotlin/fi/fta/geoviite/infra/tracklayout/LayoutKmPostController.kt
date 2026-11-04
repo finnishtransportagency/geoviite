@@ -36,59 +36,59 @@ class LayoutKmPostController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
     fun getKmPost(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutKmPost>,
     ): ResponseEntity<LayoutKmPost> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(kmPostService.get(context, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["ids"])
     fun getKmPosts(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<LayoutKmPost>>,
     ): List<LayoutKmPost> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return kmPostService.getMany(context, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/on-track-number/{trackNumberId}")
     fun getKmPostsOnTrackNumber(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") id: IntId<LayoutTrackNumber>,
     ): List<LayoutKmPost> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return kmPostService.list(context, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["bbox", "step"])
     fun findKmPosts(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("step") step: Int,
     ): List<LayoutKmPost> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return kmPostService.list(context, bbox, step)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["location", "offset", "limit"])
     fun findKmPosts(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>?,
         @RequestParam("location") location: Point,
         @RequestParam("offset") offset: Int,
         @RequestParam("limit") limit: Int,
     ): List<LayoutKmPost> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return kmPostService.listNearbyOnTrackPaged(
             layoutContext = context,
             location = location,
@@ -101,25 +101,25 @@ class LayoutKmPostController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["trackNumberId", "kmNumber"])
     fun getKmPost(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
         @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): ResponseEntity<LayoutKmPost> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return kmPostService.getByKmNumber(context, trackNumberId, kmNumber, includeDeleted).let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
     fun validateKmPost(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<LayoutKmPost>> {
         return publicationValidationService
-            .validateKmPosts(branch, publicationState, listOf(id))
+            .validateKmPosts(layoutBranch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }
@@ -162,22 +162,22 @@ class LayoutKmPostController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getKmPostChangeInfo(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") kmPostId: IntId<LayoutKmPost>,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(kmPostService.getLayoutAssetChangeInfo(context, kmPostId))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/infobox-extras")
     fun getKmPostInfoboxExtras(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") kmPostId: IntId<LayoutKmPost>,
     ): ResponseEntity<KmPostInfoboxExtras> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(kmPostService.getKmPostInfoboxExtras(context, kmPostId))
     }
 }

@@ -333,25 +333,25 @@ constructor(private val geometryService: GeometryService, private val planLayout
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/linking-summary")
     fun getLocationTrackLinkingSummary(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem<*>>? {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return geometryService.getLocationTrackGeometryLinkingSummary(layoutContext, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
     ): List<KmHeights<*>>? {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return geometryService.getLocationTrackHeights(
             layoutContext = layoutContext,
             locationTrackId = id,

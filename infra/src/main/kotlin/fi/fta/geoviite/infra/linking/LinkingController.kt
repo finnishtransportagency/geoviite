@@ -110,22 +110,22 @@ constructor(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/plans/{id}/status")
     fun getPlanLinkStatus(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") planId: IntId<GeometryPlan>,
     ): GeometryPlanLinkStatus {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return linkingService.getGeometryPlanLinkStatus(layoutContext, planId)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/plans/status")
     fun getManyPlanLinkStatuses(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") planIds: List<IntId<GeometryPlan>>,
     ): List<GeometryPlanLinkStatus> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return linkingService.getGeometryPlanLinkStatuses(layoutContext, planIds)
     }
 

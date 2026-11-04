@@ -26,7 +26,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/alignment-polylines")
     fun getAlignmentPolyLines(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("resolution") resolution: Int,
@@ -34,7 +34,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("includeSegmentEndPoints") includeSegmentEndPoints: Boolean = false,
         @RequestParam("locationTrackIds") locationTrackIds: List<IntId<LocationTrack>>? = null,
     ): List<AlignmentPolyLine<*, *>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getAlignmentPolyLines(
             layoutContext,
             bbox,
@@ -48,102 +48,102 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-track/{id}/alignment-polyline")
     fun getLocationTrackPolyline(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") locationTrackId: IntId<LocationTrack>,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("resolution") resolution: Int,
     ): ResponseEntity<AlignmentPolyLine<LocationTrack, LocationTrackM>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(mapAlignmentService.getAlignmentPolyline(layoutContext, locationTrackId, bbox, resolution))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-track/alignment-headers")
     fun getLocationTrackHeaders(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<LocationTrackHeader> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getLocationTrackHeaders(layoutContext, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/reference-line/alignment-headers")
     fun getReferenceLineHeaders(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LayoutTrackNumber>>,
     ): List<ReferenceLineHeader> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getReferenceLineHeaders(layoutContext, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-track/{id}/segment-m")
     fun getLocationTrackSegmentMValues(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<LineM<LocationTrackM>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getLocationTrackSegmentMValues(layoutContext, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/alignment/without-linking")
     fun getSectionsWithoutLinking(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("type") type: AlignmentFetchType,
     ): List<MapAlignmentHighlight<*, *>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getSectionsWithoutLinking(layoutContext, bbox, type)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-track/without-profile")
     fun getSectionsWithoutProfile(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<MapAlignmentHighlight<LocationTrack, LocationTrackM>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getSectionsWithoutProfile(layoutContext, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/reference-line/{id}/segment-m")
     fun getReferenceLineSegmentMValues(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): List<LineM<ReferenceLineM>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getReferenceLineSegmentMValues(layoutContext, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-track/{id}/ends")
     fun getLocationTrackEnds(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): MapAlignmentEndPoints<LocationTrackM> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getLocationTrackEnds(layoutContext, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/reference-line/{id}/ends")
     fun getReferenceLineEnds(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): MapAlignmentEndPoints<ReferenceLineM> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return mapAlignmentService.getReferenceLineEnds(layoutContext, id)
     }
 }
