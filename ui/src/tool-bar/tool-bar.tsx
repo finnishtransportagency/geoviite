@@ -30,7 +30,8 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { getSwitchLocation } from 'track-layout/track-layout-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { EDIT_LAYOUT, VIEW_DESIGN, VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { EDIT_LAYOUT, VIEW_DESIGN, VIEW_LAYOUT_DRAFT, userHasPrivilege } from 'user/user-model';
+import { useCommonDataAppSelector } from 'store/hooks';
 import {
     draftLayoutContext,
     LayoutContext,
@@ -119,15 +120,25 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 : Promise.resolve(false),
         [getChangeTimes().publication, designId],
     );
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
+    // Only feeds the preview button, which requires EDIT_LAYOUT
+    const canEditLayout = userHasPrivilege(privileges, EDIT_LAYOUT);
     const hasRatkoChanges = useLoader(
         () =>
-            layoutContext.publicationState === 'DRAFT'
+            layoutContext.publicationState === 'DRAFT' && canEditLayout
                 ? getExternallyChangedOperationalPointIds(
                       layoutContext.branch,
                       getChangeTimes().operationalPoints,
                   ).then((externallyChangedOps) => externallyChangedOps.length > 0)
                 : Promise.resolve(false),
-        [layoutContext.publicationState, layoutContext.branch, getChangeTimes().operationalPoints],
+        [
+            layoutContext.publicationState,
+            layoutContext.branch,
+            getChangeTimes().operationalPoints,
+            canEditLayout,
+        ],
     );
     const currentDesignExists =
         designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
