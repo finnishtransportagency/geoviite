@@ -32,23 +32,23 @@ class GeocodingController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/address/{trackNumberId}")
     fun getTrackAddress(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(geocodingService.getAddressIfWithin(layoutContext, trackNumberId, coordinate))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/projection-lines/{trackNumberId}")
     fun getMeterProjectionLines(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
     ): ResponseEntity<List<ProjectionLine<ReferenceLineM>>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(
             geocodingService.getGeocodingContext(layoutContext, trackNumberId)?.getProjectionLines(Resolution.ONE_METER)
         )
@@ -69,11 +69,11 @@ class GeocodingController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/address-pointlist/{alignmentId}")
     fun getAlignmentAddressPoints(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentAddresses<LocationTrackM>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(geocodingService.getAddressPoints(layoutContext, locationTrackId)?.addresses)
     }
 }

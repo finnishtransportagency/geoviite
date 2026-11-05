@@ -40,7 +40,7 @@ class LayoutSwitchController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}")
     fun getSwitches(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox?,
         @RequestParam("namePart") namePart: String?,
@@ -52,7 +52,7 @@ class LayoutSwitchController(
         @RequestParam("includeSwitchesWithNoJoints") includeSwitchesWithNoJoints: Boolean = false,
         @RequestParam("includeDeleted") includeDeleted: Boolean = false,
     ): List<LayoutSwitch> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         val filter = switchFilter(namePart, exactName, switchType, bbox, includeSwitchesWithNoJoints)
         val switches = switchService.listWithStructure(layoutContext, includeDeleted).filter(filter)
         return pageSwitches(switches, offset ?: 0, limit, comparisonPoint).items
@@ -61,45 +61,45 @@ class LayoutSwitchController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/{id}")
     fun getSwitch(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutSwitch>,
     ): ResponseEntity<LayoutSwitch> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(switchService.get(layoutContext, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}", params = ["ids"])
     fun getSwitches(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<LayoutSwitch>>,
     ): List<LayoutSwitch> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return switchService.getMany(layoutContext, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/{id}/joint-connections")
     fun getSwitchJointConnections(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutSwitch>,
     ): List<LayoutSwitchJointConnection> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return switchService.getSwitchJointConnections(layoutContext, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/validation")
     fun validateSwitches(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LayoutSwitch>>?,
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<LayoutSwitch>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         val switches =
             if (ids != null) {
                 switchService.getMany(layoutContext, ids)
@@ -108,7 +108,7 @@ class LayoutSwitchController(
             }
         val switchIds =
             switches.filter { switch -> switchMatchesBbox(switch, bbox, false) }.map { sw -> sw.id as IntId }
-        return publicationValidationService.validateSwitches(branch, publicationState, switchIds)
+        return publicationValidationService.validateSwitches(layoutBranch, publicationState, switchIds)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
@@ -164,11 +164,11 @@ class LayoutSwitchController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getSwitchChangeInfo(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") switchId: IntId<LayoutSwitch>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(switchService.getLayoutAssetChangeInfo(layoutContext, switchId))
     }
 
@@ -186,36 +186,36 @@ class LayoutSwitchController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/by-operational-point/{operationalPointId}")
     fun findSwitchesWithinOperationalPointPolygon(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("operationalPointId") operationalPointId: IntId<OperationalPoint>,
     ): List<SwitchWithinOperationalPoint> =
         switchService.findSwitchesRelatedToOperationalPoint(
-            LayoutContext.of(branch, publicationState),
+            LayoutContext.of(layoutBranch, publicationState),
             operationalPointId,
         )
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/area-summary")
     fun getSwitchesAreaSummary(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("maxSwitches") maxSwitches: Int,
         @RequestParam("includeSwitchesWithNoJoints") includeSwitchesWithNoJoints: Boolean = false,
     ): SwitchAreaSummary {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return switchService.getSwitchesInArea(layoutContext, bbox, maxSwitches, includeSwitchesWithNoJoints)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/preview-name-fixes")
     fun previewSwitchNameFixes(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<SwitchNameFixPreview> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return switchService.previewNameFixes(layoutContext, bbox)
     }
 

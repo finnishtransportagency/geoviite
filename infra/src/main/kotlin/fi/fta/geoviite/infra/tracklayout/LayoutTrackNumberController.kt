@@ -53,34 +53,34 @@ class LayoutTrackNumberController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
     fun getTrackNumbers(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean,
     ): List<LayoutTrackNumber> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return trackNumberService.list(context, includeDeleted)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
     fun getTrackNumber(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<LayoutTrackNumber> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(trackNumberService.get(context, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
     fun validateTrackNumber(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<LayoutTrackNumber>> {
         return publicationValidationService
-            .validateTrackNumbers(branch, publicationState, listOf(id))
+            .validateTrackNumbers(layoutBranch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }
@@ -135,25 +135,25 @@ class LayoutTrackNumberController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection<ReferenceLineM>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return alignmentMetadataService.getTrackNumberMetadataSections(layoutContext, trackNumberId, boundingBox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/overlapping-plans")
     fun getOverlappingPlanHeaders(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
         @RequestParam("startKm") startKmNumber: KmNumber? = null,
         @RequestParam("endKm") endKmNumber: KmNumber? = null,
     ): List<GeometryPlanHeader> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return trackNumberService
             .getReferenceLinePolygon(context, id, startKmNumber, endKmNumber)
             ?.let(geometryService::getOverlappingPlanHeaders) ?: emptyList()
@@ -249,11 +249,11 @@ class LayoutTrackNumberController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getTrackNumberChangeInfo(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        val context = LayoutContext.of(branch, publicationState)
+        val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(trackNumberService.getLayoutAssetChangeInfo(context, id))
     }
 
@@ -268,22 +268,22 @@ class LayoutTrackNumberController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["bbox"])
     fun getTrackNumbersNear(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LayoutTrackNumber> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return trackNumberService.listNear(layoutContext, bbox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/start-and-end")
     fun getReferenceLineStartAndEnd(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<AlignmentStartAndEnd<LayoutTrackNumber>> {
-        val layoutContext = LayoutContext.of(branch, publicationState)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(trackNumberService.getStartAndEnd(layoutContext, id))
     }
 
