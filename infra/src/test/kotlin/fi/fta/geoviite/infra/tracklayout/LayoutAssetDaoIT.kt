@@ -2,8 +2,10 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
@@ -13,8 +15,10 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.DataAccessException
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
@@ -81,6 +85,30 @@ constructor(
         // after b's cancellation: b disappears
         expectAllVersions(listOf(a(LayoutBranch.main, 1)), LayoutBranch.main, officialVersionTimesB[1])
         expectAllVersions(listOf(a(LayoutBranch.main, 1)), designBranch, officialVersionTimesB[1])
+    }
+
+    @Test
+    fun `official layout rows cannot be deleted`() {
+        val designOfficialContext = testDBService.testContext(testDBService.createDesignBranch(), OFFICIAL)
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber()
+        val officialRows =
+            listOf(
+                "track_number" to trackNumber,
+                "location_track" to mainOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id)),
+                "switch" to mainOfficialContext.save(switch()),
+                "km_post" to mainOfficialContext.save(kmPost(trackNumber.id, KmNumber(1))),
+                "operational_point" to mainOfficialContext.save(operationalPoint()),
+                "km_post" to designOfficialContext.save(kmPost(trackNumber.id, KmNumber(2))),
+            )
+
+        officialRows.forEach { (table, version) ->
+            assertThrows<DataAccessException>("Deleted official row: table=$table version=$version") {
+                jdbc.update(
+                    "delete from layout.$table where id = :id and layout_context_id = :layout_context_id",
+                    mapOf("id" to version.id.intValue, "layout_context_id" to version.context.toSqlString()),
+                )
+            }
+        }
     }
 
     @Test

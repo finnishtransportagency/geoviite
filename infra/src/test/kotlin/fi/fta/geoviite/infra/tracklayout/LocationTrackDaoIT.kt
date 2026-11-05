@@ -314,13 +314,14 @@ constructor(
         val track1MainV2 = testDBService.update(track1MainV1)
         val track1DesignV2 = designOfficialContext.copyFrom(track1MainV1)
         val track2DesignV2 = testDBService.update(track2DesignV1)
-        locationTrackDao.deleteRow(track3DesignV1.rowId)
+        testDBService.setDesignAssetState(track3DesignV1, DesignAssetState.CANCELLED)
         val v2Time = locationTrackDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        locationTrackDao.deleteRow(track1DesignV2.rowId)
-        // Fake publish: update the design as a main-official
-        val track2MainV3 = mainOfficialContext.moveFrom(track2DesignV2)
+        testDBService.setDesignAssetState(track1DesignV2, DesignAssetState.CANCELLED)
+        // Fake publish: copy the design as a main-official and complete it in the design
+        val track2MainV3 = mainOfficialContext.copyFrom(track2DesignV2)
+        testDBService.setDesignAssetState(track2DesignV2, DesignAssetState.COMPLETED)
         val v3Time = locationTrackDao.fetchChangeTime()
 
         assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, v0Time))

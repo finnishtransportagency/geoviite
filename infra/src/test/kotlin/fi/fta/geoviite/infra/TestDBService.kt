@@ -381,6 +381,15 @@ class TestDBService(
         mutate: (T) -> T = { it },
     ): LayoutRowVersion<T> = save(mutate(fetch(rowVersion)))
 
+    /** Sets the state of a design-official row in place, as publishing a cancellation or completion would. */
+    final inline fun <reified T : LayoutAsset<T>> setDesignAssetState(
+        rowVersion: LayoutRowVersion<T>,
+        state: DesignAssetState,
+    ): LayoutRowVersion<T> =
+        update(rowVersion) { asset ->
+            asset.withContext((asset.contextData as DesignOfficialContextData<T>).copy(designAssetState = state))
+        }
+
     @Suppress("UNCHECKED_CAST")
     final inline fun <reified T : LayoutAsset<T>> delete(asset: LayoutRowVersion<T>) =
         when (T::class) {

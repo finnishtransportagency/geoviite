@@ -464,7 +464,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
             """
                 delete from ${table.fullName}
                 where id = :id
-                  and (draft = true or design_id is not null) -- Don't allow deleting main-official rows
+                  and draft = true -- Official rows are never deleted, see V162
                   and layout_context_id = :layout_context_id
                 returning id, design_id, draft, version
             """
@@ -479,7 +479,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
             .let { deleted ->
                 if (deleted == null)
                     error(
-                        "No rows were deleted (did you try to delete a main-official row?): type=${table.name} id=${rowId.id} context=${rowId.context}"
+                        "No rows were deleted (did you try to delete an official row?): type=${table.name} id=${rowId.id} context=${rowId.context}"
                     )
                 logger.daoAccess(DELETE, table.fullName, deleted)
                 deleted
