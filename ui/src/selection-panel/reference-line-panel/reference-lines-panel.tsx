@@ -27,21 +27,12 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
     disabled,
 }: ReferenceLinesPanelProps) => {
     const { t } = useTranslation();
-    const [trackNumberCount, setTrackNumberCount] = React.useState(0);
-    const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
-    React.useEffect(() => {
-        if (trackNumbers) {
-            const sortedTrackNumbers = [...trackNumbers].sort((a, b) => {
-                return compareByField(a, b, (l) => l.id);
-            });
-
-            setVisibleTrackNumbers(sortedTrackNumbers.length < max + 1 ? sortedTrackNumbers : []);
-            setTrackNumberCount(sortedTrackNumbers.length);
-        } else {
-            setVisibleTrackNumbers([]);
-            setTrackNumberCount(0);
-        }
-    }, [trackNumbers]);
+    const sortedTrackNumbers = React.useMemo(
+        () => [...(trackNumbers ?? [])].sort((a, b) => compareByField(a, b, (l) => l.id)),
+        [trackNumbers],
+    );
+    const trackNumberCount = sortedTrackNumbers.length;
+    const visibleTrackNumbers = trackNumberCount <= max ? sortedTrackNumbers : [];
 
     return (
         <>
