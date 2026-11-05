@@ -163,13 +163,14 @@ constructor(private val switchDao: LayoutSwitchDao, private val locationTrackDao
         val switch1MainV2 = testDBService.update(switch1MainV1)
         val switch1DesignV2 = designOfficialContext.copyFrom(switch1MainV1)
         val switch2DesignV2 = testDBService.update(switch2DesignV1)
-        switchDao.deleteRow(switch3DesignV1.rowId)
+        testDBService.setDesignAssetState(switch3DesignV1, DesignAssetState.CANCELLED)
         val v2Time = switchDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        switchDao.deleteRow(switch1DesignV2.rowId)
-        // Fake publish: update the design as a main-official
-        val switch2MainV3 = mainOfficialContext.moveFrom(switch2DesignV2)
+        testDBService.setDesignAssetState(switch1DesignV2, DesignAssetState.CANCELLED)
+        // Fake publish: copy the design as a main-official and complete it in the design
+        val switch2MainV3 = mainOfficialContext.copyFrom(switch2DesignV2)
+        testDBService.setDesignAssetState(switch2DesignV2, DesignAssetState.COMPLETED)
         val v3Time = switchDao.fetchChangeTime()
 
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v0Time))
