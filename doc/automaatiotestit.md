@@ -83,8 +83,13 @@ infra/src/test/kotlin/fi/fta/geoviite/infra/geometry/ElementListingTest.kt
 
 ## Ajaminen kehittäjän koneella
 
-Koska yksikkötestit ovat riippumattomia ympäristöstä, niitä voidaan ajaa normaalisti suoraan IDE:stä. Jos testi vaatii
-jotain ympäristöltä (esim tietokantaa) se ei ole enää yksikkötesti.
+Kaikki Gradle komennot täytyy suorittaa `/infra`-hakemistossa.
+
+Koska yksikkötestit ovat riippumattomia ympäristöstä, niitä voidaan ajaa normaalisti suoraan IDE:stä, tai Gradlella
+`./gradlew runUnitTests`. Jos testi vaatii jotain ympäristöltä (esim tietokantaa) se ei ole enää yksikkötesti. Yksittäisen
+testin saa ajettua gradlella `./gradlew runUnitTests --tests "<testin nimi>"`, esim.
+`./gradlew runUnitTests --tests "fi.fta.geoviite.infra.geometry.ElementListingTest#shouldReturnCorrectElementListing"`.
+Tämä toimii myös integraatio- ja E2E-testeillä.
 
 # Integraatiotestit (integration tests)
 
@@ -127,18 +132,21 @@ jossa kannattaa huomioida jälleen polun alussa ero "main|test"-kansion välill�
 
 ## Ajaminen kehittäjän koneella
 
-Kehittäessa IT-testejä niitä voidaan ajaa kuten yksikkötestejäkin suoraan Ideasta. Tässä on kuitenkin huomioitava että
-koska IT-testit tarvitsevat tietokantaa, täytyy sen olla taustalla ajossa. Testit käyttävät oletuksen eri
-tietokantakonttia kuin normaali `Infra-DEV` launch, eli ne eivät jaa dataa normaalisti kehittäjällä ajetun Geoviitteen
-kanssa.
+Kehittäessa IT-testejä niitä voidaan ajaa kuten yksikkötestejäkin  Gradlella tai suoraan IDE:stä.  Tässä on kuitenkin
+huomioitava, että, koska IT-testit tarvitsevat tietokantaa, täytyy sen olla taustalla ajossa. Testit käyttävät oletuksena
+eri tietokantakonttia kuin normaali `infraDev` Gradle taski, eli ne eivät jaa dataa normaalisti kehittäjällä ajetun
+Geoviitteen kanssa.
 
 **Lokaali ajo edellyttää**:
 
-- Geoviitteen testitietokanta ajossa: Idea launcher `TEST DB Run`
+- Geoviitteen testitietokanta ajossa: Gradle task `testDbRun`
     - Jos migraatioissa on ongelmaa (esim epäyhteensopivien branchien käytön myötä), voit aina resetoida testikannan
-      tilan launcherilla `TEST DB Clear`
+      tilan Gradlella `testDbClear`
     - Testit eivät säilyttele testikannassa mitään tilaa yli testiajojen joten kannan resetointi on aina turvallista
 - Itse testin käynnistys
+    - `testDbRun` gradle taskin jälkeen voi ajaa integraatiotestejä suoraan IDE:stä
+    - testit voi myös ajaa gradlella `./gradlew runIntegrationTests`, joka käynnistää tietokannan, ajaa testit
+      ja lopuksi sammuttaa tietokannan
 
 # E2E-testit (End-to-End tests)
 
@@ -166,20 +174,29 @@ ymäristöä, joka on määritelty tämän projectin `docker-compose.yml`:ssä. 
 mahdollista ajaa kehittäjän paikallisella koneella, mutta ne soveltuvat parhaiten kaikkien testien ajoon ja käytännön
 kehitystyössä on hyödyllisempää voidaa ajaa testejä yksittäin niitä kehittäessä.
 
-**Lokaali ajo edellyttää**:
+**Lokaali ajo**:
 
-- Geoviitteen testitietokanta ajossa: Idea launcher `TEST DB Run`
+Testit on mahdollista ajaa Gradle-komennolla `./gradlew runE2ETests`.
+
+Yllämainittu komento tekee seuraavat operaatiot taustalla:
+- Geoviitteen testitietokanta ajossa: Gradle task `testDbRun`
     - Jos migraatioissa on ongelmaa (esim epäyhteensopivien branchien käytön myötä), voit aina resetoida testikannan
-      tilan launcherilla `TEST DB Clear`
+      tilan Gradlella `testDbClear`
     - Testit eivät säilyttele testikannassa mitään tilaa yli testiajojen joten kannan resetointi on aina turvallista
-- Geoviitteen backend ajossa testi-profiililla: Idea launcher `Infra TEST`
-- Geoviitteen fronted palveltuna: Idea launcher `UI` tai terminaalissa `ui/start_front.sh`
-- Itse testin käynnistys `local`-profiililla (ei `docker`-profiililla): Idea kysyy tätä ensimmäisellä launchilla
+- Geoviitteen backend ajossa testi-profiililla: Gradle task `infraTest`
+- Geoviitteen fronted palveltuna: Gradle task `uiTest`
+- Itse testi on `runE2ETests`, joka ajaa `UI`-päätteiset testitiedostot.
 - Jos testi epäonnistuu, ajo tuottaa virhetilanteesta kuvankaappauksen kansioon `infra/build/reports/screenshots/`
 
 **Huom**: Selenium ajurin käyttö lokaalilla profiililla edellyttää että kehittäjän koneelta löytyy chrome versio joka
 on yhteensopiva käytössä olevan selenium version kanssa. Tämän ylläpito ei ole suoraviivaista sillä eri kehittäjillä on
 tyypillisesti eri selainversioita asennettuna.
+
+Jos kehittäessä haluaa ajaa yksittäisiä E2E-tetejä IDE:stä, se onnistuu seuraavasti:
+- Geoviitteen testitietokanta ajossa: Gradle task `testDbRun`
+- Geoviitteen backend ajossa testi-profiililla: Gradle task `infraTestInteractive`
+- Geoviitteen fronted palveltuna: Gradle task `uiTest`
+- Aja haluttu testi IDE:stä
 
 ### Debuggaus
 
