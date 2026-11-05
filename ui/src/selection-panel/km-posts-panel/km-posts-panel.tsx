@@ -26,25 +26,16 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
 
-    const [kmPostsCount, setKmPostsCount] = React.useState(0);
-    const [visibleKmPosts, setVisibleKmPosts] = React.useState([] as LayoutKmPost[]);
-    React.useEffect(() => {
-        if (kmPosts) {
-            const sortedPosts = [...kmPosts].sort(
-                (a, b) => parseInt(a.kmNumber) - parseInt(b.kmNumber),
-            );
-
-            setVisibleKmPosts(sortedPosts.length < max + 1 ? sortedPosts : []);
-            setKmPostsCount(sortedPosts.length);
-        } else {
-            setVisibleKmPosts([]);
-            setKmPostsCount(0);
-        }
-    }, [kmPosts]);
+    const sortedKmPosts = React.useMemo(
+        () => [...(kmPosts ?? [])].sort((a, b) => parseInt(a.kmNumber) - parseInt(b.kmNumber)),
+        [kmPosts],
+    );
+    const kmPostsCount = sortedKmPosts.length;
+    const visibleKmPosts = kmPostsCount <= max ? sortedKmPosts : [];
 
     return (
         <>
-            {0 < kmPostsCount && kmPostsCount <= max && (
+            {0 < visibleKmPosts.length && (
                 <ol className={styles['km-posts-panel__km-posts']}>
                     {visibleKmPosts.map((kmPost) => {
                         const isSelected = selectedKmPosts?.some(
