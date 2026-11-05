@@ -4,10 +4,6 @@
 .selection-panel {
     overflow: hidden auto;
 
-    > section {
-        margin-bottom: 16px;
-    }
-
     &__title {
         @include vayla-design.typography-sub-heading;
         box-shadow: 0 1px 1px rgba(vayla-design.$color-black-default, 0.12);
@@ -35,10 +31,6 @@
     }
 
     &__content {
-        &--unpadded {
-            padding: 0;
-        }
-
         .accordion__body {
             padding-left: 0;
         }
@@ -53,15 +45,13 @@
     @include vayla-design.typography-caption;
     display: flex;
     align-items: center;
-    padding: 8px 20px;
-    padding-bottom: 2px;
-    padding-top: 10px;
+    padding: 10px 16px 2px 16px;
     margin-top: 10px;
     border-top: 1px solid vayla-design.$color-white-darker;
 }
 
 .selection-panel__project:first-child {
-    margin-top: -8px;
+    margin-top: 0;
     border-top: none;
 }
 

@@ -7,14 +7,12 @@
     }
 
     &__operational-points {
+        @include selection-panel-mixins.list;
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
         column-gap: 12px;
         row-gap: 10px;
-        list-style: none;
-        margin: 0;
-        padding: 0;
 
         li {
             display: inline-block;
