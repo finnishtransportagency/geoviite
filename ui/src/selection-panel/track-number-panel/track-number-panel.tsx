@@ -45,7 +45,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     const trackNumberClassNames = createClassName(styles['track-number-panel__track-number']);
 
     return (
-        <div>
+        <>
             {sortedTrackNumbers.length <= max && (
                 <ol className={styles['track-number-panel__track-numbers']}>
                     {sortedTrackNumbers.map((trackNumber) => {
@@ -90,7 +90,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                     'selection-panel.no-results',
                 )}`}</span>
             )}
-        </div>
+        </>
     );
 };
 

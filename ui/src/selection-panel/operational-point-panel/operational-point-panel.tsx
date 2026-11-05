@@ -35,23 +35,19 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
 }: OperationalPointPanelProps) => {
     const { t } = useTranslation();
     const operationalPointCount = operationalPoints?.length ?? 0;
-    const [visibleOperationalPoints, setVisibleOperationalPoints] = React.useState(
-        [] as OperationalPoint[],
-    );
-
-    React.useEffect(() => {
+    const visibleOperationalPoints = React.useMemo(() => {
         if (operationalPoints) {
             const sortedPoints = [...operationalPoints].sort(compareNamed);
 
-            setVisibleOperationalPoints(sortedPoints.length < max + 1 ? sortedPoints : []);
+            return sortedPoints.length <= max ? sortedPoints : [];
         } else {
-            setVisibleOperationalPoints([]);
+            return [];
         }
     }, [operationalPoints, max]);
 
     return (
         <>
-            {0 < operationalPointCount && operationalPointCount <= max && (
+            {0 < visibleOperationalPoints.length && (
                 <ol className={styles['operational-point-panel__operational-points']}>
                     {visibleOperationalPoints.map((op) => {
                         const isSelected =
