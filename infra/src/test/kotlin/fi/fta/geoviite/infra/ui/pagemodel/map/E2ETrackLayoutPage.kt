@@ -19,6 +19,8 @@ import kotlin.math.roundToInt
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
+import org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable
+import org.openqa.selenium.support.ui.ExpectedConditions.not
 import tryWait
 import waitUntilExists
 import waitUntilNotExist
@@ -204,6 +206,12 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         }
         waitUntilExists(workspaceSelectionDropdownQaId)
         E2EDropdown(workspaceSelectionDropdownQaId).selectByName(name)
+    }
+
+    fun waitUntilDesignDeleteDisabled(): E2ETrackLayoutPage = apply {
+        val deleteButton = byQaId("workspace-delete-button")
+        waitUntilExists(deleteButton)
+        tryWait(not(elementToBeClickable(deleteButton))) { "Design delete button did not become disabled" }
     }
 
     fun removeActiveDesign() {

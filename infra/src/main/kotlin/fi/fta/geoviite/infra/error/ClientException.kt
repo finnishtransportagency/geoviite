@@ -300,12 +300,28 @@ class DuplicateDesignNameException(name: String, cause: Throwable? = null) :
         localizedMessageParams = localizationParams("name" to name),
     )
 
-class DesignHasCompletedItemsException(designId: IntId<LayoutDesign>) :
+class DesignHasMergedItemsException(designId: IntId<LayoutDesign>) :
     ClientException(
         status = BAD_REQUEST,
-        message = "Design has items completed in main and cannot be deleted: designId=$designId",
+        message = "Design has items merged or being merged to main and cannot be deleted: designId=$designId",
         cause = null,
-        localizedMessageKey = "error.design.has-completed-items",
+        localizedMessageKey = "error.design.has-merged-items",
+    )
+
+class DesignCompletedException(designId: IntId<LayoutDesign>) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Design is completed and cannot be edited: designId=$designId",
+        cause = null,
+        localizedMessageKey = "error.design.completed",
+    )
+
+class DesignItemMergeInProgressException(designId: IntId<LayoutDesign>, id: IntId<*>) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Item has an unpublished merge to main and cannot be edited in the design: designId=$designId id=$id",
+        cause = null,
+        localizedMessageKey = "error.design.item-merge-in-progress",
     )
 
 class InvalidUiVersionException(cause: Throwable? = null) :
