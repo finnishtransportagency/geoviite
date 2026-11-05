@@ -2,6 +2,7 @@ out/
 CLAUDE.local.md
 .claude/settings.local.json
 .idea/
+**/*.iml
 *.scss.d.ts
 **/.DS_store
 .github/agents/

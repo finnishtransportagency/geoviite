@@ -10,6 +10,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.springframework.boot.gradle.tasks.run.BootRun
 
 val geotoolsVersion = "34.4"
 val kotlinVersion = "2.4.21"
@@ -157,6 +158,99 @@ tasks.withType<KotlinCompile> {
     }
 }
 
+fun registerDbRun(taskName: String, containerName: String, port: Int) {
+    tasks.register<Exec>("${taskName}Run") {
+        group = "application"
+        description = "Ensures the $containerName database container is running"
+        workingDir = rootProject.projectDir.parentFile
+        commandLine(
+            "bash",
+            "-c",
+            """
+                set -e
+                if ! docker image inspect gvt-postgres:latest >/dev/null 2>&1; then
+                    docker build -t gvt-postgres docker-images/geoviite-postgres
+                fi
+                if ! docker container inspect $containerName >/dev/null 2>&1; then
+                    docker create \
+                        --name $containerName \
+                        --user 1000:1000 \
+                        -p 127.0.0.1:$port:5432 \
+                        --restart no \
+                        -e POSTGRES_DB=geoviite \
+                        -e POSTGRES_USER=dev-geouser \
+                        -e POSTGRES_PASSWORD=dev-geouser-password \
+                        -e PGDATA=/var/lib/postgresql/data/pgdata \
+                        --shm-size=1G \
+                        gvt-postgres:latest
+                fi
+                docker start $containerName
+            """.trimIndent(),
+        )
+    }
+    tasks.register<Exec>("${taskName}Stop") {
+        group = "application"
+        description = "Ensures the $containerName database container is running"
+        workingDir = rootProject.projectDir.parentFile
+        commandLine(
+            "bash",
+            "-c",
+            """
+                set -e
+                docker stop $containerName
+            """.trimIndent(),
+        )
+    }
+}
+
+registerDbRun("devDb", "geoviite-db", 5435)
+registerDbRun("testDb", "geoviite-test-db", 5436)
+
+tasks.register<BootRun>("infraDev") {
+    group = "application"
+    description = "Runs Geoviite with the local backend and external API profiles"
+    dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+    environment("PID", "Geoviite")
+    systemProperty("spring.profiles.active", "dev,noauth,backend,ext-api")
+}
+
+tasks.register<BootRun>("testDbClear") {
+    group = "application"
+    description = "Cleans and reinitializes the local test database"
+    dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+    environment("PID", "Geoviite")
+    environment("DB_URL", "localhost:5436/geoviite")
+    systemProperty("spring.profiles.active", "dev,datareset")
+    systemProperty("geoviite.data.import", "false")
+    enableAssertions = true
+}
+
+tasks.register<Test>("runIntegrationTests") {
+    group = "verification"
+    description = "Starts the local test database and runs integration tests"
+    dependsOn(tasks.named("testDbRun"))
+    finalizedBy(tasks.named("testDbStop"))
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    filter { includeTestsMatching("*IT") }
+    useJUnitPlatform()
+    outputs.upToDateWhen { false }
+}
+
+tasks.register<Test>("runUnitTests") {
+    group = "verification"
+    description = "Runs unit tests"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    filter { includeTestsMatching("*Test") }
+    useJUnitPlatform()
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    outputs.upToDateWhen { false }
+}
 tasks.withType<Jar> {
     from("${rootProject.projectDir}/..") {
         include("LICENSE.txt")
