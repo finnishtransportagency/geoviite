@@ -26,10 +26,13 @@ class PreAuthorizeParameterNamesIT @Autowired constructor(private val applicatio
                 .values
                 .flatMap { mapping -> mapping.handlerMethods.values }
                 .mapNotNull { handlerMethod ->
-                    AnnotatedElementUtils.findMergedAnnotation(handlerMethod.method, PreAuthorize::class.java)?.let {
-                        annotation ->
-                        handlerMethod.method to annotation.value
-                    }
+                    // Method-level annotation wins over class-level, as in Spring Security
+                    (AnnotatedElementUtils.findMergedAnnotation(handlerMethod.method, PreAuthorize::class.java)
+                            ?: AnnotatedElementUtils.findMergedAnnotation(
+                                handlerMethod.beanType,
+                                PreAuthorize::class.java,
+                            ))
+                        ?.let { annotation -> handlerMethod.method to annotation.value }
                 }
                 .filter { (_, expression) -> expression.contains('#') }
 
