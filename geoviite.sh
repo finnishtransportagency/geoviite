@@ -182,8 +182,8 @@ check_internal_host_address_docker() {
 }
 
 prompt_continue() {
-    read -p "Are you sure you want to continue? (y/n): " choice
-    if [[ "$choice" != "y" && "$choice" != "Y" ]]; then
+    read -p "Are you sure you want to continue? (Y/n): " choice
+    if [[ "$choice" != "y" && "$choice" != "Y" && "$choice" != "" ]]; then
       echo "Aborting..."
       exit 1
     fi

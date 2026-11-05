@@ -1,0 +1,20 @@
+geoviite:
+  scheduling:
+    enabled: true
+
+  cache:
+    enabled: true
+    tasks:
+      preload:
+        enabled: true
+        geocoding-contexts: true
+        plan-headers: true
+
+  data-products:
+    tasks:
+      create-element-listing-csv:
+        enabled: true
+      create-vertical-geometry-listing-csv:
+        enabled: true
+      publication-geometry-remarks-update:
+        enabled: true
