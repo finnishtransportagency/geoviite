@@ -2101,6 +2101,8 @@
         "message": "Selite",
         "track-number-long": "Ratanumero {{trackNumber}}",
         "pushed-to-ratko": "Viety Ratkoon",
+        "map": "Kartta",
+        "show-on-map": "Kohdista kartalla",
         "location-track": "Sijaintiraide {{locationTrack}}",
         "reference-line": "Pituusmittauslinja {{trackNumber}}",
         "switch": "Vaihde {{switch}}",
