@@ -184,9 +184,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             onChange(date ?? undefined, 'PICKER');
                         }}
                         onChangeRaw={() => setOpen(false)}
-                        onClickOutside={() => {
-                            setOpen(false);
-                        }}
+                        onClickOutside={() => setOpen(false)}
                         minDate={props.minDate}
                         maxDate={props.maxDate}
                         calendarStartDay={1}

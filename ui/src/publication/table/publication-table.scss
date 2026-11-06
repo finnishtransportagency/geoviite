@@ -3,8 +3,16 @@
 .publication-table {
     position: relative;
 
+    td {
+        padding: 10px 12px;
+    }
     &__row {
         white-space: pre-wrap;
+    }
+
+    &__row--loading,
+    &__row--loading a {
+        cursor: progress;
     }
 
     &__row--details-are-visible > td {
@@ -101,6 +109,20 @@
 
     &__header--message {
         width: auto;
+    }
+
+    &__header--map {
+        width: 80px;
+    }
+
+    &__icon-button {
+        vertical-align: top;
+
+        .icon {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
     }
 }
 
