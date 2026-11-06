@@ -16,8 +16,15 @@ import {
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { PublishedAsset } from 'publication/publication-api';
-import { PublicationDisplayMode } from 'publication/table/publication-table-utils';
+import {
+    PublicationDisplayMode,
+    publishedAssetBoundingBox,
+    publishedAssetSelection,
+} from 'publication/table/publication-table-utils';
+import { BoundingBox } from 'model/geometry';
+import { OnSelectOptions } from 'selection/selection-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type PublicationTableRowProps = {
     publicationDisplayMode: PublicationDisplayMode;
@@ -26,6 +33,7 @@ type PublicationTableRowProps = {
     detailsVisibleToggle: (id: PublicationId) => void;
     displaySinglePublication: (id: PublicationId) => void;
     displayItemHistory: (item: SearchItemValue<SearchItemType>) => void;
+    showOnMap: (area: BoundingBox, selection: OnSelectOptions) => void;
 } & PublicationTableItem;
 
 type PublicationTableMessageProps = {
@@ -84,12 +92,15 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     detailsVisibleToggle,
     displaySinglePublication,
     displayItemHistory,
+    showOnMap,
     publicationDisplayMode,
 }) => {
     const { t } = useTranslation();
+    const [isLoadingMapSelection, setIsLoadingMapSelection] = React.useState(false);
     const rowClassNames = createClassName(
         styles['publication-table__row'],
         detailsVisible && styles['publication-table__row--details-are-visible'],
+        isLoadingMapSelection && styles['publication-table__row--loading'],
     );
 
     const assetAsSearchItem = assetToSearchItem(asset);
@@ -99,6 +110,17 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
             : () => {
                   displayItemHistory(assetAsSearchItem);
               };
+
+    const boundingBox = publishedAssetBoundingBox(asset);
+
+    const onShowOnMap = (boundingBox: BoundingBox) => {
+        setIsLoadingMapSelection(true);
+        publishedAssetSelection(asset, changedKmNumbers)
+            .then((selection) => showOnMap(boundingBox, selection))
+            .finally(() => {
+                setIsLoadingMapSelection(false);
+            });
+    };
 
     return (
         <React.Fragment>
@@ -135,13 +157,23 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                     />
                 </td>
                 <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
+                <td className={styles['publication-table__icon-button']}>
+                    {boundingBox && (
+                        <AnchorLink
+                            onClick={() => onShowOnMap(boundingBox)}
+                            title={t('publication-table.show-on-map')}>
+                            <Icons.Map />
+                            {t('publication-table.map')}
+                        </AnchorLink>
+                    )}
+                </td>
             </tr>
             {detailsVisible && (
                 <tr className={styles['publication-table__details-row']}>
                     <td className={styles['publication-table__details-left-bar-container']}>
                         <span className={styles['publication-table__details-left-bar']}></span>
                     </td>
-                    <td colSpan={8}>
+                    <td colSpan={9}>
                         {propChanges.length > 0 ? (
                             <PublicationTableDetails id={id} changes={propChanges} />
                         ) : (
