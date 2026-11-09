@@ -17,7 +17,7 @@ val kotlinVersion = "2.4.21"
 plugins {
     id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.jk1.dependency-license-report") version "3.1.4"
+    id("com.github.jk1.dependency-license-report") version "3.1.5"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.4.21"
     kotlin("plugin.spring") version "2.4.21"
@@ -59,7 +59,7 @@ dependencies {
     // these should still restrict the versions that actually get pulled.
     constraints {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
-        implementation("com.google.errorprone:error_prone_annotations:2.51.0")
+        implementation("com.google.errorprone:error_prone_annotations:2.52.0")
         implementation("com.google.guava:guava:33.7.2-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
         implementation("javax.measure:unit-api:2.2")
@@ -69,11 +69,11 @@ dependencies {
         implementation("org.apache.commons:commons-lang3:3.21.0")
 
         // swagger-parser pulls a vulnerable version of rhino -> override with newer version
-        testImplementation("org.mozilla:rhino:1.9.1")
+        testImplementation("org.mozilla:rhino:1.9.2")
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.57.3")
+    implementation("software.amazon.awssdk:cloudfront:2.57.8")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
