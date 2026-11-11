@@ -112,6 +112,11 @@ sealed class RoutingEdge {
     abstract fun reverse(): RoutingEdge
 }
 
+/** Keep temporary edges distinct from value-equal base edges in the AsGraphUnion using identity equality. */
+private class TemporaryRoutingEdge(val routingEdge: RoutingEdge) : RoutingEdge() {
+    override fun reverse(): TemporaryRoutingEdge = TemporaryRoutingEdge(routingEdge.reverse())
+}
+
 data class RoutingConnection(val from: RoutingVertex, val to: RoutingVertex, val length: Double) {
     fun reverse(): RoutingConnection = copy(from = to.reverse(), to = from.reverse())
 }
@@ -371,6 +376,7 @@ internal constructor(
             is PartialSwitchInternalEdge ->
                 findSwitchRouteSections(edge.alignment, edge.direction, favoredTrackIds, edge.mRange)
             is SwitchInternalEdge -> findSwitchRouteSections(edge.alignment, edge.direction, favoredTrackIds)
+            is TemporaryRoutingEdge -> error("TemporaryRoutingEdge should be unwrapped in findPathEdges")
             is DirectConnectionEdge,
             is TopologyTransitionEdge -> emptyList()
         }
@@ -553,7 +559,12 @@ internal constructor(
                     buildTempRoutingGraph(startVertex, endVertex, startEdge to startMRange, endEdge to endMRange)
                 // Route the start->end in a union graph of the main graph + temp additions
                 val dijkstra = DijkstraShortestPath(AsGraphUnion(jgraph, tmpGraph))
-                dijkstra.getPath(startVertex, endVertex)?.edgeList?.filterNotNull()?.takeIf { it.isNotEmpty() }
+                dijkstra
+                    .getPath(startVertex, endVertex)
+                    ?.edgeList
+                    ?.filterNotNull()
+                    ?.map { edge -> if (edge is TemporaryRoutingEdge) edge.routingEdge else edge }
+                    ?.takeIf { it.isNotEmpty() }
             }
         }
     }
@@ -606,7 +617,7 @@ internal constructor(
                                 OUT -> (midPoint to data.vertex)
                                 IN -> (data.vertex to midPoint)
                             }
-                        graph.addWeightedEdge(start, end, edge, length)
+                        graph.addWeightedEdge(start, end, TemporaryRoutingEdge(edge), length)
                     }
             }
 

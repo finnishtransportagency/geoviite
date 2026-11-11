@@ -8,15 +8,18 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geography.WGS_84_SRID
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
@@ -44,6 +47,7 @@ constructor(
     mockMvc: MockMvc,
     private val extTestDataService: ExtApiTestDataServiceV1,
     private val layoutDesignDao: LayoutDesignDao,
+    private val switchLibraryService: SwitchLibraryService,
 ) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
@@ -237,6 +241,89 @@ constructor(
         assertEquals(50.0, sections[0].pituus)
         assertEquals(100.0, sections[1].pituus)
         assertEquals(sections.sumOf { section -> section.pituus }, response.reitti.pituus, 0.001)
+    }
+
+    @Test
+    fun `Routing through a database-built partial switch alignment does not throw`() {
+        val structure = switchLibraryService.getSwitchStructures().single { it.type.typeName == "YRV54-200-1:9" }
+        val structureJointsByNumber = structure.joints.associateBy { it.number.intValue }
+        fun layoutJoint(number: Int) =
+            structureJointsByNumber.getValue(number).let { joint ->
+                switchJoint(number, joint.location, SwitchJointRole.of(structure, joint.number))
+            }
+
+        val joint1 = layoutJoint(1)
+        val joint5 = layoutJoint(5)
+        val joint2 = layoutJoint(2)
+        val joint3 = layoutJoint(3)
+        val switchJoints = structure.joints.map { joint -> layoutJoint(joint.number.intValue) }
+        val (switchId, _) = mainDraftContext.saveWithOid(switch(structure.id, switchJoints))
+        val (trackNumberId, _) =
+            mainDraftContext.saveWithOid(
+                trackNumber(testDBService.getUnusedTrackNumber()),
+                referenceLineGeometry(segment(Point(-100.0, 0.0), Point(100.0, 0.0))),
+            )
+        val switchJoint1Link = SwitchLink(switchId, joint1.number, structure)
+        val switchJoint5Link = SwitchLink(switchId, joint5.number, structure)
+        val switchJoint3Link = SwitchLink(switchId, joint3.number, structure)
+        val (startTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(joint5.location, joint1.location)),
+                        startInnerSwitch = switchJoint5Link,
+                        endInnerSwitch = switchJoint1Link,
+                    )
+                ),
+            )
+        val (mainTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(joint1.location, joint2.location)),
+                        startInnerSwitch = switchJoint1Link,
+                        endInnerSwitch = SwitchLink(switchId, joint2.number, structure),
+                    )
+                ),
+            )
+        val (branchTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(joint1.location, joint3.location)),
+                        startInnerSwitch = switchJoint1Link,
+                        endInnerSwitch = switchJoint3Link,
+                    )
+                ),
+            )
+        val (endTrackId, endTrackOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(joint3.location, Point(100.0, -5.7))),
+                        startOuterSwitch = switchJoint3Link,
+                    )
+                ),
+            )
+        testDBService.publish(
+            trackNumbers = listOf(trackNumberId),
+            locationTracks = listOf(startTrackId, mainTrackId, branchTrackId, endTrackId),
+            switches = listOf(switchId),
+        )
+        val response =
+            api.routing.get(
+                startX = joint5.location.x,
+                startY = joint5.location.y,
+                endX = 67.16,
+                endY = -3.835,
+            )
+
+        assertTrue(response.reitti.reitin_osat.isNotEmpty())
+        assertTrue(response.reitti.reitin_osat.any { it.sijaintiraide_oid == endTrackOid.toString() })
     }
 
     @Test
