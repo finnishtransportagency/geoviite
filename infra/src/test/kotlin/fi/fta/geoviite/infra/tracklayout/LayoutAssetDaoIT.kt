@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
 import java.time.Instant
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -90,24 +91,31 @@ constructor(
     @Test
     fun `official layout rows cannot be deleted`() {
         val designOfficialContext = testDBService.testContext(testDBService.createDesignBranch(), OFFICIAL)
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber()
-        val officialRows =
+        listOf(mainOfficialContext, designOfficialContext).forEach { context ->
+            val trackNumber = context.createLayoutTrackNumber()
             listOf(
-                "track_number" to trackNumber,
-                "location_track" to mainOfficialContext.saveLocationTrack(locationTrackAndGeometry(trackNumber.id)),
-                "switch" to mainOfficialContext.save(switch()),
-                "km_post" to mainOfficialContext.save(kmPost(trackNumber.id, KmNumber(1))),
-                "operational_point" to mainOfficialContext.save(operationalPoint()),
-                "km_post" to designOfficialContext.save(kmPost(trackNumber.id, KmNumber(2))),
-            )
-
-        officialRows.forEach { (table, version) ->
-            assertThrows<DataAccessException>("Deleted official row: table=$table version=$version") {
-                jdbc.update(
-                    "delete from layout.$table where id = :id and layout_context_id = :layout_context_id",
-                    mapOf("id" to version.id.intValue, "layout_context_id" to version.context.toSqlString()),
+                    "track_number" to trackNumber,
+                    "location_track" to context.saveLocationTrack(locationTrackAndGeometry(trackNumber.id)),
+                    "switch" to context.save(switch()),
+                    "km_post" to context.save(kmPost(trackNumber.id, KmNumber(1))),
+                    "operational_point" to context.save(operationalPoint()),
                 )
-            }
+                .forEach { (table, version) ->
+                    val exception =
+                        assertThrows<DataAccessException>("Deleted official row: table=$table version=$version") {
+                            jdbc.update(
+                                "delete from layout.$table where id = :id and layout_context_id = :layout_context_id",
+                                mapOf(
+                                    "id" to version.id.intValue,
+                                    "layout_context_id" to version.context.toSqlString(),
+                                ),
+                            )
+                        }
+                    assertContains(
+                        exception.mostSpecificCause.message!!,
+                        "Deleting official layout rows is not allowed: table=layout.$table id=${version.id.intValue}",
+                    )
+                }
         }
     }
 
