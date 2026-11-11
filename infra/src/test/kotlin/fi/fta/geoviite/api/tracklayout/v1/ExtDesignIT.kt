@@ -406,6 +406,8 @@ constructor(
         editInDesign(design, track, "design")
         testDBService.publish(design.branch, locationTracks = listOf(track.id))
         val completionPublication = completeInDesign(design, track)
+        // Main changes are inherited into completed designs too, so their ext-API addresses stay current
+        assertEquals(DesignState.COMPLETED, layoutDesignDao.fetch(design.branch.designId).designState)
 
         initUser()
         mainDraftContext.mutate(kmPostId) { post -> post.copy(gkLocation = kmPostGkLocation(120.0, 0.0)) }

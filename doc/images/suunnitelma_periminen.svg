@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="930" height="200" viewBox="0 0 930 200" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    text { fill: #1e1e1c; font-size: 12px; }
+    .s { font-size: 11px; }
+    .dim { fill: #66645e; font-size: 11px; }
+    .box { fill: #ffffff; stroke: #1e1e1c; stroke-width: 1.2; }
+    .acc { fill: #ffffff; stroke: #2b5d8a; stroke-width: 2; }
+    .edge { stroke: #1e1e1c; stroke-width: 1.3; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e1e1c"/></marker>
+  </defs>
+  <rect width="930" height="200" fill="white"/>
+
+  <rect x="10" y="78" width="150" height="44" rx="4" class="box"/><text x="85" y="98" text-anchor="middle">main-julkaisu</text><text x="85" y="113" text-anchor="middle" class="dim">MANUAL</text>
+  <rect x="250" y="14" width="230" height="44" rx="4" class="box"/><text x="365" y="34" text-anchor="middle">valmistuneet viennit</text><text x="365" y="49" text-anchor="middle" class="dim">COMPLETED-luonnokset</text>
+  <rect x="250" y="142" width="230" height="44" rx="4" class="box"/><text x="365" y="162" text-anchor="middle">epäsuorat muutokset</text><text x="365" y="177" text-anchor="middle" class="dim">vain kohteet, joilla suunnitelman OID</text>
+  <rect x="580" y="78" width="230" height="44" rx="4" class="acc"/><text x="695" y="98" text-anchor="middle">lapsijulkaisu</text><text x="695" y="113" text-anchor="middle" class="dim">suunnitelmittain, CALCULATED_CHANGE</text>
+  <rect x="835" y="78" width="85" height="44" rx="4" class="box"/><text x="877" y="98" text-anchor="middle" class="s">suunnitelma</text><text x="877" y="112" text-anchor="middle" class="s">valmis?</text>
+
+  <path d="M160,92 L205,92 L205,36 L246,36" class="edge" marker-end="url(#a)"/>
+  <path d="M160,108 L205,108 L205,164 L246,164" class="edge" marker-end="url(#a)"/>
+  <path d="M480,36 L530,36 L530,92 L576,92" class="edge" marker-end="url(#a)"/>
+  <text x="490" y="28" class="s">rivit julkaistaan</text>
+  <path d="M480,164 L530,164 L530,108 L576,108" class="edge" marker-end="url(#a)"/>
+  <text x="490" y="186" class="s">vain kirjataan</text>
+  <line x1="810" y1="100" x2="831" y2="100" class="edge" marker-end="url(#a)"/>
+</svg>

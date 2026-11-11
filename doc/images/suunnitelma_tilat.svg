@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="170" viewBox="0 0 760 170" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    text { fill: #1e1e1c; font-size: 11px; }
+    .l { font-size: 13px; }
+    .warn { fill: #a3631a; }
+    .box { fill: #ffffff; stroke: #1e1e1c; stroke-width: 1.2; }
+    .acc { fill: #ffffff; stroke: #2b5d8a; stroke-width: 2; }
+    .edge { stroke: #1e1e1c; stroke-width: 1.3; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e1e1c"/></marker>
+  </defs>
+  <rect width="760" height="170" fill="white"/>
+
+  <rect x="30" y="66" width="110" height="38" rx="4" class="acc"/><text x="85" y="90" text-anchor="middle" class="l">ACTIVE</text>
+  <rect x="600" y="14" width="130" height="38" rx="4" class="box"/><text x="665" y="38" text-anchor="middle" class="l">COMPLETED</text>
+  <rect x="600" y="118" width="130" height="38" rx="4" class="box"/><text x="665" y="142" text-anchor="middle" class="l">DELETED</text>
+
+  <path d="M140,78 L230,33 L596,33" class="edge" marker-end="url(#a)"/>
+  <text x="250" y="25">automaattisesti julkaisun yhteydessä: ei OPEN-rivejä</text>
+  <text x="250" y="48">eikä luonnoksia, ja vähintään yksi COMPLETED</text>
+
+  <path d="M140,92 L230,137 L596,137" class="edge" marker-end="url(#a)"/>
+  <text x="250" y="129">käyttäjä poistaa</text>
+  <text x="250" y="154" class="warn">estetty, jos jotain on viety tai vienti on kesken</text>
+</svg>

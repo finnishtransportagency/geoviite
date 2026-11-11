@@ -27,7 +27,11 @@ Tarkempi kuvaus konteksteista löytyy dokumentista [Paikannuspohjan kontekstit](
 |---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **ACTIVE**    | Työn alla oleva suunnitelma. Voi sisältää luonnoksia ja julkaistuja muutoksia. Yksittäisiä käsitteitä voidaan peruuttaa tai valmistaa itsenäisesti, joten aktiivinen suunnitelma voi sisältää sekä peruttuja että valmistuneita osia samanaikaisesti. Aktiivisesta suunnitelmasta voidaan siirtyä joko COMPLETED- tai DELETED-tilaan. |
 | **COMPLETED** | Suunnitelma on valmistunut: siinä ei ole avoimia kohteita ja vähintään yksi kohde on valmistunut. Tila asetetaan automaattisesti julkaisun yhteydessä. Valmista suunnitelmaa ei voi muokata eikä poistaa.                                                                                                                             |
-| **DELETED**   | Suunnitelma on poistettu kokonaan. Julkaistut kohteet, joita ei ole vielä viety luonnostilaan, peruutetaan.                                                                                                                                                                                                                           |
+| **DELETED**   | Suunnitelma on poistettu kokonaan. Suunnitelman kohteet peruutetaan. Poisto on estetty, jos jokin kohde on jo viety viralliseen paikannuspohjaan tai sen vienti on kesken.                                                                                                                                                            |
+
+Kumpikin lopputila on lopullinen, eikä suunnitelma palaa niistä takaisin ACTIVE-tilaan.
+
+![](images/suunnitelma_tilat.svg)
 
 ## Kontekstisiirtymät
 
@@ -45,10 +49,11 @@ sequenceDiagram
     Note over DD: Suunnittelua, muokkauksia
     DD->>DO: 2. Suunnitelman julkaisu
     Note over DO: Suunnitelma julkaistu
-    DO->>MD: 3. Kohteen valmistuminen
+    DO->>MD: 3. Siirto luonnostilaan
     Note over MD: Täydennykset ja tarkistukset
     MD->>MO: 4. Julkaisu viralliseen paikannuspohjaan
     Note over MO: Muutos virallisessa paikannuspohjassa
+    MO-->>DO: Kohde merkitään suunnitelmassa valmistuneeksi (COMPLETED)
 ```
 
 ### 1. Suunnitelman luonti ja muokkaus (Main Official → Design Draft)
@@ -91,6 +96,12 @@ osa sen kohteista valmistuu kerrallaan.
       (esim. assettien duplikaattinimet) estävät siirron. Nämä virheet on helpompaa korjata main-draftin puolella.
 - Tuotuja kohteita voidaan vielä tarkastella ja täydentää varsinaisen luonnostilan puolella
 
+Siirto ei vielä valmista kohdetta: suunnitelman rivi pysyy OPEN-tilassa, ja main-draft -rivillä on tieto
+lähtösuunnitelmasta (`origin_design_id`). Siirron ja main-julkaisun välillä voi kulua pitkäänkin. Tänä aikana
+("vienti kesken") kohdetta ei voi muokata eikä perua suunnitelmassa, eikä suunnitelmaa voi poistaa. Syy on vaiheessa 4:
+valmistumismerkintä kirjoitetaan suunnitelman luonnosriville, joten suunnitelmaan välillä tehty muutos jäisi sen alle.
+Keskeneräisen viennin voi perua hylkäämällä kohteen main-draft -luonnoksen, jolloin kohde on taas tavallinen OPEN-kohde.
+
 Kohteiden valmistuminen ei valmista tai poista itse suunnitelmaa, vaan sen työstämistä voidaan edelleen jatkaa.
 
 ### 4. Julkaisu viralliseen paikannuspohjaan (Main Draft → Main Official)
@@ -101,6 +112,16 @@ Viimeisenä vaiheena main-draft -kohteet julkaistaan normaalin julkaisuprosessin
 - Suoritetaan täysi julkaisuvalidointi
 - Muutokset viedään viralliseen paikannuspohjaan, josta niitä voidaan jakaa eteenpäin
 - Kohteet säilyvät edelleen suunnitelmassa, mutta niiden tila muuttuu COMPLETED-tilaan
+
+Valmistuminen tapahtuu kahdessa osassa samassa transaktiossa. Main-julkaisu kirjoittaa suunnitelman virallisen rivin
+sisällöstä COMPLETED-tilaisen suunnitelman luonnosrivin (`completeMergeToMain`). Sen jälkeen main-julkaisulle tehdään
+suunnitelmaan lapsijulkaisu (CALCULATED_CHANGE), joka julkaisee COMPLETED-rivin suunnitelman viralliseksi riviksi. Tämä
+lapsijulkaisu on myös se, josta ext-API:n muutosrajapinta näkee kohteen muuttuneen tilaan "valmis".
+
+![](images/suunnitelma_vienti.svg)
+
+Jos julkaisun jälkeen suunnitelmassa ei ole yhtään OPEN-riviä (luonnokset mukaan lukien) ja vähintään yksi kohde on
+valmistunut, suunnitelma siirtyy automaattisesti COMPLETED-tilaan.
 
 ## Muutosten periminen
 
@@ -139,6 +160,18 @@ on OID. Jos on, tallennetaan suunnitelmittain CALCULATED_CHANGE-julkaisuja, jois
 Mainista perittävissä muutoksissa on siis ihan normaalia, että voidaan tarkastella muutoksia ympäri rataverkon, ja
 nähdä että kyllähän tämä muutos periytyy ympäriinsä suunnitelmiin; mutta vain sellaisille tapauksille, joissa oliolla
 on suunnitelman OID, siitä tallennetaan julkaisutauluun muutos.
+
+Sama lapsijulkaisu sisältää myös main-julkaisussa valmistuneet viennit (ks. vaihe 4 yllä). Ne ovat lapsijulkaisun
+ainoat kohteet, joista kirjoitetaan suunnitelmaan uusia rivejä. Epäsuorat muutokset vain kirjataan julkaisutauluun,
+eikä suunnitelman rivejä muuteta.
+
+![](images/suunnitelma_periminen.svg)
+
+Muutokset peritään myös COMPLETED-tilaisiin suunnitelmiin (poistettuihin ei). Valmiin suunnitelman kohteet näkyvät
+edelleen ext-API:ssa rataosoitteineen, ja osoitteet lasketaan kunkin version julkaisuhetken geokoodauksella. Jos main
+siirtää esimerkiksi tasakilometripistettä, valmiin suunnitelman kohteen osoite muuttuu seuraavassa versiossa, ja
+lapsijulkaisu kertoo lukijalle, että kohde pitää hakea uudelleen. Valmiiseen suunnitelmaan ei tämän kautta kirjoiteta
+rivejä: valmistuneita vientejä siinä ei voi olla, koska kesken oleva vienti pitää suunnitelman ACTIVE-tilassa.
 
 ### Suunnitelmasta itseensä periytyvä muutos
 
@@ -200,6 +233,34 @@ jne. Ne kuvaavat kohteiden tilaa paikannuspohjan käsitteinä (Käytössä, pois
 DesignAssetState
 kuvaa niiden elinkaarta suunnitelmaprosessissa.
 
+### Kohteen tilasiirtymät
+
+![](images/suunnitelma_kohteen_tilat.svg)
+
+| Tilanne                               | Estetty                                     | Missä tarkistetaan                                         |
+|---------------------------------------|---------------------------------------------|------------------------------------------------------------|
+| Kohteen vienti kesken                 | Kohteen muokkaus ja peruutus suunnitelmassa | `LayoutAssetService.saveDraftInternal`                     |
+| Suunnitelma COMPLETED                 | Kaikki muokkaukset suunnitelmassa           | `LayoutAssetService.saveDraftInternal`                     |
+| Jokin kohde viety tai vienti kesken   | Suunnitelman poisto                         | `LayoutDesignService.update`, poistonappi käyttöliittymässä |
+| Suunnitelmassa on luonnoksia          | Siirto luonnostilaan                        | Käyttöliittymä (esikatselu)                                |
+
+### Kaksi näkymää suunnitelmaan
+
+Samoja suunnitelman rivejä luetaan kahdella eri tavalla:
+
+- **Suunnitelmakonteksti** (käyttöliittymä, validointi, geokoodaus, linkitys) vastaa kysymykseen "miltä rataverkko
+  näyttää tämän suunnitelman kanssa". Se ottaa pohjaksi main-officialin ja asettaa päälle suunnitelman OPEN-rivit.
+  COMPLETED- ja CANCELLED-rivit ohitetaan, jolloin niiden kohdalla näkyy main. Valmistunut muutos on jo mainissa
+  (mahdollisesti myöhemmin täydennettynä), eikä peruttua muutosta haluta näkyviin.
+- **Ext-API:n suunnitelmapolut** (`/suunnitelmat/{oid}/...`) vastaavat kysymykseen "mitä suunnitelmaan on suunniteltu
+  ja mitä kullekin kohteelle on tapahtunut". Ne lukevat vain suunnitelman omat viralliset rivit tilasta riippumatta,
+  ilman main-pohjaa. Kohteen tila näkyy kentässä `kohteen_tila_suunnitelmassa` (avoin / valmis / peruttu).
+
+![](images/suunnitelma_kaksi_nakymaa.svg)
+
+Tästä seuraa, että käyttöliittymässä suunnitelma, jonka kaikki kohteet on viety tai peruttu, näyttää tyhjältä:
+valmistuneet kohteet näkyvät tavallisina main-kohteina ja perutut eivät näy ollenkaan.
+
 ## Julkaisut suunnitelmissa
 
 Suunnitelmien muutokset tehdään luonnoksina, ja samaan tapaan kuin varsinaisen paikannuspohjankin kanssa ne ne pitää
@@ -213,14 +274,21 @@ Suunnitelmassa on kaksi tasoa, joilla asioita voidaan peruuttaa:
 ### Yksittäisen kohteen peruutus (CANCELLED)
 
 Jos yksittäinen suunnitelman kohde (esim. raide) päätetään jättää toteuttamatta, se voidaan merkitä CANCELLED-tilaan.
-Tällöin kohde poistuu kokonaan suunnitelmasta.
+Tällöin kohde poistuu suunnitelmakontekstista, ja sen kohdalla näkyy main. Ext-API:ssa kohde näkyy edelleen tilassa
+"peruttu" peruutusta edeltävällä sisällöllä.
 
 Peruutusprosessi:
 
-1. Käyttäjä merkitsee kohteen peruutetuksi
+1. Käyttäjä merkitsee kohteen peruutetuksi. Peruutus on suunnitelman luonnosmuutos.
 2. Käyttäjä tekee uuden julkaisun jossa peruutus julkaistaan design-official -tilaan
 
+Peruutus on estetty, jos kohteen vienti on kesken. Yksittäisen kohteen voi perua, vaikka suunnitelman muita kohteita
+olisi jo viety.
+
 ### Koko suunnitelman poisto (DELETED)
+
+Suunnitelmaa ei voi poistaa, jos jokin sen kohde on jo viety viralliseen paikannuspohjaan (COMPLETED) tai sen vienti on
+kesken. Muuten suunnitelman poisto peruisi kohteita, joiden versio on jo virallisessa paikannuspohjassa.
 
 Kun koko suunnitelma poistetaan:
 
@@ -233,7 +301,8 @@ Kun koko suunnitelma poistetaan:
 
 Suunnitelmakontekstit tulee huomioida myös suurimmassa osassa paikannuspohjan rajapinnoista. Rajapinnoissa konteksti
 määritetään dokumentissa
-[Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md) kuvatulla tavalla.
+[Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md) kuvatulla tavalla. Ext-API:n suunnitelmapolut ovat
+poikkeus: ne lukevat vain suunnitelman omia rivejä (ks. kohta "Kaksi näkymää suunnitelmaan" yllä).
 
 ## Liittyvät dokumentit
 
