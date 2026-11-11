@@ -2,6 +2,8 @@ import com.github.jk1.license.filter.DependencyFilter
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.ReportRenderer
+import com.github.psxpaul.task.ExecFork
+import com.github.psxpaul.task.ExecJoin
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
@@ -10,6 +12,8 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.springframework.boot.gradle.tasks.run.BootRun
+import com.github.psxpaul.task.JavaExecFork
 
 val geotoolsVersion = "34.4"
 val kotlinVersion = "2.4.21"
@@ -18,6 +22,7 @@ plugins {
     id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.4"
+    id("com.github.psxpaul.execfork") version "0.2.2"
     // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.4.21"
     kotlin("plugin.spring") version "2.4.21"
@@ -157,6 +162,217 @@ tasks.withType<KotlinCompile> {
     }
 }
 
+fun registerDbRun(taskName: String, containerName: String, port: Int) {
+    val dbImageName = "gvt-postgres"
+    val dbImageDockerFile = "docker-images/geoviite-postgres"
+    val dbName = "geoviite"
+    val dbUser = "dev-geouser"
+    val dbPassword = "dev-geouser-password"
+    tasks.register<Exec>("${taskName}Run") {
+        group = "application"
+        description = "Ensures the $containerName database container is running"
+        workingDir = rootProject.projectDir.parentFile
+        commandLine(
+            "bash",
+            "-c",
+            """
+                set -e
+                if ! docker image inspect $dbImageName:latest >/dev/null 2>&1; then
+                    docker build -t $dbImageName $dbImageDockerFile
+                fi
+                if ! docker container inspect $containerName >/dev/null 2>&1; then
+                    docker create \
+                        --name $containerName \
+                        --user 1000:1000 \
+                        -p 127.0.0.1:$port:5432 \
+                        --restart no \
+                        -e POSTGRES_DB=$dbName \
+                        -e POSTGRES_USER=$dbUser \
+                        -e POSTGRES_PASSWORD=$dbPassword \
+                        -e PGDATA=/var/lib/postgresql/data/pgdata \
+                        --shm-size=1G \
+                        $dbImageName:latest
+                fi
+                docker start $containerName
+            """.trimIndent(),
+        )
+    }
+    tasks.register<Exec>("${taskName}Stop") {
+        group = "application"
+        description = "Ensures the $containerName database container is running"
+        workingDir = rootProject.projectDir.parentFile
+        commandLine(
+            "bash",
+            "-c",
+            """
+                set -e
+                docker stop $containerName
+            """.trimIndent(),
+        )
+    }
+    tasks.register<Exec>("${taskName}Destroy") {
+        group = "application"
+        description = "Ensures the $containerName database container is removed including the image"
+        workingDir = rootProject.projectDir.parentFile
+        commandLine(
+            "bash",
+            "-c",
+            """
+                set -e
+                echo "Removing database container: container=$containerName"
+                docker stop $containerName
+                docker rm "$containerName"
+                docker image rm "$dbImageName"
+            """.trimIndent(),
+        )
+    }
+    tasks.register<BootRun>("${taskName}Clear") {
+        group = "application"
+        description = "Cleans and reinitializes the $containerName database container"
+        dependsOn(tasks.named("classes"), tasks.named("${taskName}Run"))
+        classpath = sourceSets["main"].runtimeClasspath
+        mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+        environment("PID", "Geoviite")
+        environment("DB_URL", "localhost:$port/geoviite")
+        systemProperty("spring.profiles.active", "dev,datareset")
+        systemProperty("geoviite.data.import", "false")
+        enableAssertions = true
+    }
+}
+
+registerDbRun("devDb", "geoviite-db", 5435)
+registerDbRun("testDb", "geoviite-test-db", 5436)
+
+tasks.register<BootRun>("infraDev") {
+    group = "application"
+    description = "Runs Geoviite with the local backend profile"
+    dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+    environment("PID", "Geoviite")
+    systemProperty("spring.profiles.active", "dev,noauth,backend")
+    enableAssertions = true
+}
+tasks.register<BootRun>("apiDev") {
+    group = "application"
+    description = "Runs Geoviite with the external API profile"
+    dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+    environment("PID", "Geoviite")
+    systemProperty("spring.profiles.active", "dev,noauth,ext-api")
+    enableAssertions = true
+}
+tasks.register<BootRun>("appDev") {
+    group = "application"
+    description = "Runs Geoviite with the local backend and external API profiles"
+    dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+    environment("PID", "Geoviite")
+    systemProperty("spring.profiles.active", "dev,noauth,backend,ext-api,full-app")
+    enableAssertions = true
+}
+tasks.register<BootRun>("infraTestInteractive") {
+    group = "application"
+    description = "Runs Geoviite with the local e2e test profiles"
+    dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
+    environment("PID", "Geoviite")
+    systemProperty("spring.profiles.active", "dev,noauth,ratkotest,e2e,backend")
+    systemProperty("spring.datasource.url", "jdbc:postgresql://localhost:5436/geoviite")
+    enableAssertions = true
+}
+
+tasks.register<JavaExecFork>("infraTest") {
+    group = "application"
+    description = "Runs Geoviite with the local e2e test profiles"
+    dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
+    classpath = sourceSets["main"].runtimeClasspath
+    main = "fi.fta.geoviite.infra.InfraApplicationKt"
+    enableAssertions = true
+
+    environment("PID", "Geoviite")
+    systemProperty("spring.profiles.active", "dev,noauth,ratkotest,e2e,backend")
+    systemProperty("spring.datasource.url", "jdbc:postgresql://localhost:5436/geoviite")
+
+    // Give the app a few seconds to start up and listen on its port
+    waitForPort = 8080
+    waitForOutput = "Preloading caches done"
+}
+tasks.register<ExecJoin>("infraTestStop") {
+    description = "Stops the Geoviite e2e test application"
+    forkTask = tasks.named<JavaExecFork>("infraTest").get()
+}
+
+tasks.register<ExecFork>("uiTest") {
+    group = "application"
+    description = "Starts the UI dev server"
+    workingDir = rootProject.projectDir.parentFile
+    executable = "ui/start_front.sh"
+
+    waitForPort = 9001
+    waitForOutput = "[webpack-dev-server] Loopback: http://127.0.0.1:9001/"
+}
+
+tasks.register<Exec>("uiDev") {
+    group = "application"
+    description = "Starts the UI dev server"
+    workingDir = rootProject.projectDir.parentFile
+    executable = "ui/start_front.sh"
+}
+
+tasks.register<ExecJoin>("uiTestStop") {
+    description = "Stops the UI dev server"
+    forkTask = tasks.named<ExecFork>("uiTest").get()
+}
+
+tasks.register<Test>("runIntegrationTests") {
+    group = "verification"
+    description = "Starts the local test database and runs integration tests"
+    dependsOn(tasks.named("testDbRun"))
+    finalizedBy(tasks.named("testDbStop"))
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    filter { includeTestsMatching("*IT") }
+    useJUnitPlatform()
+    outputs.upToDateWhen { false }
+    enableAssertions = true
+}
+
+tasks.register<Test>("runUnitTests") {
+    group = "verification"
+    description = "Runs unit tests"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    filter { includeTestsMatching("*Test") }
+    useJUnitPlatform()
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    outputs.upToDateWhen { false }
+    enableAssertions = true
+}
+
+tasks.register<Test>("runE2ETests") {
+    group = "verification"
+    description = "Runs e2e tests"
+    dependsOn(tasks.named("infraTest"), tasks.named("uiTest"))
+    finalizedBy(tasks.named("uiTestStop"), tasks.named("infraTestStop"))
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    filter { includeTestsMatching("*UI") }
+    useJUnitPlatform()
+    environment("TZ", "Europe/Helsinki")
+    enableAssertions = true
+}
+
+tasks.register<Exec>("format") {
+    group = "verification"
+    description = "Formats all code"
+    workingDir = rootProject.projectDir.parentFile
+    commandLine("infra/script/ktfmt.sh")
+}
+
 tasks.withType<Jar> {
     from("${rootProject.projectDir}/..") {
         include("LICENSE.txt")
@@ -184,6 +400,7 @@ tasks.register<Test>("integrationtest") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
+    enableAssertions = true
 }
 
 tasks.register<Test>("integrationtest-without-cache") {
@@ -191,6 +408,7 @@ tasks.register<Test>("integrationtest-without-cache") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
+    enableAssertions = true
 }
 
 tasks.register<Test>("ui-test-selenium-local") {
@@ -198,6 +416,7 @@ tasks.register<Test>("ui-test-selenium-local") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
+    enableAssertions = true
 }
 
 tasks.register<Test>("ui-test-selenium-docker") {
@@ -210,6 +429,7 @@ tasks.register<Test>("ui-test-selenium-docker") {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
+    enableAssertions = true
 }
 
 tasks.withType<AbstractArchiveTask> {
