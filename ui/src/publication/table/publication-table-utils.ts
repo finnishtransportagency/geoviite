@@ -187,13 +187,16 @@ const publishedAssetTrackNumberId = (
 
 /**
  * The selection for showing a published asset on the map. If the row has a changed km number, the
- * km post of the first changed km is selected as well.
+ * km post of the first changed km is selected as well, and becomes the active tool panel tab.
  */
 export const publishedAssetSelection = async (
     publishedAsset: PublishedAsset,
     changedKmNumbers: Range<KmNumber>[],
 ): Promise<OnSelectOptions> => {
-    const assetSelection = publishedAssetSelectionItems(publishedAsset);
+    const assetSelection: OnSelectOptions = {
+        ...publishedAssetSelectionItems(publishedAsset),
+        selectedTab: { id: publishedAsset.asset.id, type: publishedAsset.type },
+    };
     const kmNumber = changedKmNumbers[0]?.min;
     const trackNumberId = publishedAssetTrackNumberId(publishedAsset);
     if (
@@ -215,8 +218,7 @@ export const publishedAssetSelection = async (
         ? {
               ...assetSelection,
               kmPosts: [kmPost.id],
-              // Without this the tool panel would prioritize the km post over the published asset
-              selectedTab: { id: publishedAsset.asset.id, type: publishedAsset.type },
+              selectedTab: { id: kmPost.id, type: 'KM_POST' },
           }
         : assetSelection;
 };
