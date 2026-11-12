@@ -12,6 +12,11 @@
         white-space: pre-wrap;
     }
 
+    &__row:hover {
+        outline: 3px solid vayla-design.$color-blue-lighter;
+        outline-offset: -3px;
+    }
+
     &__row--loading,
     &__row--loading a {
         cursor: progress;
