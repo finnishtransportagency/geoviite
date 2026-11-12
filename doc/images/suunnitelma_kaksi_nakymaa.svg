@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="340" viewBox="0 0 820 340" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    text { fill: #1e1e1c; font-size: 12px; }
+    .h { font-size: 13px; font-weight: bold; }
+    .b { font-weight: bold; }
+    .dim { fill: #66645e; font-size: 11px; }
+    .box { fill: #ffffff; stroke: #1e1e1c; stroke-width: 1.2; }
+    .acc { fill: #ffffff; stroke: #2b5d8a; stroke-width: 2; }
+    .none { fill: none; stroke: #66645e; stroke-width: 1; stroke-dasharray: 4 3; }
+    .edge { stroke: #1e1e1c; stroke-width: 1.3; fill: none; }
+    .edgeacc { stroke: #2b5d8a; stroke-width: 1.6; fill: none; }
+    .lane { stroke: #dcd9d1; stroke-width: 1; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e1e1c"/></marker>
+    <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b5d8a"/></marker>
+  </defs>
+  <rect width="820" height="340" fill="white"/>
+
+  <text x="310" y="22" text-anchor="middle" class="h">kohde X</text>
+  <text x="450" y="22" text-anchor="middle" class="h">kohde Y</text>
+  <text x="590" y="22" text-anchor="middle" class="h">kohde Z</text>
+  <text x="730" y="22" text-anchor="middle" class="h">kohde W</text>
+
+  <text x="16" y="59">suunnitelman virallinen rivi</text>
+  <text x="16" y="129">main-official -rivi</text>
+  <text x="16" y="219" class="b">suunnitelmakonteksti</text>
+  <text x="16" y="235" class="dim">käyttöliittymä, validointi, geokoodaus</text>
+  <text x="16" y="289" class="b">ext-API, suunnitelma</text>
+  <text x="16" y="305" class="dim">/suunnitelmat/{oid}/...</text>
+
+  <rect x="255" y="38" width="110" height="34" rx="4" class="acc"/><text x="310" y="60" text-anchor="middle">OPEN</text>
+  <rect x="395" y="38" width="110" height="34" rx="4" class="box"/><text x="450" y="60" text-anchor="middle">COMPLETED</text>
+  <rect x="535" y="38" width="110" height="34" rx="4" class="box"/><text x="590" y="60" text-anchor="middle">CANCELLED</text>
+  <rect x="675" y="38" width="110" height="34" rx="4" class="none"/><text x="730" y="60" text-anchor="middle" class="dim">ei riviä</text>
+
+  <rect x="255" y="108" width="110" height="34" rx="4" class="box"/><text x="310" y="130" text-anchor="middle">main</text>
+  <rect x="395" y="108" width="110" height="34" rx="4" class="box"/><text x="450" y="125" text-anchor="middle">main</text><text x="450" y="137" text-anchor="middle" class="dim">+ viety muutos</text>
+  <rect x="535" y="108" width="110" height="34" rx="4" class="box"/><text x="590" y="130" text-anchor="middle">main</text>
+  <rect x="675" y="108" width="110" height="34" rx="4" class="box"/><text x="730" y="130" text-anchor="middle">main</text>
+
+  <line x1="240" y1="170" x2="800" y2="170" class="lane"/>
+
+  <rect x="255" y="200" width="110" height="34" rx="4" class="acc"/><text x="310" y="222" text-anchor="middle">suunnitelman rivi</text>
+  <rect x="395" y="200" width="110" height="34" rx="4" class="box"/><text x="450" y="222" text-anchor="middle">main-rivi</text>
+  <rect x="535" y="200" width="110" height="34" rx="4" class="box"/><text x="590" y="222" text-anchor="middle">main-rivi</text>
+  <rect x="675" y="200" width="110" height="34" rx="4" class="box"/><text x="730" y="222" text-anchor="middle">main-rivi</text>
+
+  <rect x="255" y="270" width="110" height="34" rx="4" class="acc"/><text x="310" y="292" text-anchor="middle">avoin</text>
+  <rect x="395" y="270" width="110" height="34" rx="4" class="box"/><text x="450" y="292" text-anchor="middle">valmis</text>
+  <rect x="535" y="270" width="110" height="34" rx="4" class="box"/><text x="590" y="292" text-anchor="middle">peruttu</text>
+  <rect x="675" y="270" width="110" height="34" rx="4" class="none"/><text x="730" y="292" text-anchor="middle" class="dim">ei listata</text>
+
+  <line x1="310" y1="72" x2="310" y2="196" class="edgeacc" marker-end="url(#aa)"/>
+  <line x1="480" y1="142" x2="480" y2="196" class="edge" marker-end="url(#a)"/>
+  <line x1="620" y1="142" x2="620" y2="196" class="edge" marker-end="url(#a)"/>
+  <line x1="760" y1="142" x2="760" y2="196" class="edge" marker-end="url(#a)"/>
+</svg>

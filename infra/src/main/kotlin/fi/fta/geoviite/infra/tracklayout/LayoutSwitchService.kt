@@ -38,7 +38,8 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val ratkoClient: RatkoClient?,
     private val splitDao: SplitDao,
-) : LayoutAssetService<LayoutSwitch, NoParams, LayoutSwitchDao>(dao) {
+    layoutDesignDao: LayoutDesignDao,
+) : LayoutAssetService<LayoutSwitch, NoParams, LayoutSwitchDao>(dao, layoutDesignDao) {
 
     @Transactional
     fun insertSwitch(branch: LayoutBranch, request: LayoutSwitchSaveRequestBase): IntId<LayoutSwitch> {

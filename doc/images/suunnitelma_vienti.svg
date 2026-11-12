@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="340" viewBox="0 0 880 340" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    text { fill: #1e1e1c; font-size: 12px; }
+    .s { font-size: 11px; }
+    .dim { fill: #66645e; font-size: 11px; }
+    .warn { fill: #a3631a; }
+    .box { fill: #ffffff; stroke: #1e1e1c; stroke-width: 1.2; }
+    .acc { fill: #ffffff; stroke: #2b5d8a; stroke-width: 2; }
+    .wbox { fill: #ffffff; stroke: #a3631a; stroke-width: 2; }
+    .edge { stroke: #1e1e1c; stroke-width: 1.3; fill: none; }
+    .lane { stroke: #dcd9d1; stroke-width: 1; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e1e1c"/></marker>
+  </defs>
+  <rect width="880" height="340" fill="white"/>
+
+  <rect x="300" y="40" width="232" height="276" fill="#a3631a" fill-opacity="0.12"/>
+  <text x="416" y="22" text-anchor="middle" class="warn">vienti kesken: kohteen muokkaus ja peruutus</text>
+  <text x="416" y="35" text-anchor="middle" class="warn">suunnitelmassa estetty</text>
+
+  <text x="12" y="80">design-draft</text>
+  <text x="12" y="150">design-official</text>
+  <text x="12" y="220">main-draft</text>
+  <text x="12" y="290">main-official</text>
+  <line x1="130" y1="110" x2="868" y2="110" class="lane"/>
+  <line x1="130" y1="180" x2="868" y2="180" class="lane"/>
+  <line x1="130" y1="250" x2="868" y2="250" class="lane"/>
+
+  <rect x="150" y="58" width="110" height="34" rx="4" class="box"/><text x="205" y="80" text-anchor="middle">OPEN-luonnos</text>
+  <rect x="150" y="128" width="110" height="34" rx="4" class="acc"/><text x="205" y="150" text-anchor="middle">OPEN</text>
+  <line x1="205" y1="92" x2="205" y2="124" class="edge" marker-end="url(#a)"/>
+  <text x="212" y="114" class="s">1 julkaisu</text>
+
+  <rect x="310" y="198" width="120" height="34" rx="4" class="box"/><text x="370" y="215" text-anchor="middle">luonnos</text><text x="370" y="228" text-anchor="middle" class="dim">origin_design_id</text>
+  <path d="M260,151 L370,151 L370,194" class="edge" marker-end="url(#a)"/>
+  <text x="272" y="144" class="s">2 siirto luonnostilaan</text>
+
+  <rect x="440" y="268" width="90" height="34" rx="4" class="box"/><text x="485" y="290" text-anchor="middle">julkaistu</text>
+  <path d="M430,221 L485,221 L485,264" class="edge" marker-end="url(#a)"/>
+  <text x="492" y="242" class="s">3 julkaisu</text>
+
+  <rect x="560" y="58" width="130" height="34" rx="4" class="wbox"/><text x="625" y="80" text-anchor="middle">COMPLETED-luonnos</text>
+  <path d="M530,285 L625,285 L625,96" class="edge" marker-end="url(#a)"/>
+  <text x="631" y="242" class="s">4 completeMergeToMain</text>
+
+  <rect x="710" y="128" width="110" height="34" rx="4" class="box"/><text x="765" y="150" text-anchor="middle">COMPLETED</text>
+  <path d="M690,75 L765,75 L765,124" class="edge" marker-end="url(#a)"/>
+  <text x="772" y="106" class="s">5 lapsijulkaisu</text>
+</svg>

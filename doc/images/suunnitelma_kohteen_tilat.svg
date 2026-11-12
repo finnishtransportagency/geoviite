@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    text { fill: #1e1e1c; font-size: 12px; }
+    .l { font-size: 13px; }
+    .s { font-size: 11px; }
+    .dim { fill: #66645e; }
+    .warn { fill: #a3631a; font-size: 11px; }
+    .box { fill: #ffffff; stroke: #1e1e1c; stroke-width: 1.2; }
+    .acc { fill: #ffffff; stroke: #2b5d8a; stroke-width: 2; }
+    .wbox { fill: #ffffff; stroke: #a3631a; stroke-width: 2; }
+    .none { fill: none; stroke: #66645e; stroke-width: 1; stroke-dasharray: 4 3; }
+    .edge { stroke: #1e1e1c; stroke-width: 1.3; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e1e1c"/></marker>
+  </defs>
+  <rect width="800" height="300" fill="white"/>
+
+  <rect x="15" y="132" width="90" height="36" rx="4" class="none"/><text x="60" y="155" text-anchor="middle" class="dim">ei riviä</text>
+  <rect x="185" y="132" width="110" height="36" rx="4" class="acc"/><text x="240" y="155" text-anchor="middle" class="l">OPEN</text>
+  <rect x="365" y="42" width="150" height="36" rx="4" class="wbox"/><text x="440" y="65" text-anchor="middle">OPEN, vienti kesken</text>
+  <text x="440" y="32" text-anchor="middle" class="warn">muokkaus ja peruutus estetty</text>
+  <rect x="620" y="42" width="120" height="36" rx="4" class="box"/><text x="680" y="65" text-anchor="middle" class="l">COMPLETED</text>
+  <text x="680" y="32" text-anchor="middle" class="warn">suunnitelman poisto estetty</text>
+  <rect x="380" y="232" width="120" height="36" rx="4" class="box"/><text x="440" y="255" text-anchor="middle" class="l">CANCELLED</text>
+
+  <line x1="105" y1="150" x2="181" y2="150" class="edge" marker-end="url(#a)"/>
+  <text x="143" y="142" text-anchor="middle" class="s">julkaisu</text>
+
+  <line x1="225" y1="132" x2="378" y2="80" class="edge" marker-end="url(#a)"/>
+  <text x="290" y="96" text-anchor="end" class="s">siirto luonnostilaan</text>
+
+  <line x1="420" y1="78" x2="277" y2="131" class="edge" marker-end="url(#a)"/>
+  <text x="368" y="118" class="s">main-luonnoksen hylkäys</text>
+
+  <line x1="515" y1="60" x2="616" y2="60" class="edge" marker-end="url(#a)"/>
+  <text x="566" y="52" text-anchor="middle" class="s">julkaisu mainissa</text>
+
+  <line x1="230" y1="168" x2="395" y2="231" class="edge" marker-end="url(#a)"/>
+  <text x="300" y="226" text-anchor="end" class="s">peruutus + julkaisu</text>
+
+  <path d="M680,78 L680,150 L299,150" class="edge" marker-end="url(#a)"/>
+  <text x="560" y="144" class="s">uudelleenmuokkaus</text>
+
+  <line x1="440" y1="232" x2="290" y2="169" class="edge" marker-end="url(#a)"/>
+  <text x="380" y="196" class="s">uudelleenmuokkaus</text>
+</svg>

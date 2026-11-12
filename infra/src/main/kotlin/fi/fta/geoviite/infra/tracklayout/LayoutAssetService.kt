@@ -2,9 +2,12 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.error.DesignCompletedException
+import fi.fta.geoviite.infra.error.DesignItemMergeInProgressException
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
@@ -17,7 +20,7 @@ abstract class LayoutAssetService<
     ObjectType : LayoutAsset<ObjectType>,
     SaveParamsType,
     DaoType : ILayoutAssetDao<ObjectType, SaveParamsType>,
->(protected open val dao: DaoType) {
+>(protected open val dao: DaoType, private val layoutDesignDao: LayoutDesignDao) {
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -83,7 +86,22 @@ abstract class LayoutAssetService<
     ): LayoutRowVersion<ObjectType> {
         val draft = asDraft(branch, draftAsset)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
+        if (branch is DesignBranch) requireEditableInDesign(branch, draft.id)
         return dao.save(draft, params)
+    }
+
+    // completeMergeToMain overwrites the design row when the merged main draft is published, so an edit made in the
+    // design meanwhile would be lost
+    private fun requireEditableInDesign(branch: DesignBranch, id: DomainId<ObjectType>) {
+        if (layoutDesignDao.fetch(branch.designId).designState == DesignState.COMPLETED) {
+            throw DesignCompletedException(branch.designId)
+        }
+        if (id is IntId) {
+            val mainDraft = dao.fetchVersion(LayoutBranch.main.draft, id)?.let(dao::fetch)
+            if ((mainDraft?.contextData as? MainDraftContextData)?.originBranch == branch) {
+                throw DesignItemMergeInProgressException(branch.designId, id)
+            }
+        }
     }
 
     @Transactional

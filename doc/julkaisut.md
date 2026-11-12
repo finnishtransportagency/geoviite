@@ -99,3 +99,11 @@ Kun virallinen paikannuspohja muuttuu tavalla joka vaikuttaa suunnitelmiin:
 - Tehdään kuhunkin suunnitelmaan, jonka sisältöön muutos vaikuttaa, laskennallinen julkaisu
   (PublicationCause.CALCULATED_CHANGE)
 - Julkaisu sisältää kaikki suunnitelman kohteet, joihin virallisen paikannuspohjan julkaisu vaikuttaa
+- Julkaisu sisältää myös main-julkaisussa valmistuneet viennit, jotka julkaistaan suunnitelmaan COMPLETED-tilaisina
+- Laskennallisia julkaisuja tehdään myös valmiisiin (COMPLETED) suunnitelmiin, mutta ei poistettuihin
+
+### Tyhjä julkaisu suunnitelman valmistumisesta
+
+Kun suunnitelman julkaisun jälkeen suunnitelmassa ei ole avoimia kohteita tai luonnoksia ja vähintään yksi kohde on
+valmistunut, suunnitelma merkitään valmiiksi (COMPLETED) ja tehdään tyhjä julkaisu
+(PublicationCause.LAYOUT_DESIGN_CHANGE). Ks. [Suunnitelmatila](suunnitelmatila.md).
