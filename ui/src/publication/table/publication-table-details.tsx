@@ -46,20 +46,22 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                 <tr>
                     <Th
                         transparent
-                        className={styles['publication-table-details__property-header']}>
+                        className={styles['publication-table-details__header--property']}>
                         {t('publication-details-table.property')}
                     </Th>
                     <Th
                         transparent
-                        className={styles['publication-table-details__old-value-header']}>
+                        className={styles['publication-table-details__header--old-value']}>
                         {t('publication-details-table.old-value')}
                     </Th>
                     <Th
                         transparent
-                        className={styles['publication-table-details__new-value-header']}>
+                        className={styles['publication-table-details__header--new-value']}>
                         {t('publication-details-table.new-value')}
                     </Th>
-                    <Th transparent className={styles['publication-table-details__remarks-header']}>
+                    <Th
+                        transparent
+                        className={styles['publication-table-details__header--remarks']}>
                         {t('publication-details-table.remarks')}
                     </Th>
                 </tr>

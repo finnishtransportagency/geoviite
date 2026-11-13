@@ -245,8 +245,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
             case SearchItemType.SWITCH: {
                 const searchArea = calculateSwitchBoundingBox(
-                    getSwitchLocation(item.layoutSwitch),
                     item.layoutSwitch.joints.map((joint) => joint.location),
+                    getSwitchLocation(item.layoutSwitch),
                 );
                 if (searchArea) {
                     showArea(searchArea);

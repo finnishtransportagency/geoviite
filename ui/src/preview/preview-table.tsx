@@ -184,8 +184,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             case DraftChangeType.SWITCH: {
                 const layoutSwitch = switchesById.get(candidate.id);
                 return calculateSwitchBoundingBox(
-                    candidate.location,
                     layoutSwitch?.joints.map((joint) => joint.location),
+                    candidate.location,
                 );
             }
             case DraftChangeType.KM_POST:

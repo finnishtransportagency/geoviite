@@ -5,6 +5,7 @@ import { PublicationId } from 'publication/publication-model';
 
 export const appPath = {
     'frontpage': '/',
+    'track-layout': '/track-layout',
     'publication-search': '/publications',
     'publication-view': (id: PublicationId) => `/publications/${id}`,
     'inframodel-list': '/infra-model',
