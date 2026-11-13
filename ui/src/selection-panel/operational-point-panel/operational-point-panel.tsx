@@ -34,48 +34,49 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     disabled,
 }: OperationalPointPanelProps) => {
     const { t } = useTranslation();
-    const [visibleOperationalPoints, setVisibleOperationalPoints] = React.useState(
-        [] as OperationalPoint[],
-    );
-
-    React.useEffect(() => {
+    const operationalPointCount = operationalPoints?.length ?? 0;
+    const visibleOperationalPoints = React.useMemo(() => {
         if (operationalPoints) {
             const sortedPoints = [...operationalPoints].sort(compareNamed);
 
-            setVisibleOperationalPoints(sortedPoints.length < max + 1 ? sortedPoints : []);
+            return sortedPoints.length < max + 1 ? sortedPoints : [];
         } else {
-            setVisibleOperationalPoints([]);
+            return [];
         }
     }, [operationalPoints, max]);
 
     return (
-        <ol className={styles['operational-point-panel__operational-points']}>
-            {visibleOperationalPoints.map((op) => {
-                const isSelected =
-                    selectedOperationalPoints?.some((selectedOp) => selectedOp === op.id) ?? false;
-                const status = getStatus(isSelected, disabled);
+        <>
+            {0 < operationalPointCount && operationalPointCount <= max && (
+                <ol className={styles['operational-point-panel__operational-points']}>
+                    {visibleOperationalPoints.map((op) => {
+                        const isSelected =
+                            selectedOperationalPoints?.some((selectedOp) => selectedOp === op.id) ??
+                            false;
+                        const status = getStatus(isSelected, disabled);
 
-                return (
-                    <li key={op.id}>
-                        <OperationalPointBadge
-                            operationalPoint={op}
-                            status={status}
-                            onClick={() => onToggleOperationalPointSelection(op)}
-                        />
-                    </li>
-                );
-            })}
-            {visibleOperationalPoints.length > max && (
+                        return (
+                            <li key={op.id}>
+                                <OperationalPointBadge
+                                    operationalPoint={op}
+                                    status={status}
+                                    onClick={() => onToggleOperationalPointSelection(op)}
+                                />
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
+            {operationalPointCount > max && (
                 <span className={styles['operational-point-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
                 )}`}</span>
             )}
-
-            {visibleOperationalPoints.length === 0 && (
+            {operationalPointCount === 0 && (
                 <span className={styles['operational-point-panel__subtitle']}>{`${t(
                     'selection-panel.no-results',
                 )}`}</span>
             )}
-        </ol>
+        </>
     );
 };
