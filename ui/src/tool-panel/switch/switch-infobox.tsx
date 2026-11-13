@@ -213,8 +213,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         getSwitchPresentationJoint(layoutSwitch, structure.presentationJointNumber)?.location;
     const switchBoundingBox = layoutSwitch
         ? calculateSwitchBoundingBox(
-              switchLocation,
               layoutSwitch.joints.map((joint) => joint.location),
+              switchLocation,
           )
         : undefined;
     const [operationalPoint, operationalPointFetchStatus] = useLoaderWithStatus(
