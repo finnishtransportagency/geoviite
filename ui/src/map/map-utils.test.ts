@@ -67,10 +67,9 @@ describe('calculateOperationalPointBoundingBox', () => {
 describe('calculateSwitchBoundingBox', () => {
     it('centers the focus box on the bounds of all switch joints', () => {
         expect(
-            calculateSwitchBoundingBox(undefined, [
-                { x: 100, y: 200 },
-                { x: 300, y: 600 },
-            ]),
+            calculateSwitchBoundingBox({
+                joints: [{ location: { x: 100, y: 200 } }, { location: { x: 300, y: 600 } }],
+            }),
         ).toEqual({
             x: { min: 22, max: 378 },
             y: { min: 222, max: 578 },
@@ -78,11 +77,11 @@ describe('calculateSwitchBoundingBox', () => {
     });
 
     it('returns no focus box when the switch has no joints', () => {
-        expect(calculateSwitchBoundingBox(undefined, [])).toBeUndefined();
+        expect(calculateSwitchBoundingBox({ joints: [] })).toBeUndefined();
     });
 
-    it('uses the switch location when it has no joints', () => {
-        expect(calculateSwitchBoundingBox({ x: 100, y: 200 }, [])).toEqual({
+    it('uses the fallback location when the switch has no joints', () => {
+        expect(calculateSwitchBoundingBox({ joints: [] }, { x: 100, y: 200 })).toEqual({
             x: { min: -78, max: 278 },
             y: { min: 22, max: 378 },
         });

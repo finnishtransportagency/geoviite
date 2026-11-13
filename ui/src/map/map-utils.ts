@@ -109,13 +109,15 @@ export function calculateOperationalPointBoundingBox(
         : locationBoundingBox || polygonBoundingBox;
 }
 
+// fallbackLocation is used only when the switch is missing or has no joints (e.g. a deleted switch in a preview)
 export function calculateSwitchBoundingBox(
-    location?: Point,
-    jointLocations?: Point[],
+    layoutSwitch?: { joints: { location: Point }[] },
+    fallbackLocation?: Point,
 ): BoundingBox | undefined {
+    const jointLocations = layoutSwitch?.joints.map((joint) => joint.location) ?? [];
     const center =
-        jointLocations === undefined || jointLocations.length === 0
-            ? location
+        jointLocations.length === 0
+            ? fallbackLocation
             : centerForBoundingBox(boundingBoxAroundPoints(jointLocations));
     return center ? calculateBoundingBoxToShowAroundLocation(center) : undefined;
 }
