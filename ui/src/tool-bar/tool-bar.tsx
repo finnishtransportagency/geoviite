@@ -28,7 +28,6 @@ import {
 import { getExternallyChangedOperationalPointIds } from 'track-layout/layout-operational-point-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
-import { getSwitchLocation } from 'track-layout/track-layout-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_DESIGN, VIEW_LAYOUT_DRAFT, userHasPrivilege } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
@@ -244,10 +243,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 break;
 
             case SearchItemType.SWITCH: {
-                const searchArea = calculateSwitchBoundingBox(
-                    getSwitchLocation(item.layoutSwitch),
-                    item.layoutSwitch.joints.map((joint) => joint.location),
-                );
+                const searchArea = calculateSwitchBoundingBox(item.layoutSwitch);
                 if (searchArea) {
                     showArea(searchArea);
                 }

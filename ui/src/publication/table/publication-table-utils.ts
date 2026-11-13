@@ -133,10 +133,7 @@ export const publishedAssetBoundingBox = (
         case 'LOCATION_TRACK':
             return publishedAsset.asset.boundingBox;
         case 'SWITCH':
-            return calculateSwitchBoundingBox(
-                undefined,
-                publishedAsset.asset.joints.map((joint) => joint.location),
-            );
+            return calculateSwitchBoundingBox(publishedAsset.asset);
         case 'KM_POST':
             return publishedAsset.asset.layoutLocation
                 ? calculateBoundingBoxToShowAroundLocation(publishedAsset.asset.layoutLocation)
