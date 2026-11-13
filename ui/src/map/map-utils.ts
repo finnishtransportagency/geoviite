@@ -110,8 +110,8 @@ export function calculateOperationalPointBoundingBox(
 }
 
 export function calculateSwitchBoundingBox(
-    location?: Point,
     jointLocations?: Point[],
+    location?: Point,
 ): BoundingBox | undefined {
     const center =
         jointLocations === undefined || jointLocations.length === 0

@@ -134,7 +134,6 @@ export const publishedAssetBoundingBox = (
             return publishedAsset.asset.boundingBox;
         case 'SWITCH':
             return calculateSwitchBoundingBox(
-                undefined,
                 publishedAsset.asset.joints.map((joint) => joint.location),
             );
         case 'KM_POST':
