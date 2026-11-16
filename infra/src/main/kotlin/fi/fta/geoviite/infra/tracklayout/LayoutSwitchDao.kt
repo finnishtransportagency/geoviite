@@ -565,6 +565,7 @@ class LayoutSwitchDao(
                             and lt.layout_context_id = location_track_external_id.layout_context_id
               where not lt.draft
                 and (lt.design_id is null or lt.design_id = :design_id::int)
+                and coalesce(lt.design_asset_state, 'OPEN') = 'OPEN'
                 and not
                 (:design_id::int is not null
                   and lt.design_id is null
@@ -574,6 +575,7 @@ class LayoutSwitchDao(
                       where overrider_lt.id = lt.id
                         and not overrider_lt.draft
                         and overrider_lt.design_id = :design_id
+                        and coalesce(overrider_lt.design_asset_state, 'OPEN') = 'OPEN'
                    )
                   )
                 and (:switch_ids::int[] is null or lt_s.switch_id = any(:switch_ids))

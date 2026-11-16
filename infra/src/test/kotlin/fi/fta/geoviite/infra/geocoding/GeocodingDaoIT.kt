@@ -165,7 +165,7 @@ constructor(
         // Update the design stuff
         val tnDesignV2 = testDBService.update(tnDesignV1)
         // Also delete one kmpost in the design -> it should be removed from the key
-        testDBService.update(kmp1DesignV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
+        val kmp1DesignV2 = testDBService.update(kmp1DesignV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
         val kmp3DesignV2 = testDBService.update(kmp3DesignV1)
 
         val version2Time = testDBService.layoutChangeTime()
@@ -184,11 +184,12 @@ constructor(
         // --- Version 3
 
         // Transition one design-only km-post to main
-        val kmp3MainV3 = mainOfficialContext.moveFrom(kmp3DesignV2)
+        val kmp3MainV3 = mainOfficialContext.copyFrom(kmp3DesignV2)
+        testDBService.setDesignAssetState(kmp3DesignV2, DesignAssetState.COMPLETED)
         // Mark kmp2 deleted
         testDBService.update(kmp2MainV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
-        // Delete some design-rows (should result in using main ones)
-        kmPostDao.deleteRow(kmp1DesignV1.rowId)
+        // Cancel some design-rows (should result in using main ones)
+        testDBService.setDesignAssetState(kmp1DesignV2, DesignAssetState.CANCELLED)
 
         val version3Time = testDBService.layoutChangeTime()
 
