@@ -222,13 +222,14 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
         val kmPost1MainV2 = testDBService.update(kmPost1MainV1)
         val kmPost1DesignV2 = designOfficialContext.copyFrom(kmPost1MainV1)
         val kmPost2DesignV2 = testDBService.update(kmPost2DesignV1)
-        kmPostDao.deleteRow(kmPost3DesignV1.rowId)
+        testDBService.setDesignAssetState(kmPost3DesignV1, DesignAssetState.CANCELLED)
         val v2Time = kmPostDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        kmPostDao.deleteRow(kmPost1DesignV2.rowId)
-        // Fake publish: update the design as a main-official
-        val kmPost2MainV3 = mainOfficialContext.moveFrom(kmPost2DesignV2)
+        testDBService.setDesignAssetState(kmPost1DesignV2, DesignAssetState.CANCELLED)
+        // Fake publish: copy the design as a main-official and complete it in the design
+        val kmPost2MainV3 = mainOfficialContext.copyFrom(kmPost2DesignV2)
+        testDBService.setDesignAssetState(kmPost2DesignV2, DesignAssetState.COMPLETED)
         val v3Time = kmPostDao.fetchChangeTime()
 
         val kmPost1Id = kmPost1MainV1.id
