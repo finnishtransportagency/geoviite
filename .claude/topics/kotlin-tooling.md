@@ -13,6 +13,6 @@
 ## Detekt
 
 - `./gradlew detekt` does not exist — Detekt runs as a standalone CLI jar in CI, not as a Gradle task.
-- CI workflow (`.github/workflows/detekt.yml`) downloads `detekt-cli-1.23.1-all.jar`, creates a baseline from main, then checks the branch against it — only new violations fail.
+- CI workflow (`.github/workflows/detekt.yml`) downloads the Detekt CLI jar (version pinned there), creates a baseline from main, then checks the branch against it — only new violations fail.
 - To replicate locally: download the jar, run with `--create-baseline` on main, stash/pop, then run again with `--baseline`. Config is at `infra/detekt.yml`.
 - When moving code to a new file, carry any `@Suppress` annotations from the original class/method — they don't follow automatically.

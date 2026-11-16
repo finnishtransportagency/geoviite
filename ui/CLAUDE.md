@@ -13,7 +13,7 @@ All UI-visible text goes here — do not hardcode Finnish strings in component c
 - Each domain has: `*-model.ts` (types), `*-store.ts` (Redux slice), `*-api.ts` (API calls). API calls always go through `*-api.ts`; never fetch directly from components.
 - Four persisted Redux slices (`trackLayout`, `infraModel`, `dataProducts`, `common`). Feature-local state (edit dialogs, linking workflow) lives in per-feature stores, not Redux.
 - Store only IDs in Redux, not full objects. Objects live in `AsyncCache` (`cache/cache.ts`) keyed on `(changeTime, key)`. Change times are polled and flow through Redux to trigger re-renders.
-- Map UI is in `map/` (~85 files, one file per map layer). Side panels in `tool-panel/` and `selection-panel/`.
+- Map UI is in `map/` (one file per map layer). Side panels in `tool-panel/` and `selection-panel/`.
 
 ## Commands (from `ui/`)
 
@@ -34,10 +34,12 @@ npm run scss     # Regenerate typed SCSS module definitions
 ## Redux — What Belongs and What Doesn't
 
 Store in Redux when:
+
 - Multiple disconnected components share the same state (e.g. map selection)
 - State must survive navigation or page refresh
 
 Do **not** store in Redux:
+
 - State derivable from existing Redux state
 - Form state initialized from fetched data (breaks on cache refresh)
 - Transient UI state: dropdowns open/closed, dialog visibility, in-flight request status

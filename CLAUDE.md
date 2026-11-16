@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 Geoviite is a web application for the Finnish Transport Infrastructure Agency (Väylävirasto). It maintains the **positioning base** (paikannuspohja) — the authoritative unified representation of Finland's national railway network — and synchronizes it to RATKO, the national rail asset registry.
@@ -10,11 +8,11 @@ Geoviite is a web application for the Finnish Transport Infrastructure Agency (V
 
 Everything in the codebase revolves around three representations of the same physical track:
 
-| Representation | Format | Coordinate system |
-|---|---|---|
-| **Geometry plans** (GeometryPlan) | InfraModel/LandXML — precise lines, arcs, Clothoid spirals | Arbitrary, per-plan |
-| **Positioning base / layout** (tracklayout) | Polylines, unified national network | ETRS-TM35FIN |
-| **Address points** | km+meter track addresses (RATKO format) | Track address system |
+| Representation                              | Format                                                     | Coordinate system    |
+| ------------------------------------------- | ---------------------------------------------------------- | -------------------- |
+| **Geometry plans** (GeometryPlan)           | InfraModel/LandXML — precise lines, arcs, Clothoid spirals | Arbitrary, per-plan  |
+| **Positioning base / layout** (tracklayout) | Polylines, unified national network                        | ETRS-TM35FIN         |
+| **Address points**                          | km+meter track addresses (RATKO format)                    | Track address system |
 
 Geometry plans are imported from CAD projects, **linked** to the layout by operators, then the layout is **published** and pushed to RATKO. This three-step flow (import → link → publish) is the core workflow.
 
@@ -33,6 +31,7 @@ Geometry plans are imported from CAD projects, **linked** to the layout by opera
 ## Architecture
 
 Detailed architecture docs live in the subdir CLAUDE files:
+
 - Backend (packages, types, layout context, DB, caching, Spring profiles, auth, error handling): `infra/CLAUDE.md`
 - Frontend (React/Redux structure, fetch pattern, OpenLayers): `ui/CLAUDE.md`
 
@@ -47,21 +46,20 @@ Production releases tag **both** repos at the same version (e.g. `v1.19.0`). The
 ## Git Workflow
 
 - Branch naming: `dev/GVT-{ticket-id}-short-description` (always include a short description)
-- Commit format: `GVT-123 Imperative description of what/why` — no colon after the ticket number. Use `General: ` or other colon-separated prefixes when there is no ticket. Single line only, under 72 characters — no body.
+- Commit format: `GVT-123 Imperative description of what/why` — no colon after the ticket number. Use `General: ` or other colon-separated prefixes when there is no ticket. Single line only, under 72 characters. When the explanation goes over 72 characters, explain briefly why the changes were made in the commit body.
 
 ## Code Conventions (summary)
 
 Full conventions in `CODE_CONVENTIONS.md`. Key points:
 
-- **Language:** All code in English — no Scandinavian characters (ä, ö, å, Ä, Ö, Å) in identifiers, string values, or comments. The only exception is `@JsonProperty` values in ext-api data classes, which use the public API field names (those must still be ääkkönen-free, e.g. `"raiteen_paa"` not `"raiteen_pää"`).
+- **Language:** All code in English — no Scandinavian characters (ä, ö, å, Ä, Ö, Å) in identifiers, string values, or comments. The only exceptions are in ext-api: `@JsonProperty` values use the public API field names and must be ääkkönen-free (e.g. `"raiteen_paa"`), while the Finnish enum string values behind the `FI_` constants (e.g. `FI_MAIN = "pääraide"`) are the published API values and keep their Scandinavian characters.
 - **Design:** Prefer making illegal states unrepresentable via the type system over adding runtime validation and checks.
 - **Kotlin:** Favor named lambda parameters over `it` (except trivial one-liners). Prefer data classes and pure functions. Use `also { }` blocks in tests to scope assertions. SQL keywords lowercase in DAO code.
 - **Kotlin — `parallelStream()`:** Collect all data (especially DB queries) into data classes first, then parallelize only CPU-bound processing. Never access the DB from parallel threads — the connection pool is limited and thread context carries user info needed for DB logging.
-- **Tests:** Unit tests → `*Test.kt` (no DB). Integration tests → `*IT.kt` (real DB, no mocking). E2E tests → `*UI.kt` (Selenium). All JUnit 5. Backtick function names: `` fun `should do thing when condition`() ``. The `*IT.kt` files are often the clearest documentation of what a DAO method is supposed to do.
+- **Tests:** Unit tests → `*Test.kt` (no DB). Integration tests → `*IT.kt` (real DB, no mocking). E2E tests → `*UI.kt` (Selenium). All JUnit 5. Backtick function names: ``fun `should do thing when condition`()``. The `*IT.kt` files are often the clearest documentation of what a DAO method is supposed to do.
 - **TypeScript:** No `any`. Prefer `undefined` over `null`. View components named `*View` / `*Label` etc. to distinguish from domain models.
 - **TypeScript — branded types:** Use `brand()` to make the compiler distinguish types that map to the same primitive. `LocationTrackId` and `LayoutTrackNumberId` are both `String` but must not be mixed.
 - **TypeScript — enum exhaustive matching:** Use `switch` + `exhaustiveMatchingGuard()` helper, not if/else chains. The compiler will warn on unhandled cases when the enum grows.
 - **SQL:** Read ResultSet columns by name, not index. Named params only, never string concatenation. Prefer `timestamptz`.
 - **Formatting:** `ktfmt` (backend, block indent = 4, max width = 120) and `prettier` (frontend) are enforced.
 - **Packages:** Domain-first, not technical-layer. Backend: `camelCase`. Frontend files/folders: `kebab-case`.
-
