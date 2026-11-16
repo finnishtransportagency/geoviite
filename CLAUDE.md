@@ -46,13 +46,13 @@ Production releases tag **both** repos at the same version (e.g. `v1.19.0`). The
 ## Git Workflow
 
 - Branch naming: `dev/GVT-{ticket-id}-short-description` (always include a short description)
-- Commit format: `GVT-123 Imperative description of what/why` — no colon after the ticket number. Use `General: ` or other colon-separated prefixes when there is no ticket. Single line only, under 72 characters. When the explanation goes over 72 characters, explain briefly why the changes were made in the commit body.
+- Commit format: `GVT-123 Imperative description of what/why` — no colon after the ticket number. Use `General: ` or other colon-separated prefixes when there is no ticket. Prefer a subject line under 72 characters. If the explanation doesn't fit, prefer smaller, logically complete commits with short titles. When that isn't practical, briefly explain the changes in the commit body.
 
 ## Code Conventions (summary)
 
 Full conventions in `CODE_CONVENTIONS.md`. Key points:
 
-- **Language:** All code in English — no Scandinavian characters (ä, ö, å, Ä, Ö, Å) in identifiers, string values, or comments. The only exceptions are in ext-api: `@JsonProperty` values use the public API field names and must be ääkkönen-free (e.g. `"raiteen_paa"`), while the Finnish enum string values behind the `FI_` constants (e.g. `FI_MAIN = "pääraide"`) are the published API values and keep their Scandinavian characters.
+- **Language:** All code in English — no Scandinavian characters (ä, ö, å, Ä, Ö, Å) in identifiers, string values, or comments. Exceptions in ext-api: OpenAPI documentation text (`@Operation`, `@Schema`, `@Parameter` descriptions) is Finnish; Finnish enum string values behind the `FI_` constants (e.g. `FI_MAIN = "pääraide"`) are published API values and keep their Scandinavian characters; `@JsonProperty` field names stay ääkkönen-free (e.g. `"raiteen_paa"`).
 - **Design:** Prefer making illegal states unrepresentable via the type system over adding runtime validation and checks.
 - **Kotlin:** Favor named lambda parameters over `it` (except trivial one-liners). Prefer data classes and pure functions. Use `also { }` blocks in tests to scope assertions. SQL keywords lowercase in DAO code.
 - **Kotlin — `parallelStream()`:** Collect all data (especially DB queries) into data classes first, then parallelize only CPU-bound processing. Never access the DB from parallel threads — the connection pool is limited and thread context carries user info needed for DB logging.
