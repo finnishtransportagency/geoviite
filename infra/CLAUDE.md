@@ -118,13 +118,13 @@ Centralized in `error/ApiErrorHandler.kt`. No try/catch in individual controller
 
 Read these only when working in the relevant area — don't read upfront:
 
-| File                                       | Topic                                                            |
-| ------------------------------------------ | ---------------------------------------------------------------- |
-| `geocoding/Geocoding.kt`                   | Geocoding / reverse geocoding math                               |
-| `publication/PublicationDao.kt`            | Publication version pinning, change log, RATKO diff              |
-| `publication/PublicationValidation.kt`     | Validation functions; scan names, read individual ones as needed |
-| `tracklayout/Routing.kt`                   | JGraphT-based routing                                            |
-| `linking/switches/SwitchFittingService.kt` | Switch geometry fitting/scoring                                  |
+| File                                       | Topic                                                                              |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `geocoding/Geocoding.kt`                   | Geocoding / reverse geocoding math                                                 |
+| `publication/PublicationDao.kt`            | Large; grep for what you need. Publication version pinning, change log, RATKO diff |
+| `publication/PublicationValidation.kt`     | Validation functions; scan names, read individual ones as needed                   |
+| `tracklayout/Routing.kt`                   | JGraphT-based routing                                                              |
+| `linking/switches/SwitchFittingService.kt` | Switch geometry fitting/scoring                                                    |
 
 ## Detailed References
 
