@@ -16,11 +16,11 @@ Controllers must follow REST path conventions: use nouns for resources and HTTP 
 **Domain packages (by size/importance):**
 
 - `tracklayout/` — The national track layout. Core entities: `LocationTrack`, `ReferenceLine`, `LayoutSwitch`, `LayoutKmPost`, `LayoutTrackNumber`. Most other packages depend on this.
-- `publication/` — Publication workflow, ~50 validation functions in `PublicationValidation.kt`, RATKO change log. `PublicationDao.kt` (~2800 lines) is the largest and most complex file.
+- `publication/` — Publication workflow, validation functions in `PublicationValidation.kt`, RATKO change log. `PublicationDao.kt` is the largest and most complex file.
 - `geometry/` — InfraModel plan import and geometry elements.
 - `ratko/` — Outbound push to RATKO (one-way, async, scheduled). Exports in dependency order: track numbers → reference lines → location tracks → switches → km posts.
-- `linking/` — Links geometry plan segments to layout tracks. `SwitchFittingService.kt` (~1000 lines) scores candidate switch joint positions.
-- `geocoding/` — Bidirectional address↔coordinate conversion. `Geocoding.kt` (~1300 lines).
+- `linking/` — Links geometry plan segments to layout tracks. `SwitchFittingService.kt` scores candidate switch joint positions.
+- `geocoding/` — Bidirectional address↔coordinate conversion (`Geocoding.kt`).
 - `split/` — Splitting a location track into multiple tracks.
 - `inframodel/` — LandXML parsing and three-level validation (parse error / validation error / warning).
 - `projektivelho/` — Pull-based inbound integration; polls for new InfraModel files for operator review.
@@ -118,13 +118,13 @@ Centralized in `error/ApiErrorHandler.kt`. No try/catch in individual controller
 
 Read these only when working in the relevant area — don't read upfront:
 
-| File                                                     | Topic                                                                |
-| -------------------------------------------------------- | -------------------------------------------------------------------- |
-| `geocoding/Geocoding.kt` (~1200 lines)                   | Geocoding / reverse geocoding math                                   |
-| `publication/PublicationDao.kt` (~2900 lines)            | Publication version pinning, change log, RATKO diff                  |
-| `publication/PublicationValidation.kt` (~1400 lines)     | ~50 validation functions; scan names, read individual ones as needed |
-| `tracklayout/Routing.kt`                                 | JGraphT-based routing                                                |
-| `linking/switches/SwitchFittingService.kt` (~1000 lines) | Switch geometry fitting/scoring                                      |
+| File                                       | Topic                                                            |
+| ------------------------------------------ | ---------------------------------------------------------------- |
+| `geocoding/Geocoding.kt`                   | Geocoding / reverse geocoding math                               |
+| `publication/PublicationDao.kt`            | Publication version pinning, change log, RATKO diff              |
+| `publication/PublicationValidation.kt`     | Validation functions; scan names, read individual ones as needed |
+| `tracklayout/Routing.kt`                   | JGraphT-based routing                                            |
+| `linking/switches/SwitchFittingService.kt` | Switch geometry fitting/scoring                                  |
 
 ## Detailed References
 

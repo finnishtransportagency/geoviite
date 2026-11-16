@@ -24,7 +24,7 @@ Geometry plans are imported from CAD projects, **linked** to the layout by opera
 
 ## Tech Stack
 
-**Backend:** Kotlin, JVM 21, Spring Boot 3 / Spring MVC / Spring Security, PostgreSQL + PostGIS, `NamedParameterJdbcTemplate` (no ORM), Flyway, Caffeine (caching), JGraphT + Dijkstra (routing), GeoTools (coordinate transforms), rtree2 (spatial index), JAXB (InfraModel/LandXML parsing), JWT auth (auth0 java-jwt + jwks-rsa), Detekt (static analysis), ktfmt
+**Backend:** Kotlin, JVM 25, Spring Boot 4 / Spring MVC / Spring Security, PostgreSQL + PostGIS, `NamedParameterJdbcTemplate` (no ORM), Flyway, Caffeine (caching), JGraphT + Dijkstra (routing), GeoTools (coordinate transforms), rtree2 (spatial index), JAXB (InfraModel/LandXML parsing), JWT auth (auth0 java-jwt + jwks-rsa), Detekt (static analysis), ktfmt
 
 **Frontend:** React 19, Redux Toolkit + redux-persist, OpenLayers 10 (map), proj4 (coordinate transforms), i18next (localization), neverthrow, Webpack, Prettier
 

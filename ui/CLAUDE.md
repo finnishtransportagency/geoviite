@@ -25,6 +25,9 @@ npm run build    # Production build
 npm run scss     # Regenerate typed SCSS module definitions
 ```
 
+Before committing, format changed files (CI runs `npm run format:check` on `ui/src`):
+`git diff --name-only --relative --diff-filter=d origin/main -- src | grep -E '\.(js|jsx|ts|tsx|css|scss|html|json)$' | xargs -r npx prettier --write`
+
 ## Fetch / Cache Pattern
 
 - Cache API results with `asyncCache` inside `*-api.ts`; invalidate via change times polled from the backend.
@@ -46,9 +49,7 @@ Do **not** store in Redux:
 
 ## Redux — Container Component Pattern
 
-The original design separates Redux access from presentation: a **container component** reads from the store and passes data down as props to a **pure presentational component**. Example: `KmPostInfoboxContainer` wraps `KmPostInfobox` — the container holds all `useCommonDataAppSelector`/`useTrackLayoutAppSelector` calls; the infobox itself only renders props.
-
-In practice this separation has blurred in several view-level components (e.g. `VerticalGeometryView` both reads Redux and acts as a parent). Without UI unit tests the benefit is mainly theoretical, but new components should aspire to this pattern: keep `useCommonDataAppSelector` and similar Redux hooks in the outermost container, not in deep presentational components.
+Keep Redux selector hooks (`useCommonDataAppSelector`, `useTrackLayoutAppSelector`, ...) in the outermost container component and pass data to presentational components as props, e.g. `KmPostInfoboxContainer` → `KmPostInfobox`. Some existing views (e.g. `VerticalGeometryView`) mix the two; don't copy them.
 
 ## OpenLayers
 
