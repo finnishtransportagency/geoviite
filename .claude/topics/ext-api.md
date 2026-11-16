@@ -8,3 +8,4 @@ These apply whenever working in the ext-api package:
 - **Field name constants go in `ExtTrackLayoutConstantsV1.kt`**, not inline in data class files.
 - **New endpoints must be registered in `ExtTestTrackLayoutV1IT`** for versioning test coverage.
 - **Error throws use helpers from `ExtTrackLayoutExceptionsV1.kt`** (`throwOidTargetNotFound`, `throwLocationTrackNotFound`, etc.) — don't inline equivalent `error()` or `throw` logic.
+- **Local Swagger:** IntelliJ backend with the `ext-api` profile → http://localhost:8080/geoviite/swagger-ui; `./geoviite.sh up ext-api` → http://localhost:9003/geoviite/swagger-ui (ignore the rata-vkm URL the script prints).
