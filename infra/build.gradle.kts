@@ -60,7 +60,7 @@ dependencies {
     constraints {
         // Common libs that come with various versions in transitive deps -> explicitly set the version
         implementation("com.google.errorprone:error_prone_annotations:2.52.0")
-        implementation("com.google.guava:guava:33.7.2-jre")
+        implementation("com.google.guava:guava:33.8.0-jre")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
         implementation("javax.measure:unit-api:2.2")
 
@@ -73,7 +73,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.57.8")
+    implementation("software.amazon.awssdk:cloudfront:2.57.11")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -120,7 +120,7 @@ dependencies {
         exclude("commons-logging", "commons-logging")
         exclude("commons-collections", "commons-collections")
     }
-    implementation("org.aspectj:aspectjweaver:1.9.26")
+    implementation("org.aspectj:aspectjweaver:1.9.27")
     implementation("org.jgrapht:jgrapht-core:1.5.3")
     implementation("com.fasterxml.uuid:java-uuid-generator:5.2.0")
     compileOnly("org.springframework.boot:spring-boot-devtools")
