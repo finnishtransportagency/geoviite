@@ -1,0 +1,23 @@
+name: Notify Slack of Dependabot PRs
+
+on:
+  pull_request:
+    types: [ opened ]
+
+permissions: { }
+
+jobs:
+  notify:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          # Dependabot-triggered workflows only see Dependabot secrets, not Actions secrets
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PR_WEBHOOK_URL }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          jq -n --arg text "Dependabot opened a new PR in $REPO <$URL|$TITLE>" '{text: $text}' \
+            | curl -sSf -H 'Content-Type: application/json' --data @- "$SLACK_WEBHOOK_URL"
