@@ -48,7 +48,7 @@ ext["selenium.version"] = "4.41.0"
 dependencies {
     // Geoviite mainly uses Spring 4 default of Jackson 3 (version managed by spring), but some
     // dependencies also use the older Jackson 2. Versions 2 & 3 can co-exist safely.
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.22.4"))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.23.0"))
 
     // Spring Boot 4.1 manages Jetty core (jetty-bom) at 12.1.10, but wiremock-jetty12:3.13.2 pulls in
     // jetty-ee10-* at 12.0.30, causing NoSuchMethodError (e.g. Environment.ensure) from mixed Jetty versions.
