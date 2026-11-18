@@ -285,9 +285,14 @@ tasks.register<BootRun>("infraTestInteractive") {
     enableAssertions = true
 }
 
+// execfork tasks hold a live Thread (forks) or a Task reference (joins), which the configuration cache can't store
+listOf(JavaExecFork::class, ExecFork::class, ExecJoin::class).forEach { type ->
+    tasks.withType(type.java).configureEach { notCompatibleWithConfigurationCache("execfork plugin") }
+}
+
 tasks.register<JavaExecFork>("infraTest") {
-    group = "application"
-    description = "Runs Geoviite with the local e2e test profiles"
+    group = "e2e"
+    description = "Forks the e2e backend for runE2ETests; stopped when the build ends"
     dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
     main = "fi.fta.geoviite.infra.InfraApplicationKt"
@@ -297,18 +302,18 @@ tasks.register<JavaExecFork>("infraTest") {
     systemProperty("spring.profiles.active", "dev,noauth,ratkotest,e2e,backend")
     systemProperty("spring.datasource.url", "jdbc:postgresql://localhost:5436/geoviite")
 
-    // Give the app a few seconds to start up and listen on its port
     waitForPort = 8080
     waitForOutput = "Preloading caches done"
 }
 tasks.register<ExecJoin>("infraTestStop") {
-    description = "Stops the Geoviite e2e test application"
+    group = "e2e"
+    description = "Stops the forked e2e backend"
     forkTask = tasks.named<JavaExecFork>("infraTest").get()
 }
 
 tasks.register<ExecFork>("uiTest") {
-    group = "application"
-    description = "Starts the UI dev server"
+    group = "e2e"
+    description = "Forks the UI dev server for runE2ETests; stopped when the build ends"
     workingDir = rootProject.projectDir.parentFile
     executable = "ui/start_front.sh"
 
@@ -324,7 +329,8 @@ tasks.register<Exec>("uiDev") {
 }
 
 tasks.register<ExecJoin>("uiTestStop") {
-    description = "Stops the UI dev server"
+    group = "e2e"
+    description = "Stops the forked UI dev server"
     forkTask = tasks.named<ExecFork>("uiTest").get()
 }
 
