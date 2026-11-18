@@ -169,7 +169,7 @@ fun registerDbRun(taskName: String, containerName: String, port: Int) {
     val dbUser = "dev-geouser"
     val dbPassword = "dev-geouser-password"
     tasks.register<Exec>("${taskName}Run") {
-        group = "application"
+        group = "geoviite db"
         description = "Ensures the $containerName database container is running"
         workingDir = rootProject.projectDir.parentFile
         commandLine(
@@ -198,7 +198,7 @@ fun registerDbRun(taskName: String, containerName: String, port: Int) {
         )
     }
     tasks.register<Exec>("${taskName}Stop") {
-        group = "application"
+        group = "geoviite db"
         description = "Ensures the $containerName database container is running"
         workingDir = rootProject.projectDir.parentFile
         commandLine(
@@ -211,7 +211,7 @@ fun registerDbRun(taskName: String, containerName: String, port: Int) {
         )
     }
     tasks.register<Exec>("${taskName}Destroy") {
-        group = "application"
+        group = "geoviite db"
         description = "Ensures the $containerName database container is removed including the image"
         workingDir = rootProject.projectDir.parentFile
         commandLine(
@@ -227,7 +227,7 @@ fun registerDbRun(taskName: String, containerName: String, port: Int) {
         )
     }
     tasks.register<BootRun>("${taskName}Clear") {
-        group = "application"
+        group = "geoviite db"
         description = "Cleans and reinitializes the $containerName database container"
         dependsOn(tasks.named("classes"), tasks.named("${taskName}Run"))
         classpath = sourceSets["main"].runtimeClasspath
@@ -244,7 +244,7 @@ registerDbRun("devDb", "geoviite-db", 5435)
 registerDbRun("testDb", "geoviite-test-db", 5436)
 
 tasks.register<BootRun>("infraDev") {
-    group = "application"
+    group = "geoviite run"
     description = "Runs Geoviite with the local backend profile"
     dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
@@ -254,7 +254,7 @@ tasks.register<BootRun>("infraDev") {
     enableAssertions = true
 }
 tasks.register<BootRun>("apiDev") {
-    group = "application"
+    group = "geoviite run"
     description = "Runs Geoviite with the external API profile"
     dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
@@ -264,7 +264,7 @@ tasks.register<BootRun>("apiDev") {
     enableAssertions = true
 }
 tasks.register<BootRun>("appDev") {
-    group = "application"
+    group = "geoviite run"
     description = "Runs Geoviite with the local backend and external API profiles"
     dependsOn(tasks.named("classes"), tasks.named("devDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
@@ -274,7 +274,7 @@ tasks.register<BootRun>("appDev") {
     enableAssertions = true
 }
 tasks.register<BootRun>("infraTestInteractive") {
-    group = "application"
+    group = "geoviite run"
     description = "Runs Geoviite with the local e2e test profiles"
     dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
@@ -291,7 +291,7 @@ listOf(JavaExecFork::class, ExecFork::class, ExecJoin::class).forEach { type ->
 }
 
 tasks.register<JavaExecFork>("infraTest") {
-    group = "e2e"
+    group = "geoviite test internal"
     description = "Forks the e2e backend for runE2ETests; stopped when the build ends"
     dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
@@ -306,13 +306,13 @@ tasks.register<JavaExecFork>("infraTest") {
     waitForOutput = "Preloading caches done"
 }
 tasks.register<ExecJoin>("infraTestStop") {
-    group = "e2e"
+    group = "geoviite test internal"
     description = "Stops the forked e2e backend"
     forkTask = tasks.named<JavaExecFork>("infraTest").get()
 }
 
 tasks.register<ExecFork>("uiTest") {
-    group = "e2e"
+    group = "geoviite test internal"
     description = "Forks the UI dev server for runE2ETests; stopped when the build ends"
     workingDir = rootProject.projectDir.parentFile
     executable = "ui/start_front.sh"
@@ -322,20 +322,20 @@ tasks.register<ExecFork>("uiTest") {
 }
 
 tasks.register<Exec>("uiDev") {
-    group = "application"
+    group = "geoviite run"
     description = "Starts the UI dev server"
     workingDir = rootProject.projectDir.parentFile
     executable = "ui/start_front.sh"
 }
 
 tasks.register<ExecJoin>("uiTestStop") {
-    group = "e2e"
+    group = "geoviite test internal"
     description = "Stops the forked UI dev server"
     forkTask = tasks.named<ExecFork>("uiTest").get()
 }
 
 tasks.register<Test>("runIntegrationTests") {
-    group = "verification"
+    group = "geoviite test"
     description = "Starts the local test database and runs integration tests"
     dependsOn(tasks.named("testDbRun"))
     finalizedBy(tasks.named("testDbStop"))
@@ -348,7 +348,7 @@ tasks.register<Test>("runIntegrationTests") {
 }
 
 tasks.register<Test>("runUnitTests") {
-    group = "verification"
+    group = "geoviite test"
     description = "Runs unit tests"
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
@@ -360,7 +360,7 @@ tasks.register<Test>("runUnitTests") {
 }
 
 tasks.register<Test>("runE2ETests") {
-    group = "verification"
+    group = "geoviite test"
     description = "Runs e2e tests"
     dependsOn(tasks.named("infraTest"), tasks.named("uiTest"))
     finalizedBy(tasks.named("uiTestStop"), tasks.named("infraTestStop"))
