@@ -199,7 +199,7 @@ fun registerDbRun(taskName: String, containerName: String, port: Int) {
     }
     tasks.register<Exec>("${taskName}Stop") {
         group = "geoviite db"
-        description = "Ensures the $containerName database container is running"
+        description = "Stops the $containerName database container"
         workingDir = rootProject.projectDir.parentFile
         commandLine(
             "bash",
@@ -275,7 +275,7 @@ tasks.register<BootRun>("appDev") {
 }
 tasks.register<BootRun>("infraTestInteractive") {
     group = "geoviite run"
-    description = "Runs Geoviite with the local e2e test profiles"
+    description = "Runs Geoviite against the test DB with the e2e profiles, for running single UI tests"
     dependsOn(tasks.named("classes"), tasks.named("testDbRun"))
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("fi.fta.geoviite.infra.InfraApplicationKt")
