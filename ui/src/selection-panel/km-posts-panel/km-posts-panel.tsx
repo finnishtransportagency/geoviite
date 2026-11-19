@@ -26,48 +26,41 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
 
-    const [kmPostsCount, setKmPostsCount] = React.useState(0);
-    const [visibleKmPosts, setVisibleKmPosts] = React.useState([] as LayoutKmPost[]);
-    React.useEffect(() => {
-        if (kmPosts) {
-            const sortedPosts = [...kmPosts].sort(
-                (a, b) => parseInt(a.kmNumber) - parseInt(b.kmNumber),
-            );
-
-            setVisibleKmPosts(sortedPosts.length < max + 1 ? sortedPosts : []);
-            setKmPostsCount(sortedPosts.length);
-        } else {
-            setVisibleKmPosts([]);
-            setKmPostsCount(0);
-        }
-    }, [kmPosts]);
+    const sortedKmPosts = React.useMemo(
+        () => [...(kmPosts ?? [])].sort((a, b) => parseInt(a.kmNumber) - parseInt(b.kmNumber)),
+        [kmPosts],
+    );
+    const kmPostsCount = sortedKmPosts.length;
+    const visibleKmPosts = kmPostsCount <= max ? sortedKmPosts : [];
 
     return (
-        <div>
-            <ol className={styles['km-posts-panel__km-posts']}>
-                {visibleKmPosts.map((kmPost) => {
-                    const isSelected = selectedKmPosts?.some(
-                        (selectedPost) => selectedPost === kmPost.id,
-                    );
-                    const status = () => {
-                        if (disabled) return KmPostBadgeStatus.DISABLED;
-                        else if (isSelected) return KmPostBadgeStatus.SELECTED;
-                        else return undefined;
-                    };
-                    return (
-                        <li key={kmPost.id}>
-                            <KmPostBadge
-                                kmPost={kmPost}
-                                onClick={() => onToggleKmPostSelection(kmPost)}
-                                status={status()}
-                                trackNumber={trackNumbers?.find(
-                                    (tn) => tn.id === kmPost.trackNumberId,
-                                )}
-                            />
-                        </li>
-                    );
-                })}
-            </ol>
+        <>
+            {0 < kmPostsCount && kmPostsCount <= max && (
+                <ol className={styles['km-posts-panel__km-posts']}>
+                    {visibleKmPosts.map((kmPost) => {
+                        const isSelected = selectedKmPosts?.some(
+                            (selectedPost) => selectedPost === kmPost.id,
+                        );
+                        const status = () => {
+                            if (disabled) return KmPostBadgeStatus.DISABLED;
+                            else if (isSelected) return KmPostBadgeStatus.SELECTED;
+                            else return undefined;
+                        };
+                        return (
+                            <li key={kmPost.id}>
+                                <KmPostBadge
+                                    kmPost={kmPost}
+                                    onClick={() => onToggleKmPostSelection(kmPost)}
+                                    status={status()}
+                                    trackNumber={trackNumbers?.find(
+                                        (tn) => tn.id === kmPost.trackNumberId,
+                                    )}
+                                />
+                            </li>
+                        );
+                    })}
+                </ol>
+            )}
             {kmPostsCount > max && (
                 <span className={styles['km-posts-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
@@ -79,6 +72,6 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
                     'selection-panel.no-results',
                 )}`}</span>
             )}
-        </div>
+        </>
     );
 };
