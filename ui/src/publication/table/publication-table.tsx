@@ -16,6 +16,8 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useAppNavigate } from 'common/navigate';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
+import { BoundingBox } from 'model/geometry';
+import { OnSelectOptions } from 'selection/selection-model';
 import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 
 export type PublicationTableProps = {
@@ -80,6 +82,15 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
             navigate('publication-view', publicationId);
         },
         [delegates],
+    );
+
+    const showOnMap = React.useCallback(
+        (area: BoundingBox, selection: OnSelectOptions) => {
+            delegates.onSelect(selection);
+            delegates.showArea(area);
+            navigate('track-layout');
+        },
+        [delegates, navigate],
     );
 
     return (
@@ -149,6 +160,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             sortInfo={sortInfo}
                             sortByProp={sortByProp}
                         />
+                        <Th className={styles['publication-table__header--map']}></Th>
                     </tr>
                 </thead>
                 <tbody>
@@ -171,6 +183,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             detailsVisibleToggle={publicationItemDetailsVisibilityToggle}
                             displayItemHistory={displaySingleItemHistory}
                             displaySinglePublication={displaySinglePublication}
+                            showOnMap={showOnMap}
                             publicationDisplayMode={publicationDisplayMode}
                         />
                     ))}

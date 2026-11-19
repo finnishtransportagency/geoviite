@@ -3,8 +3,23 @@
 .publication-table {
     position: relative;
 
+    td,
+    thead.publication-table__table-header > tr > th,
+    .publication-table-details > thead > tr > th {
+        padding: 10px 12px;
+    }
     &__row {
         white-space: pre-wrap;
+    }
+
+    &__row:hover {
+        outline: 3px solid vayla-design.$color-blue-lighter;
+        outline-offset: -3px;
+    }
+
+    &__row--loading,
+    &__row--loading a {
+        cursor: progress;
     }
 
     &__row--details-are-visible > td {
@@ -102,33 +117,39 @@
     &__header--message {
         width: auto;
     }
+
+    &__header--map {
+        width: 80px;
+    }
+
+    &__icon-button {
+        vertical-align: top;
+
+        .icon {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+    }
 }
 
 .publication-table-details {
     zoom: 1;
-
     td {
         background: none;
         border-bottom: none;
         border-top: 1px solid vayla-design.$color-white-dark;
     }
 
-    &__property-header {
+    &__header--property,
+    &__header--old-value,
+    &__header--new-value {
         min-width: 20em;
     }
 
-    &__old-value-header {
-        min-width: 20em;
-    }
-
-    &__new-value-header {
-        min-width: 20em;
-    }
-
-    &__remarks-header {
+    &__header--remarks {
         width: 100%;
     }
-
     &--no-changes {
         padding: 10px 16px;
     }
