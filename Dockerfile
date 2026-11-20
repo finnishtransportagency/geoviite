@@ -45,7 +45,7 @@ FROM ${IMAGE_BASE_FRONTEND_BUILD} AS geoviite-frontend-build
 
 WORKDIR /frontend
 
-COPY ui/package.json ui/package-lock.json ./
+COPY ui/package.json ui/package-lock.json ui/.npmrc ./
 RUN npm ci
 
 COPY \
