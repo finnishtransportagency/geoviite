@@ -4,7 +4,7 @@ cd $(dirname $0)
 set +e
 source "${HOME}/.nvm/nvm.sh"
 set -e
-nvm install --latest-npm
+nvm install
 set +e
 nvm use
 set -e

@@ -12,8 +12,7 @@ echo "Activating NVM in directory..."
 nvm use
 set -e
 
-echo "Using latest NPM..."
-nvm install --latest-npm
+nvm install
 
 echo "Installing NPM dependencies..."
 npm ci
