@@ -71,15 +71,15 @@ dependencies {
 
         // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17 has a vulnerable transitive dependency
         implementation("org.apache.commons:commons-text:1.15.0")
-        implementation("org.apache.commons:commons-lang3:3.21.0")
+        implementation("org.apache.commons:commons-lang3:3.22.0")
 
         // swagger-parser pulls a vulnerable version of rhino -> override with newer version
         testImplementation("org.mozilla:rhino:1.9.2")
     }
 
     // Actual deps
-    implementation("software.amazon.awssdk:cloudfront:2.57.12")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
+    implementation("software.amazon.awssdk:cloudfront:2.59.1")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.87")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
