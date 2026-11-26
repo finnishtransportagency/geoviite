@@ -298,7 +298,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const [modifyMenuOpen, setModifyMenuOpen] = React.useState<boolean>(false);
     const modifyButtonRef = React.useRef<HTMLDivElement>(null);
     const environmentInfo = useEnvironmentInfo();
-    const showBoundaryMoveOption = ['local', 'dev'].includes(
+    const showBoundaryMoveOption = ['local', 'dev', 'test', 'prod'].includes(
         environmentInfo?.environmentName ?? '',
     );
 
