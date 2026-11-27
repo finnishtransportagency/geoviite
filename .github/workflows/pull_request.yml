@@ -21,11 +21,9 @@ jobs:
           fetch-depth: 2 # Fetch history so git diff works reliably
 
       - id: check
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          # Compare the PR head against the base branch (e.g., origin/main)
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" HEAD)
+          # HEAD is the PR merge commit; its first parent is the base branch tip
+          CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD)
 
           # Initialize flags
           FRONTEND=false
