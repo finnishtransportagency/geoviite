@@ -12,6 +12,7 @@ echo "Activating NVM in directory..."
 nvm use
 set -e
 
+echo "Installing Node and bundled npm from .nvmrc..."
 nvm install
 
 echo "Installing NPM Dependencies..."
